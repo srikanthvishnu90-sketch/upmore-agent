@@ -13743,7 +13743,10 @@
       const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
       return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, p2p, p2pRails, counted: charges.concat(refunds) };
     }
-    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"]];
+    // Apple Cash belongs here: the category label above names it ("Zelle, Apple Cash, Venmo and the like")
+    // and the owner's real September person-to-person is $185.00 — Zelle $100.00 + Apple Cash $85.00 — while
+    // this list without it reported $100.00 (K1, 2026-10-12, real-row twins).
+    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"], [/\bapple cash\b/i, "Apple Cash"]];
     function p2pRail(raw) { const d = String(raw || ""); for (const [re, name] of P2P_RAILS) if (re.test(d)) return name; return null; }
     // A completed month's window (C16): the whole month, no this-evening extension — the month is over.
     function reportWindow(key) {

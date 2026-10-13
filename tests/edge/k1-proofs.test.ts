@@ -218,6 +218,8 @@ Deno.test("C16: a stored restaurants cap reports against the real rows; the mont
   assertStringIncludes(r!, "Restaurants budget for October: $0.00 spent of $400.00, $400.00 left.");
   const report = (Budgets as any).monthlyReport(budgets, K1_TX.map((t: any) => ({ ...t, posted_at: t.posted_on, amount: t.amount_cents / 100 })), "2026-09", TZ);
   assert(report && /person-to-person/i.test(report.text), report && report.text);
+  // The report's person-to-person total ties to C1's: $185.00 (Zelle $100.00 + Apple Cash $85.00).
+  assertStringIncludes(report.text, "Person-to-person in September: $185.00 (Zelle $100.00, Apple Cash $85.00).");
 });
 
 Deno.test("C16: the set command in the capability's own words ('Cap restaurants at $400 a month') sets the budget", () => {

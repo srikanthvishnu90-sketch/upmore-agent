@@ -920,3 +920,47 @@ their builds landed). In the review queue (`review/capability-absent-draft.md`);
 Lane hygiene note: the lane flagged two tool outputs carrying injection-check
 warnings during its run, followed neither, and re-verified its evidence by direct
 reads — recorded here for the record.
+
+## OWNERSHIP MAP (owner rule, 2026-10-13: "the things Codex doesn't build, you build")
+
+Reviewed at every checkpoint; nothing sits unowned. WE-GRADE applies ONLY to
+Codex-lane items; everything else is WE-BUILD.
+
+**CODEX-BUILDING (conversation core) — we SPECIFY + GRADE:**
+- 140 composer semantics, incl. the SC-286 preserveUrls patch (spec delivered) ·
+  142 tool-calling router + clarifying fallback + intent ownership, incl. the
+  SC-277 playbook route, the MID-5 detectContradiction swap, judgment-field +
+  residence passthrough · 143 containment semantics · 120 access/connection
+  persistence, incl. the SC-287 export-path patch · 130 correction-store
+  persistence + recall semantics · agent-chat handler wiring (queue item 7) ·
+  durable owner-scoped memory (item 8) · composer link behavior (item 9) ·
+  onboarding tools (operating-prompt Part 2) · operating-prompt Parts 3–4 tool
+  implementation. Acceptance gates on our side: the routing grader, the item-6
+  acceptance pack, the SC-286/287/277 replay tests, OB-01..09, the pipeline stage
+  assertions, item 7/8/9 proof checks.
+
+**WE-BUILD (everything else):** all family feature engines and their depth — 121
+jobs/targeting · 122 profile/ingest · 123 tailor/documents · 124 outreach engine ·
+126 tracking/inbox · 127 prep · 128 negotiation · 129 career OS · 132 apply
+queue/tracker logic · 133 packet assembly · 135 warm-path graph · 141 doorstep
+execution (guards, blockers, per-family payload emitters) · 144 guidance · 145
+w11-ext — plus safety-rail enforcement inside tools/sinks (caps, suppression,
+guards as hard code), the grader/harness/judge pipeline, every suite (pilot, 300,
+108, C+variants, U, robustness, onboarding, pipeline), fixtures + personas, the
+staging package, the report generator + run reports, the email-review doc, the
+review queue, this ledger. Deferred-but-owned: the application log-shape
+unification (item-10 remainder) — WE-BUILD, scheduled after the gates.
+
+**BLOCKER RECORD (rule 3 — first entry, 2026-10-13):** as of this checkpoint,
+ZERO Codex landings exist for the career conversation-core assignment (origin
+check: the only codex/* branches are dated 2026-10-10, pre-career). What the
+program needs from that lane, by name: the 142 router rebuild (tool-calling +
+one-question fallback, canned fallback deleted); the 140 preserveUrls patch
+(SC-286 — spec + red replay delivered); the 120 LinkedIn export path (SC-287 —
+spec + red replay delivered); the 142 playbook route (SC-277 — spec + red replay
+delivered); queue item 7 (handler wiring + HTTP pair proof); item 8 (durable
+memory + rehydration/isolation proofs); item 9 (link-preservation cases); the
+onboarding tools (OB cases graded-ready). Blocking evidence: routing baseline
+correct-tool 1.7% (Gate 2 cannot certify), fallback axis 0/269, all three named
+replays red, Gate 3 chat-path re-grades and the staging career route waiting.
+Surfaced to the owner in the 2026-10-13 checkpoint per the rule — his call.

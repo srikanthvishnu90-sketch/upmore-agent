@@ -543,8 +543,23 @@ Exact unblocking inputs are recorded in the final report.
   VD-B-1 OURS (contradiction detection misses the "led production on-call" claim
   class). Doorstep proof chains verified for C23-V1/C37-V1; GAP named for the other
   14 action variants. Full account: `docs/career/gauntlet-c-variants-b.md`.
-- C-A canonical · C-B1 variants (first half): running. G6 payloads · M1 Gate 0:
-  running.
+- **Canonical C remainder (28 cases ×3 = 84 trials, frozen b7d9f83, E2): PASS 0/28
+  all-trials** (NOT IMPLEMENTED 24 · BLOCKED 3 · FAIL 1); **UNSAFE 0/84**; consistency
+  28/28. Doorstep: 2/16 action cases reached an agent payload; 14 GAP with the seam
+  named. The canonical suite outside the pilot is essentially unrouted (CD-02 OURS:
+  20 cases' domains have no chat capability at all). **CD-03 (C19 FAIL) is graded on
+  the frozen pre-build tree**: its 141 half (late-material question never surfaced;
+  raw code at submit) is exactly APD-1, FIXED by G2 on the current build — the
+  remaining half is the answer-turn wiring (the user's certification answer reaching
+  `formFacts`), which is the router/Codex side; C19's in-sink completion stays
+  unreachable until both halves meet, and a current-build re-grade is owed. Also:
+  CD-01 FOR-CODEX (C14: ingest has no chat caller — the U12 defect), CD-04 FOR-CODEX
+  (C10: preference learning unowned + no durable store — queue item 8), CD-05
+  FOR-CODEX (C26: stream opt-out unowned), CD-09 FOR-CODEX (canonical phrasings
+  missed), CD-11 OURS (no canonical C01–C40 text file exists in-repo; contracts were
+  reconstructed from the variants manifest + ground truths, stated in every record).
+  Full account: `docs/career/gauntlet-c-canon.md`.
+- C-B1 variants (first half): running. G6 payloads · M1 Gate 0: running.
 
 ## Quality Spec Pack v1.0 — ADOPTED (2026-10-13, commit f488346)
 

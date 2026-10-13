@@ -255,8 +255,20 @@
       });
       lines.push(`Across ${ts.length === 1 ? "that budget" : `all ${ts.length} budgets`}: ${money(totalSpent)} spent against ${money(totalCap)} of caps.`);
       if (unc > 0) lines.push(`${money(unc)} of ${w.name} spending wasn't in any category I know, so it isn't in these numbers.`);
+      // C16 on real feeds: person-to-person money usually matches no category at all, so the per-budget naming
+      // above never sees it and the report would leave the person's biggest outflow unnamed. The month's P2P
+      // total is therefore named apart, over every spend row in the window (counted in the totals it belongs
+      // to — a category's tally when it has one, the uncategorized line when it doesn't).
+      const p2pBy = new Map();
+      for (const r of (rows || []).filter((x) => x && Number.isFinite(cents(x)) && cents(x) < 0 && !x.is_pending && !x.is_transfer && usd(x) && inWindow(x, w) && MA.isSpend(x))) {
+        const rail = p2pRail(r.merchant_raw); if (!rail) continue;
+        p2pBy.set(rail, (p2pBy.get(rail) || 0) - cents(r));
+      }
+      const p2pRails = [...p2pBy.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
+      if (p2p > 0) lines.push(`Person-to-person in ${w.name}: ${money(p2p)} (${p2pRails.map(([n2, c]) => `${n2} ${money(c)}`).join(", ")}).`);
       lines.push(TAIL);
-      return { key: w.key, name: w.name, text: lines.join("\n"), budgets: detail, uncategorized_cents: unc, total_spent_cents: totalSpent, total_cap_cents: totalCap };
+      return { key: w.key, name: w.name, text: lines.join("\n"), budgets: detail, uncategorized_cents: unc, total_spent_cents: totalSpent, total_cap_cents: totalCap, p2p_cents: p2p, p2p_rails: p2pRails };
     }
     // Spending this month that matched no category: said as its own total, never guessed into a budget.
     function uncategorized(rows, w, rules) {

@@ -43,6 +43,24 @@
       let s = String(raw || "").toLowerCase();
       s = s.replace(/^(sq \*|paypal \*|tst\*|amzn\*|amazon\*|pp\*|sp \*|py \*)\s*/i, "");
       s = s.replace(/\s+#?\d{3,}.*$/, ""); // trailing store numbers and references
+      // Real bank descriptors carry tails that are not the merchant, and they differ charge to charge, so one
+      // merchant would key as several: a masked account tail ("XXXXX0000"), the charge's own date with the state
+      // code in front of it ("NH 09/22"), and a fresh reference code minted per payment ("AFFIRM * PAY Y8PRUXM0").
+      // A code word is long and carries its digits scattered — one in its first three characters and another
+      // later ("Y8PRUXM0", "3U3M7JEN"); a name never looks like that ("1PASSWORD" and "7ELEVEN" carry a single
+      // leading digit, "MICROSOFT365" carries its digits only at the end — all keep theirs). The first word of
+      // the descriptor is the merchant's own and is never dropped.
+      const toks = s.split(/\s+/), keep = [];
+      for (const t of toks) {
+        if (/^x{2,}\d*$/.test(t)) continue; // masked tail
+        if (/^(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?$/.test(t)) { if (keep.length > 1 && /^[a-z]{2}$/.test(keep[keep.length - 1])) keep.pop(); continue; } // the charge's date, and the state code that rode in front of it
+        if (keep.length >= 1 && t.length >= 6 && !t.includes("*")) { const dig = [...t].map((c, i) => (/\d/.test(c) ? i : -1)).filter(i => i >= 0); if (dig.length >= 2 && dig[0] <= 2 && dig.some(i => i >= 4)) continue; } // per-payment reference code
+        keep.push(t);
+      }
+      // A "WEB ID:" tail is card-network furniture, not the merchant ("ROBINHOOD DEBITS ... WEB ID:"): the
+      // store-number strip above eats it only when a long digit run precedes it, which a masked tail blocks.
+      if (keep.length > 2 && keep[keep.length - 1].replace(/[^a-z]/g, "") === "id" && keep[keep.length - 2].replace(/[^a-z]/g, "") === "web") keep.length -= 2;
+      s = keep.join(" ");
       // A per-charge reference after "*" ("AMAZON PRIME*AB1CD2", "AMZN MKTP US*2K4LM"): a code mixing letters and digits,
       // or a long number, never a name ("GOOGLE *YOUTUBEPREMIUM", "UBER *TRIP", "MICROSOFT*365", "1PASSWORD" keep theirs: a
       // code never has four letters in a row), so one

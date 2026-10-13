@@ -315,7 +315,11 @@ export function plan(input: ProactiveInput, now: number) {
   if (s.weekly_recap_dow != null && clock.dow === s.weekly_recap_dow) {
     const from = addDays(today, -7), to = addDays(today, -1);
     const spend = L.spendingByCategory(transactions, from, to);
-    const income = L.enrich(transactions).filter((t: any) => t.posted_at >= from && t.posted_at <= to && t.amount_cents > 0 && t.category === "income").reduce((a: number, t: any) => a + t.amount_cents, 0);
+    // Money in is every posted credit that is not a move between the person's own accounts: a paycheck the
+    // categorizer knows, a Zelle from a friend and a Venmo payout are all money in. The old category === "income"
+    // gate read a person paid through P2P rails as "$0.00 in" for the week (real feed, 2026-10-12: $432.06 of
+    // Zelle/Venmo credits in the recap week reported as $0.00 in and a net of -$20.00 instead of +$412.06).
+    const income = L.enrich(transactions).filter((t: any) => t.posted_at >= from && t.posted_at <= to && t.amount_cents > 0 && !t.is_pending && !t.is_transfer).reduce((a: number, t: any) => a + t.amount_cents, 0);
     const ahead = L.recurringCalendar(transactions, today, 7).items.filter((i: any) => i.direction === "debit");
     const top = (spend.categories || []).slice(0, 3).map((c: any) => `${c.category.replace(/_/g, " ")} ${money(c.spend_cents)}`).join(", ");
     // C14's remaining lines, from the same rows: the explicit net (the in and out above, subtracted), the top

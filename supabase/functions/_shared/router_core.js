@@ -66,6 +66,24 @@
       let s = String(raw || "").toLowerCase();
       s = s.replace(/^(sq \*|paypal \*|tst\*|amzn\*|amazon\*|pp\*|sp \*|py \*)\s*/i, "");
       s = s.replace(/\s+#?\d{3,}.*$/, ""); // trailing store numbers and references
+      // Real bank descriptors carry tails that are not the merchant, and they differ charge to charge, so one
+      // merchant would key as several: a masked account tail ("XXXXX0000"), the charge's own date with the state
+      // code in front of it ("NH 09/22"), and a fresh reference code minted per payment ("AFFIRM * PAY Y8PRUXM0").
+      // A code word is long and carries its digits scattered — one in its first three characters and another
+      // later ("Y8PRUXM0", "3U3M7JEN"); a name never looks like that ("1PASSWORD" and "7ELEVEN" carry a single
+      // leading digit, "MICROSOFT365" carries its digits only at the end — all keep theirs). The first word of
+      // the descriptor is the merchant's own and is never dropped.
+      const toks = s.split(/\s+/), keep = [];
+      for (const t of toks) {
+        if (/^x{2,}\d*$/.test(t)) continue; // masked tail
+        if (/^(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?$/.test(t)) { if (keep.length > 1 && /^[a-z]{2}$/.test(keep[keep.length - 1])) keep.pop(); continue; } // the charge's date, and the state code that rode in front of it
+        if (keep.length >= 1 && t.length >= 6 && !t.includes("*")) { const dig = [...t].map((c, i) => (/\d/.test(c) ? i : -1)).filter(i => i >= 0); if (dig.length >= 2 && dig[0] <= 2 && dig.some(i => i >= 4)) continue; } // per-payment reference code
+        keep.push(t);
+      }
+      // A "WEB ID:" tail is card-network furniture, not the merchant ("ROBINHOOD DEBITS ... WEB ID:"): the
+      // store-number strip above eats it only when a long digit run precedes it, which a masked tail blocks.
+      if (keep.length > 2 && keep[keep.length - 1].replace(/[^a-z]/g, "") === "id" && keep[keep.length - 2].replace(/[^a-z]/g, "") === "web") keep.length -= 2;
+      s = keep.join(" ");
       // A per-charge reference after "*" ("AMAZON PRIME*AB1CD2", "AMZN MKTP US*2K4LM"): a code mixing letters and digits,
       // or a long number, never a name ("GOOGLE *YOUTUBEPREMIUM", "UBER *TRIP", "MICROSOFT*365", "1PASSWORD" keep theirs: a
       // code never has four letters in a row), so one
@@ -4005,15 +4023,17 @@
         // monthly bills under the radar line included — gets one reminder for that cycle, with its amount, its due
         // date and the exact missed-payment consequence for its kind (BILL_DUE below: a small explicit table by
         // kind, inferred from the merchant/category; never worded per message). A bill the radar above is already
-        // listing for the same charge (same merchant, date and amount), or one another finding already carries at
-        // the same amount and deadline (a renewal alert), is NOT reminded again: one charge is never pushed twice.
+        // listing for the same charge (same merchant, date and amount), or one a renewal alert already carries at
+        // the same amount and deadline, is NOT reminded again: one charge is never pushed twice. Only a renewal
+        // alert suppresses — a status finding that merely names the same charge (a pay-later plan in progress)
+        // is not a due-date reminder and never takes this one's place.
         // The reminder is a standing cadence the person asked for ("never let a bill surprise me"), so it carries
         // cadence_requested like the deadlines do; quiet hours in plan() still hold it. Bill categories only:
         // groceries, dining, transport, shopping and the like are spending, not bills.
         const dueIn3 = new Date(dayMs(input.today) + 3 * DAY).toISOString().slice(0, 10);
         const billItems = calItems.filter(i => i.direction === "debit" && i.on === dueIn3 && BILL_CATEGORIES.has(i.category)
           && !items.some(r => r.merchant === i.merchant && r.on === i.on && r.amount_cents === i.amount_cents)
-          && !out.proactive.some(p => p.amount_cents === i.amount_cents && p.deadline === dayMs(i.on)));
+          && !out.proactive.some(p => (/^renewal:/.test(p.key) || /annual_renewal/.test(p.key)) && p.amount_cents === i.amount_cents && p.deadline === dayMs(i.on)));
         for (const i of billItems) {
           const kind = billKind(i.merchant, i.category), consequence = billConsequence(kind, i.merchant);
           out.proactive.push({ key: `bill_due_3d:${i.merchant}|${i.on}|${i.amount_cents}`,
@@ -8933,8 +8953,16 @@
       raw = label(raw);
       const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|card \d+)\b/gi, " ")
         .replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ")
+        // The charge's own date and a masked account tail ride along in real descriptors ("REBET ... NH 09/22",
+        // "ROBINHOOD DEBITS XXXXX0000"): not part of the merchant's name, and different on every charge, so the
+        // same merchant would otherwise read — and add up — as several.
+        .replace(/\bx{2,}\d*\b/gi, " ").replace(/\b(?:[a-z]{2}\s+)?(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?\b/gi, " ")
         // A phone number's dashes or a store number's slash left alone between spaces ("ACME INC 800-555-0100") are noise.
-        .replace(/(^|\s)[-–\/.]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+        .replace(/(^|\s)[-–\/.:]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim()
+        // A per-payment reference code ("AFFIRM * PAY Y8PRUXM0 ...") is not the merchant either: a long word with
+        // its digits scattered (one in its first three characters, another later) — the same rule as the ledger's
+        // merchant key (33-agent-monitors merchantKey). The first word is the merchant's own and stays.
+        .split(" ").filter((t, i) => { if (i === 0 || t.length < 6) return true; const dig = [...t].map((c, j) => (/\d/.test(c) ? j : -1)).filter((j) => j >= 0); return !(dig.length >= 2 && dig[0] <= 2 && dig.some((j) => j >= 4)); }).join(" ");
       if (!s) return String(raw || "Unknown").trim() || "Unknown";
       return s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (_, a, b) => a + b.toUpperCase());
     }
@@ -9336,7 +9364,9 @@
     function nameOf(raw) {
       const c = MA.classify(raw);
       if (c && c.name) return c.name;
-      const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|ach|ppd|web)\b/gi, " ").replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ").replace(/\s+/g, " ").trim();
+      const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|ach|ppd|web id|web)\b/gi, " ").replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ")
+        // Masked account tails and the charge's own date are not the merchant's name (see 80-money-answers cleanName).
+        .replace(/\bx{2,}\d*\b/gi, " ").replace(/\b(?:[a-z]{2}\s+)?(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?\b/gi, " ").replace(/(^|\s)[-–\/.:]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
       return s ? s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (_, a, b) => a + b.toUpperCase()) : String(raw || "Unknown").trim() || "Unknown";
     }
 
@@ -13518,8 +13548,20 @@
       });
       lines.push(`Across ${ts.length === 1 ? "that budget" : `all ${ts.length} budgets`}: ${money(totalSpent)} spent against ${money(totalCap)} of caps.`);
       if (unc > 0) lines.push(`${money(unc)} of ${w.name} spending wasn't in any category I know, so it isn't in these numbers.`);
+      // C16 on real feeds: person-to-person money usually matches no category at all, so the per-budget naming
+      // above never sees it and the report would leave the person's biggest outflow unnamed. The month's P2P
+      // total is therefore named apart, over every spend row in the window (counted in the totals it belongs
+      // to — a category's tally when it has one, the uncategorized line when it doesn't).
+      const p2pBy = new Map();
+      for (const r of (rows || []).filter((x) => x && Number.isFinite(cents(x)) && cents(x) < 0 && !x.is_pending && !x.is_transfer && usd(x) && inWindow(x, w) && MA.isSpend(x))) {
+        const rail = p2pRail(r.merchant_raw); if (!rail) continue;
+        p2pBy.set(rail, (p2pBy.get(rail) || 0) - cents(r));
+      }
+      const p2pRails = [...p2pBy.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
+      if (p2p > 0) lines.push(`Person-to-person in ${w.name}: ${money(p2p)} (${p2pRails.map(([n2, c]) => `${n2} ${money(c)}`).join(", ")}).`);
       lines.push(TAIL);
-      return { key: w.key, name: w.name, text: lines.join("\n"), budgets: detail, uncategorized_cents: unc, total_spent_cents: totalSpent, total_cap_cents: totalCap };
+      return { key: w.key, name: w.name, text: lines.join("\n"), budgets: detail, uncategorized_cents: unc, total_spent_cents: totalSpent, total_cap_cents: totalCap, p2p_cents: p2p, p2p_rails: p2pRails };
     }
     // Spending this month that matched no category: said as its own total, never guessed into a budget.
     function uncategorized(rows, w, rules) {
@@ -13898,9 +13940,10 @@
 
     // ---- one merchant, trailing windows (Wave 1 C6: "how much am I spending on DoorDash, really?") ----
     // The merchant the words name: what MoneyAnswers.target reads after "on/at/for/with", or a known merchant named
-    // anywhere in the ask. A category ("food") is not a merchant. merchantAsk is the routing predicate: conservative,
-    // a known merchant only, no advice, and never when the compare/cards views take the ask — the chat's money answers
-    // route it as their own kind (money_answers.ts) and answer with merchantSpend.
+    // anywhere in the ask. A category ("food") is not a merchant. merchantAsk is the routing predicate: an explicit
+    // "spending on X" construction always routes (the rows decide, and a no-match answers honestly); a bare mention
+    // needs a known merchant; no advice, and never when the compare/cards views take the ask — the chat's money
+    // answers route it as their own kind (money_answers.ts) and answer with merchantSpend.
     function merchantTermOf(words) {
       const tg = MA.target(words);
       if (tg.kind === "merchant") return tg.term;
@@ -13919,6 +13962,14 @@
       if (!/\bspen(?:d|ds|ding|t)\b/.test(w)) return null;
       const term = merchantTermOf(words);
       if (!term) return null;
+      // The words themselves name the merchant ("how much am I spending on Rebet, really?"): inside a
+      // spending-total question that construction is enough — the person's own rows decide whether the
+      // merchant is theirs, and merchantSpend answers honestly when no charge matches. A merchant who is not
+      // a known brand is still the person's merchant (their top merchant is usually a local or niche name the
+      // brand list has never heard of). The total-question frame is required: outside it, "on X" is usually
+      // not a merchant at all ("show me the math on my safe to spend", "safe to spend $50 on a crypto coin"
+      // are other answers' asks, and they keep going there). A bare name-drop still needs the known list.
+      if (MA.target(words).kind === "merchant" && /^\s*(?:please\s+)?(?:how much|how many|what)\b[^?.!]*\bspen(?:d|ds|ding|t)\b/i.test(words)) return term;
       return MA.MERCHANT_NAMES.some(([, name]) => name && MA.termMatch(name, term)) ? term : null;
     }
     const rangeOf = (from, to) => (from.slice(0, 4) !== to.slice(0, 4) ? `${dateLabel(from, true)}-${dateLabel(to, true)}` : `${dateLabel(from)}-${dateLabel(to)}`);

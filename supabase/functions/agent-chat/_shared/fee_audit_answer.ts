@@ -30,6 +30,11 @@ const ASKS: RegExp[] = [
   /\blist\b[^?.!]*\bmy fees\b/i,
   /\bi paid\b[^?.!]*\bfees\b/i,
   /\bdid i pay\b[^?.!]*\bfees\b/i,
+  // The capability's own headline phrasing (C10: "how much did the bank take from me this year?") names no fee
+  // word at all — the bank taking money IS the fee audit. The take/took family, with the bank or the taking
+  // itself as the anchor.
+  /\bhow much\b[^?.!]*\b(?:bank|account)\b[^?.!]*\b(?:take|took|taken|charge|charged|charging)\b/i,
+  /\bhow much\b[^?.!]*\b(?:take|took|taken)\b[^?.!]*\bfrom me\b/i,
 ];
 export function isFeeAuditAsk(message: string): boolean {
   const m = String(message || "");

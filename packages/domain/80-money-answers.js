@@ -177,8 +177,16 @@
       raw = label(raw);
       const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|card \d+)\b/gi, " ")
         .replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ")
+        // The charge's own date and a masked account tail ride along in real descriptors ("REBET ... NH 09/22",
+        // "ROBINHOOD DEBITS XXXXX0000"): not part of the merchant's name, and different on every charge, so the
+        // same merchant would otherwise read — and add up — as several.
+        .replace(/\bx{2,}\d*\b/gi, " ").replace(/\b(?:[a-z]{2}\s+)?(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?\b/gi, " ")
         // A phone number's dashes or a store number's slash left alone between spaces ("ACME INC 800-555-0100") are noise.
-        .replace(/(^|\s)[-–\/.]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+        .replace(/(^|\s)[-–\/.:]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim()
+        // A per-payment reference code ("AFFIRM * PAY Y8PRUXM0 ...") is not the merchant either: a long word with
+        // its digits scattered (one in its first three characters, another later) — the same rule as the ledger's
+        // merchant key (33-agent-monitors merchantKey). The first word is the merchant's own and stays.
+        .split(" ").filter((t, i) => { if (i === 0 || t.length < 6) return true; const dig = [...t].map((c, j) => (/\d/.test(c) ? j : -1)).filter((j) => j >= 0); return !(dig.length >= 2 && dig[0] <= 2 && dig.some((j) => j >= 4)); }).join(" ");
       if (!s) return String(raw || "Unknown").trim() || "Unknown";
       return s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (_, a, b) => a + b.toUpperCase());
     }

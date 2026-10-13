@@ -117,15 +117,17 @@
         // monthly bills under the radar line included — gets one reminder for that cycle, with its amount, its due
         // date and the exact missed-payment consequence for its kind (BILL_DUE below: a small explicit table by
         // kind, inferred from the merchant/category; never worded per message). A bill the radar above is already
-        // listing for the same charge (same merchant, date and amount), or one another finding already carries at
-        // the same amount and deadline (a renewal alert), is NOT reminded again: one charge is never pushed twice.
+        // listing for the same charge (same merchant, date and amount), or one a renewal alert already carries at
+        // the same amount and deadline, is NOT reminded again: one charge is never pushed twice. Only a renewal
+        // alert suppresses — a status finding that merely names the same charge (a pay-later plan in progress)
+        // is not a due-date reminder and never takes this one's place.
         // The reminder is a standing cadence the person asked for ("never let a bill surprise me"), so it carries
         // cadence_requested like the deadlines do; quiet hours in plan() still hold it. Bill categories only:
         // groceries, dining, transport, shopping and the like are spending, not bills.
         const dueIn3 = new Date(dayMs(input.today) + 3 * DAY).toISOString().slice(0, 10);
         const billItems = calItems.filter(i => i.direction === "debit" && i.on === dueIn3 && BILL_CATEGORIES.has(i.category)
           && !items.some(r => r.merchant === i.merchant && r.on === i.on && r.amount_cents === i.amount_cents)
-          && !out.proactive.some(p => p.amount_cents === i.amount_cents && p.deadline === dayMs(i.on)));
+          && !out.proactive.some(p => (/^renewal:/.test(p.key) || /annual_renewal/.test(p.key)) && p.amount_cents === i.amount_cents && p.deadline === dayMs(i.on)));
         for (const i of billItems) {
           const kind = billKind(i.merchant, i.category), consequence = billConsequence(kind, i.merchant);
           out.proactive.push({ key: `bill_due_3d:${i.merchant}|${i.on}|${i.amount_cents}`,

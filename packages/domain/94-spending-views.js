@@ -273,9 +273,10 @@
 
     // ---- one merchant, trailing windows (Wave 1 C6: "how much am I spending on DoorDash, really?") ----
     // The merchant the words name: what MoneyAnswers.target reads after "on/at/for/with", or a known merchant named
-    // anywhere in the ask. A category ("food") is not a merchant. merchantAsk is the routing predicate: conservative,
-    // a known merchant only, no advice, and never when the compare/cards views take the ask — the chat's money answers
-    // route it as their own kind (money_answers.ts) and answer with merchantSpend.
+    // anywhere in the ask. A category ("food") is not a merchant. merchantAsk is the routing predicate: an explicit
+    // "spending on X" construction always routes (the rows decide, and a no-match answers honestly); a bare mention
+    // needs a known merchant; no advice, and never when the compare/cards views take the ask — the chat's money
+    // answers route it as their own kind (money_answers.ts) and answer with merchantSpend.
     function merchantTermOf(words) {
       const tg = MA.target(words);
       if (tg.kind === "merchant") return tg.term;
@@ -294,6 +295,14 @@
       if (!/\bspen(?:d|ds|ding|t)\b/.test(w)) return null;
       const term = merchantTermOf(words);
       if (!term) return null;
+      // The words themselves name the merchant ("how much am I spending on Rebet, really?"): inside a
+      // spending-total question that construction is enough — the person's own rows decide whether the
+      // merchant is theirs, and merchantSpend answers honestly when no charge matches. A merchant who is not
+      // a known brand is still the person's merchant (their top merchant is usually a local or niche name the
+      // brand list has never heard of). The total-question frame is required: outside it, "on X" is usually
+      // not a merchant at all ("show me the math on my safe to spend", "safe to spend $50 on a crypto coin"
+      // are other answers' asks, and they keep going there). A bare name-drop still needs the known list.
+      if (MA.target(words).kind === "merchant" && /^\s*(?:please\s+)?(?:how much|how many|what)\b[^?.!]*\bspen(?:d|ds|ding|t)\b/i.test(words)) return term;
       return MA.MERCHANT_NAMES.some(([, name]) => name && MA.termMatch(name, term)) ? term : null;
     }
     const rangeOf = (from, to) => (from.slice(0, 4) !== to.slice(0, 4) ? `${dateLabel(from, true)}-${dateLabel(to, true)}` : `${dateLabel(from)}-${dateLabel(to)}`);

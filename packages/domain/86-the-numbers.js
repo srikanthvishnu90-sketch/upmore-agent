@@ -141,7 +141,9 @@
     function nameOf(raw) {
       const c = MA.classify(raw);
       if (c && c.name) return c.name;
-      const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|ach|ppd|web)\b/gi, " ").replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ").replace(/\s+/g, " ").trim();
+      const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|ach|ppd|web id|web)\b/gi, " ").replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ")
+        // Masked account tails and the charge's own date are not the merchant's name (see 80-money-answers cleanName).
+        .replace(/\bx{2,}\d*\b/gi, " ").replace(/\b(?:[a-z]{2}\s+)?(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?\b/gi, " ").replace(/(^|\s)[-–\/.:]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
       return s ? s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (_, a, b) => a + b.toUpperCase()) : String(raw || "Unknown").trim() || "Unknown";
     }
 

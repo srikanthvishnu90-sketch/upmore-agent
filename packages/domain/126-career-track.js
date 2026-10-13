@@ -21,7 +21,7 @@ const CareerTrack = (() => {
   // Quiet-period rule (Doc 2 7.3/7.4 examples: nudge proposed at 10 days, "21 days quiet" ghosted):
   const NUDGE_AFTER_DAYS = 10;
   const GHOST_AFTER_DAYS = 21;
-  // Reapply cooldown default policy (no CIR in the repo carries a cooldown field — see SC-074):
+  // Reapply cooldown default policy (no company file in the repo carries a cooldown field — see SC-074):
   const DEFAULT_COOLDOWN_DAYS = 180;
   const QUIET_HOURS = { start: 22, end: 7 }; // 22:00-07:00 local; low-priority batches to morning
 
@@ -238,10 +238,16 @@ const CareerTrack = (() => {
       if (["Interview rounds", "Final"].includes(r.stage)) interviews++;
       if (evs.some((e) => e.type === "rejection")) rejections7++;
     }
-    for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
-    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    // FIN-E-013: deadlineRadar re-derives the same follow-up from quietReport.
+    // Keep the radar's dated follow-up line (the more informative rendering)
+    // and drop the duplicate nudge line for that company — one event, once.
+    const radar = deadlineRadar(store, [], { now, withinDays: 14 });
+    const radarFollowUps = new Set(radar.filter((d) => d.kind === "follow_up_due").map((d) => normCo(d.company)));
+    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const d of radar) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
-    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${counts.responses_last_7d} responses, ${counts.active_interviews} in interview stages, ${counts.rejections_last_7d} rejections this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${plural(counts.responses_last_7d, "response")}, ${plural(counts.active_interviews, "interview")} in progress, ${plural(counts.rejections_last_7d, "rejection")} this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
     return { counts, next_actions: next, text, generated_at: new Date(now).toISOString() };
   }
   // SC-131: daily digest — same log math over a 24h window, for an active application week.
@@ -333,7 +339,7 @@ const CareerTrack = (() => {
         if (!/deadline/i.test(txt.slice(Math.max(0, m.index - 160), m.index + 60))) continue;
         const d = new Date(Date.UTC(Number(m[3]), MONTHS[lc(m[1])], Number(m[2]), 12, 0, 0));
         const key = cir.company_name + d.toISOString().slice(0, 10); if (seen.has(key)) continue; seen.add(key);
-        if (d.getTime() >= (now || Date.now()) - DAY) out.push({ kind: "cir_deadline", company: cir.company_name || cir.company_id || null, label: `${cir.company_name || cir.company_id} application deadline`, date: d.toISOString().slice(0, 10), days_away: daysBetween(now || Date.now(), d.getTime()), source: "CIR record" });
+        if (d.getTime() >= (now || Date.now()) - DAY) out.push({ kind: "cir_deadline", company: cir.company_name || cir.company_id || null, label: `${cir.company_name || cir.company_id} application deadline`, date: d.toISOString().slice(0, 10), days_away: daysBetween(now || Date.now(), d.getTime()), source: "company file record" });
       }
     }
     return out;
@@ -394,7 +400,7 @@ const CareerTrack = (() => {
     if (app.stage === "Rejected" || terminalEv) {
       const base = terminalEv ? Date.parse(terminalEv.at) : Date.parse(app.applied_at);
       const reopen = base + cooldownDays * DAY;
-      return { company, allowed: now >= reopen, reopen_date: isoDay(reopen), cooldown_days: cooldownDays, reason: `last rejection ${isoDay(base)} + ${cooldownDays}-day default cooldown policy (no CIR cooldown field exists in the repo — policy default, labeled as such)`, source: "application log + default policy" };
+      return { company, allowed: now >= reopen, reopen_date: isoDay(reopen), cooldown_days: cooldownDays, reason: `last rejection ${isoDay(base)} + ${cooldownDays}-day default cooldown policy (no company-file cooldown field exists — policy default, labeled as such)`, source: "application log + default policy" };
     }
     if (!TERMINAL.includes(app.stage)) return { company, allowed: false, reopen_date: null, reason: `an application to ${company} is already open at stage ${app.stage} — duplicate protection (Doc 2 5.4)`, source: "application log" };
     return { company, allowed: true, reason: "prior application is closed with no rejection cooldown" };

@@ -27,7 +27,7 @@ const CareerPackets = (() => {
     for (const s of (cir.values_culture_signals || []).slice(0, 2)) push(s);
     for (const s of ((cir.skills_dist || {}).entries || []).slice(0, 3)) if (s.label) facts.push({ text: `${cir.company_name}: ${s.label} — ${s.note || "named in the company record"}` });
     if (!facts.length && cir.thesis_text) facts.push({ text: cir.thesis_text });
-    return { company: cir.company_name || cir.company, company_id: cir.company_id || null, facts, aiPolicy: cir.aiPolicy || null, source: "CIR-125-schema" };
+    return { company: cir.company_name || cir.company, company_id: cir.company_id || null, facts, aiPolicy: cir.aiPolicy || null, source: "company file" };
   }
 
   // ---- SC-081: Workday-style portal account creation (record + disclosure) ----
@@ -112,7 +112,7 @@ const CareerPackets = (() => {
     const profSkills = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation && !f.unproven).map((f) => f.name.toLowerCase());
     for (const f of (cirT ? cirT.facts : [])) for (const s of Tailor.skillsInText(f.text)) if (!profSkills.includes(s.toLowerCase())) gaps.push({ skill: s, cirFact: f.text });
     const seen = new Set(); const uniq = gaps.filter((g) => !seen.has(g.skill) && seen.add(g.skill));
-    return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No CIR-named skill gap against your proven skills.", proceedIsUserCall: true };
+    return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No skill gap named in this company's file against your proven skills.", proceedIsUserCall: true };
   }
 
   // ---- SC-099: referral hold decision ----
@@ -133,7 +133,7 @@ const CareerPackets = (() => {
     if (people.length < 5) return { ok: false, code: "too_few_targets", text: "A mini-campaign is 5–10 people at one company; fewer than 5 named people were supplied, so nothing was built from invented names." };
     const warmthRank = { alumni: 0, club: 1, major: 2, hometown: 3, cold: 4 };
     const sequenced = people.map((p, i) => ({ seq: i + 1, name: p.name, company: o.company, warmth: p.warmth || "cold", sharedFact: p.sharedFact || null, status: "drafted — awaiting your approval, NOT sent" })).sort((a, b) => (warmthRank[a.warmth] - warmthRank[b.warmth]) || a.seq - b.seq).map((p, i) => ({ ...p, seq: i + 1 }));
-    return { ok: true, kind: "mini_campaign_plan (124 outreach seam, built in 133 — BUG-003)", company: o.company, count: sequenced.length, sequenced, sends: 0, text: `No warm referral path at ${o.company}, so instead of a cold application I built a ${sequenced.length}-person mini-campaign there, sequenced warm to cold. Every draft waits for your approval — nothing has been sent.` };
+    return { ok: true, kind: "mini_campaign_plan", company: o.company, count: sequenced.length, sequenced, sends: 0, text: `No warm referral path at ${o.company}, so instead of a cold application I built a ${sequenced.length}-person mini-campaign there, sequenced warm to cold. Every draft waits for your approval — nothing has been sent.` };
   }
 
   // ---- SC-096: med-school essay packet from real experiences only ----

@@ -83,13 +83,14 @@ test("profile export: facts, connections, tokens by name only; delete path offer
 test("capability status: buckets counted from the rows passed in — proven-live never invented", () => {
   const registry = JSON.parse(fs.readFileSync(path.join(root, "packages/capabilities/registry.json"), "utf8"));
   const caps = registry.capabilities;
-  const expectedTested = caps.filter((c) => c.status === "TESTED").length;
-  const expectedGated = caps.filter((c) => c.status === "GATED").length;
+  // FIN-E-004: the shipped registry is finance-domain only, so a career answer
+  // counts zero of its rows and names none of them — only career rows count.
   const r = O.capabilityStatus({ registryCaps: caps, careerRows: [{ id: "ACCS-001", status: "built", note: "code built" }, { id: "ACCS-004", status: "blocked", note: "owner-gated browser rail" }] });
-  assert.equal(r.built.registry_tested, expectedTested);
+  assert.equal(r.built.registry_tested, 0);
   assert.equal(r.proven_live, 0);
-  assert.equal(r.blocked_count, expectedGated + 1);
+  assert.equal(r.blocked_count, 1);
   assert.match(r.text, /Proven live: 0/);
+  assert.doesNotMatch(r.text, /PAY-|payment_service|finance capabilities/i);
 });
 
 test("reauth dedupe: same source + same expiry sends once however often re-planned; a new expiry sends again", () => {

@@ -60,7 +60,7 @@ const CareerPrep = (() => {
     const sigList = Array.isArray(sigRaw) ? sigRaw : [].concat((sigRaw && sigRaw.stated) || [], (sigRaw && sigRaw.revealed) || []);
     const compNotes = (cir.compensation_notes || []).map((c) => {
       const f = c.fact || c;
-      return { text: factText(f) || factText(c), label: s(c.label || c.source_type || (f && f.source_type) || "CIR comp note"), source: factSource(c) };
+      return { text: factText(f) || factText(c), label: s(c.label || c.source_type || (f && f.source_type) || "company file comp note"), source: factSource(c) };
     }).filter((x) => x.text);
     return {
       company_id: s(cir.company_id), company_name: s(cir.company_name || cir.company_id),
@@ -92,7 +92,7 @@ const CareerPrep = (() => {
     if (!n) {
       return { status: "NO_CIR", company, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
         bar: null, stages: [], emphasis: jdKw.map((k) => ({ point: `JD mentions: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
-        gaps: [`No merged CIR on file for ${company || "this company"} — process stages, hiring bar and comp are NOT claimed.`, "Supply the JD text or merge a CIR for this company to ground a full brief."],
+        gaps: [`No company file on file for ${company || "this company"} — process stages, hiring bar and comp are not claimed.`, "Supply the JD text or add a company file for this company to ground a full brief."],
         sources: [] };
     }
     const emphasis = [
@@ -102,7 +102,7 @@ const CareerPrep = (() => {
     return { status: "OK", company: n.company_name, company_id: n.company_id, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
       bar: n.bar || null, stages: n.stages, emphasis, styles: n.styles, values: n.values.slice(0, 3),
       compNotes: n.compNotes, redFlags: n.redFlags.slice(0, 3),
-      gaps: n.bar ? [] : ["CIR has no hiring-bar summary; bar not claimed."],
+      gaps: n.bar ? [] : ["The company file has no hiring-bar summary; bar not claimed."],
       sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
   }
 
@@ -238,7 +238,7 @@ const CareerPrep = (() => {
     if (/coding|technical screen|online coding/i.test(stageNames) || !n) sets.push({ type: "coding", source: n ? { type: "CIR process_stages", company_id: n.company_id } : { type: "generic_swe_bank" },
       prompts: ["Reverse a linked list in place, then handle cycles.", "Given a stream of events, return the top-K most frequent in the last hour.", "Implement an LRU cache with O(1) get/put."] });
     if (/design/i.test(stageNames)) sets.push({ type: "system_design", source: { type: "CIR process_stages", company_id: n.company_id },
-      prompts: ["Design a notification system for 10M users (a design prompt shape reported for this company's loops — labeled anecdotal in the CIR where applicable).", "Design a multi-tenant quota service.", "Design a URL shortener, then scale reads 100x."] });
+      prompts: ["Design a notification system for 10M users (a design prompt shape reported for this company's loops — labeled anecdotal in the company file where applicable).", "Design a multi-tenant quota service.", "Design a URL shortener, then scale reads 100x."] });
     if (/code.review|pair/i.test(JSON.stringify(n ? [...n.styles.map((x) => x.text), n.bar] : []))) sets.push({ type: "code_review_pairing", source: { type: "CIR interview_styles+hiring_bar_summary", company_id: n.company_id },
       prompts: ["Review a provided diff: find the correctness bug before style issues, say why, propose the fix.", "Pair on a production-like codebase task; narrate trade-offs aloud."] });
     if (!sets.length) sets.push({ type: "coding", source: { type: "generic_swe_bank" }, prompts: ["Two-sum variants with follow-ups toward performance/trade-off discussion."] });
@@ -285,10 +285,25 @@ const CareerPrep = (() => {
     opts = opts || {}; const n = normalizeCir(opts.cir);
     const style = n && n.styles[0] ? n.styles[0] : null;
     return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n,
-      practice_norms_label: n ? "Norms below are from the CIR on file and keep their source labels; community practice-count advice is folklore and is NOT quantified." : "No CIR on file for this company — generic case framework only; no company-specific norms claimed.",
+      practice_norms_label: n ? "Norms below are from the company file on file and keep their source labels; community practice-count advice is folklore and is NOT quantified." : "No company file on file for this company — generic case framework only; no company-specific norms claimed.",
       style: style ? { text: style.text, source_type: style.source && style.source.source_type } : null,
       case_prompt: "Your client is a regional grocery chain whose profits fell 15% last year while revenue grew 5%. Find out why and recommend what to do.",
       framework: ["Clarify the objective and constraints", "Structure: revenue (price x volume x mix) vs costs (COGS, labour, logistics, shrink)", "Hypothesise, then ask for the data that discriminates", "Synthesise: recommendation, risks, next steps"] };
+  }
+  // Case prep plan (SC-185 canonical): the 30-50 practice-case norm is community
+  // folklore, labeled as such; every plan line is plain prose — no function names.
+  function casePrepPlan(opts) {
+    opts = opts || {}; const session = caseSession(opts);
+    const weeks = opts.weeks || 6, perWeek = opts.casesPerWeek || 7;
+    const focuses = ["framework + structuring drills first", "mix of interviewer-led cases + mental-math/market-sizing drills", "mix of interviewer-led cases + mental-math/market-sizing drills", "mix of interviewer-led cases + mental-math/market-sizing drills", "mix of interviewer-led cases + mental-math/market-sizing drills", "timed, interviewer-led, full feedback loop"];
+    const plan = [];
+    for (let w = 1; w <= weeks; w++) plan.push(`Week ${w}: ${perWeek} cases (${focuses[Math.min(w - 1, focuses.length - 1)]}), each answer scored against the case rubric and the gaps re-drilled next session`);
+    return { kind: "case_prep_plan", company: session.company, cir_grounded: session.cir_grounded, company_file_grounded: session.cir_grounded,
+      style: session.style, framework: session.framework, case_prompt: session.case_prompt,
+      practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
+        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files on file do not quantify it. It is a planning target, not a requirement." },
+      schedule: { weeks, sessions_per_week: perWeek, total_cases: weeks * perWeek, inside_norm: weeks * perWeek >= 30 && weeks * perWeek <= 50, plan },
+      text: `Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official). Schedule: ${weeks} weeks, ${perWeek} cases a week, ${weeks * perWeek} total.` };
   }
   function scoreCaseResponse(resp) {
     const low = lc(resp); const checks = {
@@ -309,7 +324,7 @@ const CareerPrep = (() => {
     if (!facts.length) return { name: s(person.name), role: s(person.role || "") || null, company: s(person.company || "") || null,
       status: "UNKNOWN", known: [s(person.role || ""), s(person.company || "")].filter(Boolean),
       brief: [], unknown: ["background and prior roles", "team and focus areas", "public talks or posts"],
-      note: "No public professional facts were supplied for this person, so no bio is invented. Prep from the role and the company CIR instead." };
+      note: "No public professional facts were supplied for this person, so no bio is invented. Prep from the role and the company file instead." };
     return { name: s(person.name), role: s(person.role || "") || null, company: s(person.company || "") || null, status: "OK",
       brief: facts.map((f) => ({ text: s(f.text), source: s(f.source || "provided public fact") })), unknown: [],
       note: "Built only from the public professional facts supplied; nothing inferred about private life." };
@@ -333,13 +348,37 @@ const CareerPrep = (() => {
   // ---------- salary-talk prep (NEGO-002 seam) ----------
   function salaryPrep(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir);
-    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), ranges: [], script: null, note: "No CIR on file — no comp numbers are claimed or invented." };
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), ranges: [], script: null, note: "No company file on file — no comp numbers are claimed or invented." };
     const withFigures = n.compNotes.filter((c) => /\$\s?\d/.test(c.text));
     return { status: withFigures.length ? "OK" : "NO_SOURCED_FIGURE", company: n.company_name,
       ranges: withFigures.map((c) => ({ text: c.text, label: c.label, source_type: c.source && c.source.source_type, source_url: c.source && c.source.source_url })),
       all_comp_notes: n.compNotes.map((c) => ({ text: c.text, label: c.label })),
       script: "“I'm focused on finding the right role and team first. Based on the range published for this role [cite the sourced figure above], I'm comfortable discussing a package in that band once we get there — could you share the band budgeted for this level?”",
-      note: withFigures.length ? "Every figure above is copied from the CIR comp notes with its source label; nothing is estimated." : "The CIR explicitly records that no figure is published for this company — say so, anchor on the role's posted band if the employer shares one, and do not invent a number." };
+      note: withFigures.length ? "Every figure above is copied from the company file comp notes with its source label; nothing is estimated." : "The company file explicitly records that no figure is published for this company — say so, anchor on the role's posted band if the employer shares one, and do not invent a number." };
+  }
+
+  // Coffee-chat prep (SC-182 canonical): who/path/talking points/questions,
+  // grounded in the company file's own values; plain prose only.
+  function coffeeChatPrep(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const c = opts.contact || {};
+    const pathIn = opts.path || [s(c.path || "")].filter(Boolean);
+    const value = n && n.values[0] ? n.values[0].text : null;
+    const talking = [];
+    if (value) talking.push(`What the company says it optimizes for: ${value}`);
+    if (pathIn.length) talking.push(`Their path in: ${pathIn.join(" -> ")} — ask what each step actually taught them.`);
+    if (opts.sharedGround) talking.push(`Real shared ground: ${opts.sharedGround} — open there, briefly, then get out of the way.`);
+    while (talking.length < 3) talking.push("What their team actually spends its week on, and what surprised them most after joining.");
+    const questions = [
+      "What does your team actually spend its week on — and what would surprise an outsider about that split?",
+      n && n.bar ? `The company's stated bar is: ${n.bar} — what separates people who do well from people who prepare generically?` : "What separates people who do well in the interviews from people who prepare generically?",
+      "What did you misunderstand about this role before you started, and when did it click?",
+      "If you were starting again from my seat this semester, what would you do in the next 30 days — and what would you stop doing?",
+      "Who else should I learn from, and may I mention you connected us?",
+    ];
+    return { kind: "coffee_chat_prep", who: { name: s(c.name), role: s(c.role || ""), company: s(c.company || (n && n.company_name) || "") },
+      path: pathIn, talking_points: talking.slice(0, 3), questions,
+      do_not_ask: ["Do not ask for a referral in a first chat — earn the second conversation instead", "Do not ask anything they would have to keep confidential (unreleased products, internal comp, other candidates)", "Do not ask what the role pays — comp questions go to the recruiter, with ranges sourced from the company file only", "Do not pitch yourself for more than 60 seconds total"],
+      company_file_grounded: !!n, cir_grounded: !!n };
   }
 
   // ---------- coffee chat + two-interview + pivot + pack ----------
@@ -355,7 +394,7 @@ const CareerPrep = (() => {
     const sorted = [...(items || [])].sort((a, b) => s(a.time).localeCompare(s(b.time)));
     return { ordered: sorted.map((x, i) => ({ order: i + 1, time: x.time, company: x.brief.company || x.company, brief_status: x.brief.status || "OK" })),
       gap_plan: sorted.length > 1 ? `Between ${sorted[0].time} and ${sorted[sorted.length - 1].time}: 20 min reset (no new material), re-read the second company's bar + your two matched stories, eat, and travel/buffer 30 min.` : "Single interview — standard prep.",
-      note: "Briefs are delivered in interview order; each brief keeps its own CIR grounding/gaps." };
+      note: "Briefs are delivered in interview order; each brief keeps its own company-file grounding and gaps." };
   }
   function rejectionPivot(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir); const f = opts.funnel || {};
@@ -364,7 +403,7 @@ const CareerPrep = (() => {
       "Keep the story bank — stories transfer; only the stage skill changes."];
     return { status: n ? "OK" : "NO_CIR", company: s(f.company || ""), stage: s(f.stage || "") || null,
       cir_bar: n ? n.bar : null, plan,
-      gaps: n ? [] : [`No merged CIR on file for ${s(f.company || "this company")} — the company-specific bar cannot be cited; the plan above is stage-based only.`],
+      gaps: n ? [] : [`No company file on file for ${s(f.company || "this company")} — the company-specific bar cannot be cited; the plan above is stage-based only.`],
       similar_roles: (opts.similar || []).map((x) => ({ company: x.company, cir_grounded: !!x.cir })) };
   }
   function assemblePack(store, parts) {
@@ -481,7 +520,7 @@ const CareerPrep = (() => {
     if (/\b(during|live|feed me|listen in|real interview|while i'?m in)\b/i.test(s(text)) && /\b(answer|assist|help|feed)\b/i.test(s(text))) {
       return { refused: true, ruling: "Owner ruling 2026-10-12: live interview assist is OFF (PREP-008).",
         message: "I can't feed you answers during a real interview — that's off, by decision, not by limitation. What I can do is get you ready: a brief, a scored mock, and drills on the exact round, today.",
-        prep_offer: ["composeBrief", "startMock", "technicalDrills / financeDrill / quantDrill"] };
+        prep_offer: ["a company brief", "a scored mock", "drills on the exact round"] };
     }
     return { refused: false };
   }

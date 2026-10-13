@@ -29,7 +29,7 @@ test("[PATHS] every composed path answer verifies (all numbers traced) and passe
     const ans = CP.answerPath(p, PROFILE, { now: NOW });
     const v = CP.verifyPathAnswer(ans);
     assert.equal(v.ok, true, `${p.id}: verify=${JSON.stringify(v.verify.errors)} lint=${JSON.stringify(v.lint.violations)}`);
-    assert.match(ans.text, /no company CIR/, `${p.id} must label itself as the general-ladder answer`);
+    assert.match(ans.text, /no company file/, `${p.id} must label itself as the general-ladder answer`);
   }
 });
 

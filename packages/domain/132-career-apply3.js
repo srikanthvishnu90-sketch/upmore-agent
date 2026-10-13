@@ -126,7 +126,7 @@ const CareerApply3 = (() => {
         const dates = [...new Set((r.facts || []).flatMap((f) => parseDates(f.claim)))].sort();
         const close = dates.length ? dates[dates.length - 1] : null;
         const days = close ? Math.round((Date.parse(close) - now) / 86400000) : null;
-        entries.push({ company: cir.company_name, route: r.route, status: r.status, close_date: close, days_to_close: days, warn_at: close ? new Date(Date.parse(close) - 14 * 86400000).toISOString().slice(0, 10) : null, state: close == null ? "no dated close in CIR" : days < 0 ? "closed" : days <= 14 ? "WARN — inside 2 weeks" : "open" });
+        entries.push({ company: cir.company_name, route: r.route, status: r.status, close_date: close, days_to_close: days, warn_at: close ? new Date(Date.parse(close) - 14 * 86400000).toISOString().slice(0, 10) : null, state: close == null ? "no dated close in the company file" : days < 0 ? "closed" : days <= 14 ? "WARN — inside 2 weeks" : "open" });
       }
     }
     return entries;

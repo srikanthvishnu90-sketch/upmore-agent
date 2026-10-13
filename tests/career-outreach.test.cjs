@@ -16,6 +16,19 @@ function cand(o) {
     email_confidence: 0.9, email_verification: "verified", last_verified_at: "2026-10-01T00:00:00Z",
     personalization_facts: [{ fact: "spent a year at a search fund before joining Evercore", source_url: "https://example.com/bio", date: "2026-09-01", strength: "strong", topic: "your search-fund-to-Evercore path" }], relationship_to_user: "same school" }, o || {});
 }
+// T-87 replay (FIN-E-002): subject-less verb-phrase facts must render as a
+// grammatical sentence in the draft — never "I saw that worked on a a …".
+test("FIN-E-002 replay: draft personalization clause supplies the subject", () => {
+  const deal = cand({ personalization_facts: [{ fact: "worked on a a sponsor-backed carve-out at Evercore", source_url: "https://example.com/deal", date: "2026-09-01", strength: "strong", kind: "deal", topic: "the a sponsor-backed carve-out work" }] });
+  const d1 = M.draftFor(deal, USER);
+  assert.match(d1.body, /I saw that you worked on a sponsor-backed carve-out at Evercore/);
+  assert.doesNotMatch(d1.body, /\ba a\b|\bthe a\b/);
+  const pres = cand({ personalization_facts: [{ fact: "publishes ML tooling on GitHub (TEST fact)", source_url: "https://example.com/gh", date: "2026-09-01", strength: "strong", kind: "deal", topic: "your open-source work" }] });
+  assert.match(M.draftFor(pres, USER).body, /I saw that you publish ML tooling on GitHub/);
+  const you = cand({ personalization_facts: [{ fact: "you love sailing", source_url: "https://example.com/s", date: "2026-09-01", strength: "strong", kind: "deal", topic: "sailing" }] });
+  assert.match(M.draftFor(you, USER).body, /I saw that you love sailing/);
+});
+
 // MOCK transport (tests only): dedupes by idempotency key like a correct provider adapter must.
 function mockTransport(onSend) {
   const sent = new Map(); const t = { kind: "mock", calls: 0, sent,

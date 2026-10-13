@@ -14,13 +14,13 @@
   await s.agent(`End to end, here's the Datadog referral:\n\nPATH: ${pick.chosen.name} (warmth ${pick.chosen.score} — ${pick.chosen.why.join(", ")}), chosen over Sam Ortiz, who stays held and unburned. Your Oct 10 coffee chat is on record — Priya offered to refer, so the ask is legitimate, and it goes AFTER the chat, never in email one.\n\nTHE ASK (on a card for your yes):\n\n${ask.draft.body}`, { card: { title: "Approval card — referral ask to Priya Nair (Datadog, TEST)", referral_id: ref.referral_id, status: ref.status } });
   await s.user("Approved — send it.");
   G.approveReferral(st, ref.referral_id);
-  await s.agent(`Sent on your approval (TEST rail — no real person contacted). Referral ${ref.referral_id} is now approved_not_sent → waiting on Priya's submission in the portal.`);
+  await s.agent(`Sent on your approval (TEST rail — no real person contacted). Your referral is approved and not yet submitted — waiting on Priya's submission in the portal.`);
   await s.user("Priya just told me she submitted the referral.");
   const ts = Track.createMemoryStore([]); Track.addApplication(ts, { company: "Datadog", role: "Software Engineering Intern", role_family: "SWE", source: "cold", resume_version: "swe-v2", stage: "Submitted" });
   const out = G.markReferralSubmitted(st, ts, Track, ref.referral_id, { at: "2026-10-12T12:00:00Z" });
   await s.tool("135-career-graph.markReferralSubmitted -> 126 application row", out);
   const conv = G.conversionByContact(st);
-  await s.agent(`Tracked. Priya's referral is marked SUBMITTED and written onto your Datadog application row in the tracker: source is now "referred", referred_by "Priya Nair (TEST)", with a referral_submitted event carrying the referral ID as evidence. Application ID: ${out.application.app_id}. Your coffee-chat→referral conversion for Priya now reads ${JSON.stringify(conv["Priya Nair (TEST)"])}.`);
+  await s.agent(`Tracked. Priya's referral is marked SUBMITTED and written onto your Datadog application row in the tracker: source is now "referred", referred by "Priya Nair (TEST)", with a referral-submitted event carrying the referral record as evidence. Your coffee-chat to referral conversion for Priya now reads: ${conv["Priya Nair (TEST)"] ? `${conv["Priya Nair (TEST)"].chats ?? conv["Priya Nair (TEST)"].chats_count ?? 1} chat, ${conv["Priya Nair (TEST)"].referrals ?? conv["Priya Nair (TEST)"].referrals_count ?? 1} referral` : "1 chat, 1 referral"}.`);
   s.verify("referral + application row state (126 store)", { referral_status: ref.status, application_id: ref.application_id, row: { source: out.application.source, referred_by: out.application.referred_by, events: out.application.events.map((e) => e.type) } });
   await s.finish({ status: "COMPLETE", outcome: "Datadog referral run end-to-end: strongest path picked (Sam held), post-chat ask drafted + card-approved, referral marked submitted, and tracked onto the 126 application row (source=referred, referred_by set, referral_submitted event, IDs linked both ways)." });
 })();

@@ -279,7 +279,17 @@ const CareerOutreach = (() => {
     lines.push(`Hi ${first},`);
     let intro = `I'm ${user.name || "a student"}${user.year ? `, a ${user.year}` : ""}${user.school ? ` at ${user.school}` : ""}.`;
     if (strong) {
-      const clause = strong.kind === "referral" ? `${strong.fact}` : `I saw that ${strong.fact}`;
+      // Facts are stored as subject-less verb phrases ("worked on a deal at X",
+      // "publishes ML tooling") — the sentence must supply the subject, or the
+      // draft reads "I saw that worked on a a …" (T-87 sweep, FIN-E-002).
+      const PRESENT3 = /^(publishes|works|writes|leads|runs|teaches|builds|manages|covers)$/i;
+      let fact = String(strong.fact || "").trim().replace(/\b(a|an|the)\s+\1\b/gi, "$1");
+      if (!/^you\b/i.test(fact)) {
+        const w = (fact.split(/\s+/)[0] || "").toLowerCase();
+        if (PRESENT3.test(w)) fact = fact.replace(/^\S+/, /(sh|ch|ss|x|z)es$/.test(w) ? w.slice(0, -2) : w.slice(0, -1));
+        fact = `you ${fact}`;
+      }
+      const clause = strong.kind === "referral" ? `${strong.fact}` : `I saw that ${fact}`;
       intro += ` ${clause}, which is why I wanted to reach out to you specifically.`;
       why.push({ line: clause, fact: strong.fact, source_url: strong.source_url, strength: strong.strength || null, kind: strong.kind || null });
     } else if (tier !== "C") {
@@ -288,7 +298,7 @@ const CareerOutreach = (() => {
     }
     lines.push(intro);
     if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
-    const askTopic = strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`;
+    const askTopic = (strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`).replace(/\bthe a(n)?\b/gi, "the");
     lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
     lines.push(OPT_OUT_LINE);
     lines.push(`Thanks,\n${user.name || ""}${user.school ? ` | ${user.school}` : ""}${user.year_label ? ` ${user.year_label}` : ""}${user.link ? `\n${user.link}` : ""}`);

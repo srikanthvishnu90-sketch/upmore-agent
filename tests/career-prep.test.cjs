@@ -18,7 +18,7 @@ test("composeBrief OK grounded in CIR + JD; NO_CIR invents nothing", () => {
   assert.equal(b.status, "OK"); assert.ok(b.stages.length); assert.ok(b.emphasis.some((e) => /python/i.test(e.point)));
   assert.ok(b.sources[0].type === "CIR");
   const no = P.composeBrief({ company: "Stripe", jdText: "Python APIs" });
-  assert.equal(no.status, "NO_CIR"); assert.equal(no.bar, null); assert.deepEqual(no.stages, []); assert.ok(no.gaps[0].match(/No merged CIR/));
+  assert.equal(no.status, "NO_CIR"); assert.equal(no.bar, null); assert.deepEqual(no.stages, []); assert.ok(no.gaps[0].match(/No company file on file/));
 });
 test("questionBank tags every CIR question with its source; stories matched", () => {
   const store = P.makePrepStore(); P.mineStories(persona.facts).forEach((x) => P.captureStory(store, x));
@@ -65,7 +65,7 @@ test("caseSession labels norms; scoreCaseResponse checks structure", () => {
   const cs = P.caseSession({ cir: bcg }); assert.ok(cs.cir_grounded); assert.match(cs.practice_norms_label, /NOT quantified/);
   const sc = P.scoreCaseResponse("First, clarify the objective: profit fell. I will structure into revenue and costs, hypothesis: costs are the driver because revenue grew. I need data: segment breakdown and trend. I recommend cutting logistics cost as the next step.");
   assert.ok(sc.score_0_5 >= 4, JSON.stringify(sc));
-  const bare = P.caseSession({ company: "McKinsey" }); assert.equal(bare.cir_grounded, false); assert.match(bare.practice_norms_label, /No CIR on file/);
+  const bare = P.caseSession({ company: "McKinsey" }); assert.equal(bare.cir_grounded, false); assert.match(bare.practice_norms_label, /No company file on file/);
 });
 test("interviewerBrief never invents: no facts -> UNKNOWN with explicit unknowns", () => {
   const u = P.interviewerBrief({ name: "Sam Rivera (TEST)", role: "Hiring Manager", company: "Snowflake" });

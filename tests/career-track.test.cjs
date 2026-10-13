@@ -62,6 +62,13 @@ test("digest math: every count recomputed from the seed log rows", () => {
   assert.equal(d.counts.active_interviews, 1); // Datadog
   assert.equal(d.counts.rejections_last_7d, 1); // Goldman Oct 5
   assert.match(d.text, /3 sent this week/);
+  // T-87 replay (FIN-E-001): user-facing digest text carries no raw kind codes
+  // and pluralizes counts — never "follow_up_due Palantir" or "1 rejections".
+  assert.doesNotMatch(d.text, /follow_up_due|assessment_deadline|offer_expiry/);
+  assert.match(d.text, /1 rejection this week/);
+  assert.match(d.text, /Palantir follow-up due \(21 days quiet\)/);
+  assert.match(d.text, /Hudson River Trading assessment deadline: 2026-10-18 \(6 days\)/);
+  assert.match(d.text, /Stripe offer expiry: 2026-10-20 \(8 days\)/);
 });
 test("funnel math: by version / family / source from the log's own rows only", () => {
   const f = T.funnelAnalytics(T.seedTestLog());

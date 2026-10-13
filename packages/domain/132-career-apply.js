@@ -95,7 +95,7 @@ const CareerApply = (() => {
     const allowed = Math.min(requestedCount, remaining);
     return { cap: DAILY_CAP, alreadyToday: already, requested: requestedCount, allowed, queuedForTomorrow: requestedCount - allowed, capped: requestedCount > allowed, message: requestedCount > allowed ? `Capped at ${DAILY_CAP} applications per day: ${allowed} can go today, ${requestedCount - allowed} queue for tomorrow.` : `${requestedCount} application(s) fit inside today's cap of ${DAILY_CAP} (${already} already recorded today).` };
   }
-  function attemptRaiseCap() { return { ok: false, refused: true, cap: DAILY_CAP, reason: `the daily cap of ${DAILY_CAP} cannot be raised in chat — it is a guardrail, not a preference (Doc 2 §5.4)` }; }
+  function attemptRaiseCap() { return { ok: false, refused: true, cap: DAILY_CAP, reason: `the daily cap of ${DAILY_CAP} cannot be raised in chat — it is a guardrail, not a preference` }; }
 
   // ---------- sensitive-answer seam (APPE-005, Doc 2 §5.3 + S6) ----------
   function classifyQuestion(question) {
@@ -139,7 +139,7 @@ const CareerApply = (() => {
     const saved = savedAnswerFor(profile, kind);
     if (saved == null) return { kind, requiresConfirmation: true, savedAnswer: null, entered: false, prompt: `This is a sensitive question and I have no saved answer for it — I will not guess. What should I enter for: "${question}"?` };
     if (o.confirmed === true) return { kind, requiresConfirmation: true, savedAnswer: saved, entered: true, answer: saved, confirmationState: "user-confirmed-in-session" };
-    return { kind, requiresConfirmation: true, savedAnswer: saved, entered: false, prompt: `This one matters — it is a sensitive (T3) answer and I never enter it without your confirmation. Your saved answer is '${saved}' Confirm to use it? [Yes / Edit]` };
+    return { kind, requiresConfirmation: true, savedAnswer: saved, entered: false, prompt: `This one matters — it is a sensitive answer, so this one needs your explicit yes and I never enter it without your confirmation. Your saved answer is '${saved}' Confirm to use it? [Yes / Edit]` };
   }
   // Salary: ask, offer a SOURCED range when one is passed in, default to
   // negotiable/open. A number is entered only when the user approved that
@@ -183,9 +183,9 @@ const CareerApply = (() => {
     const hits = (warmPaths || []).filter((c) => norm(c.current_firm || c.company) === norm(company));
     if (hits.length) {
       const who = hits[0].full_name || hits[0].name;
-      return { warmPathFound: true, company, contacts: hits, who, proposals: [`Hold this application 48 hours and ask ${who} for a referral first`, `Apply now and have ${who} submit the referral in parallel`], trackedSeparately: true, note: "Referred applications are tracked separately from cold applications (Doc 2 §6/§7.5)." };
+      return { warmPathFound: true, company, contacts: hits, who, proposals: [`Hold this application 48 hours and ask ${who} for a referral first`, `Apply now and have ${who} submit the referral in parallel`], trackedSeparately: true, note: "Referred applications are tracked separately from cold applications." };
     }
-    return { warmPathFound: false, company, contacts: [], proposals: ["Apply cold now", `Launch a targeted outreach mini-campaign (Doc 1) of 5–10 people at ${company} first`], trackedSeparately: true };
+    return { warmPathFound: false, company, contacts: [], proposals: ["Apply cold now", `Launch a targeted outreach mini-campaign of 5–10 people at ${company} first`], trackedSeparately: true };
   }
 
   // ---------- batch triage (Doc 2 S3) + batch card (SC-054) ----------
@@ -212,9 +212,28 @@ const CareerApply = (() => {
       return { job_id: p.job_id, company: p.company, role: p.title, decision: "ask", reasons };
     });
   }
-  function batchCard(items, opts) {
+  // Display-name normalization for card assembly (FIN-E-005): known firms keep
+  // the spelling the company itself uses; anything else is trimmed + title-cased.
+  const COMPANY_DISPLAY = { stripe: "Stripe", datadog: "Datadog", ramp: "Ramp", palantir: "Palantir", notion: "Notion", airbnb: "Airbnb", figma: "Figma", duolingo: "Duolingo", snowflake: "Snowflake", hubspot: "HubSpot", github: "GitHub", linkedin: "LinkedIn", openai: "OpenAI", goldman: "Goldman Sachs", "goldman sachs": "Goldman Sachs", "jane street": "Jane Street", "hudson river trading": "Hudson River Trading", "two sigma": "Two Sigma", "citadel securities": "Citadel Securities" };
+  function displayCompany(name) {
+    const clean = String(name == null ? "" : name).trim().replace(/\s+/g, " ");
+    if (!clean) return clean;
+    return COMPANY_DISPLAY[clean.toLowerCase()] || clean.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+  }
+  function batchCard(rawItems, opts) {
     const o = opts || {};
-    return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items: items.map((i) => ({ company: i.company, role: i.role, fit: i.fit != null ? i.fit : null, resumeVersion: i.resumeVersion || null })), count: items.length, note: "Nothing submits before your yes. Each approved application gets its own audit record." };
+    // FIN-E-005: dedupe identical company+role before the card is assembled —
+    // one row per role, however many layers produced it.
+    const seen = new Set(), items = [];
+    for (const i of rawItems || []) {
+      const company = displayCompany(i.company), role = String(i.role == null ? "" : i.role).trim().replace(/\s+/g, " ");
+      const key = `${company.toLowerCase()}::${role.toLowerCase()}`;
+      if (seen.has(key)) continue; seen.add(key);
+      const fit = i.fit != null ? i.fit : null;
+      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null });
+    }
+    const summary = items.map((i) => `${i.company} — ${i.role}: ${i.fit_label}`).join("; ");
+    return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items, count: items.length, summary, note: "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit." };
   }
 
   // ---------- assessment invites (Doc 2 §5.3: NEVER taken for the user) ----------
@@ -226,7 +245,7 @@ const CareerApply = (() => {
       scheduled: { scheduled: true, at: o.scheduleAt || invite.deadline || null, reminder: "prep pack ready before the deadline" },
       prep: ["Timed practice in the assessment's stated format (your own work — practice only)", "Review the profile facts this role was tailored from, so your stories match your resume", "Logistics check: quiet room, charged laptop, deadline in your timezone"],
       takenByAgent: false,
-      rule: "The agent schedules and preps but NEVER takes an assessment for the user (Doc 2 §5.3) — taking it would be dishonest and gets candidates banned.",
+      rule: "The agent schedules and preps but never takes an assessment for the user — taking it would be dishonest and gets candidates banned.",
     };
   }
 
@@ -313,6 +332,6 @@ const CareerApply = (() => {
     });
   }
 
-  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard, handleAssessmentInvite, parseInboxConfirmations, reconcileInbox, checkCooldown, createRule, evaluateRule, nightlySummary, checkWindows };
+  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard, displayCompany, handleAssessmentInvite, parseInboxConfirmations, reconcileInbox, checkCooldown, createRule, evaluateRule, nightlySummary, checkWindows };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerApply;

@@ -5,7 +5,7 @@ Chicago, IL (TEST) | alex.testcase@example.test | +1 555-0100 (TEST)
 GitHub: https://github.com/example-testcase (TEST)
 
 EDUCATION
-TEST University - B.S. Computer Science, GPA 3.7, graduating May 2027
+TEST University - B.S. Computer Science, GPA 3.7, graduating May 2028
 - Coursework: Data Structures, Algorithms, Databases, Probability and Statistics, Corporate Finance
 
 EXPERIENCE

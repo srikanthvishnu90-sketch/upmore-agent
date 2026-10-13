@@ -116,7 +116,7 @@ test("resume ingestion: drafts only, every draft needs_confirmation until confir
 
 test("preferences / constraints / defaults round-trip from the fixture", () => {
   const p = loadFixture();
-  assert.equal(p.constraints.graduationDate, "2027-05");
+  assert.equal(p.constraints.graduationDate, "2028-05");
   assert.equal(p.constraints.needsSponsorship, false);
   assert.equal(p.defaults.demographicPreference, "decline to answer");
   assert.ok(p.preferences.targetCompanies.length >= 1);

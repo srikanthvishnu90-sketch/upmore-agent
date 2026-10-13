@@ -352,9 +352,16 @@ const CareerJobs = (() => {
     const grad = constraintText.match(/graduat\w*[^0-9]*(20\d\d)/i) || byKind("education").map((f) => f.text).join(" ").match(/class of (20\d\d)/i);
     const starred = (prefText.match(/starred companies:\s*([^.;]+)/i) || [])[1];
     const locations = ["New York", "NYC", "Chicago", "San Francisco", "Seattle", "Austin", "Boston", "Remote"].filter((l) => new RegExp(l, "i").test(prefText));
-    return {
+    // Canonical master-profile schema (122-career-profile): structured basics/constraints/preferences
+    // win over prose parsing when present. Added at integration 2026-10-12 so ONE persona fixture
+    // serves both the profile store and fit scoring.
+    const canonSkills = byKind("skill").map((f) => ({ name: String(f.text || "").replace(/^Skill:\s*/i, ""), proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.id || f.fact_id }));
+    const canonGradYear = persona && persona.constraints && persona.constraints.graduationDate ? Number(String(persona.constraints.graduationDate).slice(0, 4)) : null;
+    const canonStarred = persona && persona.preferences && Array.isArray(persona.preferences.targetCompanies) ? persona.preferences.targetCompanies : null;
+    const canonLocations = persona && persona.preferences && Array.isArray(persona.preferences.locations) ? persona.preferences.locations : null;
+    const prof0 = {
       persona_id: persona && persona.persona_id, label: persona && persona.label,
-      skills,
+      skills: (persona && persona.constraints) ? canonSkills : skills,
       degree: (byKind("education")[0] || {}).text || "",
       level: /sophomore|student|class of/i.test(byKind("education").map((f) => f.text).join(" ")) ? "student" : "",
       experience_years: 1,
@@ -372,6 +379,14 @@ const CareerJobs = (() => {
         locations, starred_companies: starred ? starred.split(",").map((x) => x.trim()).filter(Boolean) : [],
       },
     };
+    if (persona && persona.constraints) {
+      if (canonGradYear) { prof0.constraints.graduation_year = canonGradYear; prof0.constraints.graduation_date = String(persona.constraints.graduationDate); }
+      if (typeof persona.constraints.needsSponsorship === "boolean") prof0.constraints.needs_sponsorship = persona.constraints.needsSponsorship;
+      if (persona.constraints.workAuthorization) prof0.constraints.work_authorization = persona.constraints.workAuthorization;
+    }
+    if (canonStarred) prof0.preferences.starred_companies = canonStarred;
+    if (canonLocations) { prof0.preferences.locations = canonLocations; prof0.constraints.locations = canonLocations; }
+    return prof0;
   }
 
   // ---------- shortlist + feedback memory (DISC-006) ----------

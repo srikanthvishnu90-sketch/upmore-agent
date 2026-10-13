@@ -794,3 +794,19 @@ sourced facts. The C-2 conflict sharpened: the breaker IN CODE is 3% while the p
 default is 5%/3-hard — stated as a conflict, not resolved. Every new draft the
 program produces appends to this doc; every checkpoint names it + the count.
 Nothing in it is sent without the owner's approval of the exact text.
+
+## Gate-5 prep package (M6 — COMPLETE as prep, NOT RUN)
+
+`docs/stability/gate5/` (merged 5d89eb1): RUN-PLAN.md (accounts by role; allowlist
+hard-closed to the founder's own two addresses; connect → self-test email
+(arrival-verified) → self-test event → 5-send self campaign → reply → suppression
+proof → kill-switch proof, each with evidence + abort conditions) and run-gate5.cjs
+— a prepared runner that arms ONLY with the owner's fresh per-run token supplied
+twice (flag + env, matching; value never in the repo), re-checks the allowlist
+before every send-shaped call, and FAILs on prose claims (structured state required,
+R-C4). Static-verified: bare/`--explain` exits without network; mismatched token →
+exit 3 pre-network. **Verdict until dependencies D-1…D-7 land (staging deploy —
+owner; item-7 HTTP wiring + structured-state contract — Codex lane; gmail-oauth
+career grant; consent tap — owner; drafts approved as exact batch text; per-run
+go-ahead — owner): NOT RUN.** The five Gate-5 drafts were appended to the master
+email-review doc at integration: **105 drafts awaiting review**.

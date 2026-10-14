@@ -265,6 +265,9 @@ const PATHS = [
 ];
 
 function getPath(id) { return PATHS.find((p) => p.id === id) || null; }
+// The catalogue surface the chat router (142) already calls: id + title per
+// path, in corpus order. Full records stay behind getPath/answerPath.
+function listPaths() { return PATHS.map((p) => ({ id: p.id, title: p.title })); }
 
 // Claims ledger for a path: every number appearing in any sourced field traces to that field's source.
 function pathClaims(path) {
@@ -422,5 +425,5 @@ function majorPopulationRead(postings, lca, opts) {
   return { as_of: now, text, claims, allowed_numbers: [], totals: t, known_vs_anecdotal: { known: "posting population (all live postings, counted) + LCA filing population (aggregate)", anecdotal_claims_made: 0, unknown_named: "majors of actual hires — licensed population dataset not held" } };
 }
 
-const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead };
+const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, listPaths, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead };
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;

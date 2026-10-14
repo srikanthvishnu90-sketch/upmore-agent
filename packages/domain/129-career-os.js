@@ -17,6 +17,16 @@ const CareerOS = (() => {
 
   // salary range stated in a posting's own JD text (the posting IS the source)
   function postingRange(posting) {
+    // Structured form of the same fact: the feed's normalized posting shape
+    // can carry the stated range as { salary: { min, max, period } } instead
+    // of (or alongside) JD prose. It is still the posting's own stated
+    // range — never an inferred or market figure.
+    const sal = posting && posting.salary;
+    if (sal && Number.isFinite(Number(sal.min)) && Number.isFinite(Number(sal.max))) {
+      const lo = Number(sal.min), hi = Number(sal.max);
+      if (/hour/i.test(s(sal.period))) return { low: Math.round(lo * 2080), high: Math.round(hi * 2080), basis: `hourly range $${lo}–$${hi}/hr stated in posting, annualized at 2080h` };
+      return { low: lo, high: hi, basis: "annual range stated in posting" };
+    }
     const t = s(posting && posting.jd_text).replace(/,/g, "");
     let m = t.match(/\$(\d{4,7})\s*-\s*\$(\d{4,7})/); if (m) return { low: Number(m[1]), high: Number(m[2]), basis: "annual range stated in posting" };
     m = t.match(/\$(\d{2,3}(?:\.\d+)?)\s*\/\s*hr/i) || t.match(/\$(\d{2,3}(?:\.\d+)?)\s+per hour/i);
@@ -54,7 +64,11 @@ const CareerOS = (() => {
     paid.sort((a, b) => b.r.high - a.r.high);
     const top = paid.slice(0, Math.max(3, Math.ceil(paid.length / 2)));
     const counts = new Map();
-    for (const { p } of top) for (const sk of skillsIn(p.jd_text + " " + p.title)) { if (have.has(lc(sk))) continue; const c = counts.get(sk) || { skill: sk, postings: 0, examples: [] }; c.postings++; if (c.examples.length < 2) c.examples.push(`${p.company} — ${p.title} (${p.url || "no url"})`); counts.set(sk, c); }
+    // The posting's named requirements are part of the posting's own text
+    // for this scan; a NEGATED requirement line ("No Java requirement
+    // stated") names a non-requirement and is never counted as demand.
+    const scanText = (p) => [s(p.jd_text), s(p.title), ...((Array.isArray(p.requirements) ? p.requirements : []).filter((r) => !/^\s*no\b/i.test(s(r)) && !/not required/i.test(s(r))))].join(" ");
+    for (const { p } of top) for (const sk of skillsIn(scanText(p))) { if (have.has(lc(sk))) continue; const c = counts.get(sk) || { skill: sk, postings: 0, examples: [] }; c.postings++; if (c.examples.length < 2) c.examples.push(`${p.company} — ${p.title} (${p.url || "no url"})`); counts.set(sk, c); }
     const gaps = [...counts.values()].sort((a, b) => b.postings - a.postings || a.skill.localeCompare(b.skill));
     // CIR skills_dist adds grounded demand evidence where present
     const cirSkills = [];
@@ -115,7 +129,11 @@ const CareerOS = (() => {
   function reviewPacket(store, opts) {
     opts = opts || {};
     const wins = [...(store.wins || [])].sort((a, b) => s(a.date).localeCompare(s(b.date)));
-    return { achievements: wins.map((w) => ({ date: w.date, achievement: w.text, outcome: w.outcome || "outcome not stated — add it before the review if you can quantify it" })), count: wins.length, packet_text: wins.length ? wins.map((w) => `• ${w.date} — ${w.text}${w.outcome ? ` (Outcome: ${w.outcome})` : ""}`).join("\n") : "No wins logged yet — text wins as they happen and this packet builds itself.", note: "Assembled only from the wins log — nothing is invented or back-filled." };
+    const packetText = wins.length ? wins.map((w) => `• ${w.date} — ${w.text}${w.outcome ? ` (Outcome: ${w.outcome})` : ""}`).join("\n") : "No wins logged yet — text wins as they happen and this packet builds itself.";
+    // Stored-record provenance: a packet is a record the OS keeps — it
+    // carries its own id, its assembly time (the caller's clock), and its
+    // text under the canonical `text` field alongside `packet_text`.
+    return { id: `packet-${wins.length}`, created_at: opts.now ? new Date(opts.now).toISOString() : null, achievements: wins.map((w) => ({ date: w.date, achievement: w.text, outcome: w.outcome || "outcome not stated — add it before the review if you can quantify it" })), count: wins.length, packet_text: packetText, text: packetText, note: "Assembled only from the wins log — nothing is invented or back-filled." };
   }
 
   // ---------- COS-007 return-offer playbook + intern timeline ----------
@@ -128,7 +146,7 @@ const CareerOS = (() => {
       "Negotiate from evidence (your shipped outcomes + the sourced range), accept or decline on a card-approved draft — never verbally on the spot.",
     ];
     const first90 = [
-      "Days 1–30: rebuild context — team roadmap, your manager's priorities, one small shipped win logged.",
+      "Days 1–30: rebuild context — team roadmap, your manager's priorities, one small shipped win, recorded in the wins log.",
       "Days 31–60: own one scoped project end-to-end; log outcomes in the wins log as they land.",
       "Days 61–90: present results, agree next-half goals with your manager, and start the promotion-evidence file from the wins log.",
     ];

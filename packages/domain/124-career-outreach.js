@@ -51,13 +51,59 @@ const CareerOutreach = (() => {
     ["venture_midwest", /\bventure (analysts?|capital|funds?)\b|\bvc funds?\b/], ["logistics", /\blogistics\b|\bsupply chain\b/],
     ["real_estate_pe", /\breal[- ]estate (pe|private equity)\b/],
   ];
+  // BUG-110 (template-breakup lane): named-firm extraction. A firm the
+  // user NAMED is the target — before this, the first matching set
+  // alias silently replaced it (a "Google" ask planned for Meta,
+  // Apple, Amazon, Netflix; a Houlihan/Jefferies/Rothschild ask
+  // planned for Goldman/Morgan Stanley/JPMorgan/BofA), and an ask
+  // with no alias fell into the vague branch and inherited the
+  // bulge-bracket default as if chosen. The extractor is a recognizer
+  // only: it can return a firm solely when the ask's own words name
+  // it — full name as a phrase, a distinctive first token unique in
+  // the lexicon, a known abbreviation, or (for short tokens like UPS)
+  // the raw capital form, so "follow-ups" never yields UPS.
+  const FIRM_TOKEN_STOP = new Set(["bank", "capital", "partners", "group", "global", "financial", "first", "national", "american", "united", "new", "city", "general", "white", "black", "real", "estate", "property", "securities", "management", "international", "holdings", "company", "fund", "funds", "chicago", "boston", "austin", "dallas", "houston", "seattle", "denver", "atlanta", "miami", "phoenix", "portland", "london", "toronto", "york"]);
+  const FIRM_ABBREV = { bcg: "Boston Consulting Group" };
+  const _firmLexicon = (() => { const names = []; for (const set of Object.values(FIRM_SETS.sets || {})) for (const f of set.firms || []) if (f && f.name && !names.includes(f.name)) names.push(f.name); return names; })();
+  function extractNamedFirms(raw, w) {
+    const firstTokenCount = {};
+    for (const n of _firmLexicon) { const tok = norm(n).split(" ")[0]; if (tok) firstTokenCount[tok] = (firstTokenCount[tok] || 0) + 1; }
+    const hits = [];
+    for (const name of _firmLexicon) {
+      const nn = norm(name);
+      if (!nn) continue;
+      // A one-word name of ≤3 letters (UPS, EY, KKR, TPG, HDR, WSP,
+      // XPO, RXO) matches ONLY in its raw capital form — normalized
+      // prose is full of lookalikes ("follow-ups" is not UPS).
+      if (!nn.includes(" ") && nn.length <= 3) {
+        const m = raw.match(new RegExp("\\b" + nn.toUpperCase() + "\\b"));
+        if (m) hits.push({ name, idx: m.index, nn });
+        continue;
+      }
+      let idx = w.indexOf(" " + nn + " ");
+      if (idx < 0) {
+        const tok = nn.split(" ")[0];
+        if (tok && tok.length >= 4 && firstTokenCount[tok] === 1 && !FIRM_TOKEN_STOP.has(tok)) idx = w.indexOf(" " + tok + " ");
+      }
+      if (idx >= 0) hits.push({ name, idx, nn });
+    }
+    for (const [abbr, full] of Object.entries(FIRM_ABBREV)) if (w.includes(" " + abbr + " ") && !hits.some((h) => h.name === full)) hits.push({ name: full, idx: w.indexOf(" " + abbr + " "), nn: norm(full) });
+    // A shorter name that is the opening phrase of a longer hit at
+    // the same spot (KKR inside "KKR Real Estate") is that hit, not
+    // a second firm.
+    const kept = hits.filter((h) => !hits.some((o) => o !== h && o.idx === h.idx && o.nn.length > h.nn.length && o.nn.startsWith(h.nn)));
+    kept.sort((a, b) => a.idx - b.idx);
+    return kept.map((h) => h.name);
+  }
   function parseTarget(text, profile) {
     profile = profile || {};
     const raw = String(text || ""); const w = " " + norm(raw) + " ";
-    const q = { industry: null, firm_set: null, firms: [], role_family: null, seniority_band: null, geography: null, school_filter: null, background_filters: {}, exclusions: [], count: null, vague: false, proposed_default: null };
+    const q = { industry: null, firm_set: null, firms: [], firms_named: false, firms_source: null, role_family: null, seniority_band: null, geography: null, school_filter: null, background_filters: {}, exclusions: [], count: null, vague: false, proposed_default: null };
     const num = raw.match(/\b(\d{1,4})\b/); q.count = num ? Number(num[1]) : null;
+    const named = extractNamedFirms(raw, w);
     for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
-    if (q.firm_set && FIRM_SETS.sets[q.firm_set]) q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name);
+    if (named.length) { q.firms = named; q.firms_named = true; q.firms_source = "named"; }
+    else if (q.firm_set && FIRM_SETS.sets[q.firm_set]) { q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name); q.firms_source = "set"; }
     if (q.firm_set === "mbb") { q.industry = "consulting"; q.role_family = "consulting"; }
     if (/\bcivil engineers?\b/.test(w)) { q.industry = "engineering"; q.role_family = "civil_engineering"; }
     else if (/\b(ai\/ml|ml engineers?|machine learning)\b/.test(w)) { q.industry = q.industry || "tech"; q.role_family = "ml_engineering"; }
@@ -92,16 +138,28 @@ const CareerOutreach = (() => {
     else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
     const stage = raw.match(/series\s+([A-Z])(?:\s*[-–]\s*([A-Z]))?/i);
     if (stage) { const A = "ABCDEFGH"; const a = A.indexOf(stage[1].toUpperCase()); const b = stage[2] ? A.indexOf(stage[2].toUpperCase()) : a; q.background_filters.startup_stage = A.slice(a, b + 1).split(""); q.industry = q.industry || "startups"; }
-    if (/hiring a first (swe|engineer)/.test(w)) q.background_filters.hiring_first_swe = true;
+    // BUG-110: "seed" is a stage too — a seed-stage founder ask used
+    // to carry no stage filter at all and read as content-free.
+    else if (/\bseed\b/.test(w) && (q.role_family === "founder" || /\bstartups?\b/.test(w))) { q.background_filters.startup_stage = ["Seed"]; q.industry = q.industry || "startups"; }
+    const hf = w.match(/hiring a first (swe|engineer|pm|product manager|designer)/);
+    if (hf) { q.background_filters.hiring_first_swe = true; q.background_filters.hiring_first_role = hf[1]; }
     if (/drop vps|no vps|exclude vps/.test(w)) q.exclusions.push("seniority:vp_plus");
     if (/alumni/.test(w)) q.background_filters.alumni = true;
     q.exclusions.push("geo:EU_UK"); // decided v1 rule, always on
     if (!q.count) q.count = 40;
-    if (!q.firm_set && !Object.keys(q.background_filters).length && !q.school_filter && !q.geography) {
+    if (!q.firm_set && !q.firms_named && !Object.keys(q.background_filters).length && !q.school_filter && !q.geography) {
       q.vague = true;
       q.proposed_default = { industry: "investment_banking", firm_set: "bulge_bracket", role_family: "investment_banking", seniority_band: "analyst_associate", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
-      Object.assign(q, { industry: q.proposed_default.industry, firm_set: q.proposed_default.firm_set, role_family: q.proposed_default.role_family });
+      // BUG-110: the default proposes a FIRM SET only. An ask that
+      // carries its own role or industry (founders of seed startups)
+      // keeps them — the default may not re-dress the user's ask as
+      // an investment-banking ask.
+      Object.assign(q, { industry: q.industry || q.proposed_default.industry, firm_set: q.proposed_default.firm_set, role_family: q.role_family || q.proposed_default.role_family });
+      // BUG-110: the default stays available to list-building, but it
+      // is marked as what it is — a PROPOSAL the user never chose —
+      // so no reply may present these firms as the user's target.
       q.firms = (FIRM_SETS.sets.bulge_bracket ? FIRM_SETS.sets.bulge_bracket.firms.map((f) => f.name) : []);
+      q.firms_source = "default";
     }
     if (!q.seniority_band && q.role_family) q.seniority_band = null;
     return q;

@@ -770,7 +770,14 @@ const CareerPrep = (() => {
     const n = normalizeCir(cirSet ? cirSet[0] : opts.cir); const sess = caseSession(opts);
     const weeks = Math.max(2, Math.min(10, opts.weeks || 6));
     const perWeek = Math.max(5, Math.round(40 / weeks)); const total = perWeek * weeks;
-    return { kind: "case_prep_plan", company: cirSet ? `MBB — ${cirSet.map((c) => (normalizeCir(c) || {}).company_name).filter(Boolean).join(", ")}` : n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
+    // BUG-092 (template-breakup lane): the plan's spoken text names
+    // the SAME target as the record's company field. It used to name
+    // n — the set's FIRST file — so an MBB-wide ask was answered as a
+    // plan "for Bain & Company", a firm the user never singled out
+    // (SC-185). A set is named as the set; a single firm is named
+    // only when the ask named that firm.
+    const companyLabel = cirSet ? `MBB — ${cirSet.map((c) => (normalizeCir(c) || {}).company_name).filter(Boolean).join(", ")}` : n ? n.company_name : (s(opts.company) || null);
+    return { kind: "case_prep_plan", company: companyLabel, cir_grounded: !!n, style: sess.style, framework: sess.framework,
       // BUG-073 (W5): the plan is a prep RECORD — it carries the same
       // status/stages/story-note elements composeBrief's records carry,
       // so the F5 doorstep contract can read it (status mirrors the
@@ -781,7 +788,7 @@ const CareerPrep = (() => {
       practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
         note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files do not quantify it. It is a planning target, not a requirement." },
       sources: cirSet ? cirSet.map((c) => { const cn = normalizeCir(c) || {}; return { type: "CIR", company_id: cn.company_id, as_of: cn.as_of }; }) : n ? [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] : [{ type: "generic_case_framework", label: "No company file on file — generic case framework only; the practice norm is community-reported, not sourced from any firm", as_of: null }],
-      text: `Case prep plan${n ? ` for ${n.company_name}` : ""}: ${total} full practice cases over ${weeks} weeks. Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official).`,
+      text: `Case prep plan${companyLabel ? ` for ${companyLabel}` : ""}: ${total} full practice cases over ${weeks} weeks. Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official).`,
       schedule: { weeks, sessions_per_week: perWeek, total_cases: total, inside_norm: total >= 30 && total <= 50,
         plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each answer scored against the case rubric and the gaps re-drilled next session`) } };
   }

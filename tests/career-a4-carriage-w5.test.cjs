@@ -156,9 +156,21 @@ test("BUG-077 SC-076 bans-AI branch delivers the outline artifact (prepared)", (
   assert.ok(res.artifact && res.artifact.kind === "cover_outline", `SC-076: outline artifact missing: keys=${Object.keys(res)}`);
   assert.equal(res.resultStatus, "prepared");
 });
-test("BUG-077 SC-089 per-firm impact-bullets ask chains to a real tailored artifact", () => {
+test("BUG-077→BUG-111 SC-089 per-firm impact-bullets ask: the named firm is resolved or honestly stopped — never a substitute artifact", () => {
+  // SUPERSEDED by BUG-111 (template-breakup lane, 2026-10-14): the
+  // artifact this test used to demand was produced by tailoring the
+  // pool's top SWE role (Northwind Ledger) under a McKinsey ask — the
+  // true-score judge ruled that substitution the template disease
+  // itself (the SC-096 precedent: the old PASS was the artifact).
+  // McKinsey has a company file but no posting and no board, so the
+  // family's real product for this ask is the typed needs-posting
+  // record: the firm resolved in state, its file carried as payload,
+  // and NO artifact claimed.
   const r = turn("SC-089"); const res = r.result || {};
-  assert.ok(res.artifact && typeof res.artifact === "object", `SC-089: artifact missing: keys=${Object.keys(res)}`);
+  assert.equal(res.intent, "tailor_needs_posting", `SC-089: expected the honest stop, got ${res.intent}`);
+  assert.equal(res.artifact, null, "SC-089: no artifact may be claimed for a firm with no posting");
+  assert.equal(res.company, "McKinsey & Company", `SC-089: resolved firm must ride in typed state: keys=${Object.keys(res)}`);
+  assert.ok(res.payload && res.payload.company_id === "mckinsey", "SC-089: the firm's company file rides as the payload");
 });
 test("BUG-077 SC-097 diff review carries the quoted changes as the review artifact", () => {
   const r = turn("SC-097"); const res = r.result || {};

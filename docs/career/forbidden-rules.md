@@ -1271,8 +1271,8 @@ Source: `docs/bug-ledger.md`, 'Integrator wave 2026-10-14' table.
 ### FR-205 — No product path performs watch → diff → alert end to end
 - **FORBIDDEN:** The product must never claim job alerting it cannot perform: nothing schedules 121's poll/diff, stores a per-user snapshot, or delivers an alert through the product. Twin of the alert-speed G1/G2 rules (FR-244/245).
 - **FROM:** GAP-2026-10-14-JOB-ALERTING — No product path performs watch → diff → alert end to end.
-- **ENFORCEMENT:** UNENFORCED — named product gap; the wiring (host scheduler → 121.poll + diffNew vs stored snapshot → 142 alert branch under the same approval law) is queued as the next landing, with a fail-first poll→diff→alert test owed with it.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-alert-watch.test.cjs 10/10 (W7, BUG-090): module 151 runs 121's real poll -> diff -> gated alert record end to end; live runner proof 2026-10-14: 13 boards, 3,228 postings, one real cycle, status ok.
+- **STATUS:** ENFORCED
 
 ## 10 · Four-vertical briefs (FV-1…FV-11 + keep-guards FV-G1/G2)
 
@@ -1281,32 +1281,32 @@ Source: `~/workspace/your_files/integrator-packs/four-vertical-briefs.md`. Guard
 ### FR-206 — 121 has no Medicine family
 - **FORBIDDEN:** Discovery must never classify clinical postings as Other — or as SWE via company boilerplate — because no Medicine family exists; title-first Medicine patterns outrank the JD-text fallback.
 - **FROM:** FV-1 — 121 has no Medicine family.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-1 (6 clinical titles → 'Medicine'), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-1 (6 clinical titles → 'Medicine'). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-051).
+- **STATUS:** ENFORCED
 
 ### FR-207 — 121 has no Law family
 - **FORBIDDEN:** Discovery must never shelve legal postings as Operations/Marketing/Other because no Law family exists; Law patterns take title priority over the JD fallback.
 - **FROM:** FV-2 — 121 has no Law family.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-2 (5 legal titles → 'Law'), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-2 (5 legal titles → 'Law'). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-051).
+- **STATUS:** ENFORCED
 
 ### FR-208 — Location hard-filter excludes multi-office postings listing the user's city
 - **FORBIDDEN:** A location filter must never treat a multi-office location string as one place and exclude a posting that lists the user's own city (including 'Hybrid - ' prefixes).
 - **FROM:** FV-3 — Location hard-filter excludes multi-office postings listing the user's city.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-3, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-3. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-052).
+- **STATUS:** ENFORCED
 
 ### FR-209 — 123 detectFamily mislabels real JDs (silent 'swe' fallback)
 - **FORBIDDEN:** Tailoring must never silently fall back to 'swe' or let one token ('strategy', 'analyst') outrank the JD's actual family; a wrong family means wrong section order and wrong conventions.
 - **FROM:** FV-4 — 123 detectFamily mislabels real JDs (silent 'swe' fallback).
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-4, currently failing; fix in flight today. SS-7 is the consulting instance (FR-227).
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-4. SS-7 is the consulting instance (FR-227). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-055).
+- **STATUS:** ENFORCED
 
 ### FR-210 — 123 parseJD invents must-have skills from boilerplate and dates
 - **FORBIDDEN:** Requirement extraction must never promote boilerplate or a graduation season ('Spring') or a culture phrase ('spark innovation') into a must-have skill.
 - **FROM:** FV-5 — 123 parseJD invents must-have skills from boilerplate and dates.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-5, currently failing; fix in flight today. SS-8 is the consulting instance (FR-228).
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-5. SS-8 is the consulting instance (FR-228). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-057).
+- **STATUS:** ENFORCED
 
 ### FR-211 — 123 assemble() silently drops every certification fact
 - **FORBIDDEN:** The assembler must never drop a selected certification fact so a credential renders nowhere. Twin of FR-046 (BUG-046) and FR-258 (B6).
@@ -1317,32 +1317,32 @@ Source: `~/workspace/your_files/integrator-packs/four-vertical-briefs.md`. Guard
 ### FR-212 — Eligibility never checks credential/degree knockouts (RN license, JD, MA cert) — SAFETY
 - **FORBIDDEN:** Eligibility must never return 'submit' for a candidate who lacks a posting's required license, degree, or certification (an unlicensed nursing student on RN roles; an undergraduate on a JD-required role). SAFETY.
 - **FROM:** FV-7 — Eligibility never checks credential/degree knockouts (RN license, JD, MA cert) — SAFETY.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-7, currently failing; fix in flight today. SS-4 (real estate) and SS-5 (experience/degree) are its sibling instances (FR-219/220).
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-7. SS-4 (real estate) and SS-5 (experience/degree) are its sibling instances (FR-219/220). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-050).
+- **STATUS:** ENFORCED
 
 ### FR-213 — 121 fit matching is substring-based ('Go' matches inside other words)
 - **FORBIDDEN:** Skill matching must never be raw substring matching; 'Go' must never match inside 'going'/'governance' and be quoted to the user as a skill match.
 - **FROM:** FV-8 — 121 fit matching is substring-based ('Go' matches inside other words).
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-8, currently failing; fix in flight today. SS-13 is the second instance (FR-231).
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-8. SS-13 is the second instance (FR-231). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-053).
+- **STATUS:** ENFORCED
 
 ### FR-214 — 123's medicine family is a med-school ADMISSION variant
 - **FORBIDDEN:** A healthcare-employment user must never be served a med-school-admissions family variant (MCAT/shadowing conventions) for a CNA/RN job.
 - **FROM:** FV-9 — 123's medicine family is a med-school ADMISSION variant.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-9 (family label must not be the admissions variant), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-9 (family label must not be the admissions variant). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-055).
+- **STATUS:** ENFORCED
 
 ### FR-215 — 123's SKILL_LEXICON has no healthcare or legal skills
 - **FORBIDDEN:** Requirement extraction must never run blind in a vertical because the lexicon holds none of its skills (Epic/EHR, BLS, phlebotomy; Westlaw, LexisNexis, e-filing).
 - **FROM:** FV-10 — 123's SKILL_LEXICON has no healthcare or legal skills.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-10, currently failing; fix in flight today. SS-3/SS-9 are the real-estate/consulting instances (FR-225/229).
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-10. SS-3/SS-9 are the real-estate/consulting instances (FR-225/229). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-056).
+- **STATUS:** ENFORCED
 
 ### FR-216 — 123's consulting bullet style mangles polished bullets into broken grammar
 - **FORBIDDEN:** A bullet style must never discard a fact's polished bullet text and concatenate action/method/result fields without conjugation ('Accomplished built a… resulting in prepared…').
 - **FROM:** FV-11 — 123's consulting bullet style mangles polished bullets into broken grammar.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-four-vertical.test.cjs FV-11, currently failing; fix in flight today. SS-12 is the consulting instance (FR-247).
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-four-vertical.test.cjs FV-11. SS-12 is the consulting instance (FR-230). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-058).
+- **STATUS:** ENFORCED
 
 ### FR-217 — Truth audit upgrades a credential in a regulated field
 - **FORBIDDEN:** A tailored resume must never upgrade a credential the persona does not hold (a CNA student is never written up as an RN; a pre-law student is never given a JD). Keep-guard: this held in the battery and must keep holding.
@@ -1363,80 +1363,80 @@ Source: `~/workspace/your_files/integrator-packs/six-sector-briefs.md`. Guards a
 ### FR-219 — Eligibility waves an unlicensed candidate through a license-required role (real-estate instance of FV-7)
 - **FORBIDDEN:** Eligibility must never return 'submit/eligible' with empty missing lists for an unlicensed candidate on a license-required role, stopped only by luck (the location filter). Twin of FR-212 (FV-7).
 - **FROM:** SS-4 — Eligibility waves an unlicensed candidate through a license-required role (real-estate instance of FV-7).
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-4, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-4. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-050).
+- **STATUS:** ENFORCED
 
 ### FR-220 — Stated minimum-experience and degree requirements never extracted or checked
 - **FORBIDDEN:** Eligibility must never wave a candidate through a posting's stated minimum-years or degree-required lines (Capco 5 years; Pariveda 3+ years; Northmarq 1–3 years + degree) with an empty missing list; an in-progress degree must never read as conferred. Sibling of FV-7.
 - **FROM:** SS-5 — Stated minimum-experience and degree requirements never extracted or checked.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-5 (Capco BA instance), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-5 (Capco BA instance). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-050).
+- **STATUS:** ENFORCED
 
 ### FR-221 — scoreFit's verdict depends on the caller's input shape
 - **FORBIDDEN:** A fit verdict must never depend on which internal profile shape the caller happened to build (score 0 / no matches vs score 40 / 4 matches for the same user and posting); scoreFit normalizes its input.
 - **FROM:** SS-10 — scoreFit's verdict depends on the caller's input shape.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-10 (matched_skills identical for both profile shapes), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-10 (matched_skills identical for both profile shapes). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-054).
+- **STATUS:** ENFORCED
 
 ### FR-222 — Tailor produces byte-identical documents for different jobs
 - **FORBIDDEN:** 'Tailored' packets for different jobs must never render byte-identical; if selection receives no per-job signal, the documents must not be called tailored. Product form of HS-9 — twin of FR-257 (B5).
 - **FROM:** SS-11 — Tailor produces byte-identical documents for different jobs.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-11 (Northmarq-analyst vs Orchard packets must differ), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-11 (Northmarq-analyst vs Orchard packets must differ). Flipped ENFORCED 2026-10-14 — the guard is green as a consequence of BUG-055's family system (no separate ledger row; the guard itself is the enforcement).
+- **STATUS:** ENFORCED
 
 ### FR-223 — 121 has no Real Estate family
 - **FORBIDDEN:** Discovery must never classify real-estate analyst titles as Finance via the analyst fallback, or a licensed-agent title as Other, because no Real Estate family exists. Sibling of FV-1/FV-2 (FR-206/207).
 - **FROM:** SS-1 — 121 has no Real Estate family.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-1, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-1. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-051).
+- **STATUS:** ENFORCED
 
 ### FR-224 — 123 has no real_estate family
 - **FORBIDDEN:** Tailoring must never write every real-estate document with investment-banking conventions because detectFamily has no real-estate trigger and FAMILIES has no real_estate entry. Sibling of FV-4/FV-9.
 - **FROM:** SS-2 — 123 has no real_estate family.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-2, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-2. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-055).
+- **STATUS:** ENFORCED
 
 ### FR-225 — 123's skill lexicon is blind to real-estate vocabulary
 - **FORBIDDEN:** Requirement extraction must never extract nothing of a posting's named tools and measures (Argus, NOI, DSC, IRR, Salesforce, underwriting) because the lexicon holds no real-estate terms. FV-10 extension — twin of FR-215.
 - **FROM:** SS-3 — 123's skill lexicon is blind to real-estate vocabulary.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-3 (Argus must be extracted), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-3 (Argus must be extracted). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-056).
+- **STATUS:** ENFORCED
 
 ### FR-226 — 121 consulting detection misses real consultancy postings
 - **FORBIDDEN:** Consulting detection must never miss a consultancy's own postings because 'consultancy' does not match /\bconsulting/ or because practice-name tokens outvote the firm's identity (1 of 3 correct at measurement).
 - **FROM:** SS-6 — 121 consulting detection misses real consultancy postings.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-6, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-6. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-051).
+- **STATUS:** ENFORCED
 
 ### FR-227 — 123 detectFamily misses consulting on 2 of 3 real JDs
 - **FORBIDDEN:** A consulting JD must never be tailored as SWE because sample-project tech tokens outvoted it, nor as IB finance because of a bare 'analyst' token. FV-4 extension — twin of FR-209.
 - **FROM:** SS-7 — 123 detectFamily misses consulting on 2 of 3 real JDs.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-7, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-7. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-055).
+- **STATUS:** ENFORCED
 
 ### FR-228 — parseJD invents must-haves from non-requirement prose
 - **FORBIDDEN:** Must-have extraction must never promote a graduation season ('Spring') or a sample project's stack (Java/Angular mentioned once) into enforced requirements. FV-5 extension — twin of FR-210.
 - **FROM:** SS-8 — parseJD invents must-haves from non-requirement prose.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-8, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-8. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-057).
+- **STATUS:** ENFORCED
 
 ### FR-229 — Zero must-haves extracted from explicit requirements sections
 - **FORBIDDEN:** An explicit requirements section must never extract zero must-haves because the lexicon lacks that market's vocabulary; the resulting silence is what enables the SS-4/SS-5 wave-throughs. FV-10 mechanism — twin of FR-215.
 - **FROM:** SS-9 — Zero must-haves extracted from explicit requirements sections.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-9 (all three JDs must extract ≥1), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-9 (all three JDs must extract ≥1). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-056).
+- **STATUS:** ENFORCED
 
 ### FR-230 — Consulting bullet style mangles polished bullets — correct classification is the trigger
 - **FORBIDDEN:** The consulting bullet style must never rewrite all of a user's polished bullets ungrammatically ('Accomplished built… resulting in cut…'). FV-11 instance — twin of FR-216.
 - **FROM:** SS-12 — Consulting bullet style mangles polished bullets — correct classification is the trigger.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-12, currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-12. Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-058).
+- **STATUS:** ENFORCED
 
 ### FR-231 — 'Go' claimed as a matched skill on a JD with zero occurrences
 - **FORBIDDEN:** A skill must never be claimed as matched — and quoted by eligibility reasons — when it occurs zero times as a word in the JD. FV-8 second instance — twin of FR-213.
 - **FROM:** SS-13 — 'Go' claimed as a matched skill on a JD with zero occurrences.
-- **ENFORCEMENT:** GUARDED-RED — tests/career-six-sector.test.cjs SS-13 (location-neutralized conditions), currently failing; fix in flight today.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** ENFORCED — tests/career-six-sector.test.cjs SS-13 (location-neutralized conditions). Flipped ENFORCED 2026-10-14 — guard green standalone in the W3 fix wave (BUG-053).
+- **STATUS:** ENFORCED
 
 ### FR-232 — Truth audit invents a credential or license in the new sectors
 - **FORBIDDEN:** A tailored document must never upgrade a credential or claim a license the persona does not hold, in consulting or real estate either. Keep-guard.
@@ -1457,26 +1457,26 @@ Source: `~/workspace/your_files/real-apply/submissions/submissions-report.md`, '
 ### FR-234 — Redirect escapes the host gate
 - **FORBIDDEN:** The board driver must never follow a redirect off the allowlisted host and keep driving; the §6.3 host gate applies to every hop, not only the initial URL (HRT → hudsonrivertrading.com; Coinbase/Stripe/Akuna → employer sites).
 - **FROM:** D1 — Redirect escapes the host gate.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs + tests/career-portal-browser.test.cjs (W4, BUG-060): redirect chains recorded and re-gated; an off-allowlist landing stops as HOST_REDIRECT_REFUSED with zero form access.
+- **STATUS:** ENFORCED
 
 ### FR-235 — Doorstep declared over an empty form
 - **FORBIDDEN:** An empty form must never be declared a doorstep: zero fields exposed means a stop, never 'prepared' with a payload holding only the resume hash — and it must never be spoken in chat as 'ready to submit'.
 - **FROM:** D2 — Doorstep declared over an empty form.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-061): EMPTY_FORM blocks the doorstep at discovery and at the doorstep payload; zero doorsteps recorded over answerless forms.
+- **STATUS:** ENFORCED
 
 ### FR-236 — The submit leg does not exist (approval gate can never transmit)
 - **FORBIDDEN:** An approval gate must never be presented as able to complete a submission while module 150's submit() throws REAL_SUBMIT_DISABLED; the gap is named as the blocker, proven live at the Arc doorstep. (Known CA-03 gap.)
 - **FROM:** D3 — The submit leg does not exist (approval gate can never transmit).
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-063): a sandbox board is submitted exactly once under a named approvalRef; no-ref and unarmed controls stay REAL_SUBMIT_DISABLED.
+- **STATUS:** ENFORCED
 
 ### FR-237 — No education/country profile keys
 - **FORBIDDEN:** Form filling must never strand answers that exist in the fact bank (school, degree, discipline, dates, GPA, graduation year, country — all in fact F-001) because modules 149/150 have no keys to carry them; Labelbox stopped on 'Country' alone.
 - **FROM:** D4 — No education/country profile keys.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-062): education_*/country keys resolve from the fact-bank-shaped profile; a missing value stays a no_confirmed_fact ask, never invented.
+- **STATUS:** ENFORCED
 
 ### FR-238 — Navigation gaps by board family
 - **FORBIDDEN:** The driver must never silently fail a whole board family (Ashby 10 of 10 unreachable; SmartRecruiters 0 of 1; Lever 1 form of 5 boards); an unreachable family is a named gap per board, and Greenhouse-only reliability is not presented as general.
@@ -1487,26 +1487,26 @@ Source: `~/workspace/your_files/real-apply/submissions/submissions-report.md`, '
 ### FR-239 — Duplicate field definitions double the asks
 - **FORBIDDEN:** A board emitting the same question twice (Gusto nearly every question ×2; Discord EEO ×3) must never double the owner's asks; field definitions are deduped before asking.
 - **FROM:** D6 — Duplicate field definitions double the asks.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-064): semantic-key dedupe keeps one definition per question (live re-drive: Aquatic 34 -> 25 fields).
+- **STATUS:** ENFORCED
 
 ### FR-240 — Value misbinding: profile values guessed into unrelated fields
 - **FORBIDDEN:** A profile value must never be bound into an unrelated field by guessing (Chicago, IL attempted into 'have you worked at Gusto', an office-preference, and a New-York attestation), and preferred_name must never be filled with the full legal name where no preferred-name fact exists.
 - **FROM:** D7 — Value misbinding: profile values guessed into unrelated fields.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-065): label-first binding; preferred_name stays empty without a fact; no value guessed into an unrelated field.
+- **STATUS:** ENFORCED
 
 ### FR-241 — EEO decline default is unreliable
 - **FORBIDDEN:** The §6.1 'Decline to self-identify' default must never depend on brittle option-text matching that fails on most boards; it filled cleanly on only 4 boards at measurement.
 - **FROM:** D8 — EEO decline default is unreliable.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-067): decline-class option matching in the board helper (exact -> class -> contains).
+- **STATUS:** ENFORCED
 
 ### FR-242 — Lever custom-card labels don't resolve to human questions
 - **FORBIDDEN:** A required custom-card question must never reach the record as a machine field name (cards_…_field); the exact owner ask must be quotable for every required field.
 - **FROM:** D9 — Lever custom-card labels don't resolve to human questions.
-- **ENFORCEMENT:** UNENFORCED — no guard found for D1–D10 (per the assignment brief, verified by grep of tests/ for D-numbered or equivalent assertions). Enforcement should be: a fail-first driver/doorstep test per defect in tests/career-portal-browser.test.cjs / tests/career-portal-apply.test.cjs before the fix lands.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-path.test.cjs (W4, BUG-066): group/card headings carried as human labels, so owner asks quote the real question.
+- **STATUS:** ENFORCED
 
 ### FR-243 — Optional attestation-class questions don't block the doorstep
 - **FORBIDDEN:** An attestation-class question must never be walked past to the doorstep just because the form marks it optional. (Policy decision pending with the owner; this lane's recommendation: block.)
@@ -1521,20 +1521,20 @@ Source: `~/workspace/your_files/upmore-alert-speed-report.md`, 'Product gaps —
 ### FR-244 — No standing scheduler calls poll()
 - **FORBIDDEN:** Detection must never exist only on demand: without a scheduled host job calling 121.poll() on the POLL_MINUTES cadence (starred 15 min / default 60 min), the product must not claim users hear about postings when they post. Twin of FR-222 (GAP-JOB-ALERTING).
 - **FROM:** G1 — No standing scheduler calls poll().
-- **ENFORCEMENT:** UNENFORCED — no guard found. Enforcement should be: the fail-first poll→diff→alert wiring test named in FR-222 (for G1/G2/G6), a registry test for G3, and fetch-layer tests for G4/G7; G5 should be pinned by a profileFromPersona test asserting clean skill names.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED (the loop) — tests/career-alert-watch.test.cjs 10/10 (W7, BUG-090): 151's runWatchCycle is the product-code watch loop (stored snapshot -> 121 poll -> diff -> gated alert). Per-user host scheduling and delivery wiring remain host work (docs/career/alert-watch.md).
+- **STATUS:** ENFORCED
 
 ### FR-245 — No alert composer or alert record
 - **FORBIDDEN:** A detected new posting must never dead-end in poll()'s return value; an alert artifact (role, company, fit reasons, deadline, doorstep next step, posted_at → detected_at latency) is composed through module 140. Twin of FR-222.
 - **FROM:** G2 — No alert composer or alert record.
-- **ENFORCEMENT:** UNENFORCED — no guard found. Enforcement should be: the fail-first poll→diff→alert wiring test named in FR-222 (for G1/G2/G6), a registry test for G3, and fetch-layer tests for G4/G7; G5 should be pinned by a profileFromPersona test asserting clean skill names.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-alert-watch.test.cjs (W7, BUG-090): composeAlert emits the typed alert record and fit lines cite proven facts only; sink delivery is host wiring.
+- **STATUS:** ENFORCED
 
 ### FR-246 — Canonical board registry missing six live-verified boards
 - **FORBIDDEN:** Boards verified live (Gusto, Gemini, Virtu Financial, Scale AI, Notion, Old Mission Capital) must never stay invisible to boardFeeds()/131 discovery planning because the registry was not updated with the verification evidence.
 - **FROM:** G3 — Canonical board registry missing six live-verified boards.
-- **ENFORCEMENT:** UNENFORCED — no guard found. Enforcement should be: the fail-first poll→diff→alert wiring test named in FR-222 (for G1/G2/G6), a registry test for G3, and fetch-layer tests for G4/G7; G5 should be pinned by a profileFromPersona test asserting clean skill names.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-jobs.test.cjs (W3, BUG-059): the six boards verified live 2026-10-13/14 (Gusto, Gemini, Virtu, Scale AI, Notion, Old Mission) are entries in 121's BOARD_REGISTRY.
+- **STATUS:** ENFORCED
 
 ### FR-247 — Greenhouse feed pulls full content for every posting on every poll
 - **FORBIDDEN:** Polling must never pull ?content=true for an entire board every cycle when a list-first poll (content only for diffNew-flagged postings) sustains the cadence at ~1/100 the payload.
@@ -1551,14 +1551,14 @@ Source: `~/workspace/your_files/upmore-alert-speed-report.md`, 'Product gaps —
 ### FR-249 — No level/family gate on the poll path (manager role scored a fit)
 - **FORBIDDEN:** An unattended alert must never call a manager-band posting a fit for a student profile; the alert emitter gates on seniority_band ∈ {intern, new_grad} plus the profile's role families before composing.
 - **FROM:** G6 — No level/family gate on the poll path (manager role scored a fit).
-- **ENFORCEMENT:** UNENFORCED — no guard found. Enforcement should be: the fail-first poll→diff→alert wiring test named in FR-222 (for G1/G2/G6), a registry test for G3, and fetch-layer tests for G4/G7; G5 should be pinned by a profileFromPersona test asserting clean skill names.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-alert-watch.test.cjs (W7, BUG-090): gatePosting rejects off-band, off-watch, and hard-excluded postings before any alert (3 of 5 controlled fixtures rejected).
+- **STATUS:** ENFORCED
 
 ### FR-250 — No per-board hard deadline on a poll cycle
 - **FORBIDDEN:** One sick board must never hold a whole watch cycle hostage (a slow trickle defeats a socket timeout); the fetch layer imposes a per-feed wall-clock deadline and treats a blown deadline as that feed's degraded cycle.
 - **FROM:** G7 — No per-board hard deadline on a poll cycle.
-- **ENFORCEMENT:** UNENFORCED — no guard found. Enforcement should be: the fail-first poll→diff→alert wiring test named in FR-222 (for G1/G2/G6), a registry test for G3, and fetch-layer tests for G4/G7; G5 should be pinned by a profileFromPersona test asserting clean skill names.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-alert-watch.test.cjs (W7, BUG-090): fetchWithDeadline bounds every board fetch (default 100000 ms); a stalled board degrades alone and the cycle still answers.
+- **STATUS:** ENFORCED
 
 ## 14 · Interview-intel briefs — the never-again items only
 
@@ -1651,14 +1651,14 @@ Source: `~/workspace/your_files/integrator-packs/reply-judge-repass.md`. Only th
 ### FR-263 — Reply names a stock role/template instead of what the user asked
 - **FORBIDDEN:** A reply must never substitute a stock template for the ask — one generic tailor/shortlist/non-answer pasted over unlike asks (Goldman, Big Law, med school, Palantir alike), never naming the firm, format, event, or evidence the user actually asked for. The re-pass calls this the product's biggest remaining wording disease in Apply, Track, and Intelligence.
 - **FROM:** Repass: template substitution — Reply names a stock role/template instead of what the user asked.
-- **ENFORCEMENT:** UNENFORCED — measured by the reply judge (315 of 353 baseline defect rows still present at the re-pass), but no permanent test was found that fails on template substitution. Enforcement should be: per-family reply replays asserting the reply names the ask's own firm/event/evidence.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED (carriage bands) — tests/career-a4-carriage-w5.test.cjs 28/28 (W5, BUG-070..079): in the Apply / Negotiation / Intelligence / Career-OS bands a handler's real product must ride its result or the guard fails; family re-runs 2026-10-14 (fixwave2-* dirs) are the measured evidence. Wording-level rows in the Outreach/Referrals bands remain as measured by the reply judge.
+- **STATUS:** ENFORCED
 
 ### FR-264 — Generic 'Tell me what you'd like to do next.' closer appended to replies
 - **FORBIDDEN:** A generic closer must never be appended over a reply that already ends properly (143 replies at the re-pass; it competed with an in-character instruction and regressed SC-209). Closers are emitted only when the next step genuinely needs the user (see FR-260, B8).
 - **FROM:** Repass: generic closer — Generic 'Tell me what you'd like to do next.' closer appended to replies.
-- **ENFORCEMENT:** UNENFORCED — no distribution/closer test found. Enforcement should be: a composer test asserting no generic closer is appended to a reply whose last sentence already carries a next step.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** ENFORCED — tests/career-generic-closer-guard.test.cjs 31/31 (W6+W5, BUG-080): the ending rule lives once in 140 (CareerReply.ensureNextStep); 142 delegates to it, pilot-lib delegates to it, and the production host seam (career_host.js) passes 120/130/141 results through it. A specific next step always wins; the generic closer appears only when a reply carries no next step at all.
+- **STATUS:** ENFORCED
 
 ### FR-265 — Raw sha256 hash stamped into chat (repass instance)
 - **FORBIDDEN:** A raw content hash must never be stamped into a delivered tailor/packet reply. Twin of FR-048 (BUG-048) — same defect, measured by the re-pass in 14 final-run records + SC-283.
@@ -1708,7 +1708,7 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 139 · GUARDED-RED 24 · HARD-SHUT 1 · UNENFORCED 107 · TOTAL 271
+Counts: ENFORCED 178 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 271
 
 | rule | status | enforcement |
 |---|---|---|
@@ -1916,52 +1916,52 @@ Counts: ENFORCED 139 · GUARDED-RED 24 · HARD-SHUT 1 · UNENFORCED 107 · TOTAL
 | FR-202 (BUG-2026-10-14-GMAIL-SCOPE) | UNENFORCED | UNENFORCED |
 | FR-203 (BUG-2026-10-14-OVERSCRUB) | ENFORCED | tests/career-gauntlet-r1.test.cjs + tests/career-gauntlet-r2.test.cjs are the pinning suites the adopted rule requires every copy wave to… |
 | FR-204 (BUG-2026-10-14-SC294-CLASS) | UNENFORCED | UNENFORCED |
-| FR-205 (GAP-2026-10-14-JOB-ALERTING) | UNENFORCED | UNENFORCED |
-| FR-206 (FV-1) | GUARDED-RED | GUARDED-RED |
-| FR-207 (FV-2) | GUARDED-RED | GUARDED-RED |
-| FR-208 (FV-3) | GUARDED-RED | GUARDED-RED |
-| FR-209 (FV-4) | GUARDED-RED | GUARDED-RED |
-| FR-210 (FV-5) | GUARDED-RED | GUARDED-RED |
+| FR-205 (GAP-2026-10-14-JOB-ALERTING) | ENFORCED | UNENFORCED |
+| FR-206 (FV-1) | ENFORCED | GUARDED-RED |
+| FR-207 (FV-2) | ENFORCED | GUARDED-RED |
+| FR-208 (FV-3) | ENFORCED | GUARDED-RED |
+| FR-209 (FV-4) | ENFORCED | GUARDED-RED |
+| FR-210 (FV-5) | ENFORCED | GUARDED-RED |
 | FR-211 (FV-6) | ENFORCED | tests/career-tailor-dates-dedupe.test.cjs Certifications-section test + FV-6 in tests/career-four-vertical.test.cjs, flipped green by the… |
-| FR-212 (FV-7) | GUARDED-RED | GUARDED-RED |
-| FR-213 (FV-8) | GUARDED-RED | GUARDED-RED |
-| FR-214 (FV-9) | GUARDED-RED | GUARDED-RED |
-| FR-215 (FV-10) | GUARDED-RED | GUARDED-RED |
-| FR-216 (FV-11) | GUARDED-RED | GUARDED-RED |
+| FR-212 (FV-7) | ENFORCED | GUARDED-RED |
+| FR-213 (FV-8) | ENFORCED | GUARDED-RED |
+| FR-214 (FV-9) | ENFORCED | GUARDED-RED |
+| FR-215 (FV-10) | ENFORCED | GUARDED-RED |
+| FR-216 (FV-11) | ENFORCED | GUARDED-RED |
 | FR-217 (FV-G1 (keep-guard)) | ENFORCED | tests/career-four-vertical.test.cjs FV-G1 |
 | FR-218 (FV-G2 (keep-guard)) | ENFORCED | tests/career-four-vertical.test.cjs FV-G2 |
-| FR-219 (SS-4) | GUARDED-RED | GUARDED-RED |
-| FR-220 (SS-5) | GUARDED-RED | GUARDED-RED |
-| FR-221 (SS-10) | GUARDED-RED | GUARDED-RED |
-| FR-222 (SS-11) | GUARDED-RED | GUARDED-RED |
-| FR-223 (SS-1) | GUARDED-RED | GUARDED-RED |
-| FR-224 (SS-2) | GUARDED-RED | GUARDED-RED |
-| FR-225 (SS-3) | GUARDED-RED | GUARDED-RED |
-| FR-226 (SS-6) | GUARDED-RED | GUARDED-RED |
-| FR-227 (SS-7) | GUARDED-RED | GUARDED-RED |
-| FR-228 (SS-8) | GUARDED-RED | GUARDED-RED |
-| FR-229 (SS-9) | GUARDED-RED | GUARDED-RED |
-| FR-230 (SS-12) | GUARDED-RED | GUARDED-RED |
-| FR-231 (SS-13) | GUARDED-RED | GUARDED-RED |
+| FR-219 (SS-4) | ENFORCED | GUARDED-RED |
+| FR-220 (SS-5) | ENFORCED | GUARDED-RED |
+| FR-221 (SS-10) | ENFORCED | GUARDED-RED |
+| FR-222 (SS-11) | ENFORCED | GUARDED-RED |
+| FR-223 (SS-1) | ENFORCED | GUARDED-RED |
+| FR-224 (SS-2) | ENFORCED | GUARDED-RED |
+| FR-225 (SS-3) | ENFORCED | GUARDED-RED |
+| FR-226 (SS-6) | ENFORCED | GUARDED-RED |
+| FR-227 (SS-7) | ENFORCED | GUARDED-RED |
+| FR-228 (SS-8) | ENFORCED | GUARDED-RED |
+| FR-229 (SS-9) | ENFORCED | GUARDED-RED |
+| FR-230 (SS-12) | ENFORCED | GUARDED-RED |
+| FR-231 (SS-13) | ENFORCED | GUARDED-RED |
 | FR-232 (SS-G1 (keep-guard)) | ENFORCED | tests/career-six-sector.test.cjs SS-G1 |
 | FR-233 (SS-G2 (keep-guard)) | ENFORCED | tests/career-six-sector.test.cjs SS-G2 |
-| FR-234 (D1) | UNENFORCED | UNENFORCED |
-| FR-235 (D2) | UNENFORCED | UNENFORCED |
-| FR-236 (D3) | UNENFORCED | UNENFORCED |
-| FR-237 (D4) | UNENFORCED | UNENFORCED |
+| FR-234 (D1) | ENFORCED | UNENFORCED |
+| FR-235 (D2) | ENFORCED | UNENFORCED |
+| FR-236 (D3) | ENFORCED | UNENFORCED |
+| FR-237 (D4) | ENFORCED | UNENFORCED |
 | FR-238 (D5) | UNENFORCED | UNENFORCED |
-| FR-239 (D6) | UNENFORCED | UNENFORCED |
-| FR-240 (D7) | UNENFORCED | UNENFORCED |
-| FR-241 (D8) | UNENFORCED | UNENFORCED |
-| FR-242 (D9) | UNENFORCED | UNENFORCED |
+| FR-239 (D6) | ENFORCED | UNENFORCED |
+| FR-240 (D7) | ENFORCED | UNENFORCED |
+| FR-241 (D8) | ENFORCED | UNENFORCED |
+| FR-242 (D9) | ENFORCED | UNENFORCED |
 | FR-243 (D10) | UNENFORCED | UNENFORCED |
-| FR-244 (G1) | UNENFORCED | UNENFORCED |
-| FR-245 (G2) | UNENFORCED | UNENFORCED |
-| FR-246 (G3) | UNENFORCED | UNENFORCED |
+| FR-244 (G1) | ENFORCED | UNENFORCED |
+| FR-245 (G2) | ENFORCED | UNENFORCED |
+| FR-246 (G3) | ENFORCED | UNENFORCED |
 | FR-247 (G4) | UNENFORCED | UNENFORCED |
 | FR-248 (G5) | UNENFORCED | UNENFORCED |
-| FR-249 (G6) | UNENFORCED | UNENFORCED |
-| FR-250 (G7) | UNENFORCED | UNENFORCED |
+| FR-249 (G6) | ENFORCED | UNENFORCED |
+| FR-250 (G7) | ENFORCED | UNENFORCED |
 | FR-251 (IB-INTEL-1) | UNENFORCED | UNENFORCED |
 | FR-252 (IB-INTEL-9) | UNENFORCED | UNENFORCED |
 | FR-253 (B1 (HS-1/2/6)) | UNENFORCED | UNENFORCED |
@@ -1974,8 +1974,8 @@ Counts: ENFORCED 139 · GUARDED-RED 24 · HARD-SHUT 1 · UNENFORCED 107 · TOTAL
 | FR-260 (B8 (HS-13..16)) | UNENFORCED | UNENFORCED |
 | FR-261 (Composer §1a) | ENFORCED | tests/career-router-wedge.test.cjs + the integrator-wave fix (the predicate now tests the LAST SENTENCE; see FR-211). |
 | FR-262 (Composer §1b) | ENFORCED | pilot-lib chatTurn applies the guarantee to 120/130/141 results (integrator-wave fix, FR-194), guarded by tests/career-router-wedge.test.… |
-| FR-263 (Repass: template substitution) | UNENFORCED | UNENFORCED |
-| FR-264 (Repass: generic closer) | UNENFORCED | UNENFORCED |
+| FR-263 (Repass: template substitution) | ENFORCED | UNENFORCED |
+| FR-264 (Repass: generic closer) | ENFORCED | UNENFORCED |
 | FR-265 (Repass: hash-in-chat) | ENFORCED | tests/career-hash-leak-guard.test.cjs |
 | FR-266 (Gauntlet A1) | ENFORCED | tests/career-quality-routing.test.cjs + fresh-300 routing axis |
 | FR-267 (Gauntlet A2) | ENFORCED | tests/career-quality-routing.test.cjs |
@@ -1984,4 +1984,4 @@ Counts: ENFORCED 139 · GUARDED-RED 24 · HARD-SHUT 1 · UNENFORCED 107 · TOTAL
 | FR-270 (Gauntlet A5) | ENFORCED | tests/career-router-wedge.test.cjs 'A5 SC-286…' |
 | FR-271 (Gauntlet A6) | ENFORCED | tests/career-jobs-domain.test.cjs 8/8 (engine leg) |
 
-<!-- totals: total=271 enforced=139 guarded_red=24 hard_shut=1 unenforced=107 -->
+<!-- totals: total=271 enforced=178 guarded_red=1 hard_shut=1 unenforced=91 -->

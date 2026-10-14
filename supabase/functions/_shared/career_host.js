@@ -40,13 +40,19 @@ const CareerHost = (() => {
   // §1b ensure-ending — copied verbatim from pilot-lib.cjs (the harness
   // seam that guarantees H-12's last-sentence requirement for 120/130/141
   // results; 142 guarantees its own endings and is NOT passed through here).
-  function ensureEndingGuarantee(r) {
+  function ensureEndingGuarantee(r, Reply140) {
     if (!r || typeof r.reply !== "string" || !r.reply) return r;
     if (r.intent === "career_fallback" || r.intent === "honest_unavailable") return r;
-    const sentences = r.reply.split(/(?<=[.!?])\s+|\n+/);
-    const lastSentence = sentences[sentences.length - 1] || "";
-    if (/\?/.test(lastSentence) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(lastSentence) || /\[Yes\]/.test(lastSentence)) return r;
-    r.reply = r.reply.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
+    // BUG-080 (W6 hand-off, coordinator assembly): the ending rule lives ONCE in
+    // 140 (CareerReply.ensureNextStep) — a handler's specific next step wins,
+    // the generic closer is appended only when the reply carries no next step
+    // at all, and a generic stamped over a specific ending is stripped.
+    // The composer arrives as a parameter: it is a createCareerHost dep, not an
+    // IIFE-scope name (the first assembly draft referenced it bare and the
+    // containment swallowed the ReferenceError — host suite caught it).
+    if (!Reply140 || typeof Reply140.ensureNextStep !== "function") return r;
+    const specific = typeof r.nextStep === "string" ? r.nextStep : (typeof r.next_step === "string" ? r.next_step : null);
+    r.reply = Reply140.ensureNextStep(r.reply, specific ? { nextStep: specific } : undefined);
     return r;
   }
 
@@ -92,13 +98,13 @@ const CareerHost = (() => {
       let handler = null;
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
-        if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r); }
+        if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }
         r = CareerOnboarding.handleChat(text, ctx);
-        if (r) { handler = "CareerOnboarding"; return ensureEndingGuarantee(r); }
+        if (r) { handler = "CareerOnboarding"; return ensureEndingGuarantee(r, CareerReply); }
         r = CareerRouter.handleChat(text, ctx);
         if (r) { handler = "CareerRouter"; return r; }
         r = CareerDoorstep.handleChat(text, ctx);
-        if (r) { handler = "CareerDoorstep"; return ensureEndingGuarantee(r); }
+        if (r) { handler = "CareerDoorstep"; return ensureEndingGuarantee(r, CareerReply); }
         return null;
       };
       const containment = CareerContainment.createContainment({

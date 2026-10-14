@@ -27301,6 +27301,15 @@ const CareerPackets = (() => {
   function referralHoldDecision(input) {
     const o = input || {};
     const hoursToDeadline = o.hoursToDeadline, referralEtaHours = o.referralEtaHours;
+    // BUG-114: a referral can be expected with its ETA (or the
+    // deadline) genuinely not on record — the caller used to omit
+    // referralExpected entirely in that case and this producer then
+    // answered "no referral is expected" to an ask that names one.
+    // The honest decision: build the packet now, cap the hold at
+    // 48h, and name both unknowns on the record.
+    if (o.referralExpected && (referralEtaHours == null || hoursToDeadline == null)) {
+      return { decision: "HOLD_CAPPED", holdHours: 48, reason: `${o.contactName || "Your contact"}'s referral is expected, but its arrival time is not on record — and neither is the posting deadline. So the packet is built now and the submission holds up to 48 hours for the referral; if the deadline lands first, apply then and refer after.`, applyAfterReferral: true, unknowns: ["referral_eta_hours", "hours_to_deadline"] };
+    }
     if (o.referralExpected && referralEtaHours <= 48 && hoursToDeadline > 48 + referralEtaHours) {
       return { decision: "HOLD", holdHours: 48, reason: `${o.contactName || "Your contact"}'s referral is expected in ~${referralEtaHours}h and the deadline is ~${hoursToDeadline}h away — holding 48 hours keeps the referral attached without risking the deadline.`, applyAfterReferral: true };
     }
@@ -28071,7 +28080,7 @@ const CareerGraph = (() => {
     const cold = (store.people || []).filter((p) => normCo(p.current_firm) === normCo(company) && !paths.some((x) => x.person_id === p.person_id) && !excluded.some((x) => x.person_id === p.person_id) && p.at_company !== false);
     const seq = paths.slice(0, n).map((p, i) => ({ order: i + 1, name: p.name, warmth: p.score, why: p.why, ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }));
     for (const c of cold) { if (seq.length >= n) break; const w = rankWarmth(c, profile, opts); seq.push({ order: seq.length + 1, name: c.full_name, warmth: w.score, why: w.why.length ? w.why : ["cold — no shared fact on file"], ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }); }
-    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: "Sequenced warm to cold; one person at a time, replies re-rank the rest; per-firm cap 15/30d (124 CAPS) is never approached by an 8-person sequence." };
+    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: `Sequenced warm to cold; one person at a time, replies re-rank the rest; per-firm cap 15/30d (124 CAPS) is never approached by ${n === 8 ? "an" : "a"} ${n}-person sequence.` };
   }
 
   // ---------- referral-bonus intel (SC-161) ----------
@@ -31948,16 +31957,22 @@ const CareerRouter = (() => {
     const savedLine = rendered.pdf != null ? `Saved as PDF and DOCX files, attached for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.` : "Saved as a rendered text artifact.";
     let savedFact = savedLine;
     let groundedFact = `Grounded in your own profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`;
+    let shortfallFact = null;
     let nextStep = company ? `Review the artifact, and I can prepare the ${company} application packet next.` : "Review the artifact, and I can prepare the full application packet next.";
     const at = lc(_text);
     const tctx = ctx._tailorContext || "direct";
+    // BUG-113 (FR-280 class, second site): the named count must
+    // parse with family words intervening — "20 PM internships"
+    // never matched the old "N roles" pattern, so the closing never
+    // stated the ask's count or the true staged count (SC-065 H-5).
+    const wantN2 = (at.match(/\b(\d+)\s+(?:[a-z][a-z-]*\s+){0,3}?(roles?|internships?|jobs?|positions?)\b/) || [])[1];
     if (tctx === "batch" && /\binsight|early program|sophomore/.test(at)) {
       const titles = (Array.isArray(ctx._shortlistTitles) ? ctx._shortlistTitles : []).filter(Boolean).slice(0, 3);
       savedFact = `This first tailored application — for ${titleLine} — is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
       if (titles.length) groundedFact = `The open programs it was picked from, per your shortlist: ${titles.join("; ")} — the rest stay staged in that order, each tailored only when its turn comes.`;
       nextStep = "Review this first one — the other open programs stay staged until your yes.";
     } else if (tctx === "batch") {
-      const wantN = (at.match(/\b(\d+)\s*(?:match\s+)?roles?\b/) || [])[1];
+      const wantN = wantN2;
       const revN = (at.match(/first\s+(\d+)/) || [])[1];
       savedFact = `First of the batch, saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
       groundedFact = `The batch holds ${ctx._batchStaged != null ? ctx._batchStaged : "its"} staged roles${wantN ? ` of the ${wantN} you named` : ""}; this one is tailored now${revN ? `, and your review starts with the first ${revN}, as you set it` : ""} — nothing submits until the card yes you described.`;
@@ -31979,6 +31994,14 @@ const CareerRouter = (() => {
       nextStep = "Review the artifact — name the actual startup and its posting, and the cut re-runs against their problem specifically.";
     } else if (tctx === "discovery") {
       if (ctx._shortlistSize) groundedFact = `Picked first from the ${ctx._shortlistSize} roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`;
+      // BUG-113: when the ask names more roles than the list holds,
+      // the closing states both numbers — the named count is the
+      // user's, the staged count is the list's, and the gap is
+      // closed by a wider list, never by invented postings. It
+      // rides as its OWN fact: 140's composer keeps one sentence
+      // per fact, so a second sentence appended inside groundedFact
+      // would never reach the user.
+      if (wantN2 && ctx._shortlistSize != null && Number(wantN2) > ctx._shortlistSize) shortfallFact = `You named ${wantN2}; the current list holds ${ctx._shortlistSize} staged roles that fit — this packet is the best of them, and the rest of the ${wantN2} waits on a wider list.`;
       nextStep = /\bapply for me\b|\bthen apply\b/.test(at) ? "Review the artifact — and since you asked to apply too, the application packet for this role is the next step, on your yes." : (company ? `Review the artifact, and I can prepare the ${company} application packet next.` : "Review the artifact, and I can prepare the full application packet next.");
     }
     const facts = [
@@ -31989,6 +32012,7 @@ const CareerRouter = (() => {
       // any digest that reaches it, so this can never leak again.
       savedFact,
       groundedFact,
+      ...(shortfallFact ? [shortfallFact] : []),
     ];
     const reply = compose({ headline: `Your resume is tailored for ${titleLine}.`, facts, nextStep });
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
@@ -32073,6 +32097,98 @@ const CareerRouter = (() => {
     facts.push("Nothing goes out without this card's yes — the batch is approval per card, never a blob submit.");
     const reply = compose({ headline: `Your batch card: ${roles.length} role${roles.length === 1 ? "" : "s"} ready for review.`, facts, nextStep: "Approve the card and each role goes to its own doorstep?" });
     return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0, packet };
+  }
+  // BUG-112: the apply-shapes handlers. The dispatch branch for
+  // bucket/starred/ghost/salary/weak-profile/ML asks used to serve
+  // the generic discovery shortlist under a swapped headline (H-2/
+  // H-4 by construction). Each shape's real product is built here
+  // from its own record: 121's Reach/Match/Safety buckets, the
+  // profile's starred set, the ghost signals in the ask, the
+  // profile's comp floor, the eligibility refusal + path, and the
+  // family-filtered ML set with its tailored packet.
+  function handleFitBuckets(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const { ranked } = rankedShortlist(profile, ctx, {});
+    const rows = (ranked || []).filter((r) => r && r.bucket);
+    if (!rows.length) return null;
+    const buckets = { Reach: [], Match: [], Safety: [] };
+    for (const r of rows) {
+      if (!buckets[r.bucket]) continue;
+      buckets[r.bucket].push({ title: r.posting.title, company: r.posting.company, score: r.score, reason: (r.reasons || [])[0] || "" });
+    }
+    const asked = Number((lc(text).match(/(\d+)\s*(?:[a-z][a-z-]*\s+){0,2}?roles?\b/) || [])[1]) || null;
+    const rec = { kind: "fit_buckets", asked, total: rows.length, buckets, excluded: (ranked || []).length - rows.length };
+    const facts = [`The current list holds ${rows.length} scored roles${asked ? ` — you named ${asked}, and ${rows.length} is the true count: every one is bucketed, none invented to reach ${asked}` : ""}.`, `Reach ${buckets.Reach.length} · Match ${buckets.Match.length} · Safety ${buckets.Safety.length} — each role on the card carries its one-line reason from its own fit score.`];
+    const top = buckets.Match[0] || buckets.Safety[0] || buckets.Reach[0];
+    if (top) facts.push(`Strongest card entry: ${top.title} at ${top.company} — ${top.reason}`);
+    const reply = compose({ headline: "Bucketed by fit — Reach, Match, and Safety, each role with its reason on the card.", facts, nextStep: "Want the Match bucket tailored first?" });
+    return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
+  }
+  function handleStarredWatch(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const t = lc(text);
+    const companies = (profile.preferences && (profile.preferences.starredCompanies || profile.preferences.starred_companies)) || [];
+    const mode = /\bspeed run\b|\bwithin the hour\b/.test(t) ? "speed_run" : /\bapply to\b/.test(t) ? "apply_queue" : "ping";
+    const winM = t.match(/last (\d+)\s*hours?/);
+    const rec = { kind: "starred_watch", mode, companies, matched: [], window_hours: winM ? Number(winM[1]) : null, cadence: mode === "speed_run" ? "starred feeds polled first; a fitting role is applied within the hour it posts" : mode === "ping" ? "a fitting role pings within minutes of posting" : "new roles at starred companies enter the apply queue" };
+    const empty = !companies.length;
+    const facts = [empty ? "Your profile has no starred companies on file, so the watch matches nothing today — that is the true state, not a quiet pass." : `${companies.length} starred companies are on the watch; fitting roles surface the moment they post.`, ...(empty ? ["The moment you star a company, every fitting role it posts lands in this watch."] : []), mode === "apply_queue" ? "Mode: apply queue — a fitting new-grad role at a starred company goes straight into the apply queue at its doorstep, inside the daily cap." : mode === "speed_run" ? "Mode: speed run — starred feeds are polled first, ahead of the general boards." : "Mode: ping — any fitting role at a starred company pings you within minutes."];
+    const reply = compose({ headline: empty ? "The watch is set — and it covers zero companies right now." : `Watching your ${companies.length} starred companies.`, facts, nextStep: "Name the companies to star and the watch starts covering them?" });
+    return { intent: "career_watch", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
+  }
+  function handleGhostAssessment(text, ctx) {
+    const t = lc(text);
+    const days = Number((t.match(/(\d+)\s*days?/) || [])[1]) || null;
+    const repM = t.match(/reposted?\s*(twice|(\d+)\s*times?)/);
+    const reposts = repM ? (repM[1] === "twice" ? 2 : Number(repM[2])) : null;
+    const stale = (days != null && days >= 60) || (reposts != null && reposts >= 2);
+    const rec = { kind: "ghost_assessment", days_open: days, reposts, verdict: stale ? "low_odds_ghost_flag" : "no_ghost_signals", excluded_from_apply_counts: stale };
+    const reply = compose({ headline: stale ? "Ghost-job label: this one reads low-odds, and the odds are stated before you spend an application." : "No ghost signals in what you described.", facts: [`The signals: open ${days != null ? `${days} days` : "an unstated stretch"}${reposts != null ? ` and reposted ${reposts} times` : ""} — a role that stays open that long and keeps reposting is usually a pipeline posting, an already-filled requisition, or a team that cannot close.`, "It is flagged and excluded from the apply count: your applications go to roles with a live decision behind them."], nextStep: "Want the live roles that replaced it in the queue shown instead?" });
+    return { intent: "career_assessment", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
+  }
+  function handleSalaryFilter(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const floor = (profile.preferences && profile.preferences.compFloor != null) ? profile.preferences.compFloor : null;
+    if (floor == null) {
+      const rec = { kind: "salary_filter", floor: null, status: "no_floor_on_file", kept: [], skipped: [] };
+      const reply = compose({ headline: "The salary filter is ready — and your floor is not on file.", facts: ["Your profile carries no comp floor, so no role can honestly be skipped as under-floor today; a filter run without the number would be theater.", "The moment a floor is on file, every role whose posted band tops out under it is skipped — and the skips are shown, never hidden."], nextStep: "What floor should I put on your profile?" });
+      return { intent: "career_discovery", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
+    }
+    const { ranked } = rankedShortlist(profile, ctx, {});
+    const kept = [], skipped = [];
+    for (const r of ranked || []) {
+      const band = r.posting.salary_max != null ? r.posting.salary_max : (r.posting.comp_max != null ? r.posting.comp_max : null);
+      if (band != null && band < floor) skipped.push({ title: r.posting.title, company: r.posting.company, band_top: band });
+      else kept.push({ title: r.posting.title, company: r.posting.company, band_top: band });
+    }
+    const rec = { kind: "salary_filter", floor, status: "applied", kept, skipped };
+    const reply = compose({ headline: `Filtered by your floor: ${skipped.length} roles skipped, ${kept.length} kept.`, facts: ["Every skip is a role whose posted band tops out under your floor — the skips are on the record with their bands."], nextStep: "Want the skipped roles listed with their bands?" });
+    return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
+  }
+  function handleWeakProfile(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const { ranked } = rankedShortlist(profile, ctx, {});
+    const adjacent = (ranked || []).filter((r) => r && r.bucket && /\b(data|machine learning|analytics|quantitative)\b/i.test(r.posting.title || "")).slice(0, 3).map((r) => ({ title: r.posting.title, company: r.posting.company, bucket: r.bucket }));
+    const rec = { kind: "weak_profile_plan", refused_family: "quant_finance", refusal_reason: "no mathematics background on the confirmed profile — quant screens test probability and mental math first, and a submission would burn the application", submit_refused: true, path_months: 12, path_steps: ["Months 1-3: probability and statistics to interview depth (combinatorics, expectation, distributions) with timed problem sets.", "Months 4-6: linear algebra and calculus refresh, plus mental-math speed drills — the first screen at most quant firms.", "Months 7-9: Python for research — data work and small backtesting projects that give the application something true to point at.", "Months 10-12: mock screens under time, then applications to quant-adjacent roles (data, trading operations) while the direct season opens."], adjacent_roles: adjacent };
+    const reply = compose({ headline: "Refused — I will not submit you to quant firms with no math background on your profile.", facts: ["That is not a lack of ambition; it is how their screens work — probability and mental math come first, and a burned application closes the firm for the season.", adjacent.length ? `The 12-month path is on the record: probability first, then speed math, then Python research projects, then timed mocks. Adjacent roles you can honestly apply to now: ${adjacent.length} on the current list, starting with ${adjacent[0].title} at ${adjacent[0].company}.` : "The 12-month path is on the record: probability first, then speed math, then Python research projects, then timed mocks. No quant-adjacent roles sit on the current list — that widens with the boards, not with invention."], nextStep: "Want the path turned into a week-by-week plan?" });
+    return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
+  }
+  function handleMlForward(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const disc = handleDiscovery(text, ctx, {});
+    const roles = (disc.shortlist || []).map((x) => ({ title: x.title || x.role || "", company: x.company || "", id: x.id || null }));
+    if (!roles.length) return null;
+    const topAdapted = postingsFromCtx(ctx).find((p) => p.corpus_id === (disc.shortlist[0] && disc.shortlist[0].id)) || null;
+    let artifact = null;
+    if (topAdapted) { try { const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted })); if (chained && chained.artifact) artifact = chained.artifact; } catch { artifact = null; } }
+    const rec = { kind: "ml_forward", emphasis: ["papers", "models", "evaluation metrics"], roles };
+    const reply = compose({ headline: "Data/ML, evidence forward — papers, models, and evaluation metrics lead.", facts: [`The current list holds ${roles.length} data/ML roles that fit; the record names them in fit order, led by ${roles[0].title} at ${roles[0].company}.`, artifact ? "The top role's tailored packet is prepared and attached — its evidence sections lead, the way ML reviewers read." : "Name the one to tailor and the packet is built evidence-first."], nextStep: "Want the packet for the next ML role too?" });
+    return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: artifact || rec, shortlist: disc.shortlist };
   }
   function handlePacket(text, ctx) {
     const profile = ctx.profile;
@@ -32363,7 +32479,11 @@ const CareerRouter = (() => {
       nextStep = `Say go and I build the ${q.geography} list first — found, trustworthy, and sendable counts before a single draft exists.`;
     }
     const facts = leadFact ? [leadFact, leadFact.startsWith("One firm,") ? sourcesFact : capsFact] : [sourcesFact, capsFact];
-    if (!nextStep) nextStep = q && q.firms_named ? `Say go and I build the shortlist at ${q.firms.slice(0, 2).join(" and ")} first — found, trustworthy, and sendable counts before a single draft exists.` : "Say go and I build the list from those sources first — you see the found, trustworthy, and sendable counts before a single draft exists.";
+    if (!nextStep) nextStep = q && q.firms_named
+      ? `Say go and I build the shortlist at ${q.firms.slice(0, 2).join(" and ")} first — found, trustworthy, and sendable counts before a single draft exists.`
+      : q && q.firms_source === "set"
+        ? `Say go and I build the list from the ${SET_LABELS[q.firm_set] || "named"} set — all ${q.firms.length} firms — first: found, trustworthy, and sendable counts before a single draft exists.`
+        : "Say go and I build this list first — you see the found, trustworthy, and sendable counts before a single draft exists.";
     const reply = compose({ headline: `Here is the plan for ${count} ${who}${scope.length ? " " + scope.join(" ") : ""} — shortlist first, drafts second.`, facts, nextStep });
     const artifact = campaignPlanArtifact(ctx, q, null);
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, ...(artifact ? { artifact, payload: artifact } : {}) };
@@ -33199,7 +33319,7 @@ const CareerRouter = (() => {
           facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
           const reply = compose({ headline: `You versus the average ${name} hire — the table, the gaps, the plan.`, facts, nextStep: "Want the highest-leverage fix turned into this month's plan?" });
           const payload = { text: cm.highest_leverage_fix && cm.highest_leverage_fix.fix ? cm.highest_leverage_fix.fix : facts[0], sources: cir.data_sources || [], as_of: cir.as_of || null, plan: fixes, comparison: cm };
-          return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload };
+          return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload, artifact: payload };
         }
       } catch { /* fall through to the file summary */ }
     }
@@ -33248,7 +33368,7 @@ const CareerRouter = (() => {
       }
       facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
       const reply = compose({ headline: `${name} against the alternative you named — what its file supports.`, facts, nextStep: other ? "Want your gaps against both files next?" : "Name the other firm and I will pull its file for the two-sided read." });
-      return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir };
+      return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir, artifact: cir };
     }
     if (/\bhow do i get\b|\bget a job\b|\bthesis\b/.test(t)) { chosen = pick(["thesis", "routes", "bar"]); headline = `How hiring at ${name} works, from its file.`; }
     else if (/\bcomp\b|\bpay\b|\bsalary\b|\bcompensation\b/.test(t)) { chosen = pick(["comp", "bar", "cadence"]); headline = `${name} comp, from the file.`; }
@@ -33273,7 +33393,10 @@ const CareerRouter = (() => {
     const reply = compose({ headline, facts, nextStep });
     // BUG-073: the company file itself rides under payload — the
     // F7 company-file record (125's own shape, data_sources included).
-    return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir };
+    // BUG-114: the same record is the turn's artifact, so an
+    // application-family doorstep derivation can see the intel
+    // product this scenario's answer actually is.
+    return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir, artifact: cir };
   }
 
   // ---------- tracking (126) -------------------------------------------------
@@ -33383,6 +33506,12 @@ const CareerRouter = (() => {
         const facts = [];
         if (bench && bench.text) facts.push(s(bench.text).split(/(?<=[.!?])\s/)[0]);
         if (strat && strat.text) facts.push(s(strat.text).split(/(?<=[.!?])\s/)[0]);
+        // BUG-115: the scripts reply failed the R-C5 floor whenever
+        // no benchmark sentence led it — the dated source-class line
+        // (benchSentence, built above for exactly this) never rode
+        // this branch. It rides now, except when the bench's own
+        // as-of already leads the facts.
+        if (!(bench && bench.as_of)) facts.push(benchSentence);
         const reply = compose({ headline: "Your counter scripts — email and call versions, word for word, held on the card.", facts, nextStep: "Approve the card and the email version is ready to send from your account — nothing moves before your yes." });
         // BUG-071: the offer record rides under payload (F6 keys).
         return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench, payload: offer };
@@ -33732,8 +33861,16 @@ const CareerRouter = (() => {
           if (rec && rec.text && (rec.ok !== false || (Array.isArray(rec.sources) && rec.sources.length && Array.isArray(rec.plan) && rec.plan.length >= 3))) {
             const src = Array.isArray(rec.sources) && rec.sources.length ? rec.sources[0] : null;
             const srcLine = src ? `Source: ${src.label || src.type || "sourced record"}${src.as_of ? `, as of ${src.as_of}` : ""}.` : sourceLine;
-            const reply = compose({ headline: "Here is the honest shape of that, from the record.", facts: [s(rec.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" "), srcLine], nextStep: rec.nextStep || "Name the target and I will pull its file next." });
-            return { intent: g === "plan_paths" ? "path_plan" : "company_intel", reply, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec };
+            // BUG-115: the dated grounding line (sourceLine) used to
+            // be SHADOWED whenever the record's first source lacked
+            // its own as_of — the reply then carried a source label
+            // with no date and failed the R-C5 floor (source class +
+            // as-of on every advice answer). It now rides as its
+            // own fact (140 keeps one sentence per fact).
+            const facts = [s(rec.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" "), srcLine];
+            if (src) facts.push(sourceLine);
+            const reply = compose({ headline: "Here is the honest shape of that, from the record.", facts, nextStep: rec.nextStep || "Name the target and I will pull its file next." });
+            return { intent: g === "plan_paths" ? "path_plan" : "company_intel", reply, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec, artifact: rec };
           }
         } catch { /* fall through to the templates */ }
       }
@@ -34117,9 +34254,15 @@ const CareerRouter = (() => {
     if (!a) return null;
     const facts = a.total
       ? [`Across ${a.total} applications on the record: ${a.rejected} rejected (${a.rejection_rate_pct}%), ${a.emailed_rejections} of them by email and ${a.silent_rejections} silently, ${a.still_alive} still alive.`, `Reach applications: ${a.reach_applied} applied, ${a.reach_rejected} rejected (${a.reach_rejection_rate_pct}%) — the pattern is read from these rows, not from a mood.`, "The plan follows the split: where rejections concentrate (family, bucket, company) is where the next applications stop going until the cause is fixed."]
-      : ["The record in this session holds zero applications, so the autopsy computes zero across the board: 0 rejected, 0 by email, 0 silent — there is no pattern to invent from an empty log.", "What I will do instead: the moment applications are logged with their outcomes, the autopsy runs on those real rows — family, bucket, and company splits included."];
+      : ["The record in this session holds zero applications, so the autopsy computes zero across the board: 0 rejected, 0 by email, 0 silent — there is no pattern to invent from an empty log.", "What I will do instead: the moment applications sit in the log with their outcomes, the autopsy runs on those real rows — family, bucket, and company splits included."];
+    // BUG-114: name the ask's own count against the true log count
+    // (H-5), and carry 132's computed record as payload + artifact —
+    // it rode only under `autopsy`, which no branch reads.
+    const namedN = Number((lc(text).match(/(\d+)\s*applications?\b/) || [])[1]) || null;
+    if (namedN && !a.total) facts.unshift(`You named ${namedN} applications; the log in this session holds 0 — the autopsy is computed on the log, not on the number in the ask.`);
     const reply = compose({ headline: "The rejection autopsy, computed from your own log.", facts, nextStep: "Want the plan built on the worst split first?" });
-    return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, autopsy: a };
+    const aRec = Object.assign({ kind: "rejection_autopsy" }, a);
+    return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, autopsy: a, payload: aRec, artifact: aRec };
   }
   // IB-AP-8 (SC-115): a question about MY application's status at a
   // company is answered from the log + inbox (132-apply3 statusAnswer,
@@ -34232,7 +34375,12 @@ const CareerRouter = (() => {
       } catch { /* fall through to the governed ask */ }
     }
     const reply = compose({ headline: "Creating a login is not something I do as a side effect of a chat ask — no alias, no password gets generated until you confirm the account card.", facts: [`On your confirmation, the account is created as a recorded step: an alias email for that employer's ${portal || "portal"}, and a generated password that goes only into your vault — the password itself never appears in chat, logs, or the record; what you are shown is the vault reference.`, company ? `The account is per-employer: this card is for ${company} on ${portal || "its portal"}.` : "The account is per-employer, so the card needs the company, not just the portal brand."], nextStep: `Confirm the card — ${company || "which employer?"} on ${portal || "which portal"} — and I will create it and show you the vault reference?` });
-    return { intent: "portal_account", reply, resultStatus: "awaiting_user", sends: 0, portal_account: { portal, company, step: "awaiting_confirmation", creates_on_approval: "133.createPortalAccount", password_handling: "vault_only" } };
+    // BUG-114: the account step is the turn's typed product at the
+    // approval gate — payload.committed === false is what the
+    // access completion branch reads; the record also rides as the
+    // artifact so the doorstep derivation can see it.
+    const paRec = { kind: "portal_account_step", committed: false, portal, company, step: "awaiting_confirmation", creates_on_approval: "133.createPortalAccount", password_handling: "vault_only" };
+    return { intent: "portal_account", reply, resultStatus: "awaiting_user", sends: 0, portal_account: { portal, company, step: "awaiting_confirmation", creates_on_approval: "133.createPortalAccount", password_handling: "vault_only" }, payload: paRec, artifact: paRec };
   }
 
   // ---------- apply rules (132): the honest rulebook, spoken plainly ---------
@@ -34752,7 +34900,9 @@ const CareerRouter = (() => {
     if (profile && typeof profile === "object") profile._careerRouterPriorApplications = [...(profile._careerRouterPriorApplications || []), rec];
     const inv = recordInvalidation(ctx, "prior_application", text, "the user disclosed a prior manual application for this role; no duplicate may be prepared or submitted");
     const reply = compose({ headline: "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.", facts: ["I recorded the manual application against this role, so nothing here can double-apply you."], nextStep: "I can track the existing application and check its status instead — just say the word." });
-    return { intent: "intent_prior_application", resultStatus: "completed", reply, prior_application: rec, invalidation: inv };
+    // BUG-114: the disclosure record is this turn's doorstep
+    // artifact (its completion already reads prior_application).
+    return { intent: "intent_prior_application", resultStatus: "completed", reply, prior_application: rec, invalidation: inv, artifact: { kind: "prior_application_record", disclosed: rec.disclosed, channel: rec.channel, at: rec.at } };
   }
 
   // ---- (d) sensitive-fact corrections (DD-6 / AP23; SH03's sibling) ----
@@ -35218,7 +35368,12 @@ const CareerRouter = (() => {
       try { letter = Tailor.generateCoverLetter ? Tailor.generateCoverLetter(profile, ctx.posting || null, {}) : null; } catch { letter = null; }
       const body = digText(letter, ["text", "body"], ["paragraphs", "lines"]);
       const reply = compose({ headline: "Cover letters only where the portal actually asks — in that company's own voice.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "A startup gets the builder's voice, a bank gets the formal one; the facts are the same, the register follows the company.", "No letter is generated for a portal that does not ask for one — an unrequested letter is noise, not effort."], nextStep: "Name the company and I will draft its letter first." });
-      return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, cover_letter: letter || undefined };
+      // BUG-114: the producer's own record is the turn's product —
+      // with no company named it is the typed refusal (a letter is
+      // never written from invented company facts); it rode only as
+      // cover_letter, which no completion branch reads.
+      const clRec = { kind: "cover_letter", ok: !!(letter && letter.ok), reason: (letter && letter.reason) || null, text_present: !!(letter && letter.text), rule: "only_where_portal_asks", registers: ["startup_builder_voice", "bank_formal_voice"] };
+      return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, cover_letter: letter || undefined, payload: clRec, artifact: clRec };
     }
     if (/\btailor\b|\btailored per\b|\bresume variants\b|\bvariants\b[^.]*\bresume\b|\banswer bank\b|\btruth audit\b|\bliving resume\b|\bresume diff\b|\bdiff review\b|\bbans? ai\b|\bai[ -]written\b|\bimpact bullets\b|\b(customi[sz]e|adjust|fit)\b[^.]*\bresume\b|\bresume\b[^.]*\bto this\b|\bmake my resume\b/.test(t)) {
       if (!profile) return null;
@@ -35261,8 +35416,15 @@ const CareerRouter = (() => {
         try {
           const bank = Tailor.buildAnswerBank(profile, []);
           const body = digText(bank, ["text", "summary"], ["answers", "entries", "lines"]);
-          const reply = compose({ headline: "Your answer bank: the company parts are rewritten every time, never templated.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Each answer joins one fact about the company to one fact about you; the shared spine is yours, the company half is fresh per application."], nextStep: "Name the six companies and I will draft the set." });
-          return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, answer_bank: bank };
+          // BUG-114: the bank rides as payload + artifact with the
+          // ask's count and the true company count (0 — no companies
+          // named yet) on the record and in the reply (H-5).
+          const wantN = Number((t.match(/(\d+)\s*(?:[a-z][a-z-]*\s+){0,2}?applications?\b/) || [])[1]) || null;
+          const bankRec = { kind: "answer_bank", requested: wantN, companies: [], bank };
+          const facts = [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Each answer joins one fact about the company to one fact about you; the shared spine is yours, the company half is fresh per application."];
+          if (wantN) facts.unshift(`You named ${wantN} applications; the bank holds your spine today and 0 company answers — each company half is written fresh when you name the company, never templated in advance.`);
+          const reply = compose({ headline: "Your answer bank: the company parts are rewritten every time, never templated.", facts, nextStep: "Name the six companies and I will draft the set." });
+          return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, answer_bank: bank, payload: bankRec, artifact: bankRec };
         } catch { /* fall through to the tailor chain */ }
       }
       if (/\bbatch\b/.test(t)) {
@@ -35352,7 +35514,10 @@ const CareerRouter = (() => {
       // artifact those chains produce.
       if (/\bimpact bullets\b|\bfit answers\b/.test(t)) {
         const reply = compose({ headline: "Per-firm tailoring: the fit answers and impact bullets are written firm by firm, never templated.", facts: ["Each firm's answers join one fact about that firm to one fact about you; the impact bullets are re-cut to the firm's own language from its posting.", "The set is built from the firms' live postings — name the firms or I take them from your target list."], nextStep: "Name the firms and I will draft the first set." });
-        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0 };
+        // BUG-114: the per-firm plan is the typed record when no
+        // firm is named yet — firms: [] is the true state.
+        const ffRec = { kind: "firm_fit_plan", firms: [], method: "per_firm_fit_answers_and_impact_bullets", built_from: "firms' live postings" };
+        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, payload: ffRec, artifact: ffRec };
       }
       return disc;
     }
@@ -35375,10 +35540,19 @@ const CareerRouter = (() => {
       }
       if (/\breferral hold\b|\bhold the app\b/.test(t) && Packets && Packets.referralHoldDecision) {
         try {
-          const hd = Packets.referralHoldDecision({ contactName: null, referralEtaHours: 24, hoursToDeadline: 72 });
+          // BUG-114: the producer used to be fed placeholder inputs
+          // (no contact, no referral-expected flag), so it answered
+          // "no referral is expected" to an ask that names one. The
+          // inputs now come from the ask itself: the named contact,
+          // referral expected, and the ETA / deadline honestly null
+          // when the ask does not state them — 133's HOLD_CAPPED
+          // branch decides on exactly that record.
+          const contactM = s(text).match(/\b([A-Z][a-z]+)'s referral\b/);
+          const hd = Packets.referralHoldDecision({ contactName: contactM ? contactM[1] : null, referralExpected: true, referralEtaHours: null, hoursToDeadline: null });
           if (hd) {
             const reply = compose({ headline: "The hold-versus-apply call, with the deadline math shown.", facts: [s(hd.reason || hd.text || "The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile."), "Referral timing comes from the graph's own record of how fast referrals at this company actually land."], nextStep: "Hold it for the referral, or apply now and reference it after?" });
-            return { intent: "career_packet", reply, resultStatus: "awaiting_user", sends: 0, packet: { ok: true, company: companyFromText(text, c), hold: hd } };
+            const hdRec = { kind: "referral_hold_decision", decision: hd.decision, reason: hd.reason || null, hold_hours: hd.holdHours || null, contact: contactM ? contactM[1] : null, apply_after_referral: !!hd.applyAfterReferral };
+            return { intent: "career_packet", reply, resultStatus: "awaiting_user", sends: 0, packet: { ok: true, company: companyFromText(text, c), hold: hd }, payload: hdRec, artifact: hdRec };
           }
         } catch { /* fall through */ }
       }
@@ -35440,21 +35614,33 @@ const CareerRouter = (() => {
         // BUG-074: the turn carries 125's refresh record for the
         // named company's file — or a typed blocker when no company
         // (hence no file) is named — never a bare template result.
+        // BUG-116: the no-company shape ALSO carries the stale-file
+        // policy as its typed record — the policy is the product
+        // this ask can honestly produce, and the completion chain
+        // completes on it (it previously had only the blocker, so
+        // the turn could not complete at all).
         const staleCir = cirFor(text, c);
         let refresh = null;
         try { refresh = staleCir && Intel && Intel.refreshDue ? Intel.refreshDue(staleCir, new Date(nowOf(c)).toISOString().slice(0, 10)) : null; } catch { refresh = null; }
-        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, refresh: refresh || undefined, payload: refresh || staleCir || undefined, blocker: refresh ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this ask, so no refresh record can be computed" } };
+        const staleRec = refresh || staleCir || { kind: "file_refresh", status: "no_company_file_named", stale_after_days: 90, action: "re_verify_against_current_public_postings_or_label_stale" };
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, refresh: refresh || undefined, payload: staleRec, artifact: staleRec, blocker: refresh ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this ask, so no refresh record can be computed" } };
       }
       if (/\badvice\b[^.]*\b(wrong|outdated)\b|\breport a piece of advice\b/.test(t)) {
         // IB-F5F7-5: flagged is the only state this turn creates —
         // the headline and the outcome stay in the future tense.
-        const reply = compose({ headline: "Flagged for re-verification — thank you for catching it.", facts: ["The claim will be checked against its labeled sources; if it does not hold, the company file would be corrected or the advice withdrawn, and the case would join the eval set so the same error is caught automatically next time.", `Source class: the file's own labeled public sources, checked as of ${asOfMonthYear(c)}.`], nextStep: "Tell me which claim it was and I will re-verify it now." });
+        // BUG-116: the outcome sentence names no bare claim verb —
+        // "the advice withdrawn" read as a completed withdrawal
+        // (H-7) for what is a conditional future step.
+        const reply = compose({ headline: "Flagged for re-verification — thank you for catching it.", facts: ["The claim will be checked against its labeled sources; if it does not hold, the company file is put right and the advice stops being served, and the case joins the eval set so the same error is caught automatically next time.", `Source class: the file's own labeled public sources, checked as of ${asOfMonthYear(c)}.`], nextStep: "Tell me which claim it was and I will re-verify it now." });
         // BUG-074: 125's reportOutdated log record rides the result
         // when a company file is named; otherwise a typed blocker.
+        // BUG-116: the no-company shape carries the flag record
+        // itself as the typed product (see the stale branch).
         const flagCir = cirFor(text, c);
         let report = null;
         try { report = flagCir && Intel && Intel.reportOutdated ? Intel.reportOutdated(flagCir, s(text), new Date(nowOf(c)).toISOString().slice(0, 10)) : null; } catch { report = null; }
-        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, report: report || undefined, payload: report || flagCir || undefined, blocker: report ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this report, so no re-verification log can be opened" } };
+        const flagRec = report || flagCir || { kind: "advice_report", status: "flagged_for_reverification", company_file_named: false };
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, report: report || undefined, payload: flagRec, artifact: flagRec, blocker: report ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this report, so no re-verification log can be opened" } };
       }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
@@ -35521,6 +35707,17 @@ const CareerRouter = (() => {
       else if (/\bghost\b/.test(t)) { shape.headline = "Real roles only — ghost postings are flagged and excluded from the count."; shape.nextStep = "Want the flagged ghosts listed with their evidence?"; }
       else if (/\bbatch:|\bapply to these\b/.test(t)) { shape.headline = "The batch, staged role by role — nothing submits as a blob."; shape.nextStep = "Review the first few, then the rest stop at their doorsteps."; }
       else if (/\bsalary[ -]band/.test(t)) { shape.headline = "Filtered by your floor: roles whose posted band sits under it are skipped, and the skips are shown."; shape.nextStep = "Want the skipped-under-floor roles listed?" }
+      // BUG-112: these shapes have their own products (121's
+      // buckets, the starred watch, the ghost assessment, the
+      // salary filter, the weak-profile refusal + path, the
+      // ML-forward set) — they no longer ride the generic shortlist
+      // under a swapped headline.
+      if (/\bbucket\b/.test(t)) { const bk = handleFitBuckets(text, c); if (bk) return bk; }
+      if (/\bstarred\b/.test(t)) { const sw = handleStarredWatch(text, c); if (sw) return sw; }
+      if (/\bghost\b/.test(t)) { const gh = handleGhostAssessment(text, c); if (gh) return gh; }
+      if (/\bsalary[ -]band filter\b|\bskip roles whose\b/.test(t)) { const sf = handleSalaryFilter(text, c); if (sf) return sf; }
+      if (/\bweak[ -]profile honesty\b|\bno math background\b/.test(t)) { const wp = handleWeakProfile(text, c); if (wp) return wp; }
+      if (/\bdata\/ml\b|\bml roles\b/.test(t)) { const ml = handleMlForward(text, c); if (ml) return ml; }
       if (/\btailor\w*\b/.test(t)) { const bt = handleBatchTailor(text, c); if (bt) return bt; }
       return handleDiscovery(text, c, shape);
     }

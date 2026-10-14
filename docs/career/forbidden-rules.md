@@ -1802,9 +1802,39 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-111 (15 asks pairwise distinct; artifacts preserved where they existed; named firm with no posting stops as tailor_needs_posting carrying that firm's file fact and typed company/payload; a category is stopped as a category).
 - **STATUS:** ENFORCED
 
+### FR-282 — Every apply shape composes from its own product, never a headline over the generic shortlist (BUG-112)
+- **FORBIDDEN:** Answering a bucket/starred-watch/ghost/salary-filter/weak-profile/ML ask by swapping a headline over the generic discovery shortlist; each shape's handler builds its typed record (121 buckets, the profile's starred set and comp floor, the ask's ghost signals, the refusal + path, the family-filtered set) and composes from it. A record's own text must speak the record's numbers (no hardcoded counts).
+- **FROM:** Residual lane 2026-10-14 — six Apply shapes failed H-2/H-4 + doorstep in the true-score run; 135's mini-campaign rule text also contradicted its own requested count.
+- **ENFORCEMENT:** tests/career-apply-completion.test.cjs (shape record tests + canned-signature absence + rule-text consistency) + run-grand.cjs BUG-112 branches + Apply re-run 19/19 targets (apply-fix-index.json).
+- **STATUS:** ENFORCED
+
+### FR-283 — Count statements ride as their own fact; the composer keeps one sentence per fact (BUG-113)
+- **FORBIDDEN:** Appending a required statement as a second sentence inside an existing fact (140's composer keeps the first sentence of each fact — the statement would never reach the user), and count parses that miss family words between the number and the noun (FR-280's class, tailor-closing site).
+- **FROM:** Residual lane 2026-10-14 — SC-065's shortfall clause composed correctly and was silently dropped before delivery; found by reading the delivered text.
+- **ENFORCEMENT:** tests/career-apply-completion.test.cjs SC-065 test (delivered text states 20 and the true staged count).
+- **STATUS:** ENFORCED
+
+### FR-284 — Apply products ride under the keys the completion chain reads (BUG-114)
+- **FORBIDDEN:** A tailor/packet/tracking/intel product carried only under a handler-private key (answer_bank, cover_letter, packet.hold, autopsy) or without an artifact; and feeding a producer placeholder inputs that contradict the ask (the referral-hold decision must be computed from the ask's own inputs — named contact, expected flag, ETA/deadline honestly null when unstated).
+- **FROM:** Residual lane 2026-10-14 — SC-079/081/085/086/099/109/112/115/116/247 failed doorstep/A4 with their products already built.
+- **ENFORCEMENT:** tests/career-apply-completion.test.cjs + tests/career-intel-completion.test.cjs (SC-247) + run-grand.cjs BUG-114 branches.
+- **STATUS:** ENFORCED
+
+### FR-291 — The dated grounding line is never shadowed (BUG-115)
+- **FORBIDDEN:** An advice/guidance/negotiation answer whose only source line is an undated label; the dated source-class grounding (source class + as-of) rides as its own fact on every such answer, whatever the record's first source carries (the R-C5 floor). (Numbered 291: FR-285/286 were taken by the template-breakup lane's BUG-087/088 while this lane worked.)
+- **FROM:** Residual lane 2026-10-14 — 19 Intelligence scenarios + SC-208 failed R-C5 with the dated line present in code but shadowed/unpushed.
+- **ENFORCEMENT:** tests/career-intel-completion.test.cjs (grader-v2's own R-C5 predicates over all 20 canonical asks).
+- **STATUS:** ENFORCED
+
+### FR-292 — Policy/flag turns carry their record; conditional outcomes name no claim verb (BUG-116)
+- **FORBIDDEN:** A policy or flag turn (stale file, reported advice) carrying only a blocker with no completable record when no company is named; and outcome sentences that use a bare claim verb (withdrawn/submitted/logged…) for a conditional or future step.
+- **FROM:** Residual lane 2026-10-14 — SC-269/270 could not complete; SC-270 tripped H-7 on "the advice withdrawn."
+- **ENFORCEMENT:** tests/career-intel-completion.test.cjs SC-269/SC-270 tests + run-grand.cjs BUG-116 branches.
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 194 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 287
+Counts: ENFORCED 199 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 292
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2095,5 +2125,10 @@ Counts: ENFORCED 194 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-288 (BUG-109) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-109 |
 | FR-289 (BUG-110) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 |
 | FR-290 (BUG-111) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-111 |
+| FR-282 (BUG-112) | ENFORCED | tests/career-apply-completion.test.cjs (shape tests) + run-grand BUG-112 branches + apply re-run 19/19 |
+| FR-283 (BUG-113) | ENFORCED | tests/career-apply-completion.test.cjs SC-065 test |
+| FR-284 (BUG-114) | ENFORCED | tests/career-apply-completion.test.cjs + tests/career-intel-completion.test.cjs (SC-247) |
+| FR-291 (BUG-115) | ENFORCED | tests/career-intel-completion.test.cjs (R-C5 predicates, 20 asks) |
+| FR-292 (BUG-116) | ENFORCED | tests/career-intel-completion.test.cjs SC-269/SC-270 tests |
 
-<!-- totals: total=287 enforced=194 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=292 enforced=199 guarded_red=1 hard_shut=1 unenforced=91 -->

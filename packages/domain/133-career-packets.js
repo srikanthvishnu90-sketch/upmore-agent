@@ -125,6 +125,15 @@ const CareerPackets = (() => {
   function referralHoldDecision(input) {
     const o = input || {};
     const hoursToDeadline = o.hoursToDeadline, referralEtaHours = o.referralEtaHours;
+    // BUG-114: a referral can be expected with its ETA (or the
+    // deadline) genuinely not on record — the caller used to omit
+    // referralExpected entirely in that case and this producer then
+    // answered "no referral is expected" to an ask that names one.
+    // The honest decision: build the packet now, cap the hold at
+    // 48h, and name both unknowns on the record.
+    if (o.referralExpected && (referralEtaHours == null || hoursToDeadline == null)) {
+      return { decision: "HOLD_CAPPED", holdHours: 48, reason: `${o.contactName || "Your contact"}'s referral is expected, but its arrival time is not on record — and neither is the posting deadline. So the packet is built now and the submission holds up to 48 hours for the referral; if the deadline lands first, apply then and refer after.`, applyAfterReferral: true, unknowns: ["referral_eta_hours", "hours_to_deadline"] };
+    }
     if (o.referralExpected && referralEtaHours <= 48 && hoursToDeadline > 48 + referralEtaHours) {
       return { decision: "HOLD", holdHours: 48, reason: `${o.contactName || "Your contact"}'s referral is expected in ~${referralEtaHours}h and the deadline is ~${hoursToDeadline}h away — holding 48 hours keeps the referral attached without risking the deadline.`, applyAfterReferral: true };
     }

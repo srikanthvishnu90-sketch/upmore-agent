@@ -399,3 +399,91 @@ artifact (BUG-108). Guard: tests/career-outreach-completion.test.cjs
 | BUG-109 | true-score re-judge (17 Referrals asks byte-identical + SC-100; SC-149/170 variants) | one warm-paths paragraph served every graph-shaped ask regardless of its task (ranking, referral tracking, public lookup, second-degree, conversion, sweep, radar, bonus intel, drafts, exclusion, dedupe, mini-campaign) | handleGraphCatch's tail fallback composed a single text from graph size + ranking rules + one next step for every unbranched shape (the per-shape breakup itself landed in the referrals wave, BUG-098's branches — this lane verified it mechanically and closed the residual pair it left) | residual pair SC-100/SC-170 both hit the miniCampaign branch with one composition: the branch now reads the ask's own sizing (a "5–10 person" range sizes the sequence at the range top; the old matcher read only "N people" and defaulted both to 8) and speaks SC-100's premise (no warm path — the campaign is the substitute). This lane's guard pins the whole 19-ask group so no shared fallback text can serve two of them again | tests/career-template-breakup-guard.test.cjs BUG-109 (pairwise non-identity + grounding across all 19) — red at a92c882, green after | fixed |
 | BUG-110 | true-score re-judge (32 Outreach plan asks: SC-004–060 set; judge headline: "naming Goldman/Morgan Stanley/JPMorgan/BofA regardless of what was asked") | one plan text served 32 asks AND misnamed the target: a Google ask planned for Meta/Apple/Amazon/Netflix; a Houlihan/Jefferies/Rothschild ask planned for the bulge bracket; a seed-founder ask was re-dressed as "120 investment bankers" | two layers. (1) 124 parseTarget: the first SET_ALIASES match expanded a named firm into its whole set, and the vague default assigned bulge-bracket firms as if chosen (and overwrote the ask's own role_family/industry with the default's). No named-firm extraction existed. (2) 142 handleCampaignPlan composed headline + two static facts + one identical closing from count and the (wrong) firm slice only | parseTarget gains a recognizer-only named-firm extraction (full-name phrase, unique distinctive first token, known abbreviations, raw-capital form for ≤3-letter names so "follow-ups" never yields UPS; geography tokens stoplisted so "Chicago" never yields Chicago Ventures) running BEFORE set/default logic, with firms_source ∈ named/set/default recorded; the vague branch proposes a firm set only and never overwrites the ask's role/industry; seed stage and first-PM openings are read as filters. handleCampaignPlan composes from the parsed target: named firms as named, a set as a set, a default SPOKEN AS A PROPOSAL, plus the ask's distinguishing filter (school, prior career, GitHub, started-as-analyst, first hire, stage, alumni, single-firm cap math in monthly waves) and a next step naming this plan's first list | tests/career-template-breakup-guard.test.cjs BUG-110 (32 asks pairwise distinct + grounding + named-firm/proposal assertions + parseTarget unit cases) — red at a92c882 (grounding half), green after | fixed |
 | BUG-111 | true-score re-judge (10 Apply tailor asks byte-identical: SC-062/068/070/088/089/091/094/095/108/283; same skeleton across 14 with SC-065/087/090/092/093) | (a) asks naming Goldman/McKinsey/Palantir/Big Law were "answered" by tailoring the pool's top SWE role (Northwind Ledger) — the named target never resolved, so a substitute artifact wore the ask's clothes; (b) every chained tailor shared one closing block (saved line + grounded line + "prepare the full application packet next") regardless of batch/variant/discovery context | (a) the tailor chain resolved companies only via companyFromText ("at X" or full-name substring) — "Tailor for Goldman IBD" resolved nothing and fell into the A6 discovery chain. (b) handleTailor composed its closing with no knowledge of the chain context or the ask's shape | (a) tailor-branch-only resolution: a named-company company file (cirFor, archetypes excluded) resolves the firm; with no posting and no board it lands on the honest needs-posting reply, enriched with that firm's own file fact and the cut spec the ask stated, and the resolved firm + file ride in typed state (company + payload). A category ask (Big Law) stops as a category, naming the profile mismatch from typed education facts. ACCEPTED TRADE, recorded plainly: SC-088/089/091/095 flip deterministic PASS→FAIL — the old PASSes were substitution artifacts (the SC-096 precedent). (b) the closing composes from chain context passed by the callers (batch staged count + review order from the ask, shortlist titles, discovery shortlist size) and the ask's shape (variants named from the ask with the one rendered cut named honestly as one; living-resume rebuild doctrine; startup disclosure naming the actual posting cut; discovery pick context; the apply-for-me half answered with the gated packet step) | tests/career-template-breakup-guard.test.cjs BUG-111 (15 asks pairwise distinct; artifacts preserved on the 11 that had them; the four named-target asks stop honestly with their firm's file fact in the reply) — red at a92c882, green after | fixed |
+
+## Residual deterministic lane — Apply (2026-10-14)
+
+BUG-112 — The dispatch "apply shapes" branch answered bucket/starred/
+ghost/salary-band/weak-profile/Data-ML asks by swapping a headline over
+the generic discovery shortlist (H-2/H-4 by construction, doorstep gap),
+even though the real products exist. Fix: per-shape handlers composing
+from their own records — handleFitBuckets (121's Reach/Match/Safety
+rows with one-line reasons; the true total stated against the asked
+count), handleStarredWatch (the profile's starred set — P1 stars none,
+and the record + reply say so), handleGhostAssessment (days-open +
+repost signals from the ask; low-odds verdict before any application),
+handleSalaryFilter (the profile's compFloor — P1's is null, so the
+record is the honest no-floor state instead of a fake filter run),
+handleWeakProfile (submission refused with the reason; 12-month path +
+quant-adjacent roles on the record), handleMlForward (the family-
+filtered ML set + the top role's tailored packet as the artifact).
+135's mini-campaign rule text also hardcoded an "8-person sequence"
+while the record's requested count follows the ask's own sizing
+(BUG-109) — the rule now speaks the record's number. CONTRACT (flagged,
+run-grand.cjs): element-keyed branches per record kind. Guard:
+tests/career-apply-completion.test.cjs. Fresh re-run
+(upmore-career-gauntlet-apply-fix, grader-v2): the 19 in-scope targets
+19/19 PASS; of the 37 previously-passing Apply scenarios re-run as
+regression, 33 PASS and SC-088/089/091/095 flip FAIL — that flip is the
+template-breakup lane's BUG-111 accepted trade (named-firm asks stop at
+tailor_needs_posting instead of tailoring a substitute role; recorded
+in their ledger entry), not a regression of this fix. Rule: FR-282.
+
+BUG-113 — The tailor closing's named-count parse (FR-280 class, second
+site): "20 PM internships" never matched the "N roles" pattern, so the
+closing never stated the ask's count or the true staged count (SC-065
+H-5). Fix: one widened count parse shared by the batch and discovery
+closings, and the shortfall rides as its OWN fact — 140's composer
+keeps one sentence per fact, so the clause appended inside
+groundedFact was silently dropped before delivery (found by driving
+the canonical turn and reading the delivered text, not the composed
+string). Guard: tests/career-apply-completion.test.cjs SC-065 test.
+Rule: FR-283.
+
+BUG-114 — Apply products carried under keys the completion chain does
+not read, or with no artifact: the answer bank (bank under answer_bank
+only; the named count never stated — SC-085 H-5), the cover letter
+(123's typed refusal rode as cover_letter only — SC-086), the per-firm
+fit explainer (prose only — SC-109), the referral-hold decision (inside
+packet.hold; and the handler fed 133 placeholder inputs — no contact,
+no referral-expected flag — so it answered "no referral is expected"
+to an ask naming Priya's referral; 133 gains the HOLD_CAPPED branch
+for an expected referral with ETA/deadline honestly unknown — SC-099),
+the portal-account step (SC-081), the prior-application record (no
+artifact — SC-079), the rejection autopsy (record under `autopsy`
+only; the reply never stated the named 34 and tripped H-7 on a rule
+sentence's bare "logged" — SC-116), and the company-intel answers
+(payload present, no artifact — SC-112/115/247). Each now carries its
+record as payload + artifact; CONTRACT branches (flagged) complete the
+packet/tailor/tracking records on their own elements. Guard:
+tests/career-apply-completion.test.cjs + tests/career-intel-
+completion.test.cjs (SC-247). Rule: FR-284.
+
+## Residual deterministic lane — Intelligence + Negotiation (2026-10-14)
+
+BUG-115 — Advice answers failed the R-C5 floor (a named source class
+AND an as-of date) even though the dated grounding line existed in
+both handlers: handleIntelGuidance SHADOWED its dated sourceLine
+whenever the guidance record's first source lacked its own as_of (19
+scenarios then carried "Source: <a profile fact>" and no date), and
+handleNegotiation's counter-scripts branch never pushed its
+benchSentence — the dated source-class line built for exactly that
+purpose (SC-208). Fix: the grounding line rides as its own fact in
+the guidance composition (140 keeps one sentence per fact), and the
+scripts branch pushes benchSentence whenever the bench does not
+already lead with its own as-of. Fail-first evidence: the true-score
+records themselves (every R-C5 failure's reply lacks a date token);
+guard tests/career-intel-completion.test.cjs asserts grader-v2's own
+R-C5 predicates over all 20 canonical asks. Rule: FR-291.
+
+BUG-116 — The stale-file and advice-flag turns carried only a typed
+blocker when no company was named (payload undefined), so no
+completion branch could fire (SC-269/270 SCEN-A4); SC-270's outcome
+sentence also named a bare claim verb ("the advice withdrawn", H-7)
+for a conditional future step. Fix: both turns carry their
+policy/flag record as payload + artifact ({kind:"file_refresh",
+stale_after_days:90,...} / {kind:"advice_report",
+status:"flagged_for_reverification"}); a named company's file still
+completes through the F7 intel branch. SC-270's sentence now speaks
+without a claim verb. CONTRACT (flagged, run-grand.cjs): element-
+keyed branches for both records. Guard:
+tests/career-intel-completion.test.cjs. Rule: FR-292.

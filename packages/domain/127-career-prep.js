@@ -127,15 +127,17 @@ const CareerPrep = (() => {
     }
     return { story_map: map, stories_mapped: map, no_fit_statement: false, stories_note: null };
   }
-  function composeBrief(opts, postingArg) {
+  function composeBrief(opts, postingArg, cirArg) {
     // Chat-path shape (142 handlePrepExtras, the entry the router actually
-    // calls): composeBrief(profile, { title, company }, null) — the first
-    // argument is a 122 profile, the second the posting stub. Normalize it
-    // here so the brief keeps the company/role the router resolved instead
-    // of silently dropping them (company came back "" on the chat path).
+    // calls): composeBrief(profile, { title, company }, cir) — the first
+    // argument is a 122 profile, the second the posting stub, the third
+    // the company file. BUG-073 (W5): the CIR used to die here — the
+    // normalization below rebuilt opts without it, so every chat-path
+    // brief came back NO_CIR (sources: [], no bar/stages) no matter
+    // what 142 passed. The third argument is now threaded through.
     if (postingArg && typeof postingArg === "object" && opts && typeof opts === "object"
       && !opts.cir && !opts.jdText && opts.company == null && (opts.facts || opts.basics || opts.id)) {
-      opts = { profile: opts, facts: opts.facts, company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "" };
+      opts = { profile: opts, facts: opts.facts, company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "", cir: cirArg || undefined };
     }
     opts = opts || {};
     if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: opts.profile.facts };
@@ -737,13 +739,27 @@ const CareerPrep = (() => {
       level_notes: ["Experienced-hire bar: you drive the design — the interviewer should mostly react", "Ground choices in a system you have actually run where you honestly can; say so when you cannot", "Every claim gets a number: QPS, storage, latency budget"] };
   }
   function casePrepPlan(opts) {
-    opts = opts || {}; const n = normalizeCir(opts.cir); const sess = caseSession(opts);
+    opts = opts || {};
+    // BUG-073 (W5): an MBB ask names THREE company files, not one —
+    // when the caller passes the file set (opts.cirs), the plan
+    // grounds on all of them: sources from each file (each with its
+    // own as-of), stages/style from the first, company named as the
+    // set it is. A single-file ask keeps the single-file shape.
+    const cirSet = Array.isArray(opts.cirs) && opts.cirs.length ? opts.cirs : null;
+    const n = normalizeCir(cirSet ? cirSet[0] : opts.cir); const sess = caseSession(opts);
     const weeks = Math.max(2, Math.min(10, opts.weeks || 6));
     const perWeek = Math.max(5, Math.round(40 / weeks)); const total = perWeek * weeks;
-    return { kind: "case_prep_plan", company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
+    return { kind: "case_prep_plan", company: cirSet ? `MBB — ${cirSet.map((c) => (normalizeCir(c) || {}).company_name).filter(Boolean).join(", ")}` : n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
+      // BUG-073 (W5): the plan is a prep RECORD — it carries the same
+      // status/stages/story-note elements composeBrief's records carry,
+      // so the F5 doorstep contract can read it (status mirrors the
+      // brief's OK / NO_CIR semantics; stages come from the file).
+      status: n ? "OK" : "NO_CIR", stages: n ? n.stages : [],
+      company_files: cirSet ? cirSet.map((c) => (normalizeCir(c) || {}).company_id).filter(Boolean) : undefined,
+      stories_note: "Story mapping lives in the interview brief, not the case plan — this record maps no stories, and none are invented for it.",
       practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
         note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files do not quantify it. It is a planning target, not a requirement." },
-      sources: n ? [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] : [{ type: "generic_case_framework", label: "No company file on file — generic case framework only; the practice norm is community-reported, not sourced from any firm", as_of: null }],
+      sources: cirSet ? cirSet.map((c) => { const cn = normalizeCir(c) || {}; return { type: "CIR", company_id: cn.company_id, as_of: cn.as_of }; }) : n ? [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] : [{ type: "generic_case_framework", label: "No company file on file — generic case framework only; the practice norm is community-reported, not sourced from any firm", as_of: null }],
       text: `Case prep plan${n ? ` for ${n.company_name}` : ""}: ${total} full practice cases over ${weeks} weeks. Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official).`,
       schedule: { weeks, sessions_per_week: perWeek, total_cases: total, inside_norm: total >= 30 && total <= 50,
         plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each answer scored against the case rubric and the gaps re-drilled next session`) } };

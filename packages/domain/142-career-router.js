@@ -1133,10 +1133,13 @@ const CareerRouter = (() => {
         const facts = r.paths.slice(0, 3).map((p) => `${p.name} — ${p.title || "contact"} at ${p.firm || company}: ${(Array.isArray(p.why) ? p.why.join(", ") : p.why) || "direct connection"}.`);
         facts.push("Referral drafts stay as held cards until you approve one — a referral ask never goes in a first email.");
         const reply = compose({ headline: `You have ${r.paths.length} warm path${r.paths.length === 1 ? "" : "s"} into ${company}.`, facts, nextStep: "Pick a path and I will prepare the intro ask as a held card." });
-        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: r.paths };
+        // BUG-073: the full 135 record rides under payload — ranked
+        // paths, the excluded set (the departed-contact check), and
+        // the held draft cards are the F4 elements, all in one record.
+        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: r.paths, payload: r };
       }
       const reply = compose({ headline: `No one at ${company} is in your graph yet.`, facts: [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none of them is at ${company} now.`, "People who already left a firm never count as a path into it."], nextStep: "Upload your LinkedIn export or paste names from the firm's team page, and I will rebuild the paths." });
-      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: [] };
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: [], payload: r };
     }
     return null;
   }
@@ -1157,7 +1160,7 @@ const CareerRouter = (() => {
         const r = Graph.planReferralAsk(store, nameM[1], { now: nowOf(ctx) });
         if (r && r.ok && r.draft_card) {
           const reply = compose({ headline: "The referral ask is prepared as a held card.", facts: ["It rides as its own follow-up step, never inside a first email.", "It goes nowhere until you approve the card."], nextStep: "Review the card and approve it when you are ready." });
-          return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, draft: r.draft_card };
+          return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, draft: r.draft_card, payload: r };
         }
       } catch { /* fall through to the rule answer */ }
     }
@@ -1176,7 +1179,7 @@ const CareerRouter = (() => {
       const facts = sugg.slice(0, 3).map((x) => `${x.name} at ${x.company || "their firm"} — last touch ${x.days_since != null ? `${x.days_since} days ago` : "a while ago"}: ${x.reason}.`);
       facts.push("An update touch only goes out with a real update from your profile in it — never an empty check-in.");
       const reply = compose({ headline: `${sugg.length} warm ${sugg.length === 1 ? "contact is" : "contacts are"} due a keep-warm touch.`, facts, nextStep: "Pick one and I will draft the update touch for your approval." });
-      return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: sugg };
+      return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: sugg, payload: { suggestions: sugg } };
     }
     const reply = compose({ headline: "Nobody in your graph is due a keep-warm touch yet.", facts: ["The rule: a warm contact goes quiet for six weeks before an update touch is due, and the touch carries a real update from your profile — never an empty check-in.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none has crossed the six-week line with a conversation on record.`], nextStep: "Tell me one real update — an internship, a project, a result — and I will hold it ready for the first touch that comes due." });
     return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: [] };
@@ -1251,11 +1254,18 @@ const CareerRouter = (() => {
     const profile = ctx.profile;
     const t = lc(text);
     const company = companyFromText(text, ctx);
+    // BUG-073 (W5 class D): bank/research turns carry the brief record
+    // as their payload — the F5 contract reads the brief (company,
+    // sources with as-of, bar/stages, story mapping), while the bank
+    // itself rides under its own key.
+    const briefPayload = () => { try { return Prep.composeBrief ? Prep.composeBrief(profile, { company: company || null }, cirFor(text, ctx)) : null; } catch { return null; } };
     try {
       // IB-F5F7-3: the case plan and the structure drill are their own
       // products — they must win before the generic prep-set regex.
       if (/\bcase prep\b|\bcase interview\b/.test(t) && Prep.casePrepPlan) {
-        const cp = Prep.casePrepPlan({ cir: cirFor(text, ctx), company: company || undefined });
+        // BUG-073: an MBB ask grounds on the three MBB company files.
+        const mbb = /\bmbb\b/.test(t) ? cirListOf(ctx).filter((x) => ["mckinsey", "bain", "bcg"].includes(lc(s(x.company_id)))) : null;
+        const cp = Prep.casePrepPlan({ cir: cirFor(text, ctx), cirs: mbb && mbb.length ? mbb : undefined, company: company || undefined });
         if (cp) {
           const reply = compose({ headline: `Your case prep plan${company ? ` for ${company}` : ""}.`, facts: [cp.text ? s(cp.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "The plan is built from the case framework for this track.", cp.practice_norm && cp.practice_norm.note ? cp.practice_norm.note.split(/(?<=[.!?])\s/)[0] : "Practice volume is a planning target, labeled with its source class."], nextStep: "Want the first week turned into scheduled sessions?" });
           return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: cp, payload: cp };
@@ -1268,14 +1278,14 @@ const CareerRouter = (() => {
           return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: dr, payload: dr, drill: dr };
         }
       }
-      if (/\bstory\b|\bfailure\b/.test(t) && Prep.failureStoryFromFacts) {
+      if (!/\bquestion bank\b|\bprep set\b/.test(t) && /\bstory\b|\bfailure\b/.test(t) && Prep.failureStoryFromFacts) {
         const st = Prep.failureStoryFromFacts(profile);
         if (st && st.ok) {
           const beats = (st.beats || st.story || []);
           const facts = (Array.isArray(beats) ? beats : []).slice(0, 3).map((b) => s(typeof b === "string" ? b : (b.text || b.line || "")).split(/(?<=[.!?])\s/)[0]).filter(Boolean);
           if (facts.length) {
             const reply = compose({ headline: "Your failure story, built only from facts already on your profile.", facts, nextStep: "Want to rehearse it out loud, one beat at a time?" });
-            return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story: st };
+            return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story: st, payload: st };
           }
         }
         const reply = compose({ headline: "A failure story has to come from a real setback on your record — I will not invent one.", facts: ["Invented setbacks collapse under one follow-up question, and interviewers ask it every time."], nextStep: "Tell me one real setback, briefly, and I will shape it into the story." });
@@ -1286,7 +1296,7 @@ const CareerRouter = (() => {
         try { res = Prep.interviewerResearch([], profile, {}); } catch { res = null; }
         const lines = res && Array.isArray(res.people) ? res.people.map((p2) => s(p2.whois_line || p2.line || "")).filter(Boolean) : [];
         const reply = compose({ headline: "Interviewer research: each person on the invite, from public sources only.", facts: lines.length ? lines.slice(0, 3) : ["For each interviewer: their path, their team, and the shared ground with you — every line sourced, nothing from private data.", "Where a person has no public footprint, the brief says so instead of inventing one."], nextStep: "Paste the invite names and I will build each brief." });
-        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, research: res || undefined };
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, research: res || undefined, payload: briefPayload() || res || undefined };
       }
       if (/\bday[ -]of checklist\b/.test(t) && Prep.dayOfChecklist) {
         const ck = Prep.dayOfChecklist(profile, {});
@@ -1299,7 +1309,7 @@ const CareerRouter = (() => {
         const qs = (bank && (bank.questions || bank)) || [];
         const list = (Array.isArray(qs) ? qs : []).slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         const reply = compose({ headline: `Your prep set${company ? ` for ${company}` : ""}, matched to how this round actually runs.`, facts: list.length ? list : ["The set is built from the question bank for this track, in the order the gaps on your profile demand."], nextStep: "Start the first one as a timed drill?" });
-        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank };
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: briefPayload() || bank };
       }
       if (/\bquestion bank\b/.test(t) && Prep.questionBank) {
         const bank = Prep.questionBank({ company: company || null, role: null });
@@ -1307,7 +1317,7 @@ const CareerRouter = (() => {
         const list = (Array.isArray(qs) ? qs : []).slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         if (list.length) {
           const reply = compose({ headline: `The question bank${company ? ` for ${company}` : " for this round"}, with your best story matched to each.`, facts: list.map((q) => `${q}`), nextStep: "Pick one and we drill it." });
-          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank };
+          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: briefPayload() || bank };
         }
       }
       if (/\bstar bank\b|\breusable stories\b/.test(t) && Prep.buildStoryBank) {
@@ -1428,6 +1438,22 @@ const CareerRouter = (() => {
     const cir = cirFor(text, ctx);
     if (!cir) return null;
     const name = cirShortName(cir);
+    // BUG-073: a compare-my-profile ask is answered by 125's
+    // compareMe product (dimension rows + the highest-leverage fix),
+    // carried as a cited response — not by the thin-file summary.
+    if (/\bcompare\b[^.]*\bprofile\b|\baverage\b[^.]*\bhire\b/.test(lc(text)) && Intel.compareMe) {
+      try {
+        const cm = Intel.compareMe(cir, ctx.profile || {}, {});
+        if (cm && Array.isArray(cm.rows)) {
+          const fixes = cm.rows.filter((r) => r && r.fix).slice(0, 5).map((r) => r.fix);
+          const facts = cm.rows.slice(0, 2).map((r) => `${r.dimension}: you — ${r.user}; the typical hire — ${r.cohort}`.split(/(?<=[.!?])\s/)[0]);
+          facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
+          const reply = compose({ headline: `You versus the average ${name} hire — the table, the gaps, the plan.`, facts, nextStep: "Want the highest-leverage fix turned into this month's plan?" });
+          const payload = { text: cm.highest_leverage_fix && cm.highest_leverage_fix.fix ? cm.highest_leverage_fix.fix : facts[0], sources: cir.data_sources || [], as_of: cir.as_of || null, plan: fixes, comparison: cm };
+          return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload };
+        }
+      } catch { /* fall through to the file summary */ }
+    }
     const facts = [];
     const bar = cirFieldText(cir.hiring_bar_summary);
     if (bar) facts.push(`The bar: ${bar.split(/(?<=[.!?])\s/)[0]}`);
@@ -1438,7 +1464,9 @@ const CareerRouter = (() => {
     if (!facts.length) facts.push("The file is thin right now — status and sourcing only, no invented detail.");
     facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
     const reply = compose({ headline: `Here is what the ${name} file supports.`, facts, nextStep: "Want the interview process or the comp detail next?" });
-    return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name };
+    // BUG-073: the company file itself rides under payload — the
+    // F7 company-file record (125's own shape, data_sources included).
+    return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir };
   }
 
   // ---------- tracking (126) -------------------------------------------------
@@ -1716,7 +1744,15 @@ const CareerRouter = (() => {
     const first = short.split(/\s+/)[0];
     if (first.length >= 4 && !/^(the|a|an)$/.test(first) && new RegExp(`\\b${first}\\b`).test(t)) return true;
     const slug = lc(s(cir.company_id)).replace(/-/g, " ").replace(/\s+ibd$/, "");
-    return slug.length >= 4 && t.includes(slug);
+    if (slug.length >= 4 && t.includes(slug)) return true;
+    // BUG-073: short company ids (bcg) and archetype kinds are how
+    // users actually name these files — "Company file built: BCG",
+    // "dev-tools startup archetype". Match the id as a whole word,
+    // and an archetype by kind word + the word archetype.
+    const cid = lc(s(cir.company_id));
+    if (cid.length >= 3 && new RegExp(`\\b${cid}\\b`).test(t)) return true;
+    if (cid.startsWith("archetype-")) { const kind = cid.slice("archetype-".length).split("-")[0]; if (kind && t.includes("archetype") && new RegExp(`\\b${kind}\\b`).test(t)) return true; }
+    return false;
   }
   // A NAMED target (company, optionally + title words from the ask)
   // resolves directly from the corpus — the fit gate that shapes
@@ -1795,7 +1831,7 @@ const CareerRouter = (() => {
         const body = digText(th, ["text", "summary", "thesis"], ["sections", "points", "lines"]);
         if (body) {
           const reply = compose({ headline: `The ${cirShortName(cir)} thesis, from the file.`, facts: [body.split(/(?<=[.!?])\s/).slice(0, 2).join(" "), sourceLine], nextStep: "Want the gaps against your profile next?" });
-          return { intent: "company_thesis", reply, resultStatus: "prepared", sends: 0, company: cirShortName(cir) };
+          return { intent: "company_thesis", reply, resultStatus: "prepared", sends: 0, company: cirShortName(cir), payload: th, thesis: th };
         }
       } catch { /* fall through */ }
     }
@@ -1805,7 +1841,7 @@ const CareerRouter = (() => {
         const body = digText(pp, ["text", "summary"], ["steps", "gaps", "actions", "lines"]);
         if (body) {
           const reply = compose({ headline: `Your path into ${cirShortName(cir)}, from the file and your profile.`, facts: [body.split(/(?<=[.!?])\s/).slice(0, 2).join(" "), sourceLine], nextStep: "Want the first rung turned into this week's plan?" });
-          return { intent: "path_plan", reply, resultStatus: "prepared", sends: 0, company: cirShortName(cir) };
+          return { intent: "path_plan", reply, resultStatus: "prepared", sends: 0, company: cirShortName(cir), payload: pp, path: pp };
         }
       } catch { /* fall through */ }
     }

@@ -293,7 +293,11 @@ function validateF7(r, p) {
     if (p.validated === true || nonEmpty(p.last_verified_at)) r._ok("validated_company_file");
     else r._miss("validated_company_file");
     if (nonEmpty(p.last_verified_at) || nonEmpty(p.as_of)) r._ok("last_verified_at"); else r._miss("last_verified_at");
-    if (arr(p.sources) || isObj(p.sources) || p.status_facts != null) r._ok("sources"); else r._miss("sources");
+    // BUG-073 contract note (W5, flagged): 125's documented field for
+    // a company file's sources is `data_sources` (every CIR on disk
+    // carries it, each entry with its own as_of) — the element reads
+    // the owning module's own field name, per this file's header rule.
+    if (arr(p.sources) || isObj(p.sources) || arr(p.data_sources) || isObj(p.data_sources) || p.status_facts != null) r._ok("sources"); else r._miss("sources");
     return r._done();
   }
   const text = nonEmpty(p.text) ? p.text : nonEmpty(p.reply) ? p.reply : "";

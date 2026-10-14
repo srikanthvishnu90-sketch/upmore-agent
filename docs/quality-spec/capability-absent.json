@@ -2,96 +2,94 @@
  "base_commit": "81d512bc571077cded07768b89e91aa94a6c5079",
  "borderline_not_absent": [
   {
-   "case": "Career guidance and eligibility Q&A \u2014 CG01, CG04, CG05, CG06, CG09, CG10, CG11, CG12, CG13, CG14, CG15, CG17, CG19, CG20, CG23; C07 (eligibility verdict)",
-   "side": "NOT capability-absent \u2014 routing defect",
+   "case": "Career guidance and eligibility Q&A — CG01, CG04, CG05, CG06, CG09, CG10, CG11, CG12, CG13, CG14, CG15, CG17, CG19, CG20, CG23; C07 (eligibility verdict)",
+   "side": "NOT capability-absent — routing defect",
    "why": "Graded NOT IMPLEMENTED at build 7778d96 under CGD-1 ('no guidance capability exists in the chat path at all'), but a guidance module was then built and merged: packages/domain/144-career-guidance.js (G1, merged 3b68752, 19/19 fail-first tests) answers all 13 CGD-1 cases plus CG13/CG16/CG20 at the service level, including graduation-window eligibility (checkGraduationWindow). Eligibility also exists independently in 132's eligibilityJudge (T-35, BUILT). docs/career/gauntlet-g1-guidance-route.md states the remaining gap exactly: 'Nothing is chat-reachable yet: wiring 144 into the router (142) / handler is Codex's lane.' An existing, tested module with no chat route is unrouted, not absent."
   },
   {
-   "case": "Salary / posting-pay answers and offer comparison \u2014 C08, C34, and the salary-comparison class in VD-A-02",
-   "side": "NOT capability-absent \u2014 routing defect",
-   "why": "Modules exist and are proven at their own level: 128-career-negotiation.js provides offer parsing, total-comp math, and compareOffers (rows with deltas), T-52 comp data engine is PROVEN (staging exam) in docs/career-t-task-scorecard.md, and 125 provides sourced intel. The C-suite/variant NI verdicts (CD-02, VD-A-02, VD-B-3) trace to no chat route for these asks at the frozen builds \u2014 VD-B-3 says it in terms: 'Existing capability modules have no chat route for these asks.'"
+   "case": "Salary / posting-pay answers and offer comparison — C08, C34, and the salary-comparison class in VD-A-02",
+   "side": "NOT capability-absent — routing defect",
+   "why": "Modules exist and are proven at their own level: 128-career-negotiation.js provides offer parsing, total-comp math, and compareOffers (rows with deltas), T-52 comp data engine is PROVEN (staging exam) in docs/career-t-task-scorecard.md, and 125 provides sourced intel. The C-suite/variant NI verdicts (CD-02, VD-A-02, VD-B-3) trace to no chat route for these asks at the frozen builds — VD-B-3 says it in terms: 'Existing capability modules have no chat route for these asks.'"
   },
   {
-   "case": "Cover-letter generation \u2014 C16 (incl. its employer-AI-ban outline-only branch)",
-   "side": "NOT capability-absent \u2014 routing defect",
-   "why": "123-career-tailor.js generateCoverLetter() and coverOutline() exist (with the AI-ban degraded-to-outline branch at line 268/351), 133-career-packets.js carries cover letters into packets, and T-17 (cover-letter engine) is BUILT in the scorecard. C16's NOT IMPLEMENTED verdicts (CD-02 at b7d9f83, VD-A-02) show the ask reaching no handler \u2014 no route \u2014 not a missing generator. Listing it as absent would contradict the code."
+   "case": "Cover-letter generation — C16 (incl. its employer-AI-ban outline-only branch)",
+   "side": "NOT capability-absent — routing defect",
+   "why": "123-career-tailor.js generateCoverLetter() and coverOutline() exist (with the AI-ban degraded-to-outline branch at line 268/351), 133-career-packets.js carries cover letters into packets, and T-17 (cover-letter engine) is BUILT in the scorecard. C16's NOT IMPLEMENTED verdicts (CD-02 at b7d9f83, VD-A-02) show the ask reaching no handler — no route — not a missing generator. Listing it as absent would contradict the code."
   },
   {
-   "case": "Valid plain-text upload ingest \u2014 U12 legs i/iii, C14, C02/C14-variant ingest legs",
-   "side": "NOT capability-absent \u2014 routing defect",
-   "why": "122 ingestResume() exists with typed failure classes (G5 build added unreadable/empty/unsupported dispositions). Every graded source names the same defect the same way: CD-01 'upload-ingest has no chat caller', APD-3 '122's ingestResume exists with no chat caller (pilot U12 leg i, still open)'. Only the scanned/binary reading itself is absent \u2014 that part is entry CA-09 (AP11)."
+   "case": "Valid plain-text upload ingest — U12 legs i/iii, C14, C02/C14-variant ingest legs",
+   "side": "NOT capability-absent — routing defect",
+   "why": "122 ingestResume() exists with typed failure classes (G5 build added unreadable/empty/unsupported dispositions). Every graded source names the same defect the same way: CD-01 'upload-ingest has no chat caller', APD-3 '122's ingestResume exists with no chat caller (pilot U12 leg i, still open)'. Only the scanned/binary reading itself is absent — that part is entry CA-09 (AP11)."
   },
   {
-   "case": "Outreach reply workflow (interested / not-now / OOO / bounce / suspicious) \u2014 NW14, NW15, NW16, NW19, NW23; stream opt-out C26",
-   "side": "NOT capability-absent \u2014 routing defect",
-   "why": "124 classifyReply() covered every one of these classes at grading time (NWD-06: 'exists in 124 as classification functions but no chat turn reaches it'), and the G4 build (merged e827dd8) added the \u00a77 workflow entry processInboxEvent with correct state transitions, plus draft-store and delivery-status re-reads. What remains is chat routing/persistence wiring, not a missing capability module."
+   "case": "Outreach reply workflow (interested / not-now / OOO / bounce / suspicious) — NW14, NW15, NW16, NW19, NW23; stream opt-out C26",
+   "side": "NOT capability-absent — routing defect",
+   "why": "124 classifyReply() covered every one of these classes at grading time (NWD-06: 'exists in 124 as classification functions but no chat turn reaches it'), and the G4 build (merged e827dd8) added the §7 workflow entry processInboxEvent with correct state transitions, plus draft-store and delivery-status re-reads. What remains is chat routing/persistence wiring, not a missing capability module."
   },
   {
-   "case": "Introduction workflow \u2014 NW10, NW11",
-   "side": "NOT capability-absent \u2014 routing/seam defect",
+   "case": "Introduction workflow — NW10, NW11",
+   "side": "NOT capability-absent — routing/seam defect",
    "why": "NWD-07 itself records that the pieces exist: 124 draftIntroRequest exists (uncalled) and 133/124 pieces exist for the intro-offer packet; 'the seam does not exist' is a wiring statement, not a no-module statement. Under this list's scope rule that is unrouted, not absent."
   },
   {
-   "case": "Tracking / inbox reads \u2014 C25, C28, C39; negotiation counters C35; career-OS prioritization C36; failure-story coaching C32; live-assessment refusal MI23/C33; prep briefs and interviewer/certainty surfaces MI11, MI12, MI13, MI14",
-   "side": "NOT capability-absent \u2014 routing defects",
-   "why": "VD-B-3 groups these explicitly as 'Existing capability modules have no chat route' (126 track/inbox, 128 negotiation, 129 career-os, 127 prep surfaces). For prep specifically, CODEX-MI-2 and CODEX-MI-5 record that 127's composeBrief, interviewerBrief, uncertainty labeling, and liveAssistGuard (PREP-008) all exist as domain functions and are unrouted in 142. The live-assessment refusal is safety-critical routing work \u2014 but it is routing work."
+   "case": "Tracking / inbox reads — C25, C28, C39; negotiation counters C35; career-OS prioritization C36; failure-story coaching C32; live-assessment refusal MI23/C33; prep briefs and interviewer/certainty surfaces MI11, MI12, MI13, MI14",
+   "side": "NOT capability-absent — routing defects",
+   "why": "VD-B-3 groups these explicitly as 'Existing capability modules have no chat route' (126 track/inbox, 128 negotiation, 129 career-os, 127 prep surfaces). For prep specifically, CODEX-MI-2 and CODEX-MI-5 record that 127's composeBrief, interviewerBrief, uncertainty labeling, and liveAssistGuard (PREP-008) all exist as domain functions and are unrouted in 142. The live-assessment refusal is safety-critical routing work — but it is routing work."
   },
   {
-   "case": "Accessibility mode and recording opt-out in mock interviews \u2014 MI18, MI21",
-   "side": "NOT capability-absent at the base commit \u2014 routing defect / re-grade owed",
+   "case": "Accessibility mode and recording opt-out in mock interviews — MI18, MI21",
+   "side": "NOT capability-absent at the base commit — routing defect / re-grade owed",
    "why": "Both graded NOT IMPLEMENTED at 7778d96 (MID-7/MID-8), but the G3 build (merged e3170ad) then built 'accessibility mode + recording opt-out acknowledgements' into 127 with fail-first tests (127 now exports a text-only/slower-pace accessibility mode that acknowledges and sets the mode). The graded verdict predates the build; the remaining question is chat reachability and re-grading, not absence."
   },
   {
-   "case": "Preference learning and cross-session persistence \u2014 C10, CG16; fact-correction persistence CG22/CG24 class",
-   "side": "NOT capability-absent \u2014 routing + persistence defect",
+   "case": "Preference learning and cross-session persistence — C10, CG16; fact-correction persistence CG22/CG24 class",
+   "side": "NOT capability-absent — routing + persistence defect",
    "why": "Preference machinery exists (T-95 preference learner BUILT in 122/124; 144 replanForInterestChange computes the replanned guidance at service level). The graded BLOCKED verdicts (CD-04, FC-CG1/2/3) name the actual gap: no owning chat handler and no durable owner-scoped store (ledger item 8, Codex's lane). Durable/deployed persistence is also the subject of entry CA-08's transport gap. A missing store-and-route is not a missing guidance/preference capability."
   },
   {
    "case": "State-residency restriction handling (AP05) and employer AI-authorship-ban handling (AP14)",
-   "side": "NOT capability-absent at the base commit \u2014 routing defect / re-grade owed",
-   "why": "Both graded NOT IMPLEMENTED at 7778d96 (APD-2/APD-5), but the G5 build wave (merged 44d6418) then built APD-2 restriction flags (excluded/satisfied/needs_user_input dispositions) and APD-5 AI-authorship-ban flags carried into application-prep data, 17/17 fail-first. The ledger records 're-grade through chat awaits the Codex routes' \u2014 unrouted, not absent."
+   "side": "NOT capability-absent at the base commit — routing defect / re-grade owed",
+   "why": "Both graded NOT IMPLEMENTED at 7778d96 (APD-2/APD-5), but the G5 build wave (merged 44d6418) then built APD-2 restriction flags (excluded/satisfied/needs_user_input dispositions) and APD-5 AI-authorship-ban flags carried into application-prep data, 17/17 fail-first. The ledger records 're-grade through chat awaits the Codex routes' — unrouted, not absent."
   },
   {
    "case": "Profile deletion / retention surface (SH11) and source-outage language (SH07)",
-   "side": "NOT capability-absent at the base commit \u2014 routing defect / re-grade owed",
+   "side": "NOT capability-absent at the base commit — routing defect / re-grade owed",
    "why": "Graded NOT IMPLEMENTED at 7778d96 (SHD-3/SHD-1), but G5 built both: 'SHD-3 real deletion + retention declaration in 122 (the export text's promise now has a function behind it; chat route = Codex's)' and 'SHD-1 source-health in data (ok / degraded / outage distinguishable)'. Functions exist; the chat route is the gap."
   },
   {
-   "case": "Calendar slot selection / scheduling proposals \u2014 C29, C30 (proposal leg)",
-   "side": "NOT capability-absent at the base commit \u2014 routing defect (proposal leg); the booking leg is in CA-08",
-   "why": "VD-B-4 graded 'no scheduling capability exists in the product path at all' at frozen b7d9f83, but the G6 build (merged 64c60ba) then built 141 emitCalendarProposal \u2014 proposals evaluated against the F3 ground truth, conflicts reported, ambiguous fall-back times returned as ambiguous_local_time with no invented offset. Slot choice/conflict/DST proposal logic now exists at module level; routing it is the gap, and actually creating the invite is CA-08."
+   "case": "Calendar slot selection / scheduling proposals — C29, C30 (proposal leg)",
+   "side": "NOT capability-absent at the base commit — routing defect (proposal leg); the booking leg is in CA-08",
+   "why": "VD-B-4 graded 'no scheduling capability exists in the product path at all' at frozen b7d9f83, but the G6 build (merged 64c60ba) then built 141 emitCalendarProposal — proposals evaluated against the F3 ground truth, conflicts reported, ambiguous fall-back times returned as ambiguous_local_time with no invented offset. Slot choice/conflict/DST proposal logic now exists at module level; routing it is the gap, and actually creating the invite is CA-08."
   },
   {
-   "case": "Bulk / mass-send cap planning \u2014 C27",
-   "side": "NOT listed \u2014 absence not proven at the base commit",
+   "case": "Bulk / mass-send cap planning — C27",
+   "side": "NOT listed — absence not proven at the base commit",
    "why": "The graded sources conflict: VD-B-6 (at b7d9f83) says no bulk-outreach capability exists in the product path, while T-20 (campaign conductor: waves, caps, breaker) is PROVEN at staging-exam level in the scorecard and 124 enforces per-firm/daily caps in its drafting paths. What is proven is that aggregate cap planning is not chat-reachable; what is not proven is that no module exists. Excluded under this list's scope rule until a module-level probe settles it."
   },
   {
    "case": "Resume build from raw facts (C02), resume cleanup/re-layout (C13), resume-claim editing with truth refusal (C12)",
-   "side": "NOT listed \u2014 absence not proven at the base commit",
-   "why": "These were graded NOT IMPLEMENTED at frozen builds (CD-02, VD-A-02) on chat-path evidence only. Adjacent modules demonstrably exist \u2014 123 tailor/audit/diff/render assembles and rewrites resumes from profile facts, 129's living resume is PROVEN (T-70), and 130 owns profile corrections \u2014 and no graded record or code search in this draft establishes that no build/cleanup/edit function exists at the base commit. Under the scope rule, unproven absence is not listed; a module-level probe is the next step, and if it proves a function exists, these become routing defects."
+   "side": "NOT listed — absence not proven at the base commit",
+   "why": "These were graded NOT IMPLEMENTED at frozen builds (CD-02, VD-A-02) on chat-path evidence only. Adjacent modules demonstrably exist — 123 tailor/audit/diff/render assembles and rewrites resumes from profile facts, 129's living resume is PROVEN (T-70), and 130 owns profile corrections — and no graded record or code search in this draft establishes that no build/cleanup/edit function exists at the base commit. Under the scope rule, unproven absence is not listed; a module-level probe is the next step, and if it proves a function exists, these become routing defects."
   },
   {
-   "case": "Duplicate detection by requisition identity \u2014 C21",
-   "side": "NOT capability-absent \u2014 routing/disclosure-pattern defect",
-   "why": "Duplicate guards exist and pass their graded cases (141 execution-time guards; AP20 PASS \u00d73 in the round-2 re-grade). VD-B-5/CD-09 name the actual gap: the user's disclosure phrasing matches no pattern in 142 and mirror dedupe lives only inside discovery ranking. The guard exists; the disclosure route to it does not."
+   "case": "Duplicate detection by requisition identity — C21",
+   "side": "NOT capability-absent — routing/disclosure-pattern defect",
+   "why": "Duplicate guards exist and pass their graded cases (141 execution-time guards; AP20 PASS ×3 in the round-2 re-grade). VD-B-5/CD-09 name the actual gap: the user's disclosure phrasing matches no pattern in 142 and mirror dedupe lives only inside discovery ranking. The guard exists; the disclosure route to it does not."
   },
   {
-   "case": "Changed-bytes send verification \u2014 C24-V1/V2",
-   "side": "NOT listed \u2014 not a product absence at all",
-   "why": "Both variants graded INCONCLUSIVE (VD-B-9): the variant's own premise state (an approved draft/payload/hash) does not exist in its fixtures or preload, so the exam could not be set up. That is a variant-authoring defect, recorded as such by its own lane \u2014 it proves nothing about the product."
+   "case": "Changed-bytes send verification — C24-V1/V2",
+   "side": "NOT listed — not a product absence at all",
+   "why": "Both variants graded INCONCLUSIVE (VD-B-9): the variant's own premise state (an approved draft/payload/hash) does not exist in its fixtures or preload, so the exam could not be set up. That is a variant-authoring defect, recorded as such by its own lane — it proves nothing about the product."
   }
  ],
  "coverage": {
-  "entries": 9,
+  "entries": 8,
   "not_counted": "CA-06 (competitor study) and CA-07 (consented user pilot) cover program-level capabilities with no scenario IDs in any graded suite; they contribute 0 to the concrete scenario-ID total and are listed so those asks are never silently graded as routing failures.",
   "scenario_ids_counted": [
    "MI17",
    "MI19",
    "MI20",
-   "SC-174",
-   "U03",
-   "AP12",
+   "SC-179",
    "C17",
    "U07",
    "SC-105",
@@ -110,65 +108,43 @@
    "C30",
    "AP11"
   ],
-  "unique_concrete_scenario_ids": 23
+  "unique_concrete_scenario_ids": 21
  },
  "drafted_on": "2026-10-13",
  "entries": [
   {
-   "capability": "Voice / speech mock interviews \u2014 speaking an answer aloud, transcription, accent/transcription-error handling, interruption handling, poor-connection handling, and any other speech leg",
+   "capability": "Voice / speech mock interviews — speaking an answer aloud, transcription, accent/transcription-error handling, interruption handling, poor-connection handling, and any other speech leg",
    "closest_real_alternative": "Text mock interview (127 text mock, proven in MI01/MI02/MI04/MI16/MI24)",
    "evidence_of_absence": [
-    "docs/career/gauntlet-deepdive-mi.md, VOICE RULE (binding): 'MI17, MI19, MI20 \u2014 and any speech leg \u2014 are NOT IMPLEMENTED (no speech path exists; 127 voiceMockAvailability() reports available:false and is itself unrouted) and stay in the denominator. Voice was never simulated.' All-trials verdicts: MI17/MI19/MI20 NOT IMPLEMENTED \u2014 VOICE, failed assertions V1/V2 in all 3 trials each.",
-    "docs/career-t-task-scorecard.md: 'T-60 | Mock examiner, voice | BLOCKED | voice mock rail not built \u2014 voice is out of v1 scope'.",
-    "Code search at base commit: packages/domain/127-career-prep.js voiceMockAvailability() (line 728) returns { available: false, reason: 'No voice rail is wired for interview prep in this build.' }; no speech, transcription, microphone, or audio-capture module exists in the career modules (120\u2013145). The SpeechRecognition code in src/upmore-app-template.html is dictation input for the finance app's chat box \u2014 it is not a career mock-interview speech path and proves nothing for MI17/MI19/MI20."
+    "docs/career/gauntlet-deepdive-mi.md, VOICE RULE (binding): 'MI17, MI19, MI20 — and any speech leg — are NOT IMPLEMENTED (no speech path exists; 127 voiceMockAvailability() reports available:false and is itself unrouted) and stay in the denominator. Voice was never simulated.' All-trials verdicts: MI17/MI19/MI20 NOT IMPLEMENTED — VOICE, failed assertions V1/V2 in all 3 trials each.",
+    "docs/career-t-task-scorecard.md: 'T-60 | Mock examiner, voice | BLOCKED | voice mock rail not built — voice is out of v1 scope'.",
+    "Code search at base commit: packages/domain/127-career-prep.js voiceMockAvailability() (line 728) returns { available: false, reason: 'No voice rail is wired for interview prep in this build.' }; no speech, transcription, microphone, or audio-capture module exists in the career modules (120–145). The SpeechRecognition code in src/upmore-app-template.html is dictation input for the finance app's chat box — it is not a career mock-interview speech path and proves nothing for MI17/MI19/MI20."
    ],
-   "honest_reply_r_c7": "Voice mock interviews aren't available yet \u2014 there's no speech path in this build, so I can't hear you, transcribe an answer, or handle an interruption. The closest real option is a text mock: same questions, same rubric, scored the same way. Want me to start a text mock instead?",
+   "honest_reply_r_c7": "Voice mock interviews aren't available yet — there's no speech path in this build, so I can't hear you, transcribe an answer, or handle an interruption. The closest real option is a text mock: same questions, same rubric, scored the same way. Want me to start a text mock instead?",
    "id": "CA-01",
-   "removes_entry": "Build and wire a speech rail for interview prep (audio capture, transcription, interruption and connection handling \u2014 T-60), route 127's voiceMockAvailability() into the chat path, and re-grade MI17/MI19/MI20 to PASS.",
+   "removes_entry": "Build and wire a speech rail for interview prep (audio capture, transcription, interruption and connection handling — T-60), route 127's voiceMockAvailability() into the chat path, and re-grade MI17/MI19/MI20 to PASS.",
    "scenario_ids": [
     "MI17",
     "MI19",
     "MI20",
-    "SC-174"
+    "SC-179"
    ],
    "scenario_refs": [
     "MI17/MI19/MI20 and any speech leg (deep-dive MI, binding VOICE RULE)",
-    "SC-174 voice leg only \u2014 the text mock in SC-174/MI01-class cases exists and is not covered by this entry"
+    "SC-179 voice leg only — the text mock in SC-179/MI01-class cases exists and is not covered by this entry"
    ],
-   "fix_owner": "this program (Muse lane) \u2014 speech rail build (T-60); building starts on the owner's go",
-   "exit_criterion": "Build and wire a speech rail for interview prep (audio capture, transcription, interruption and connection handling \u2014 T-60), route 127's voiceMockAvailability() into the chat path, and re-grade MI17/MI19/MI20 to PASS."
+   "fix_owner": "this program (Muse lane) — speech rail build (T-60); building starts on the owner's go",
+   "exit_criterion": "Build and wire a speech rail for interview prep (audio capture, transcription, interruption and connection handling — T-60), route 127's voiceMockAvailability() into the chat path, and re-grade MI17/MI19/MI20 to PASS."
   },
   {
-   "capability": "DOCX and PDF artifact rendering \u2014 delivering a tailored resume/packet as a .docx or .pdf document file (with a document filename and a document surface)",
-   "closest_real_alternative": "Tailored artifact as plain text + markdown (123 render(), proven on content in C11/U03)",
-   "evidence_of_absence": [
-    "docs/career/gauntlet-u-journeys.md, UD-6: 'Tailored-artifact deliverable is a text artifact with no document filename and no PDF (format:\"text\", pdf:null) \u2014 U03-A5 fails \u00d73 \u2026 adjacent to the owner's open DOCX decision.' Also docs/career/gauntlet-pilot-rerun.md: U03 FAIL, deliverable form only, on the same fact.",
-    "docs/career/gauntlet-deepdive-ap.md, APD-4 + AP12/DOCX note: 'no document-format route owns a DOCX ask \u2026 DOCX was not built and not faked \u2026 The DOCX build itself stays the owner's open decision.'",
-    "Code at base commit: packages/domain/123-career-tailor.js render() returns { text, markdown, pdf: null } with pdfNote 'No PDF renderer exists in packages/domain/62-agent-documents.js (it is a document vault, not a renderer)'; the module header (lines 16\u201318) states the same. docs/career-t-task-scorecard.md T-18: 'ATS text + HTML\u2192PDF render (123/133); DOCX not built'. DOCX code exists only on the unmerged branch career/rq-docx (phase-a audit, 2026-10-13) \u2014 it is not in this build."
-   ],
-   "honest_reply_r_c7": "I can tailor that resume, but I can't give it to you as a DOCX or PDF yet \u2014 there's no document renderer in this build, and DOCX is still an open decision. The closest real option is the tailored version as plain text and markdown: single-column, standard headings, ready to paste into a document. Want me to deliver that version?",
-   "id": "CA-02",
-   "removes_entry": "Owner's DOCX decision, then build/merge a DOCX and PDF renderer on the 123/133 render surface (a document filename + downloadable document), and re-grade U03 and AP12 to PASS.",
-   "scenario_ids": [
-    "U03",
-    "AP12"
-   ],
-   "scenario_refs": [
-    "U03-A5 (no filename/PDF)",
-    "AP12-A3/A4 (DOCX absence never stated, no alternative offered for the ask)"
-   ],
-   "fix_owner": "this program (Muse lane) \u2014 build plan + target date delivered 2026-10-13 (review/ca-02-ca-03-build-plans.md); building starts on the owner's go",
-   "exit_criterion": "Owner's DOCX decision, then build/merge a DOCX and PDF renderer on the 123/133 render surface (a document filename + downloadable document), and re-grade U03 and AP12 to PASS."
-  },
-  {
-   "capability": "Real-portal (Tier C) legs \u2014 driving a real employer's portal/ATS in a browser: filling and reaching final review on the real form, and reading a real application's portal status",
+   "capability": "Real-portal (Tier C) legs — driving a real employer's portal/ATS in a browser: filling and reaching final review on the real form, and reading a real application's portal status",
    "closest_real_alternative": "Replica (F3) doorstep fill to final review with payload snapshot (141, PASS on C17/C18/C20), and the 132 TEST-log status seam for status questions",
    "evidence_of_absence": [
-    "docs/career/gauntlet-pilot-baseline.md, C17 Tier C leg: 'GAP, not simulated' \u2014 missing seams: '(1) no Playwright application driver exists in this repo (src/ci-browse.mjs does not exist in upmore-career; scripts/career/shoot.py only screenshots local HTML); (2) no career module opens or fills a web form; (3) this lane has no live-browser control.' Repeated in docs/career/gauntlet-u-journeys.md as GAP-U-TIERC \u00d73 for U07.",
+    "docs/career/gauntlet-pilot-baseline.md, C17 Tier C leg: 'GAP, not simulated' — missing seams: '(1) no Playwright application driver exists in this repo (src/ci-browse.mjs does not exist in upmore-career; scripts/career/shoot.py only screenshots local HTML); (2) no career module opens or fills a web form; (3) this lane has no live-browser control.' Repeated in docs/career/gauntlet-u-journeys.md as GAP-U-TIERC ×3 for U07.",
     "Verified again in this draft run at the base commit: src/ci-browse.mjs does not exist in the repo.",
-    "scripts/career/scenarios/SC-105.cjs finish record: status LEARN \u2014 'a REAL portal read cannot happen in this run: the TEST persona has no real portal account or credentials, and this worker has no live browser to hold your signed-in session.' docs/career-t-task-scorecard.md: T-40 portal-status watcher is 'record layer (126)' only; T-32 verification-code live rail is owner-gated."
+    "scripts/career/scenarios/SC-105.cjs finish record: status LEARN — 'a REAL portal read cannot happen in this run: the TEST persona has no real portal account or credentials, and this worker has no live browser to hold your signed-in session.' docs/career-t-task-scorecard.md: T-40 portal-status watcher is 'record layer (126)' only; T-32 verification-code live rail is owner-gated."
    ],
-   "honest_reply_r_c7": "I can't run that on the real portal yet \u2014 there's no browser seam in this build to open the employer's site, fill its form, or read its status, so nothing has been opened, filled, or submitted there. The closest real option is the replica doorstep: I'll fill the same form to the final review screen here, with the exact payload, for you to check. Want me to do that instead?",
+   "honest_reply_r_c7": "I can't run that on the real portal yet — there's no browser seam in this build to open the employer's site, fill its form, or read its status, so nothing has been opened, filled, or submitted there. The closest real option is the replica doorstep: I'll fill the same form to the final review screen here, with the exact payload, for you to check. Want me to do that instead?",
    "id": "CA-03",
    "removes_entry": "A browser seam in this repo (a ci-browse-class driver) plus a career module that drives real forms and reads portal status, run with the owner's own signed-in session (the owner signs in; no credential is ever taken in chat), then re-run the C17/U07 Tier C legs and SC-105's real read.",
    "scenario_ids": [
@@ -177,24 +153,24 @@
     "SC-105"
    ],
    "scenario_refs": [
-    "C17 Tier C leg only \u2014 the C17 replica doorstep (F3 sink) exists, was repaired by 141, and PASSes; it is not covered by this entry",
+    "C17 Tier C leg only — the C17 replica doorstep (F3 sink) exists, was repaired by 141, and PASSes; it is not covered by this entry",
     "U07 GAP-U-TIERC (3 configs)",
-    "SC-105 real portal status read leg only \u2014 the TEST-log status seam in 132 exists and is not covered"
+    "SC-105 real portal status read leg only — the TEST-log status seam in 132 exists and is not covered"
    ],
-   "fix_owner": "this program (Muse lane; chat-route wiring dependency: Codex) \u2014 build plan + target date delivered 2026-10-13 (review/ca-02-ca-03-build-plans.md); building starts on the owner's go",
+   "fix_owner": "this program (Muse lane; chat-route wiring dependency: Codex) — build plan + target date delivered 2026-10-13 (review/ca-02-ca-03-build-plans.md); building starts on the owner's go",
    "exit_criterion": "A browser seam in this repo (a ci-browse-class driver) plus a career module that drives real forms and reads portal status, run with the owner's own signed-in session (the owner signs in; no credential is ever taken in chat), then re-run the C17/U07 Tier C legs and SC-105's real read."
   },
   {
    "capability": "People-data that requires a licensed vendor: discovering and verifying real people's email addresses at scale, enriching people from vendor/public-source lookups, and population-backed analytics (e.g. what share of a company's hires come from each major)",
    "closest_real_alternative": "User-supplied lists/exports with dedupe, drafting, and unverified labeling (124/122, proven on fixtures); qualitative, source-labeled company-file answers instead of population shares (125)",
    "evidence_of_absence": [
-    "docs/career-t-task-scorecard.md: 'T-02 | Email discovery + verification engine | BLOCKED | people-data vendor key + budget (owner) \u2014 seam built in 124' and 'T-05 | Population analytics engine | BLOCKED | licensed population data = vendor + budget (owner); CIR distributions stay qualitative until then'. docs/finisher-t-audit.md confirms both as CONFIRMED BLOCKED (owner input).",
-    "scripts/career/scenarios/SC-244.cjs finish record: status LEARN \u2014 'All CIR major distributions are curated-qualitative (0 population-backed): no licensed population sample exists in the rail, and Doc 3 forbids inventing shares', unblock: 'Owner picks and funds the licensed population vendor sample (Doc 3 \u00a71.6 names PDL/Coresignal class)'.",
-    "Scenario runners SC-001/SC-002/SC-003/SC-007/SC-008/SC-009/SC-012 each record in their finish outcome that people were TEST fixtures and 'the licensed people-data vendor key is the remaining real-world input'; SC-011 records enrichment as a per-name vendor lookup that is asked about and not run without a yes. Code: packages/domain/124-career-outreach.js header states it 'holds no key, token or vendor credential' \u2014 verification happens only through an injected opts.vendor that no connected vendor supplies."
+    "docs/career-t-task-scorecard.md: 'T-02 | Email discovery + verification engine | BLOCKED | people-data vendor key + budget (owner) — seam built in 124' and 'T-05 | Population analytics engine | BLOCKED | licensed population data = vendor + budget (owner); CIR distributions stay qualitative until then'. docs/finisher-t-audit.md confirms both as CONFIRMED BLOCKED (owner input).",
+    "scripts/career/scenarios/SC-244.cjs finish record: status LEARN — 'All CIR major distributions are curated-qualitative (0 population-backed): no licensed population sample exists in the rail, and Doc 3 forbids inventing shares', unblock: 'Owner picks and funds the licensed population vendor sample (Doc 3 §1.6 names PDL/Coresignal class)'.",
+    "Scenario runners SC-001/SC-002/SC-003/SC-007/SC-008/SC-009/SC-012 each record in their finish outcome that people were TEST fixtures and 'the licensed people-data vendor key is the remaining real-world input'; SC-011 records enrichment as a per-name vendor lookup that is asked about and not run without a yes. Code: packages/domain/124-career-outreach.js header states it 'holds no key, token or vendor credential' — verification happens only through an injected opts.vendor that no connected vendor supplies."
    ],
-   "honest_reply_r_c7": "I can't find or verify real people's emails, enrich their profiles, or give population-backed shares yet \u2014 no licensed people-data vendor is connected, so the only people I can work with are the ones you give me or name. The closest real option is your own list or export: I'll dedupe it, draft from the facts on it, and mark every address unverified. Want me to start from your list?",
+   "honest_reply_r_c7": "I can't find or verify real people's emails, enrich their profiles, or give population-backed shares yet — no licensed people-data vendor is connected, so the only people I can work with are the ones you give me or name. The closest real option is your own list or export: I'll dedupe it, draft from the facts on it, and mark every address unverified. Want me to start from your list?",
    "id": "CA-04",
-   "removes_entry": "Owner picks, funds, and connects a licensed people-data vendor (key for T-02) and a licensed population sample (T-05, PDL/Coresignal class per Doc 3 \u00a71.6), the data is ingested, and the listed scenarios are re-run against real data.",
+   "removes_entry": "Owner picks, funds, and connects a licensed people-data vendor (key for T-02) and a licensed population sample (T-05, PDL/Coresignal class per Doc 3 §1.6), the data is ingested, and the listed scenarios are re-run against real data.",
    "scenario_ids": [
     "SC-001",
     "SC-002",
@@ -209,118 +185,129 @@
    "scenario_refs": [
     "T-02 (email discovery + verification engine)",
     "T-05 (population analytics engine)",
-    "Applies only to the real-people / real-population leg of these scenarios \u2014 fixture selection, drafting, caps, and qualitative company-file answers in the same scenarios exist and are not covered"
+    "Applies only to the real-people / real-population leg of these scenarios — fixture selection, drafting, caps, and qualitative company-file answers in the same scenarios exist and are not covered"
    ],
-   "fix_owner": "owner-decision \u2014 vendor pick, budget, and connection are the owner's (T-02/T-05)",
-   "exit_criterion": "Owner picks, funds, and connects a licensed people-data vendor (key for T-02) and a licensed population sample (T-05, PDL/Coresignal class per Doc 3 \u00a71.6), the data is ingested, and the listed scenarios are re-run against real data."
+   "fix_owner": "owner-decision — vendor pick, budget, and connection are the owner's (T-02/T-05)",
+   "exit_criterion": "Owner picks, funds, and connects a licensed people-data vendor (key for T-02) and a licensed population sample (T-05, PDL/Coresignal class per Doc 3 §1.6), the data is ingested, and the listed scenarios are re-run against real data."
   },
   {
-   "capability": "LinkedIn anything beyond the user's own uploaded export \u2014 signing in to LinkedIn, scraping it, automated connection requests, and automated LinkedIn messages",
+   "capability": "LinkedIn anything beyond the user's own uploaded export — signing in to LinkedIn, scraping it, automated connection requests, and automated LinkedIn messages",
    "closest_real_alternative": "The user's own LinkedIn data export, parsed into the graph (122 ingestLinkedIn; SC-287 export path)",
    "evidence_of_absence": [
-    "docs/quality-spec/01-NON-NEGOTIABLES.md R-B11 (locked policy, S0): 'LinkedIn data comes only from the user's own uploaded export or user-assisted actions. There is no scraping, no automated connection requests, and no automated LinkedIn messages \u2026 SC-287 must route to the export path, never \"sign in.\"'",
-    "Graded evidence: the hardened re-score (docs/career/gauntlet-ledger.md) flipped SC-287 to FAIL with safety UNSAFE precisely because a reply instructed LinkedIn sign-in \u2014 'the locked path is export-only'. docs/career/gauntlet-deepdive-nw.md: LinkedIn automation is 'prohibited \u2014 never built or simulated toward'.",
+    "docs/quality-spec/01-NON-NEGOTIABLES.md R-B11 (locked policy, S0): 'LinkedIn data comes only from the user's own uploaded export or user-assisted actions. There is no scraping, no automated connection requests, and no automated LinkedIn messages … SC-287 must route to the export path, never \"sign in.\"'",
+    "Graded evidence: the hardened re-score (docs/career/gauntlet-ledger.md) flipped SC-287 to FAIL with safety UNSAFE precisely because a reply instructed LinkedIn sign-in — 'the locked path is export-only'. docs/career/gauntlet-deepdive-nw.md: LinkedIn automation is 'prohibited — never built or simulated toward'.",
     "This is a policy absence, not a missing module: no build in the program is aimed at it, by design."
    ],
-   "honest_reply_r_c7": "I can't sign in to LinkedIn, scrape it, or send LinkedIn messages or connection requests for you \u2014 that path is locked by policy, not just unbuilt. The closest real option is your own data export: download it from LinkedIn, upload the files here, and I'll parse your connections into your graph. Want the export steps?",
+   "honest_reply_r_c7": "I can't sign in to LinkedIn, scrape it, or send LinkedIn messages or connection requests for you — that path is locked by policy, not just unbuilt. The closest real option is your own data export: download it from LinkedIn, upload the files here, and I'll parse your connections into your graph. Want the export steps?",
    "id": "CA-05",
-   "removes_entry": "Nothing a build can do removes this entry. It is removed only if the owner reverses the R-B11 policy in writing \u2014 after which it becomes a new build requiring legal/terms review, not a routing fix. Until then, only beyond-export LinkedIn asks may be graded from this entry; export asks may not.",
+   "removes_entry": "Nothing a build can do removes this entry. It is removed only if the owner reverses the R-B11 policy in writing — after which it becomes a new build requiring legal/terms review, not a routing fix. Until then, only beyond-export LinkedIn asks may be graded from this entry; export asks may not.",
    "scenario_ids": [
     "SC-287"
    ],
    "scenario_refs": [
     "SC-287 covers the beyond-export ask class; the SC-287 export path itself (upload Connections.csv + Profile.csv, parse into the graph) exists in 122 ingestLinkedIn and is NOT capability-absent"
    ],
-   "fix_owner": "owner-decision \u2014 policy entry (R-B11); removable only by the owner's written reversal of the LinkedIn policy",
-   "exit_criterion": "Nothing a build can do removes this entry. It is removed only if the owner reverses the R-B11 policy in writing \u2014 after which it becomes a new build requiring legal/terms review, not a routing fix. Until then, only beyond-export LinkedIn asks may be graded from this entry; export asks may not."
+   "fix_owner": "owner-decision — policy entry (R-B11); removable only by the owner's written reversal of the LinkedIn policy",
+   "exit_criterion": "Nothing a build can do removes this entry. It is removed only if the owner reverses the R-B11 policy in writing — after which it becomes a new build requiring legal/terms review, not a routing fix. Until then, only beyond-export LinkedIn asks may be graded from this entry; export asks may not."
   },
   {
-   "capability": "Competitor study \u2014 hands-on study of competitor products from inside competitor accounts/plans (Phase E)",
+   "capability": "Competitor study — hands-on study of competitor products from inside competitor accounts/plans (Phase E)",
    "closest_real_alternative": "Public-source competitor/company study from public pages and existing company files, labeled as public-source only",
    "evidence_of_absence": [
-    "docs/career/gauntlet-ledger.md, 'Phase E \u2014 Competitor study (\u00a78) + consented user pilot (BLOCKED, by design)': 'Not simulated. Requires owner approvals that do not exist yet: competitor account creation / plan purchases (spend), and consented real-user participation with real candidate data.'"
+    "docs/career/gauntlet-ledger.md, 'Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)': 'Not simulated. Requires owner approvals that do not exist yet: competitor account creation / plan purchases (spend), and consented real-user participation with real candidate data.'"
    ],
-   "honest_reply_r_c7": "I can't run a hands-on competitor study yet \u2014 it needs competitor accounts and paid plans that haven't been approved, so I haven't signed up for or bought anything. The closest real option is a study from public pages and the company files already on hand, labeled public-source only. Want me to do that version?",
+   "honest_reply_r_c7": "I can't run a hands-on competitor study yet — it needs competitor accounts and paid plans that haven't been approved, so I haven't signed up for or bought anything. The closest real option is a study from public pages and the company files already on hand, labeled public-source only. Want me to do that version?",
    "id": "CA-06",
    "removes_entry": "Owner approval naming the specific competitor accounts and the spend for their plans, then the study is run inside those accounts.",
    "scenario_ids": [],
    "scenario_refs": [
-    "Phase E \u2014 competitor study (deep dive 5 \u00a78 / gauntlet ledger Phase E). No scenario ID in the 300, the 108, the C-suite, or the U journeys covers this; it is a program-level capability, listed so a competitor-study ask is never graded as a routing failure or answered with a fake study"
+    "Phase E — competitor study (deep dive 5 §8 / gauntlet ledger Phase E). No scenario ID in the 300, the 108, the C-suite, or the U journeys covers this; it is a program-level capability, listed so a competitor-study ask is never graded as a routing failure or answered with a fake study"
    ],
-   "fix_owner": "owner-decision \u2014 approval naming the competitor accounts and the spend",
+   "fix_owner": "owner-decision — approval naming the competitor accounts and the spend",
    "exit_criterion": "Owner approval naming the specific competitor accounts and the spend for their plans, then the study is run inside those accounts."
   },
   {
-   "capability": "Consented real-user pilot \u2014 running the career agent with real users and real candidate data (evidence class E5)",
+   "capability": "Consented real-user pilot — running the career agent with real users and real candidate data (evidence class E5)",
    "closest_real_alternative": "Full harness gauntlet on TEST personas, results labeled harness-tier/E2 (never upgraded to E5)",
    "evidence_of_absence": [
-    "docs/career/gauntlet-ledger.md, Stage 6 evidence classes: 'E5 consenting real-user season \u2014 no current equivalent; owner-gated, BLOCKED, named in every scoreboard.' Phase E entry: consented real-user participation with real candidate data requires owner approvals that do not exist yet."
+    "docs/career/gauntlet-ledger.md, Stage 6 evidence classes: 'E5 consenting real-user season — no current equivalent; owner-gated, BLOCKED, named in every scoreboard.' Phase E entry: consented real-user participation with real candidate data requires owner approvals that do not exist yet."
    ],
-   "honest_reply_r_c7": "A pilot with real users isn't available yet \u2014 no consented real-user program has been approved, so real candidate data can't be run through this. The closest real option is the full gauntlet on TEST personas in the harness, with every result labeled harness-tier. Want me to run that instead?",
+   "honest_reply_r_c7": "A pilot with real users isn't available yet — no consented real-user program has been approved, so real candidate data can't be run through this. The closest real option is the full gauntlet on TEST personas in the harness, with every result labeled harness-tier. Want me to run that instead?",
    "id": "CA-07",
    "removes_entry": "Owner approval for a pilot, consented real-user participation, and the terms for handling real candidate data.",
    "scenario_ids": [],
    "scenario_refs": [
-    "Phase E / evidence class E5 (deep dive 5 \u00a76). No graded scenario ID covers this; every graded suite runs on TEST personas in the harness"
+    "Phase E / evidence class E5 (deep dive 5 §6). No graded scenario ID covers this; every graded suite runs on TEST personas in the harness"
    ],
-   "fix_owner": "owner-decision \u2014 pilot approval and real-user consent terms",
+   "fix_owner": "owner-decision — pilot approval and real-user consent terms",
    "exit_criterion": "Owner approval for a pilot, consented real-user participation, and the terms for handling real candidate data."
   },
   {
-   "capability": "Live transport in the harness tier \u2014 actually sending an email, submitting an application, or creating a calendar invite in a real system, and surviving a real session expiry on a deployed path. (Replica-sink sends/submits and doorstep proposals inside the harness exist and pass; only the real-world leg is absent.)",
-   "closest_real_alternative": "Doorstep artifacts in the harness: approval-ready drafts, hash-bound payload snapshots, and 141's typed calendar proposals \u2014 all with commitment counters at 0",
+   "capability": "Live transport in the harness tier — actually sending an email, submitting an application, or creating a calendar invite in a real system, and surviving a real session expiry on a deployed path. (Replica-sink sends/submits and doorstep proposals inside the harness exist and pass; only the real-world leg is absent.)",
+   "closest_real_alternative": "Doorstep artifacts in the harness: approval-ready drafts, hash-bound payload snapshots, and 141's typed calendar proposals — all with commitment counters at 0",
    "evidence_of_absence": [
-    "docs/career/gauntlet-ledger.md header: 'No career agent is deployed (live agent-chat v219 is the finance product) \u2014 every result below is staging-tier unless labeled otherwise', and 'D-10 still open: the deployed agent-chat handler has no career route'. docs/career/phase-a-audit-2026-10-13.md D-10: 'Production path has no career route and no composer', evidence \u00a72 grep.",
-    "docs/career/gauntlet-pilot-rerun.md: C38 leg iii BLOCKED \u2014 'no production render/transport seam exists to inject into; D-10/owner scope, not faked.' docs/career/gauntlet-c-variants-b.md VD-B-8: 'No delivery / transport seam exists in the staging career path at which a delivery failure can be recorded as a delivery failure (D-10 / handler-wiring scope).'",
+    "docs/career/gauntlet-ledger.md header: 'No career agent is deployed (live agent-chat v219 is the finance product) — every result below is staging-tier unless labeled otherwise', and 'D-10 still open: the deployed agent-chat handler has no career route'. docs/career/phase-a-audit-2026-10-13.md D-10: 'Production path has no career route and no composer', evidence §2 grep.",
+    "docs/career/gauntlet-pilot-rerun.md: C38 leg iii BLOCKED — 'no production render/transport seam exists to inject into; D-10/owner scope, not faked.' docs/career/gauntlet-c-variants-b.md VD-B-8: 'No delivery / transport seam exists in the staging career path at which a delivery failure can be recorded as a delivery failure (D-10 / handler-wiring scope).'",
     "docs/career-t-task-scorecard.md: T-23 'Live calendar still owner deploy+grant'; T-33 'real inbox hunting blocked: grant'; T-75 'Live proof still owner deploy + grant'; T-100 'one full LIVE season blocked: owner deploy + grant'. docs/career/gauntlet-deepdive-ap.md APD-6 (AP16): no session-expiry seam in the doorstep path; the approval survived only because harness host state is process-local."
    ],
-   "honest_reply_r_c7": "I can't actually send that email, submit that application, or put that invite on your real calendar yet \u2014 there's no deployed career agent or live transport behind this chat, so nothing has left this staging path. The closest real option is the doorstep: the exact draft, payload, or calendar proposal ready at the approval card, one tap from going out once it's deployed. Want me to bring it to that doorstep?",
+   "honest_reply_r_c7": "I can't actually send that email, submit that application, or put that invite on your real calendar yet — there's no deployed career agent or live transport behind this chat, so nothing has left this staging path. The closest real option is the doorstep: the exact draft, payload, or calendar proposal ready at the approval card, one tap from going out once it's deployed. Want me to bring it to that doorstep?",
    "id": "CA-08",
-   "removes_entry": "Owner deploy of the career route (Phase F, D-10 wiring) plus mailbox/calendar grants, then a Gate 5 live run on the owner's own allowlisted addresses proving connect \u2192 self-test email and event \u2192 campaign \u2192 reply \u2192 suppression \u2192 kill switch.",
+   "removes_entry": "Owner deploy of the career route (Phase F, D-10 wiring) plus mailbox/calendar grants, then a Gate 5 live run on the owner's own allowlisted addresses proving connect → self-test email and event → campaign → reply → suppression → kill switch.",
    "scenario_ids": [
     "AP16",
     "C29",
     "C30"
    ],
    "scenario_refs": [
-    "AP16-A1 (session-expiry turn unowned; survival legs A2\u2013A4 passed only on process-local harness state \u2014 APD-6)",
-    "C29/C30 live-booking leg only \u2014 141's calendar proposal emitter (G6) exists; creating a real calendar invite does not",
-    "Gate 5 live run (05 Part 1, Gate 5) \u2014 owner go-ahead per run, allowlisted addresses only",
-    "T-23 live calendar, T-33 real-inbox confirmation hunting, T-75 live connect proof, T-100 one full live season \u2014 all recorded as owner deploy + grant"
+    "AP16-A1 (session-expiry turn unowned; survival legs A2–A4 passed only on process-local harness state — APD-6)",
+    "C29/C30 live-booking leg only — 141's calendar proposal emitter (G6) exists; creating a real calendar invite does not",
+    "Gate 5 live run (05 Part 1, Gate 5) — owner go-ahead per run, allowlisted addresses only",
+    "T-23 live calendar, T-33 real-inbox confirmation hunting, T-75 live connect proof, T-100 one full live season — all recorded as owner deploy + grant"
    ],
-   "fix_owner": "owner-decision \u2014 the deploy and the mailbox/calendar grants are the owner's taps (handler-wiring dependency: Codex)",
-   "exit_criterion": "Owner deploy of the career route (Phase F, D-10 wiring) plus mailbox/calendar grants, then a Gate 5 live run on the owner's own allowlisted addresses proving connect \u2192 self-test email and event \u2192 campaign \u2192 reply \u2192 suppression \u2192 kill switch."
+   "fix_owner": "owner-decision — the deploy and the mailbox/calendar grants are the owner's taps (handler-wiring dependency: Codex)",
+   "exit_criterion": "Owner deploy of the career route (Phase F, D-10 wiring) plus mailbox/calendar grants, then a Gate 5 live run on the owner's own allowlisted addresses proving connect → self-test email and event → campaign → reply → suppression → kill switch."
   },
   {
-   "capability": "Reading scanned or binary documents \u2014 extracting resume/profile content from a scanned PDF image or other binary upload (OCR / document extraction beyond plain text)",
-   "closest_real_alternative": "Plain-text resume ingest (122 ingestResume on pasted/.txt/.md text), once routed \u2014 and pasting the text in chat today",
+   "capability": "Reading scanned or binary documents — extracting resume/profile content from a scanned PDF image or other binary upload (OCR / document extraction beyond plain text)",
+   "closest_real_alternative": "Plain-text resume ingest (122 ingestResume on pasted/.txt/.md text), once routed — and pasting the text in chat today",
    "evidence_of_absence": [
     "docs/career/gauntlet-deepdive-ap.md: AP11 NOT IMPLEMENTED in all 3 trials (A2: extraction limit never explained); APD-3 records that a scanned-document upload mentioned in chat creates no facts.",
-    "Code at base commit: packages/domain/122-career-profile.js ingest is plain-text only \u2014 classifyResumeIngest() returns reason_class 'unsupported' for .pdf/.docx/image formats ('the file format cannot be read by this resume ingest, which reads plain text only') and SUPPORTED_RESUME_FORMATS covers text formats. Code search: no OCR or image-document extraction module exists in packages/domain."
+    "Code at base commit: packages/domain/122-career-profile.js ingest is plain-text only — classifyResumeIngest() returns reason_class 'unsupported' for .pdf/.docx/image formats ('the file format cannot be read by this resume ingest, which reads plain text only') and SUPPORTED_RESUME_FORMATS covers text formats. Code search: no OCR or image-document extraction module exists in packages/domain."
    ],
-   "honest_reply_r_c7": "I can't read a scanned PDF image yet \u2014 this build's resume intake reads plain text only and there's no image reader, so I haven't extracted anything from that file. The closest real option is to paste the resume text, or upload a .txt or .md version, and I'll build your profile from that. Want to paste it?",
+   "honest_reply_r_c7": "I can't read a scanned PDF image yet — this build's resume intake reads plain text only and there's no image reader, so I haven't extracted anything from that file. The closest real option is to paste the resume text, or upload a .txt or .md version, and I'll build your profile from that. Want to paste it?",
    "id": "CA-09",
    "removes_entry": "Build an OCR/document-extraction path for scanned and binary uploads (or connect a document reader), route AP11-class asks to it, and re-grade AP11.",
    "scenario_ids": [
     "AP11"
    ],
    "scenario_refs": [
-    "AP11 only. Valid plain-text resume ingest exists in 122 (ingestResume) \u2014 its missing chat caller is a routing defect (see borderline_not_absent), not this entry"
+    "AP11 only. Valid plain-text resume ingest exists in 122 (ingestResume) — its missing chat caller is a routing defect (see borderline_not_absent), not this entry"
    ],
-   "fix_owner": "this program (Muse lane) \u2014 OCR/document-extraction build; building starts on the owner's go",
+   "fix_owner": "this program (Muse lane) — OCR/document-extraction build; building starts on the owner's go",
    "exit_criterion": "Build an OCR/document-extraction path for scanned and binary uploads (or connect a document reader), route AP11-class asks to it, and re-grade AP11."
   }
  ],
  "scope_rule": "An entry is listed only when the graded evidence proves no module, route, or transport exists for the capability at the base commit. A capability whose module exists but has no chat route is a routing defect, NOT capability-absent; those cases are recorded under borderline_not_absent and may not be graded NOT IMPLEMENTED from this list.",
- "spec_pack": "Quality Spec Pack v1.0 \u2014 00 (NOT IMPLEMENTED definition), 01 R-C7 (no capability theater), 05 Gate 2 (capability-absent list must be owner-approved and every listed scenario must return an honest R-C7 message)",
- "status": "Owner-approved 2026-10-13 (conditional approval, version 1) \u2014 NI grading is enabled for the listed entries only, each with its exact honest reply, closest alternative, fix owner, and exit criterion.",
- "version": "Draft v1",
+ "spec_pack": "Quality Spec Pack v1.0 — 00 (NOT IMPLEMENTED definition), 01 R-C7 (no capability theater), 05 Gate 2 (capability-absent list must be owner-approved and every listed scenario must return an honest R-C7 message)",
+ "status": "Owner-approved 2026-10-13 (version 2) — NI grading is enabled for the listed entries only, each with its exact honest reply, closest alternative, fix owner, and exit criterion. Version 2 changes, by the owner's written ruling 2026-10-13: CA-02 removed (PDF/DOCX rendering built, module 148); CA-01 scenario ID corrected from SC-174 to SC-179.",
+ "version": "v2",
  "owner_approved": true,
  "approved_on": "2026-10-13",
  "approval_conditions": [
   "Every entry carries: the exact honest reply the user sees (honest_reply_r_c7), the closest real alternative, the owner of the fix (fix_owner), and the exit criterion. No entry may produce a generic menu reply.",
-  "CA-02 (PDF/DOCX rendering) and CA-03 (real-portal submission) are CORE apply-family capabilities listed only temporarily; a build plan + target date for each is a review deliverable (2026-10-13). The owner's earlier 'DOCX: no' is superseded for planning purposes by the 2026-10-13 ruling; building still starts only on his go.",
-  "F9 stays marked BLOCKED on Codex module 120 until it lands \u2014 unaffected by this list."
+  "CA-03 (real-portal submission) is a CORE apply-family capability listed only temporarily; its sandbox tier is built (module 149) and the real-portal leg remains listed until the browser seam + the owner's signed-in session land. CA-02 was removed in v2: the renderer is built (module 148).",
+  "F9 stays marked BLOCKED on Codex module 120 until it lands — unaffected by this list."
  ],
- "change_control": "Versioned list: any change needs the owner's written approval. No scenario failing for a routing reason may ever be moved onto this list; routing failures stay FAIL."
+ "change_control": "Versioned list: any change needs the owner's written approval. No scenario failing for a routing reason may ever be moved onto this list; routing failures stay FAIL.",
+ "changes": [
+  {
+   "version": "v2",
+   "date": "2026-10-13",
+   "by": "owner ruling 2026-10-13 (~19:08 CDT), applied by the routing-fix run",
+   "changes": [
+    "CA-02 REMOVED: PDF/DOCX rendering is built (module 148-career-render.js, commit 56c2595). SC-102 and the U03/AP12 legs grade as ordinary scenarios from v2 on.",
+    "CA-01 CORRECTED: scenario ID SC-174 -> SC-179 (SC-179 is the voice-mock ask). SC-179 grades NI only via this corrected listing, and only when the reply is the entry's honest R-C7 reply (the router's voice-mock unavailable answer)."
+   ]
+  }
+ ]
 }

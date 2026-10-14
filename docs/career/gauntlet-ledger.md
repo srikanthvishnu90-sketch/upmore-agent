@@ -2451,3 +2451,12 @@ SC-277 / SC-286 / SC-287 in `tests/career-quality-contracts.test.cjs` —
 verified pre-existing by stash comparison: with this change stashed, the
 pristine tree fails the identical 3 tests (8 / 5 pass / 3 fail in that
 file). No new failures.
+
+## Capability-absent list — version 2 (owner ruling 2026-10-13, ~19:08 CDT)
+
+The owner authorized the version bump during the routing-fix run. `docs/quality-spec/capability-absent.json` is now **v2**:
+
+- **CA-02 REMOVED** — PDF/DOCX rendering is built (module 148, commit `56c2595`). SC-102 and the CA-02 legs (U03/AP12 class) grade as ordinary scenarios from v2 on, never NI.
+- **CA-01 CORRECTED** — scenario ID SC-174 → **SC-179** (SC-179 is the voice-mock ask). SC-179 grades NI only via this corrected listing, and only when the delivered reply is the entry's honest R-C7 reply.
+- Loader approval-gate semantics unchanged (status carries the affirmative owner approval; NI stays scoped to listed entries only). Counted concrete scenario IDs: 23 → 21. Entries: 9 → 8.
+- Same ruling batch: the locked two-touch follow-up cadence (~day 6 + ~day 15, then closed) is CONFIRMED — Spec 1's single-follow-up proposal is rejected and will not be implemented. Spec 2 §15 / Spec 3 §16 batches run on pack defaults; anything that sends, spends, or touches real accounts stays NOT approved; §6.4 application caps remain proposals (reported, not enforced) beyond the already-locked caps.

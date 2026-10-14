@@ -1706,9 +1706,51 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-jobs-domain.test.cjs 8/8 (engine leg) — see FR-144; the chaining leg's missing replay is FR-187 (IB-AP-9).
 - **STATUS:** ENFORCED
 
+### FR-272 — One template may never answer two different graph ask classes (BUG-098)
+- **FORBIDDEN:** A graph-family handler answering more than one ask class from a single prose template, or answering a class without running its named 135 producer. Every referral ask class runs its producer and composes its reply from the producer's record.
+- **FROM:** Residual lane 2026-10-14 — Referrals 0/30: handleGraphCatch's single template served ~16 ask classes (one reply naming the company as "one").
+- **ENFORCEMENT:** tests/career-referrals-completion.test.cjs BUG-098 tests (per-class producer record on the payload).
+- **STATUS:** ENFORCED
+
+### FR-273 — A prepared card is never dropped on a field-name misread (BUG-099)
+- **FORBIDDEN:** Reading a producer's result under a field the producer does not return (planReferralAsk returns `draft`, never `draft_card`). A seam that needs a field verifies the producer's actual return shape; a prepared referral card may never silently fall through to a generic answer.
+- **FROM:** Residual lane 2026-10-14 — handleGraphReferral's `r.draft_card` test made the named-referral branch dead code.
+- **ENFORCEMENT:** tests/career-referrals-completion.test.cjs populated referral test (named ask after a held chat surfaces the draft).
+- **STATUS:** ENFORCED
+
+### FR-274 — Producer calls match a documented producer signature (BUG-100)
+- **FORBIDDEN:** Calling a dual-shape producer with a mixed argument shape that matches NONE of its documented signatures (forwardableBlurb takes (graphStore, profile122) or (profile, facts) — never (profile) alone). A polite refusal from a wrong-shape call is still a defect.
+- **FROM:** Residual lane 2026-10-14 — the blurb refused "no_real_profile_facts" on a fact-rich profile because the call matched no shape.
+- **ENFORCEMENT:** tests/career-referrals-completion.test.cjs SC-150/SC-162 tests (blurb ok:true with fact_ids on the real profile).
+- **STATUS:** ENFORCED
+
+### FR-275 — Every graph-family result carries its typed record (BUG-101)
+- **FORBIDDEN:** A graph-family turn returning prose without its typed record under `payload`. Adapters must also supply every profile field the engine reads (graphProfileOf supplies current_employer, derived only from an open-ended experience fact — an ended role is never promoted to current).
+- **FROM:** Residual lane 2026-10-14 — alumni/memory/intro/departed/keep-warm/timing turns carried prose or unread keys only; all 30 records failed STATE_doorstep_gap.
+- **ENFORCEMENT:** tests/career-referrals-completion.test.cjs (30 per-scenario payload tests + populated keep-warm held-card test).
+- **STATUS:** ENFORCED
+
+### FR-276 — Completion branches key on record elements, never intent or reply text (BUG-102)
+- **FORBIDDEN:** A grader completion branch that fires on an intent label alone or on reply text. Family branches key on the producer record's own typed elements (kind + arrays/counters); contract additions are flagged CONTRACT in source. For the graph family, the carried record IS the doorstep artifact in the A4.4 derivation.
+- **FROM:** Residual lane 2026-10-14 — the graph family's honest terminal records (empty-graph envelope, timing decision, intel/merge/conversion records, blurb, memory, intro card) had no branch and could never complete; the F4 populated case still validates first.
+- **ENFORCEMENT:** run-grand.cjs BUG-102 branches (flagged in source) + the Referrals family re-run at grader-v2 30/30 (records: upmore-career-gauntlet-referrals-fix, index referrals-fix-index.json).
+- **STATUS:** ENFORCED
+
+### FR-277 — Every ranked path row states its basis (BUG-103)
+- **FORBIDDEN:** A path row reaching the record with no stated ground, and the two failure modes around it: silently dropping a bare connection (it IS a live path — IB-2) or silently promoting it to fact-backed warmth. Each row carries basis "shared_fact" (fact in why[]) or basis "connection" (why[] states the connection ground; the row is also listed under `cold`).
+- **FROM:** Residual lane 2026-10-14 — F4's stated-ground law and IB-2's live-path law meet on the zero-fact findPaths row.
+- **ENFORCEMENT:** tests/career-referrals-completion.test.cjs populated SC-146 test (record validates F4; both bases present) + tests/career-ib-outreach-integration.test.cjs IB-2/IB-2b.
+- **STATUS:** ENFORCED
+
+### FR-278 — Built producers get routes; essay material comes only from confirmed facts (BUG-104)
+- **FORBIDDEN:** An ask class with a built producer (133 medEssayPacket) falling through to another family's answer for lack of a route; and essay material built from anything but confirmed profile facts, or presented without naming which asked-for experience themes the profile lacks.
+- **FROM:** Residual lane 2026-10-14 — SC-096's essay ask fell to discovery (fixed build) after being canned-text "answered" in the earlier build.
+- **ENFORCEMENT:** tests/career-essay-tailor.test.cjs (5 tests incl. clinical-persona themes, empty-profile typed blocker, non-essay negative).
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 178 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 271
+Counts: ENFORCED 185 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 278
 
 | rule | status | enforcement |
 |---|---|---|
@@ -1983,5 +2025,12 @@ Counts: ENFORCED 178 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-269 (Gauntlet A4) | ENFORCED | tests/career-router-wedge.test.cjs A4 tests + tests/career-quality-contracts.test.cjs |
 | FR-270 (Gauntlet A5) | ENFORCED | tests/career-router-wedge.test.cjs 'A5 SC-286…' |
 | FR-271 (Gauntlet A6) | ENFORCED | tests/career-jobs-domain.test.cjs 8/8 (engine leg) |
+| FR-272 (BUG-098) | ENFORCED | tests/career-referrals-completion.test.cjs BUG-098 per-class producer-record tests |
+| FR-273 (BUG-099) | ENFORCED | tests/career-referrals-completion.test.cjs populated referral test |
+| FR-274 (BUG-100) | ENFORCED | tests/career-referrals-completion.test.cjs SC-150/SC-162 tests |
+| FR-275 (BUG-101) | ENFORCED | tests/career-referrals-completion.test.cjs (30 payload tests + populated keep-warm) |
+| FR-276 (BUG-102) | ENFORCED | run-grand.cjs BUG-102 branches + Referrals re-run grader-v2 30/30 (referrals-fix-index.json) |
+| FR-277 (BUG-103) | ENFORCED | tests/career-referrals-completion.test.cjs populated SC-146 + tests/career-ib-outreach-integration.test.cjs IB-2/IB-2b |
+| FR-278 (BUG-104) | ENFORCED | tests/career-essay-tailor.test.cjs (5 tests) |
 
-<!-- totals: total=271 enforced=178 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=278 enforced=185 guarded_red=1 hard_shut=1 unenforced=91 -->

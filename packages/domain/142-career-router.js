@@ -472,6 +472,50 @@ const CareerRouter = (() => {
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
   }
 
+  // ---------- essay tailoring (133 medEssayPacket) ----------
+  // BUG-104: the essay ask class ("tailor med-school application
+  // essays from my real clinical and research experiences") never
+  // reached its producer — 133's medEssayPacket existed for exactly
+  // this scenario, but no 142 branch called it, so the turn fell
+  // through the tailor block into discovery (an honest non-answer
+  // about medicine ROLES) in the fixed build, and was "answered" by
+  // a canned SWE resume tailor in the earlier one. The handler below
+  // runs the producer and carries its packet as the turn's artifact
+  // (the application family's commitment artifact, the BUG-077
+  // pattern). The reply states which asked-for experience themes the
+  // profile actually holds and which are missing — unrelated
+  // experience is never dressed as clinical/research material.
+  function handleEssayTailor(text, ctx) {
+    if (!Packets || !Packets.medEssayPacket) return null;
+    const profile = ctx.profile;
+    const r = Packets.medEssayPacket(profile);
+    // Theme fit is judged over the SAME fact set the packet is built
+    // from (experience / project / leadership / education) — a
+    // preference or skill fact must not register a theme.
+    const facts = (ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(profile) : []).filter((f) => ["experience", "project", "leadership", "education"].includes(f.kind));
+    const blob = (f) => lc(`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`);
+    const THEMES = [
+      { key: "clinical", re: /clinic|patient|hospital|medical|\bnurs|phlebotom|vital signs|healthcare/ },
+      { key: "research", re: /research|publication|published|\blab\b|laboratory|experiment|thesis/ },
+    ];
+    const askedThemes = THEMES.filter((th) => th.re.test(lc(text))).map((th) => th.key);
+    const themesOnFile = THEMES.filter((th) => facts.some((f) => th.re.test(blob(f)))).map((th) => th.key);
+    const missingThemes = askedThemes.filter((k) => !themesOnFile.includes(k));
+    if (r && r.ok) {
+      const outlineCount = (r.essays[0] && r.essays[0].outline.length) || 0;
+      const payload = { kind: "essay_packet", ok: true, essays: r.essays, themes_requested: askedThemes, themes_on_file: themesOnFile, missing_themes: missingThemes };
+      const factsOut = [`The packet holds ${r.essays.length} essay outline${r.essays.length === 1 ? "" : "s"} built from ${outlineCount} confirmed experiences on your profile — every outline point cites the fact it comes from, and the prose stays yours to write.`];
+      if (missingThemes.length === 1) factsOut.push(`Your profile holds no ${missingThemes[0]} experience — the outline draws on the experiences on file, and ${missingThemes[0]} material will need to be added as confirmed facts before these essays can carry it.`);
+      else if (missingThemes.length > 1) factsOut.push(`Your profile holds no ${missingThemes.join(" or ")} experience — the outline draws on the experiences on file, and that material will need to be added as confirmed facts before these essays can carry it.`);
+      else if (askedThemes.length) factsOut.push(`Your profile does carry ${themesOnFile.join(" and ")} experience, and the outline leads with it.`);
+      const reply = compose({ headline: "Your essay packet is ready — outlines from your real experiences, fact-cited.", facts: factsOut, nextStep: "Write the draft from the outline and paste it back — want me to check it against your facts line by line?" });
+      return { intent: "career_essay", reply, resultStatus: "prepared", sends: 0, payload, artifact: payload };
+    }
+    const payload = { kind: "essay_packet", ok: false, reason: (r && r.reason) || "no_confirmed_facts", themes_requested: askedThemes, themes_on_file: themesOnFile, missing_themes: askedThemes.slice() };
+    const reply = compose({ headline: "Essays cannot be tailored yet — your profile holds no confirmed experience to build them from.", facts: ["An essay invented from nothing burns the application it rides on; the packet is built only from experiences already confirmed on your profile.", "Add the experiences — clinical, research, service — as facts, and the outlines are built from them the same turn."], nextStep: "Want to add your first experience now?" });
+    return { intent: "career_essay", reply, resultStatus: "awaiting_user", sends: 0, payload, artifact: payload };
+  }
+
   // ---------- packets (133) + artifact binding by hash ----------
   // A batch tailor: the first match is tailored NOW (a real artifact in
   // hand), the rest stay staged for the review order the user named —
@@ -739,10 +783,63 @@ const CareerRouter = (() => {
       const artifact = campaignPlanArtifact(ctx, q, y);
       return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y, ...(artifact ? { artifact, payload: artifact } : {}) };
     }
+    // BUG-099 (template-breakup lane): the plan is composed from the
+    // PARSED TARGET — the firms the user named (never a set the alias
+    // expanded them into), the set when the ask named a set, the
+    // filters and geography the ask carried — and a vague ask hears
+    // its default named as a proposal, never worn as a choice. The
+    // artifact and typed shape are unchanged.
+    const SET_LABELS = { bulge_bracket: "bulge bracket", elite_boutique: "elite boutique", middle_market: "middle-market", mbb: "MBB", faang_plus: "FAANG-plus tech", quant: "quant and prop-trading", big4: "Big Four", mega_fund_pe: "mega-fund private equity", big_law: "Big Law", academic_medical: "academic medical center", cpg: "consumer packaged goods", infrastructure_eng: "infrastructure engineering", venture_midwest: "Midwest venture", logistics: "logistics", real_estate_pe: "real-estate private equity" };
+    const ROLE_LABELS = { software_engineering: "software engineers", investment_banking: "investment bankers", consulting: "consultants", law: "lawyers", product_management: "product people", product_design: "designers", ml_engineering: "ML engineers", civil_engineering: "civil engineers", medical_resident: "medical residents", marketing: "marketers", operations: "operations managers", founder: "founders", venture: "venture analysts", private_equity: "private equity professionals", real_estate_pe: "real-estate professionals" };
+    const bf = (q && q.background_filters) || {};
     const scope = [];
-    if (q && q.firms && q.firms.length) scope.push(`at ${q.firms.slice(0, 4).join(", ")}`);
+    if (q && q.firms_named && q.firms.length) scope.push(`at ${q.firms.length <= 4 ? q.firms.join(", ") : `${q.firms.slice(0, 3).join(", ")} and ${q.firms.length - 3} more you named`}`);
+    else if (q && q.firms_source === "set" && q.firms.length) scope.push(`across the ${SET_LABELS[q.firm_set] || "named"} set (${q.firms.slice(0, 3).join(", ")}${q.firms.length > 3 ? ", and more" : ""})`);
     if (q && q.geography) scope.push(`in ${q.geography}`);
-    const reply = compose({ headline: `Here is the plan for ${count} people${scope.length ? " " + scope.join(" ") : ""} — shortlist first, drafts second.`, facts: ["Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.", `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`], nextStep: "Say go and I build the list from those sources first — you see the found, trustworthy, and sendable counts before a single draft exists." });
+    const who = (q && ROLE_LABELS[q.role_family]) || "people";
+    const sourcesFact = "Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.";
+    const capsFact = `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`;
+    let leadFact = null, nextStep = null;
+    if (q && q.firms_source === "default") {
+      leadFact = `You named no firms, so the plan proposes a starting set instead of choosing for you: the bulge bracket — ${q.firms.slice(0, 4).join(", ")}, and ${q.firms.length - 4} more — held as a proposal you can re-point before anything is built.`;
+      nextStep = "Say go and I build on that proposed set — or name the firms you actually want and the plan re-points first.";
+    } else if (q && q.school_filter && q.school_filter !== "USER_SCHOOL_UNSPECIFIED") {
+      leadFact = `The school filter leads: your school's alumni directory (${q.school_filter}) is searched first, and every name is checked against it before ranking.`;
+      nextStep = "Say go and the alumni directory is searched first — you see the found, trustworthy, and sendable counts before a single draft exists.";
+    } else if (bf.prior_career) {
+      leadFact = `The ranking key is the career switch itself: only people whose record shows the move from ${bf.prior_career} count toward the ${count} — a title match alone does not qualify anyone.`;
+      nextStep = `Say go and I build the switchers list first — found, trustworthy, and sendable counts before a single draft exists.`;
+    } else if (bf.publishes_on_github) {
+      leadFact = "The filter is public proof of work: GitHub activity is checked person by person before anyone is ranked, so the list is built from people who ship in the open.";
+      nextStep = "Say go and I build the list GitHub-first — you see the found, trustworthy, and sendable counts before a single draft exists.";
+    } else if (bf.started_as_analyst) {
+      leadFact = "The filter is the path in: only people who started as analysts count toward the list — the shared first job is the personalization anchor.";
+      nextStep = "Say go and I build the started-as-analyst list first — found, trustworthy, and sendable counts before a single draft exists.";
+    } else if (bf.hiring_first_swe) {
+      const roleWord = { swe: "software engineer", engineer: "engineer", pm: "PM", "product manager": "product manager", designer: "designer" }[bf.hiring_first_role] || "engineer";
+      leadFact = `The filter is the opening itself: only companies hiring their first ${roleWord} count — the role, not the brand, is the targeting.`;
+      nextStep = "Say go and I build the first-hire list first — found, trustworthy, and sendable counts before a single draft exists.";
+    } else if (Array.isArray(bf.startup_stage) && bf.startup_stage.length) {
+      leadFact = bf.startup_stage.length === 1 && bf.startup_stage[0] === "Seed"
+        ? `Stage is a hard filter: only seed-stage companies count toward the ${count} — later-stage names are excluded, not ranked lower.`
+        : `Stage is a hard filter: only Series ${bf.startup_stage.join(" and ")} companies count toward the ${count} — later-stage names are excluded, not ranked lower.`;
+      nextStep = "Say go and I build the in-stage list first — found, trustworthy, and sendable counts before a single draft exists.";
+    } else if (bf.alumni) {
+      leadFact = "Alumni status is the ranking key: fellow alumni rank first and the shared school is the fact each draft stands on.";
+      nextStep = "Say go and I build the alumni-first list — found, trustworthy, and sendable counts before a single draft exists.";
+    } else if (q && q.firms_named && q.firms.length === 1) {
+      const waves = Math.max(1, Math.ceil(count / 15));
+      leadFact = waves === 1
+        ? `One firm, and the per-firm cap is not the constraint: ${count} people fit inside the 15-first-emails-per-30-days limit at ${q.firms[0]} with room to spare — the binding limit is how many the sources actually yield.`
+        : `One firm, so the per-firm cap binds before the daily ramp does: at most 15 first emails to ${q.firms[0]} in any 30 days, so ${count} people run as ${waves} monthly waves — planned that way from the start, not discovered mid-send.`;
+      nextStep = `Say go and I build the ${count}-person shortlist at ${q.firms[0]} first — found, trustworthy, and sendable counts before a single draft exists.`;
+    } else if (q && q.geography) {
+      leadFact = `Geography is a hard filter on the plan: only ${q.geography} names count toward the ${count} — out-of-area names are excluded, not ranked lower.`;
+      nextStep = `Say go and I build the ${q.geography} list first — found, trustworthy, and sendable counts before a single draft exists.`;
+    }
+    const facts = leadFact ? [leadFact, leadFact.startsWith("One firm,") ? sourcesFact : capsFact] : [sourcesFact, capsFact];
+    if (!nextStep) nextStep = q && q.firms_named ? `Say go and I build the shortlist at ${q.firms.slice(0, 2).join(" and ")} first — found, trustworthy, and sendable counts before a single draft exists.` : "Say go and I build the list from those sources first — you see the found, trustworthy, and sendable counts before a single draft exists.";
+    const reply = compose({ headline: `Here is the plan for ${count} ${who}${scope.length ? " " + scope.join(" ") : ""} — shortlist first, drafts second.`, facts, nextStep });
     const artifact = campaignPlanArtifact(ctx, q, null);
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, ...(artifact ? { artifact, payload: artifact } : {}) };
   }
@@ -1101,7 +1198,42 @@ const CareerRouter = (() => {
   function graphProfileOf(ctx) {
     const p = (ctx && ctx.profile) || {};
     const edu = (p.facts || []).find((f) => f.kind === "education");
-    return { school: (edu && edu.org) || p.school || null, clubs: p.clubs || [], major: (edu && edu.title) || p.major || null, hometown: p.hometown || null, name: (p.basics && p.basics.name) || null };
+    // BUG-101: 135's exclusionFor reads profile.current_employer, but
+    // this adapter never supplied it, so the current-employer
+    // exclusion could never fire through the chat path. Derived
+    // honestly: an experience fact with NO end date is an open-ended
+    // (current) role; an ended internship is never promoted to one.
+    const openRole = (p.facts || []).find((f) => f.kind === "experience" && f.org && !f.end);
+    return { school: (edu && edu.org) || p.school || null, clubs: p.clubs || [], major: (edu && edu.title) || p.major || null, hometown: p.hometown || null, name: (p.basics && p.basics.name) || null, current_employer: p.current_employer || (openRole ? openRole.org : null) };
+  }
+  // BUG-103: a findPaths row can carry NO shared fact — a bare
+  // connection from the user's own export. Two standing laws meet on
+  // that row: IB-2 (an ingested connection IS a live path the next
+  // turn must find) and doc 03 F4 (every ranked person shows the
+  // ground their path stands on). The assembly therefore keeps every
+  // live row in `paths` and states each row's basis on the record:
+  // basis "shared_fact" with the fact in why[], or basis "connection"
+  // with why[] completed by the true ground — the connection itself,
+  // from the user's own lists. Connection-only rows are ALSO listed
+  // under `cold`, so no reader can mistake them for fact-backed
+  // warmth. 135's engine semantics are untouched (pinned by
+  // tests/career-graph.test.cjs).
+  function graphEnvelopeOf(store, r, extra) {
+    const rows = (r && r.paths) || [];
+    const cards = (r && r.draft_cards) || [];
+    const paths = [], cold = [];
+    rows.forEach((row) => {
+      const shared = (Array.isArray(row.why) ? row.why : []).filter((w) => !/^in your graph/.test(String(w)));
+      const hasShared = shared.length > 0 || (typeof row.shared_fact === "string" && row.shared_fact.trim() !== "" && !/^no shared fact/i.test(row.shared_fact));
+      const out = Object.assign({}, row, { basis: hasShared ? "shared_fact" : "connection" });
+      if (!hasShared) {
+        const src = (Array.isArray(row.source_list) && row.source_list[0]) || (Array.isArray(row.sources) && row.sources[0]) || null;
+        out.why = [`in your graph${src ? ` (${src})` : ""} — the connection itself is the path; no shared fact on record`];
+        cold.push(out);
+      }
+      paths.push(out);
+    });
+    return Object.assign({ kind: "graph_paths", company: (r && r.company) || null, paths, cold, excluded: (r && r.excluded) || [], draft_cards: cards, graph_people: store.people.length }, extra || {});
   }
   function companyFromText(text, ctx) {
     const m = s(text).match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)/);
@@ -1120,27 +1252,31 @@ const CareerRouter = (() => {
     return null;
   }
 
+  // The findPaths doorstep record for one company, shared by
+  // handleGraphPaths and the graph catch fall-through (BUG-101: both
+  // used to diverge — one carried the record, the other prose only).
+  function pathsResultFor(company, ctx, store) {
+    const r = Graph.findPaths(store, company, graphProfileOf(ctx), { now: nowOf(ctx) });
+    const env = graphEnvelopeOf(store, r);
+    if (env.paths.length) {
+      // BUG-2026-10-14-GRAPH-SHAPE: 135's findPaths rows are FLAT
+      // ({name, firm, title, why[]}) — there is no .person object.
+      // Reading p.person.* threw on every non-empty graph result.
+      const facts = env.paths.slice(0, 3).map((p) => `${p.name} — ${p.title || "contact"} at ${p.firm || company}: ${(Array.isArray(p.why) ? p.why.join(", ") : p.why) || "direct connection"}.`);
+      if (env.cold.length) facts.push(`${env.cold.length} of ${env.cold.length === 1 ? "them stands" : "them stand"} on the connection alone — no shared fact on record, and the record says so.`);
+      facts.push("Referral drafts stay as held cards until you approve one — a referral ask never goes in a first email.");
+      const reply = compose({ headline: `You have ${env.paths.length} warm path${env.paths.length === 1 ? "" : "s"} into ${company}.`, facts, nextStep: "Pick a path and I will prepare the intro ask as a held card." });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    const reply = compose({ headline: `${company} has no path in your graph yet.`, facts: [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none of them is at ${company} now.`, "People who already left a firm never count as a path into it."], nextStep: "Upload your LinkedIn export or paste names from the firm's team page — want me to rebuild the paths from there?" });
+    return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: [], payload: env };
+  }
+
   function handleGraphPaths(text, ctx) {
     const company = companyFromText(text, ctx);
     if (!company) return null;
     const store = graphStoreOf(ctx);
-    if (Graph && Graph.findPaths) {
-      const r = Graph.findPaths(store, company, graphProfileOf(ctx), { now: nowOf(ctx) });
-      if (r.paths && r.paths.length) {
-        // BUG-2026-10-14-GRAPH-SHAPE: 135's findPaths rows are FLAT
-        // ({name, firm, title, why[]}) — there is no .person object.
-        // Reading p.person.* threw on every non-empty graph result.
-        const facts = r.paths.slice(0, 3).map((p) => `${p.name} — ${p.title || "contact"} at ${p.firm || company}: ${(Array.isArray(p.why) ? p.why.join(", ") : p.why) || "direct connection"}.`);
-        facts.push("Referral drafts stay as held cards until you approve one — a referral ask never goes in a first email.");
-        const reply = compose({ headline: `You have ${r.paths.length} warm path${r.paths.length === 1 ? "" : "s"} into ${company}.`, facts, nextStep: "Pick a path and I will prepare the intro ask as a held card." });
-        // BUG-073: the full 135 record rides under payload — ranked
-        // paths, the excluded set (the departed-contact check), and
-        // the held draft cards are the F4 elements, all in one record.
-        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: r.paths, payload: r };
-      }
-      const reply = compose({ headline: `No one at ${company} is in your graph yet.`, facts: [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none of them is at ${company} now.`, "People who already left a firm never count as a path into it."], nextStep: "Upload your LinkedIn export or paste names from the firm's team page, and I will rebuild the paths." });
-      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: [], payload: r };
-    }
+    if (Graph && Graph.findPaths) return pathsResultFor(company, ctx, store);
     return null;
   }
 
@@ -1149,7 +1285,9 @@ const CareerRouter = (() => {
     const gp = graphProfileOf(ctx);
     const school = gp.school || "your school";
     const reply = compose({ headline: "The alumni-directory lane is honest but thin — here is how it actually works.", facts: [`${school}'s alumni directory is yours to browse inside the school's own portal; I cannot extract names from it, and nothing here scrapes it.`, "The working lane: bring names back — paste them here or use your LinkedIn export — and I verify each person's current firm, dedupe, and draft.", `Your graph on file currently holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} to match those names against.`], nextStep: "Paste the first batch of names and I will run verification and dedupe on them." });
-    return { intent: "graph_alumni", reply, resultStatus: "awaiting_user", sends: 0 };
+    // BUG-101: the lane record rides as the payload — before this the
+    // turn carried prose only and no reader could see the lane state.
+    return { intent: "graph_alumni", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "graph_lane", lane: "alumni_directory", school: gp.school, graph_people: store.people.length, scrape: false, working_lane: "linkedin_export_or_pasted_names" } };
   }
 
   function handleGraphReferral(text, ctx) {
@@ -1157,16 +1295,27 @@ const CareerRouter = (() => {
     const nameM = s(text).match(/\b(?:ask|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/);
     if (nameM && Graph && Graph.planReferralAsk) {
       try {
-        const r = Graph.planReferralAsk(store, nameM[1], { now: nowOf(ctx) });
-        if (r && r.ok && r.draft_card) {
+        // planReferralAsk resolves by exact full name; the chat layer
+        // resolves the spoken fragment ("Daniel") to the graph's
+        // Daniel first — otherwise every first-name ask misses.
+        const frag = lc(nameM[1]);
+        const person = store.people.find((p) => lc(p.full_name || p.name || "").includes(frag));
+        const r = Graph.planReferralAsk(store, person ? (person.full_name || person.name) : nameM[1], { now: nowOf(ctx) });
+        // BUG-099: 135 returns the prepared card as r.draft — this
+        // branch read r.draft_card (a field that does not exist), so
+        // it never fired and a prepared referral card was silently
+        // dropped in favor of the generic timing answer.
+        if (r && r.ok && r.draft) {
           const reply = compose({ headline: "The referral ask is prepared as a held card.", facts: ["It rides as its own follow-up step, never inside a first email.", "It goes nowhere until you approve the card."], nextStep: "Review the card and approve it when you are ready." });
-          return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, draft: r.draft_card, payload: r };
+          return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, draft: r.draft, payload: r };
         }
       } catch { /* fall through to the rule answer */ }
     }
     const timing = Graph && Graph.referralTiming ? Graph.referralTiming({}) : null;
     const reply = compose({ headline: "A referral ask never goes in email one — it is its own step, after a real conversation.", facts: [timing ? timing.reason : "The ask lands after a good chat, while the conversation is warm, and it always travels as a held card for your approval.", "Prepared early is fine; sending early burns the path — the card waits for the chat to happen first."], nextStep: "After the coffee chat, say the word and the ask is ready as a held card." });
-    return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, timing };
+    // BUG-101: the timing decision is the product of this turn — it
+    // rides as the payload, not only under the unread `timing` key.
+    return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, timing, payload: timing ? Object.assign({}, timing, { kind: "referral_timing" }) : null };
   }
 
   function handleKeepWarm(text, ctx) {
@@ -1178,11 +1327,21 @@ const CareerRouter = (() => {
       // rows are flat and name the firm field `company`.
       const facts = sugg.slice(0, 3).map((x) => `${x.name} at ${x.company || "their firm"} — last touch ${x.days_since != null ? `${x.days_since} days ago` : "a while ago"}: ${x.reason}.`);
       facts.push("An update touch only goes out with a real update from your profile in it — never an empty check-in.");
+      // BUG-101: each suggestion's update touch is drafted through
+      // 135's draftUpdateTouch and held as a card on the record —
+      // before this the payload carried suggestions only, and the F5/
+      // F4 readers found no card to complete against.
+      const cards = sugg.slice(0, 3).map((x, i) => {
+        let d = null;
+        if (Graph && Graph.draftUpdateTouch) { try { d = Graph.draftUpdateTouch(store, x.name, ctx.profile, { nowMs: nowOf(ctx) }); } catch { d = null; } }
+        const body = d && d.draft ? s(d.draft.body) : "";
+        return { card_id: `keep-warm-${i + 1}`, kind: "update_touch_draft", status: "held", held_as_card: true, name: x.name, firm: x.company || null, drafted: !!(d && d.ok && body && !/not invented/.test(body)), draft: (d && d.draft) || null };
+      });
       const reply = compose({ headline: `${sugg.length} warm ${sugg.length === 1 ? "contact is" : "contacts are"} due a keep-warm touch.`, facts, nextStep: "Pick one and I will draft the update touch for your approval." });
-      return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: sugg, payload: { suggestions: sugg } };
+      return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: sugg, payload: { suggestions: sugg, graph_people: store.people.length, draft_cards: cards } };
     }
     const reply = compose({ headline: "Nobody in your graph is due a keep-warm touch yet.", facts: ["The rule: a warm contact goes quiet for six weeks before an update touch is due, and the touch carries a real update from your profile — never an empty check-in.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none has crossed the six-week line with a conversation on record.`], nextStep: "Tell me one real update — an internship, a project, a result — and I will hold it ready for the first touch that comes due." });
-    return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: [] };
+    return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: [], payload: { suggestions: [], graph_people: store.people.length, draft_cards: [] } };
   }
 
   function handleDepartedPath(text, ctx) {
@@ -1191,13 +1350,19 @@ const CareerRouter = (() => {
     if (dep && Graph && Graph.departedNextPath) {
       try {
         const r = Graph.departedNextPath(store, dep.name, graphProfileOf(ctx), { now: nowOf(ctx) });
-        const nextName = r && r.next_path && r.next_path.person ? r.next_path.person.name : null;
+        // BUG-101: 135 returns next_paths (a list); the old read of
+        // r.next_path.person never existed, so the "next path" line
+        // always claimed none — and the record rode under `departed`
+        // only, invisible to the doorstep derivation.
+        const nextRows = (r && r.next_paths) || [];
+        const nextName = nextRows.length ? nextRows[0].name : null;
+        const env = graphEnvelopeOf(store, { company: (r && r.departed && r.departed.firm) || dep.current_firm || null, paths: nextRows, excluded: [], draft_cards: [] }, { departed: (r && r.departed) || null, departed_check: r || null });
         const reply = compose({ headline: `${dep.name} has left ${dep.last_firm || "the firm"} — writing there would go nowhere.`, facts: [`First, their new firm is worth one honest re-check: a warm person at a new firm is still a warm person.`, nextName ? `The next path into the old firm runs through ${nextName}, who is already in your graph.` : "No second path into the old firm exists in your graph yet."], nextStep: "Want me to verify where they landed and line up the next path?" });
-        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, departed: r };
+        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, departed: r, payload: env };
       } catch { /* fall through to the process answer */ }
     }
     const reply = compose({ headline: "Writing to someone who already left teaches us nothing — here is the safe order.", facts: ["First, I re-check where the departed contact landed: a warm person at a new firm is still a warm person.", "Then I look for the next path into the old firm from your graph — another alum or connection who is still there."], nextStep: "Name the firm and I will run both checks now." });
-    return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0 };
+    return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "graph_paths", company: null, paths: [], cold: [], excluded: [], draft_cards: [], graph_people: store.people.length, departed: null } };
   }
 
   // ---------- apply family (132 via the 141 packet doorstep) ---------------
@@ -1454,16 +1619,74 @@ const CareerRouter = (() => {
         }
       } catch { /* fall through to the file summary */ }
     }
-    const facts = [];
-    const bar = cirFieldText(cir.hiring_bar_summary);
-    if (bar) facts.push(`The bar: ${bar.split(/(?<=[.!?])\s/)[0]}`);
-    const comp = cirFieldText(cir.compensation_notes || cir.comp_band || cir.comp_notes);
-    if (comp) facts.push(`Comp: ${comp.split(/(?<=[.!?])\s/)[0]}`);
-    const culture = cirFieldText(cir.culture_notes);
-    if (culture) facts.push(`Culture: ${culture.split(/(?<=[.!?])\s/)[0]}`);
-    if (!facts.length) facts.push("The file is thin right now — status and sourcing only, no invented detail.");
+    // BUG-087 (template-breakup lane): the file summary is composed
+    // from the file's OWN sections, picked by the ask's angle — the
+    // bar, entry routes, cadence, comp, culture, interview style and
+    // thesis are different data for every firm, so 23 different asks
+    // no longer receive one frame with the firm name swapped. The
+    // closing step offers a section the file actually has and this
+    // reply did not already show.
+    const firstSent = (v) => { const t = cirFieldText(v); return t ? t.split(/(?<=[.!?])\s/)[0] : null; };
+    const sections = [];
+    const addSec = (key, label, offerName, text) => { if (text) sections.push({ key, label, offerName, text }); };
+    addSec("bar", "The bar", "the hiring bar", firstSent(cir.hiring_bar_summary));
+    const routeRows = (Array.isArray(cir.entry_routes) ? cir.entry_routes : []).filter((r) => r && (r.route || r.accessibility_note));
+    if (routeRows.length) {
+      const r0 = routeRows.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99))[0];
+      const note = r0.accessibility_note ? s(r0.accessibility_note).split(/(?<=[.!?])\s/)[0] : null;
+      addSec("routes", "Entry routes", "the entry routes", `${routeRows.length} on file — the front door is ${s(r0.route)}${note ? ` — ${note}` : ""}`);
+    }
+    addSec("cadence", "Cadence", "the hiring cadence", firstSent(cir.hiring_cadence));
+    addSec("comp", "Comp", "the comp notes", firstSent(cir.compensation_notes || cir.comp_band || cir.comp_notes));
+    addSec("culture", "Culture", "the culture signals", firstSent(cir.values_culture_signals || cir.culture_notes));
+    addSec("interview", "Interviews", "the interview process", firstSent(cir.interview_styles));
+    const thesisText = cirFieldText(cir.thesis_text);
+    addSec("thesis", "Thesis", "the full thesis", thesisText ? thesisText.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : null);
+    const byKey = {}; for (const x of sections) byKey[x.key] = x;
+    const t = lc(text);
+    const pick = (keys) => keys.map((k) => byKey[k]).filter(Boolean);
+    let chosen = null, headline = null;
+    if (/\bvs\.?\b|\bversus\b/.test(t)) {
+      // A two-sided ask: the named firm's file on one side; the other
+      // side is a second file when the ask names one, otherwise the
+      // honest statement that no file exists for it — never a
+      // one-firm summary wearing a comparison's clothes.
+      const other = cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, t)) || null;
+      const facts = [];
+      if (byKey.bar) facts.push(`The bar: ${byKey.bar.text}`);
+      if (other) {
+        const ob = cirFieldText(other.hiring_bar_summary);
+        if (ob) facts.push(`${cirShortName(other)}'s bar: ${ob.split(/(?<=[.!?])\s/)[0]}`);
+        if (byKey.cadence) facts.push(`Cadence: ${byKey.cadence.text}`);
+      } else {
+        if (byKey.cadence) facts.push(`Cadence: ${byKey.cadence.text}`);
+        facts.push("The other side of this comparison has no company file of its own, so nothing is quoted for it — firms of that kind differ too much to borrow one file's numbers.");
+      }
+      facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
+      const reply = compose({ headline: `${name} against the alternative you named — what its file supports.`, facts, nextStep: other ? "Want your gaps against both files next?" : "Name the other firm and I will pull its file for the two-sided read." });
+      return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir };
+    }
+    if (/\bhow do i get\b|\bget a job\b|\bthesis\b/.test(t)) { chosen = pick(["thesis", "routes", "bar"]); headline = `How hiring at ${name} works, from its file.`; }
+    else if (/\bcomp\b|\bpay\b|\bsalary\b|\bcompensation\b/.test(t)) { chosen = pick(["comp", "bar", "cadence"]); headline = `${name} comp, from the file.`; }
+    else if (/\binterview\b/.test(t)) { chosen = pick(["interview", "bar", "cadence"]); headline = `${name} interviews, from the file.`; }
+    else if (/\bculture\b|\bvalues\b/.test(t)) { chosen = pick(["culture", "bar", "comp"]); headline = `${name} culture, from the file.`; }
+    else if (/\blook(s|ing)? for\b|\bwants in\b|\bhires for\b/.test(t)) { chosen = pick(["bar", "routes", "cadence"]); headline = `What ${name} looks for, from its file.`; }
+    if (!chosen || !chosen.length) {
+      chosen = pick(["bar", "routes", "cadence"]);
+      const cohort = cir.cohort || {};
+      headline = cohort.role_family ? `The ${name} file — ${cohort.role_family}${cohort.level ? `, ${cohort.level}` : ""}.` : `Here is what the ${name} file supports.`;
+    }
+    if (!chosen.length) chosen = [{ key: "thin", label: "", offerName: "", text: "The file is thin right now — status and sourcing only, no invented detail." }];
+    const facts = chosen.map((x) => (x.label ? `${x.label}: ${x.text}` : x.text));
+    if (/\bsample size\b/.test(t) && cir.sample_size == null) {
+      const bias = cirFieldText(cir.known_biases_of_data);
+      if (bias) facts.push(`On sample size, the file states its own limit: ${bias.split(/(?<=[.!?])\s/)[0]}`);
+    }
     facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
-    const reply = compose({ headline: `Here is what the ${name} file supports.`, facts, nextStep: "Want the interview process or the comp detail next?" });
+    const shownKeys = new Set(chosen.map((x) => x.key));
+    const remaining = sections.filter((x) => !shownKeys.has(x.key)).map((x) => x.offerName).filter(Boolean);
+    const nextStep = remaining.length >= 2 ? `Want ${remaining[0]} or ${remaining[1]} next?` : remaining.length === 1 ? `Want ${remaining[0]} next?` : "Want your gaps against this file next?";
+    const reply = compose({ headline, facts, nextStep });
     // BUG-073: the company file itself rides under payload — the
     // F7 company-file record (125's own shape, data_sources included).
     return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir };
@@ -1581,10 +1804,103 @@ const CareerRouter = (() => {
         return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench, payload: offer };
       } catch { /* fall through to the advice answer */ }
     }
-    const reply = compose({ headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts: ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence], nextStep: "Paste the offer letter and I will parse it line by line before you answer." });
+    // BUG-088 (template-breakup lane): the advice fallback used to
+    // serve ONE method paragraph + "paste the offer letter" to 13
+    // materially different asks (intake, benchmark, comparison,
+    // extension, below-floor, equity, scripts, return offer,
+    // expectation, exploding offer, leverage, withdrawals, referral).
+    // Each shape now composes from the ask's own parameters and the
+    // 128 product built for it; every branch still carries the bench
+    // product (the F6/R-C5 typed elements are unchanged).
+    const advice = negotiationAdvice(text, ctx, bench, benchSentence);
+    const reply = compose(advice);
     // BUG-071: the benchmark product rides under payload on the
     // advice path too — its text/statement is the cited record.
     return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0, bench, payload: bench };
+  }
+
+  // BUG-088: per-shape negotiation advice. Facts are drawn from the
+  // ask's own words (the hours on an exploding offer, the fields an
+  // intake names) and from 128's typed products run on the spot
+  // (counterStrategy's levers, extensionDraft's defaults,
+  // declineDraft's relationship checks, totalComp's equity doctrine) —
+  // never from a shared paragraph.
+  function negotiationAdvice(text, ctx, bench, benchSentence) {
+    const t = lc(text);
+    const asOf = new Date(nowOf(ctx)).toISOString().slice(0, 10);
+    const srcLine = (about) => `Source class: ${about}, checked as of ${asOf}.`;
+    let strat = null;
+    try { strat = Negotiation && Negotiation.counterStrategy ? Negotiation.counterStrategy({ company: null, role: null, base_salary: null }, bench, {}) : null; } catch { strat = null; }
+    const lever = (i) => (strat && strat.asks && strat.asks[i] && strat.asks[i].ask) || null;
+    if (/\bintake\b|\bparsed into\b|\boffer letter parsed\b/.test(t)) {
+      // Intake runs before the equity branch: an intake ask LISTS
+      // equity among the letter's fields without asking about equity.
+      return { headline: "Offer intake: the letter becomes the log, field by field.", facts: ["The parser reads the fields you named — base, equity, bonus, benefits, start, expiry — straight from the letter's own lines.", "Anything the letter does not state is logged as missing and named back to you; no field is ever filled from a benchmark.", srcLine("the offer parser run on your pasted letter")], nextStep: "Paste the offer letter and the parse is the first step — benchmarking comes after." };
+    }
+    if (/\btax\b|\blegal\b|\blawyer\b|\battorney\b/.test(t)) {
+      return { headline: "Tax and legal questions get referred out — here is the line.", facts: [Negotiation && Negotiation.DISCLAIMER ? Negotiation.DISCLAIMER.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "This support is advice, not a guarantee, and it is not legal or tax advice.", "On this side of the line I still do the comp math, flag which clauses carry money or deadlines, and draft the exact questions your lawyer or tax professional answers.", srcLine("the negotiation method in this product and your own offer record")], nextStep: "Paste the clause you are unsure about and I will flag what to ask the lawyer — I will not interpret it for you." };
+    }
+    if (/\bwithdraw\b|\bdecline\b|\bother finalists\b|\bgraceful\b/.test(t)) {
+      let checks = null;
+      try { const dec = Negotiation && Negotiation.declineDraft ? Negotiation.declineDraft({}, {}) : null; checks = dec && dec.relationship_kept_checks; } catch { checks = null; }
+      const kept = checks && Object.values(checks).every(Boolean);
+      return { headline: "Withdrawal drafts to the other finalists — warm, one card at a time.", facts: [kept ? "The decline draft checks itself before you see it: it thanks the team, gives fit — never money — as the reason, leaves the door open, and carries no bridge-burning language." : "Each decline draft is built to keep the relationship: thanks first, fit as the reason, the door left open.", "Every withdrawal is its own held card with its own destination — nothing sends in bulk, and nothing sends without your yes.", srcLine("the decline-draft product and your application record")], nextStep: "Name the companies and I will draft each withdrawal for your review." };
+    }
+    if (/\bexploding\b|\b\d+\s*hours?\b|\bpressure plan\b/.test(t)) {
+      const hrs = (s(text).match(/\b(\d+)\s*hours?\b/i) || [])[1];
+      return { headline: "Exploding offer: extension first, counter second, panic never.", facts: [`The clock you named — ${hrs ? `${hrs} hours` : "a short fuse"} — is met with a sequence, not a scramble: the extension request goes out first because it is drafted, card-gated, and buys the days the counter needs.`, "Pressure never invents a number: the counter still runs on the company file's sourced range or on your own floor, exactly as it would with a month to decide.", benchSentence], nextStep: "Paste the offer and I will parse its expiry and draft the extension today." };
+    }
+    if (/\bextension\b|\bextend\b/.test(t)) {
+      let days = 7;
+      try { const ext = Negotiation && Negotiation.extensionDraft ? Negotiation.extensionDraft({}, {}) : null; if (ext && ext.days) days = ext.days; } catch { /* default stands */ }
+      return { headline: "The extension request is a drafted product — not a paragraph to improvise.", facts: [`The draft asks for ${days} days by default and computes the new date from the offer's own expiry; once sent on your yes, the new deadline is tracked in the log.`, "It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.", srcLine("the extension-draft product and your offer record")], nextStep: "Paste the offer letter — its expiry date is the one field the draft cannot invent." };
+    }
+    if (/\btwo offers\b|\bcompar\w* offers\b|\boffers compared\b|\bside by side\b/.test(t)) {
+      return { headline: "Two offers, one math: both letters through the same total-comp table.", facts: ["The comparison scores base, bonus, signing, equity per year, the year-one total, and the annualized total for each — side by side, with the delta on every row.", "Equity with no stated price stays unvalued in both columns; a delta is never computed against a guessed value.", srcLine("the total-comp product run on your two offer letters")], nextStep: "Paste both offer letters and the table builds from them — no numbers from memory." };
+    }
+    if (/\bequity\b|\bgrant\b|\bvesting\b|\brsus?\b|\boptions\b/.test(t)) {
+      let unvalued = null, doctrine = null;
+      try { const tc = Negotiation && Negotiation.totalComp ? Negotiation.totalComp({ base_salary: null, equity: { type: "options", shares: null, grant_value: null, vest_years: null } }, {}) : null; if (tc) { unvalued = (tc.assumptions || []).find((a) => /NO stated grant value/.test(a)) || null; doctrine = tc.disclaimer || null; } } catch { /* facts below stand without it */ }
+      const facts = ["A grant is worth what its shares are worth when they vest — so the honest answer is scenarios: priced if the letter states a value or price, spread over the vesting years, and flagged unvalued when neither exists."];
+      if (unvalued) facts.push(unvalued);
+      if (doctrine) facts.push(doctrine);
+      return { headline: "Equity, valued the honest way: scenarios, not a single invented number.", facts, nextStep: "Paste the grant terms — shares, price or grant value, vesting — and I will run the scenarios on your actual numbers." };
+    }
+    if (/\breturn offer\b|\bconversion\b/.test(t)) {
+      // Before the signing branch: a return-offer ask says "before
+      // signing" without asking about a signing BONUS.
+      const facts = [];
+      if (lever(2)) facts.push(`The conversion lever from the counter plan: ${lever(2)}.`);
+      facts.push("Before you sign a return offer, the terms that expire at signing get settled: the review date in writing, the level you convert at, and the start date — after signing, none of them are negotiable.");
+      facts.push(srcLine("the counter-strategy product and your internship record"));
+      return { headline: "Return offer: the conversion asks happen before you sign, not after.", facts, nextStep: "Paste the return offer and I will check its review, level, and start terms against that list." };
+    }
+    if (/\bsigning[- ]bonus\b/.test(t)) {
+      const facts = [];
+      if (lever(1)) facts.push(lever(1) + " — that lever is the whole script when base is truly fixed.");
+      facts.push("The word-for-word email and call versions are the counter product: the signing-bonus version leads with the year-one gap the bonus closes, not with the base band you already lost.");
+      facts.push(srcLine("the counter-strategy product and the company file's compensation notes"));
+      return { headline: "Base will not move — so the signing-bonus script carries the ask.", facts, nextStep: "Paste the offer and the script is cut to its actual base and signing figures." };
+    }
+    if (/\bexpectation\b|\bmid-process\b|\basked.*(salary|comp|number)\b/.test(t)) {
+      return { headline: "The comp-expectation answer: a sourced range, worded once, approved by you.", facts: [benchSentence, "The sentence you say on the call is drafted from that range and held for your approval — a figure from the file, never a number improvised under pressure."], nextStep: "Name the company and role and I will draft the exact sentence from its file." };
+    }
+    if (/\bleverage\b|\bcompeting\b/.test(t)) {
+      return { headline: "A competing deadline is leverage only because it is real.", facts: ["The counter script's own rule: never bluff a competing offer you do not have — a real expiry date, named plainly, is the whole play.", "Sequencing runs off the earlier deadline: extension request on the offer you rank second, counter on your first choice inside the window it buys, warm decline to the other the day you accept.", srcLine("the deadline-sequencing product and your offer record")], nextStep: "Paste both offers — their expiry dates set the order of the calls." };
+    }
+    if (/\bbenchmark\b|\bmarket\b/.test(t)) {
+      return { headline: "The benchmark, with its sources shown — and its limits.", facts: [benchSentence, "Where the company file publishes no figure, the answer says so and stops — a salary-site number is never substituted as a fact."], nextStep: "Paste the offer and every figure in it gets checked against the file's range." };
+    }
+    if (/\bbelow\b|\bfloor\b|\bwalk\b/.test(t)) {
+      const facts = [];
+      if (strat && strat.text) facts.push(strat.text.split(/(?<=[.!?])\s/).slice(0, 1).join(" "));
+      facts.push("The counter-or-walk call is one subtraction: the offer's year-one total, from its letter, against the floor you set — if a sourced counter cannot reach the floor, the honest answer is the walk.");
+      facts.push(srcLine("the counter-strategy product and your stated floor"));
+      return { headline: "Below your floor: counter only if the math can reach it.", facts, nextStep: "Tell me your floor and paste the offer — the call comes from those two numbers, not from hope." };
+    }
+    // Generic negotiation ask: the method answer — it now serves
+    // only asks that match no specific shape above.
+    return { headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts: ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence], nextStep: "Tell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it." };
   }
 
   // IB-TN-9: roleplay asks belong to 128's roleplay engine, not mock
@@ -1781,7 +2097,13 @@ const CareerRouter = (() => {
     if (!v) return "";
     if (typeof v === "string") return v;
     if (Array.isArray(v)) return cirFieldText(v[0]);
-    if (typeof v === "object") return s(v.summary || v.text || v.description || v.notes || v.band || "");
+    // BUG-087 (template-breakup lane): the company files carry their
+    // prose under `statement` (hiring_bar_summary, compensation_notes,
+    // hiring_cadence, interview_styles, thesis_text all use it) — the
+    // probe list never read it, so every file extracted as empty and
+    // 23 different asks collapsed onto one "thin file" sentence that
+    // was false for all 38 files on disk.
+    if (typeof v === "object") return s(v.summary || v.text || v.description || v.notes || v.band || v.statement || v.claim || "");
     return "";
   }
   // IB-F5F7-2: guidance-shaped asks are answered by 144's engine —
@@ -1860,6 +2182,18 @@ const CareerRouter = (() => {
   function handleGraphCatch(text, ctx) {
     const t = lc(text);
     const store = graphStoreOf(ctx);
+    const gp = graphProfileOf(ctx);
+    // BUG-098: this handler used to answer ~16 distinct graph asks
+    // with ONE prose template and never call the per-ask 135
+    // producers built for exactly these asks (rankPaths,
+    // secondDegreeMap, publicSourceLookup, conversionTracking,
+    // topWarmPathSweep, newHireRadar, miniCampaign, referralBonusIntel,
+    // mergeIdentities, thankYouReferralCombo) — the true-score judge
+    // found the same warm-paths paragraph on 16 different asks.
+    // Every branch below runs its producer and carries the producer's
+    // typed record under payload (BUG-101: a payload-less graph turn
+    // is the STATE_doorstep_gap defect); replies compose FROM the
+    // record, so two different asks can no longer share one text.
     if (/\bwhen did i last\b|\blast talk\b|\brelationship memory\b|\bwhat did we talk\b/.test(t) && Graph && Graph.relationshipMemory) {
       const nameM = s(text).match(/\b(?:to|with)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/) || s(text).match(/\btalk to ([A-Za-z][a-z]+)\b/);
       const name = nameM ? nameM[1] : null;
@@ -1868,33 +2202,239 @@ const CareerRouter = (() => {
           const mem = Graph.relationshipMemory(store, name);
           if (mem && mem.person) {
             const reply = compose({ headline: `Your history with ${name}, from the record.`, facts: [`Last contact: ${mem.last_contact_at || "not dated in the record"}. Conversations on record: ${mem.chats != null ? mem.chats : 0}.`, mem.last_topics ? `Last topics: ${s(mem.last_topics)}.` : "Topics are kept with each interaction as it happens."], nextStep: "Want a warm update touch drafted from that history?" });
-            return { intent: "graph_memory", reply, resultStatus: "prepared", sends: 0, memory: mem };
+            return { intent: "graph_memory", reply, resultStatus: "prepared", sends: 0, memory: mem, payload: mem };
           }
+          // BUG-101: the not-found memory record rides too — before
+          // this the turn carried prose only. The headline leads with
+          // the state, not a bare "No …" (the REFUSAL_NO_ALTERNATIVE
+          // shape): the alternative below is the offered next step.
+          const reply = compose({ headline: `${name} has no interactions on record yet.`, facts: ["Relationship memory is built from your export and the chats you log here — nothing is inferred from outside data."], nextStep: "Log the last conversation, even roughly — want to start the memory there?" });
+          return { intent: "graph_memory", reply, resultStatus: "awaiting_user", sends: 0, memory: mem, payload: mem };
         } catch { /* fall through */ }
-        const reply = compose({ headline: `No interactions with ${name} are on record yet.`, facts: ["Relationship memory is built from your export and the chats you log here — nothing is inferred from outside data."], nextStep: "Log the last conversation, even roughly, and the memory starts there." });
-        return { intent: "graph_memory", reply, resultStatus: "awaiting_user", sends: 0 };
       }
     }
-    if (/\bforwardable blurb\b|\bblurb\b/.test(t) && Graph && Graph.forwardableBlurb) {
+    // BUG-100: forwardableBlurb takes (graphStore, profile122) — the
+    // ported shape — or (profile, facts). It used to be called with
+    // (ctx.profile) alone, which matches NEITHER shape, so the blurb
+    // refused "no_real_profile_facts" even with confirmed education
+    // and experience facts on the profile.
+    const buildBlurb = () => {
+      if (!Graph || !Graph.forwardableBlurb) return null;
       try {
-        const b = Graph.forwardableBlurb(ctx.profile);
-        const lines = (b && (b.lines || b.blurb)) || [];
-        if (b && b.ok !== false && lines.length) {
-          const reply = compose({ headline: "Your forwardable blurb — three lines, built only from confirmed facts on your profile.", facts: lines.slice(0, 3).map((x) => s(x)), nextStep: "It travels with an intro ask as a held card — approve the card and it is ready to forward." });
-          return { intent: "graph_blurb", reply, resultStatus: "prepared", sends: 0, blurb: b };
-        }
-      } catch { /* fall through */ }
-      const reply = compose({ headline: "A forwardable blurb needs confirmed facts, and the profile on file is too thin to write one honestly.", facts: ["A blurb written from guesses burns the mutual who forwards it."], nextStep: "Confirm your school, role, and one proof point and I will write it." });
-      return { intent: "graph_blurb", reply, resultStatus: "awaiting_user", sends: 0 };
-    }
+        const g2 = Object.assign({}, store, { user: { name: gp.name, school: gp.school } });
+        return Graph.forwardableBlurb(g2, ctx.profile);
+      } catch { return null; }
+    };
     if (/\bintro request\b|\bask .* to introduce\b/.test(t)) {
-      const reply = compose({ headline: "The intro ask is prepared as a held card, never a loose email.", facts: ["The mutual gets your forwardable blurb plus the ask in one forwardable block, so passing it on costs them one tap.", "Nothing goes out until you approve the card — and a referral ask never rides inside a first cold email."], nextStep: "Name the mutual and the target and I will build the card." });
-      return { intent: "graph_intro", reply, resultStatus: "awaiting_user", sends: 0 };
+      const b = buildBlurb();
+      const card = { kind: "intro_card", status: b && b.ok ? "held" : "blocked", held_as_card: true, requires_card_approval: true, sends: 0, blurb: b || null, rule: "The mutual gets the forwardable blurb plus the ask as one forwardable block; nothing is sent without your card approval, and a referral ask never rides inside a first cold email." };
+      if (b && b.ok) {
+        const reply = compose({ headline: "The intro card is built and held — blurb included, nothing sent.", facts: [`Blurb, line one: ${s(b.lines[0])}`, "The mutual gets the blurb plus the ask in one forwardable block, so passing it on costs them one tap."], nextStep: "Name the mutual and the target — want the card addressed to them?" });
+        return { intent: "graph_intro", reply, resultStatus: "awaiting_user", sends: 0, payload: card, draft: card };
+      }
+      const reply = compose({ headline: "An intro card needs a blurb first, and the blurb needs confirmed facts.", facts: ["A blurb written from guesses burns the mutual who forwards it."], nextStep: "Confirm your school, role, and one proof point — want to add them now?" });
+      return { intent: "graph_intro", reply, resultStatus: "awaiting_user", sends: 0, payload: card };
     }
+    if (/\bforwardable blurb\b|\bblurb\b/.test(t)) {
+      const b = buildBlurb();
+      if (b && b.ok && (b.lines || []).length) {
+        const reply = compose({ headline: "Your forwardable blurb — built only from confirmed facts on your profile.", facts: b.lines.slice(0, 3).map((x) => s(x)), nextStep: "It travels with an intro ask as a held card — approve the card and it is ready to forward." });
+        return { intent: "graph_blurb", reply, resultStatus: "prepared", sends: 0, blurb: b, payload: b };
+      }
+      const reply = compose({ headline: "A forwardable blurb needs confirmed facts, and the profile on file is too thin to write one honestly.", facts: ["A blurb written from guesses burns the mutual who forwards it."], nextStep: "Confirm your school, role, and one proof point and I will write it." });
+      return { intent: "graph_blurb", reply, resultStatus: "awaiting_user", sends: 0, blurb: b || null, payload: b || null };
+    }
+    if (/\bpaths ranked\b/.test(t) && Graph && Graph.rankPaths) {
+      const order = ["alumni", "club", "major", "hometown", "cold"];
+      // 135's rankPaths is per-company (the w08 shape): rank every
+      // firm present in the graph and merge by warmth score.
+      const firms = [...new Set(store.people.map((p) => p.current_firm).filter(Boolean))];
+      const rows = [];
+      for (const f of firms) { try { for (const row of Graph.rankPaths(store, f)) rows.push(row); } catch { /* firm skipped */ } }
+      rows.sort((a, b) => (b.warmth_score || 0) - (a.warmth_score || 0));
+      const mapRow = (row) => ({ name: row.name, firm: row.company, title: row.position || null, score: row.warmth_score, warmth_score: row.warmth_score, shared_fact: row.shared_fact, why: /^no shared fact/i.test(row.shared_fact || "") ? [] : [row.shared_fact] });
+      const warm = rows.filter((r0) => !/^no shared fact/i.test(r0.shared_fact || "")).map(mapRow);
+      const cold = rows.filter((r0) => /^no shared fact/i.test(r0.shared_fact || "")).map(mapRow);
+      const env = { kind: "graph_paths", company: null, paths: warm, cold, excluded: [], draft_cards: [], graph_people: store.people.length, ranking_order: order, companies_checked: firms };
+      const reply = compose({ headline: warm.length ? `${warm.length} ranked warm path${warm.length === 1 ? "" : "s"} across your graph.` : "Your graph holds no ranked warm paths yet.", facts: [`The rank order is fixed: ${order.join(", then ")} — and every ranked person shows the shared fact they stand on.`, `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} across all firms.`], nextStep: "Name a firm — want its ranked paths?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: warm, payload: env };
+    }
+    if (/\bmini\b[^.]*\bcampaign\b/.test(t) && Graph && Graph.miniCampaign) {
+      const company = companyFromText(text, ctx);
+      // BUG-098 (template-breakup lane): the ask's own sizing drives
+      // the plan — a range ("5–10 person") sizes the sequence at the
+      // range's top, a single count at that count. The old matcher
+      // read only "N people", so a range ask silently became the
+      // default 8 and two different asks shared one reply.
+      const rangeM = s(text).match(/\b(\d{1,3})\s*(?:–|-|to)\s*(\d{1,3})\s*(?:person|people)\b/);
+      const wantM = s(text).match(/\b(\d{1,3})\s+(?:people|person)\b/);
+      const count = rangeM ? parseInt(rangeM[2], 10) : wantM ? parseInt(wantM[1], 10) : 8;
+      let mc = null;
+      try { mc = Graph.miniCampaign(store, company, gp, { count, now: nowOf(ctx) }); } catch { mc = null; }
+      if (mc) {
+        // The reply speaks the ask's sizing and, where the ask states
+        // it, the ask's premise (no warm path — the campaign is the
+        // substitute, not the first choice). The engine's true fill
+        // count leads either way.
+        const noPath = /\bno warm path\b/.test(t);
+        const sizePhrase = rangeM ? `the ${rangeM[1]}–${rangeM[2]} seats you asked for` : `the ${mc.requested} mini-campaign seats`;
+        const facts = [mc.rule];
+        if (noPath) facts.push(`Your graph holds nobody at that company — there is no warm path to spend, which is exactly the case this sequence exists for.`);
+        facts.push(`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; a sequence is built only from people actually in it — seats are never padded with invented names.`);
+        const reply = compose({ headline: noPath ? `No warm path in — the mini-campaign is the way: ${mc.sequence.length} of ${sizePhrase} can be filled from your graph right now.` : `${mc.sequence.length} of ${sizePhrase} can be filled from your graph right now.`, facts, nextStep: "Want to add names from the firm's team page so the sequence can be built?" });
+        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: Object.assign({}, mc, { kind: "mini_campaign", graph_people: store.people.length }) };
+      }
+    }
+    if (/\breferral[ -]bonus\b/.test(t) && Graph && Graph.referralBonusIntel) {
+      let intel = null;
+      try { const cirs = cirListOf(ctx) || []; intel = Graph.referralBonusIntel(cirs, cirs.map((c) => cirShortName(c))); } catch { intel = null; }
+      if (intel) {
+        const reply = compose({ headline: intel.headline, facts: [`${intel.rows.length} target files were read; ${intel.sourced_bonus_count} print a sourced bonus amount.`, "Where a firm prints no amount, I report none — a bonus figure is never estimated into an answer."], nextStep: "Want the per-firm rows for the targets on your list?" });
+        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: Object.assign({}, intel, { kind: "referral_bonus_intel" }) };
+      }
+    }
+    if (/\bconversion tracked\b/.test(t) && Graph && Graph.conversionTracking) {
+      const conv = Graph.conversionTracking(store);
+      const reply = compose({ headline: `Conversion on record: ${conv.contacts_with_chats} ${conv.contacts_with_chats === 1 ? "chat" : "chats"}, ${conv.converted_to_referral} converted to a referral.`, facts: ["Conversion is counted per contact from the graph's own stages — a chat that never happened is never counted.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}.`], nextStep: "Want the per-contact breakdown?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: Object.assign({}, conv, { kind: "conversion_tracking", graph_people: store.people.length }) };
+    }
+    if (/\bwarm[ -]path sweep\b/.test(t) && Graph && Graph.topWarmPathSweep) {
+      let firms = [];
+      try { firms = (ctx.profile && ctx.profile.preferences && ctx.profile.preferences.targetCompanies) || []; } catch { firms = []; }
+      if (!firms.length) { try { firms = (cirListOf(ctx) || []).map((c) => cirShortName(c)).filter(Boolean); } catch { firms = []; } }
+      firms = firms.slice(0, 10);
+      let sweep = null;
+      try { sweep = Graph.topWarmPathSweep(store, firms); } catch { sweep = null; }
+      if (sweep) {
+        // Ported shape: an array per firm of { company, paths_found,
+        // best, all } where `all` rows are rankPaths rows.
+        const mapRow = (row) => ({ name: row.name, firm: row.company, title: row.position || null, score: row.warmth_score, warmth_score: row.warmth_score, shared_fact: row.shared_fact, why: /^no shared fact/i.test(row.shared_fact || "") ? [] : [row.shared_fact] });
+        const allRows = sweep.flatMap((x) => x.all || []);
+        const env = { kind: "graph_paths", company: null, paths: allRows.filter((r0) => !/^no shared fact/i.test(r0.shared_fact || "")).map(mapRow), cold: allRows.filter((r0) => /^no shared fact/i.test(r0.shared_fact || "")).map(mapRow), excluded: [], draft_cards: [], graph_people: store.people.length, companies_checked: sweep.map((x) => x.company), warm_companies: sweep.filter((x) => x.paths_found > 0).map((x) => x.company) };
+        const reply = compose({ headline: `Sweep done across ${sweep.length} companies: warm paths at ${env.warm_companies.length} of them.`, facts: [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; the sweep checks each target firm against that same graph — nothing is fetched from outside.`, env.warm_companies.length ? `Warm companies: ${env.warm_companies.join(", ")}.` : "Every checked firm came back with no path in your graph."], nextStep: "Want the firm-by-firm breakdown?" });
+        return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+      }
+    }
+    if (/\bsecond[ -]degree\b/.test(t) && Graph && Graph.secondDegreeMap) {
+      // Ported shape: per-company array of degree-2 rows. No firm is
+      // named in this ask, so map every firm present in the graph.
+      const firms = [...new Set(store.people.map((p) => p.current_firm).filter(Boolean))];
+      const rows = [];
+      for (const f of firms) { try { for (const row of Graph.secondDegreeMap(store, f)) rows.push(row); } catch { /* firm skipped */ } }
+      const env = { kind: "graph_paths", company: null, paths: rows.map((row) => ({ name: row.name, firm: row.company, title: row.position || null, score: row.warmth_score, warmth_score: row.warmth_score, shared_fact: row.shared_fact, why: /^no shared fact/i.test(row.shared_fact || "") ? [] : [row.shared_fact], path: row.path })), cold: [], excluded: [], draft_cards: [], graph_people: store.people.length, producer: "secondDegreeMap", companies_checked: firms, first_degree_bridges: [...new Set(rows.map((r0) => r0.via).filter(Boolean))].length };
+      const reply = compose({ headline: rows.length ? `${rows.length} second-degree paths found.` : "No second-degree paths exist in your graph yet.", facts: [`A second-degree path needs a first-degree person whose own colleagues are on record; your graph holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} and ${env.first_degree_bridges} such ${env.first_degree_bridges === 1 ? "bridge" : "bridges"}.`, "Colleagues are never invented — a bridge exists only when the record names them."], nextStep: "Want me to check one firm at a time instead?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    if (/\bemployee lookup\b/.test(t) && Graph && Graph.publicSourceLookup) {
+      const firms = [...new Set(store.people.map((p) => p.current_firm).filter(Boolean))];
+      const rows = [];
+      for (const f of firms) { try { for (const row of Graph.publicSourceLookup(store, f)) rows.push(row); } catch { /* firm skipped */ } }
+      const env = { kind: "graph_paths", company: null, paths: rows.map((row) => ({ name: row.name, firm: row.company, title: row.position || null, why: ["public source on record"], public_links: row.public_links || [], sources: row.sources || [] })), cold: [], excluded: [], draft_cards: [], graph_people: store.people.length, producer: "publicSourceLookup", companies_checked: firms, sources: ["public:"], note: rows.length ? rows[0].note : "Public sources only (GitHub / speakers / team pages as supplied by the user) — no LinkedIn scraping." };
+      const reply = compose({ headline: rows.length ? `${rows.length} people in your graph carry a public-source sighting.` : "The public-source lookup found nobody new to verify.", facts: [`Lookup sources are public only — GitHub, speakers, team pages, as supplied by you — and your LinkedIn is never scraped.`, `People at firms in your graph were checked: ${store.people.length}; carrying a public-source sighting: ${rows.length}.`], nextStep: "Paste names from a team page — want me to verify them against your graph?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    if (/\bnew[ -]hire radar\b/.test(t) && Graph && Graph.newHireRadar) {
+      let targets = [];
+      try { targets = (ctx.profile && ctx.profile.preferences && ctx.profile.preferences.targetCompanies) || []; } catch { targets = []; }
+      if (!targets.length) { try { targets = (cirListOf(ctx) || []).map((c) => cirShortName(c)).filter(Boolean); } catch { targets = []; } }
+      let flagged = [];
+      try { flagged = Graph.newHireRadar(store, null, { now: nowOf(ctx), targetCompanies: targets }) || []; } catch { flagged = []; }
+      const payload = { kind: "new_hire_radar", flagged: flagged.map((row) => ({ name: row.name, company: row.company, prior_company: row.prior_company || null, joined_at: row.joined_at || null, warmth_tier: row.warmth_tier, shared_fact: row.shared_fact, flag: row.flag })), rule: "A new hire is flagged only with a start date or a firm change on record — a recent join is never inferred.", graph_people: store.people.length, companies_checked: targets };
+      const reply = compose({ headline: flagged.length ? `${flagged.length} recent joiners flagged at target firms.` : "The new-hire radar flags nobody right now.", facts: [payload.rule, `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; a flag needs a start date on record, and none is invented.`], nextStep: "Want the radar widened to firms beyond your target list?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload };
+    }
+    if (/\bsubmits the referral\b/.test(t)) {
+      const refs = (store.referrals || []).map((r) => ({ referral_id: r.referral_id || null, company: r.company || null, state: r.state || "unknown", application_id: r.application_id || null }));
+      const payload = { kind: "referral_track", referrals_on_record: refs.length, referrals: refs, submitted: refs.filter((r) => r.state === "submitted").length, graph_people: store.people.length };
+      const reply = compose({ headline: refs.length ? `${refs.length} referral${refs.length === 1 ? "" : "s"} on record.` : "No referral is on record to track yet.", facts: ["The tracking link works like this: once a referral is marked as in, the application row gains source 'referred' with the referrer named on it — that link is written at that moment, never assumed from a draft.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} and ${refs.length} referral ${refs.length === 1 ? "record" : "records"}.`], nextStep: "Want me to walk the referral lifecycle for one contact?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload };
+    }
+    if (/\bthank[ -]you plus referral\b/.test(t) && Graph && Graph.thankYouReferralCombo) {
+      // 135's combo is per-person (person, user, opts): find the
+      // contact an offer is actually on record for — a person row
+      // carrying referral_offer, or a referral record carrying a
+      // note — and run the producer on THAT person. With no offer
+      // anywhere, the record states the producer's own refusal
+      // reason for exactly this state.
+      let combo = null;
+      const notedRef = (store.referrals || []).find((r) => r && r.note);
+      const candidate = store.people.find((p) => p.referral_offer) || (notedRef ? store.people.find((p) => p.full_name === (notedRef.name || notedRef.contact_name)) : null) || null;
+      if (candidate) { try { combo = Graph.thankYouReferralCombo(candidate, { referrals: store.referrals }, { profile122: ctx.profile, nowMs: nowOf(ctx) }); } catch { combo = null; } }
+      if (!candidate) combo = { ok: false, reason: "no_referral_offer_on_record" };
+      if (combo) {
+        if (combo.ok && combo.draft) {
+          const reply = compose({ headline: "The thank-you plus referral combo is drafted and held.", facts: ["One message: the thank-you first, the referral ask second — the order is the whole point.", "It sends only on your approval."], nextStep: "Review the held draft — want any line changed?" });
+          return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0, draft: combo.draft, payload: Object.assign({}, combo, { kind: "thankyou_combo" }) };
+        }
+        const reply = compose({ headline: "The combo waits for a referral offer on record — and there is none yet.", facts: ["The thank-you plus referral combo is drafted only after a chat where the contact actually offered to refer; drafting it without the offer would put words in their mouth.", "When an offer lands, log it here and the combo is drafted the same turn."], nextStep: "Want to log a chat outcome now?" });
+        return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0, payload: Object.assign({}, combo, { kind: "thankyou_combo" }) };
+      }
+    }
+    if ((/\bmerged to one record\b|\bthree sources\b|\bdedupe\b/.test(t)) && Graph && Graph.mergeIdentities) {
+      const sources = (ctx && Array.isArray(ctx.graphSources)) ? ctx.graphSources : [];
+      let mg = { people: [], merges: [] };
+      try { mg = Graph.mergeIdentities(sources); } catch { mg = { people: [], merges: [] }; }
+      const payload = { kind: "graph_merge", input_count: sources.length, merged_count: mg.people.length, merges: mg.merges.length, graph_people: store.people.length };
+      const reply = compose({ headline: sources.length ? `${sources.length} source records merged into ${mg.people.length}.` : "No source records are staged for merging in this turn.", facts: ["Merging keys on the person, not the spelling: the same human in your export, an alumni list, and a club roster becomes one record with every source kept on it — so nobody is ever written to twice.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}.`], nextStep: "Bring the next source list — want me to merge it in?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload };
+    }
+    if (/\bprofessor path\b/.test(t)) {
+      const profs = store.people.filter((p) => lc(p.relationship_to_user || "").includes("professor") || lc(p.title || "").includes("professor"));
+      const env = graphEnvelopeOf(store, { company: null, paths: profs.map((p) => ({ name: p.full_name, firm: p.current_firm, title: p.title, why: ["professor"] })), excluded: [], draft_cards: [] }, { filter: "professor" });
+      const reply = compose({ headline: env.paths.length ? `${env.paths.length} professor paths are in your graph.` : "No professor path is in your graph yet.", facts: ["A professor ask is drafted differently: it leads with the class and the work, and the referral ask stays small and specific.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; a professor joins it when you paste their name from your contacts.`], nextStep: "Paste the professor's name — want the ask drafted?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    if (/\bfamily[ -]friend\b/.test(t)) {
+      const ffs = store.people.filter((p) => /family|friend of the family/i.test(p.relationship_to_user || ""));
+      const env = graphEnvelopeOf(store, { company: null, paths: ffs.map((p) => ({ name: p.full_name, firm: p.current_firm, title: p.title, why: ["family friend"] })), excluded: [], draft_cards: [] }, { filter: "family_friend" });
+      const reply = compose({ headline: env.paths.length ? `${env.paths.length} family-friend paths are in your graph.` : "No family-friend path is in your pasted contacts yet.", facts: ["Family-friend asks carry extra care: the tone stays warm, the ask stays small, and the card waits for your yes — family credit is never spent casually.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}.`], nextStep: "Paste the family-friend contacts — want me to sort them by firm?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    if (/\bclub roster\b|\bfraternity\b/.test(t)) {
+      const clubP = store.people.filter((p) => (p.source_list || []).includes("club_roster"));
+      const env = graphEnvelopeOf(store, { company: null, paths: clubP.map((p) => ({ name: p.full_name, firm: p.current_firm, title: p.title, why: ["club roster"] })), excluded: [], draft_cards: [] }, { filter: "club", clubs: gp.clubs || [] });
+      const reply = compose({ headline: env.paths.length ? `${env.paths.length} club-roster paths are in your graph.` : "No club-roster path is in your graph yet.", facts: ["Club paths rank on the roster itself: a brother or clubmate at the firm outranks a cold name, and the shared club is the fact the path stands on.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; roster names join it from your pasted contacts or your export.`], nextStep: "Paste the roster names — want them matched against your target firms?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    if (/\btwo paths\b|\bstronger\b/.test(t)) {
+      const company = companyFromText(text, ctx);
+      const base = company && Graph && Graph.findPaths ? Graph.findPaths(store, company, gp, { now: nowOf(ctx) }) : { company: company || null, paths: [], excluded: [], draft_cards: [] };
+      // 135's pick is (store, company, profile, opts) and returns
+      // { company, chosen, held_back, paths_considered, rule }.
+      let pick = { chosen: null, held_back: null, paths_considered: (base.paths || []).length, rule: "With fewer than two paths on record there is nothing to choose between — the rule binds the moment two exist." };
+      if (Graph && Graph.pickStrongerPath && company && (base.paths || []).length >= 2) { try { pick = Graph.pickStrongerPath(store, company, gp, { now: nowOf(ctx) }); } catch { /* keep the rule record */ } }
+      const env = graphEnvelopeOf(store, base, { stronger_pick: pick });
+      const reply = compose({ headline: pick.chosen ? `The stronger path is ${pick.chosen.name}; the other is held, not burned.` : "Two paths need two people — your graph has fewer than that at one firm.", facts: [pick.rule, "Spending both paths on one application burns the second relationship for nothing; the held path stays warm for a later role."], nextStep: "Name the firm — want its two paths compared?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    if (/\bcurrent employer\b/.test(t)) {
+      const company = gp.current_employer || null;
+      const env = graphEnvelopeOf(store, { company, paths: [], excluded: [], draft_cards: [] }, { exclusion_rule: { current_employer_excluded_by_default: true, current_employer: company, reason: "A search that surfaces at your own workplace is a risk, not a path — contacts there are excluded unless you explicitly override." } });
+      const reply = compose({ headline: "Contacts at your current employer are excluded by default.", facts: ["The rule: a warm path that runs through your own workplace can surface your search — those contacts never appear in ranked paths unless you override it yourself.", company ? `Your current employer on record: ${company}.` : "No current employer is on your profile record, so the exclusion has nothing to bind to yet — it arms the moment one is recorded.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}.`], nextStep: "Want to name your current employer so the exclusion is armed by name?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: [], payload: env };
+    }
+    if (/\brecruiter vs\b/.test(t) && Graph && Graph.askKindFor) {
+      const kinds = store.people.map((p) => ({ name: p.full_name, firm: p.current_firm, kind: Graph.askKindFor(p) }));
+      const env = graphEnvelopeOf(store, { company: null, paths: [], excluded: [], draft_cards: [] }, { ask_kinds: kinds });
+      const reply = compose({ headline: "Recruiters and practitioners get different asks — by design.", facts: ["A recruiter is asked about the right requisition and the process; a practitioner is asked to refer you onto a team — mixing the two reads as not knowing how hiring works.", kinds.length ? `${kinds.length} people in your graph are classified and ready.` : "Your graph holds nobody to classify yet — the split applies the moment people are in it."], nextStep: "Name a firm — want its people split recruiter vs practitioner?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: env };
+    }
+    if (/\bdifferent city\b|\bcross[ -]city\b/.test(t)) {
+      const company = companyFromText(text, ctx);
+      const base = company && Graph && Graph.findPaths ? Graph.findPaths(store, company, gp, { now: nowOf(ctx) }) : { company: company || null, paths: [], excluded: [], draft_cards: [] };
+      const env = graphEnvelopeOf(store, base, { cross_city_rule: { delta: -15, rule: "An alumnus in a different city than the role scores 15 points lower, and the discount is shown on the path — warmth is never inflated to make a list look better." } });
+      const reply = compose({ headline: "Cross-city alumni are discounted, openly.", facts: ["The rule: same school, different city than the role costs 15 warmth points, and the adjustment prints on the path itself.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; no path into ${company || "a named firm"} is on record to re-rank yet.`], nextStep: "Name the firm and the role's city — want the re-ranked paths?" });
+      return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
+    }
+    // Fall-through: a graph ask with no dedicated producer branch
+    // still returns the findPaths record for a named firm, or the
+    // graph-state record — never the old payload-less template.
     const company = companyFromText(text, ctx);
+    if (company && Graph && Graph.findPaths) return pathsResultFor(company, ctx, store);
+    const env = graphEnvelopeOf(store, { company: null, paths: [], excluded: [], draft_cards: [] });
     const facts = [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; paths rank on shared facts — school, club, major, hometown — and every path shows the fact it stands on.`, "People at your current employer are excluded by default, departed people never count as paths, and the stronger of two paths is the one we spend — never both."];
-    const reply = compose({ headline: company ? `Warm paths into ${company} are ranked from your graph.` : "Your warm paths are ranked from your graph.", facts, nextStep: "Upload your export or name the firm and I will show the ranked paths with their facts." });
-    return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0 };
+    const reply = compose({ headline: "Your warm paths are ranked from your graph.", facts, nextStep: "Upload your export or name the firm and I will show the ranked paths with their facts." });
+    return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0, payload: env };
   }
 
   // ---------- inbox events + tracker extras (126) ----------------------------
@@ -3089,6 +3629,11 @@ const CareerRouter = (() => {
     }
     if (/\btailor\b|\btailored per\b|\bresume variants\b|\bvariants\b[^.]*\bresume\b|\banswer bank\b|\btruth audit\b|\bliving resume\b|\bresume diff\b|\bdiff review\b|\bbans? ai\b|\bai[ -]written\b|\bimpact bullets\b|\b(customi[sz]e|adjust|fit)\b[^.]*\bresume\b|\bresume\b[^.]*\bto this\b|\bmake my resume\b/.test(t)) {
       if (!profile) return null;
+      // BUG-104: essay asks go to the essay producer FIRST — an
+      // essay is not a resume variant, and letting the ask ride the
+      // resume chain (or fall to discovery) is how SC-096 lost its
+      // product.
+      if (/\bessays?\b/.test(t)) { const es = handleEssayTailor(text, c); if (es) return es; }
       if (/\bwins? log\b/.test(t)) { const os = handleOS(text, c); if (os) return os; }
       if (/\btruth audit\b/.test(t) && Tailor) {
         let violations = null;

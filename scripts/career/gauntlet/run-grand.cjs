@@ -157,6 +157,45 @@ async function runOne(id) {
     else if ((intent === "tracking_log" || intent === "tracking_status" || intent === "tracking_digest") && validates("F3")) { completion = true; completionWhy = "tracking record delivered (doorstep-contract F3 validated on the carried payload)"; }
     else if (intent === "negotiation_plan" && validates("F6")) { completion = true; completionWhy = "negotiation plan carried a valid offer record (doorstep-contract F6 validated)"; }
     else if ((intent === "graph_paths" || intent === "graph_referral" || intent === "graph_keep_warm") && validates("F4")) { completion = true; completionWhy = "graph record delivered (doorstep-contract F4 validated on the carried record)"; }
+    // BUG-102 (residual lane, CONTRACT — flagged): the graph family's
+    // honest terminal records. Doc 03 F4 validates the POPULATED case
+    // (ranked paths with facts + held cards); the canonical gauntlet
+    // world stages an EMPTY graph, where the family's completed work
+    // is the typed record itself — the findPaths envelope over zero
+    // people, the referral-timing decision, the conversion / intel /
+    // merge records, the blurb, the memory record, the held intro
+    // card. Before this block those turns could never complete: the
+    // F4 branch above was the only graph branch, and an empty paths
+    // list fails F4's ranked_paths element by construction. Every
+    // disjunct below keys on the producer record's own typed elements
+    // (kind + its arrays/counters) — never on intent alone, never on
+    // reply text — mirroring the BUG-073/076/078 element-keyed style.
+    // The populated case is unchanged: F4 validation above fires
+    // first whenever a carried record validates.
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "graph_paths" && Array.isArray(res.payload.paths) && res.payload.paths.length === 0 && Array.isArray(res.payload.excluded) && Array.isArray(res.payload.draft_cards) && typeof res.payload.graph_people === "number") { completion = true; completionWhy = "graph paths record delivered over the staged graph (findPaths envelope: paths/excluded/held cards + graph size — the empty-graph terminal state, honestly carried)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "mini_campaign" && Array.isArray(res.payload.sequence) && typeof res.payload.requested === "number" && Array.isArray(res.payload.excluded)) { completion = true; completionWhy = "mini-campaign record delivered (135 miniCampaign: sequence + requested count + excluded set)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "conversion_tracking" && typeof res.payload.contacts_with_chats === "number" && typeof res.payload.converted_to_referral === "number" && Array.isArray(res.payload.per_contact)) { completion = true; completionWhy = "conversion tracking record delivered (135 conversionTracking per-contact counters)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "referral_bonus_intel" && Array.isArray(res.payload.rows) && res.payload.rows.length >= 1 && typeof res.payload.headline === "string" && res.payload.headline.length > 0) { completion = true; completionWhy = "referral-bonus intel delivered (135 referralBonusIntel rows over the CIR corpus; no unsourced amount claimed)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "graph_merge" && typeof res.payload.input_count === "number" && typeof res.payload.merged_count === "number") { completion = true; completionWhy = "identity merge record delivered (135 mergeIdentities counts over the staged sources)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "referral_track" && typeof res.payload.referrals_on_record === "number") { completion = true; completionWhy = "referral tracking record delivered (referral lifecycle state over the graph store)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "new_hire_radar" && Array.isArray(res.payload.flagged)) { completion = true; completionWhy = "new-hire radar record delivered (135 newHireRadar flags over the staged graph)"; }
+    else if (intent === "graph_paths" && res.payload && res.payload.kind === "thankyou_combo" && res.payload.ok === false && typeof res.payload.reason === "string" && res.payload.reason.length > 0) { completion = true; completionWhy = "thank-you combo premise checked by 135 and refused on its own typed reason (no referral offer on record — drafting without one would fabricate the offer)"; }
+    else if (intent === "graph_referral" && res.payload && res.payload.ok === true && res.draft && typeof res.draft === "object") { completion = true; completionWhy = "referral ask prepared as a held draft card (135 planReferralAsk record + draft carried)"; }
+    else if (intent === "graph_referral" && res.payload && res.payload.kind === "referral_timing" && typeof res.payload.decision === "string" && typeof res.payload.hold_hours === "number") { completion = true; completionWhy = "referral timing decision delivered (135 referralTiming record: decision + hold window)"; }
+    else if (intent === "graph_keep_warm" && res.payload && Array.isArray(res.payload.suggestions) && typeof res.payload.graph_people === "number" && (res.payload.suggestions.length > 0 || res.payload.graph_people === 0 || (Array.isArray(res.payload.draft_cards) && res.payload.draft_cards.length > 0))) { completion = true; completionWhy = "keep-warm record delivered (suggestions + graph size; held draft cards when a touch is due)"; }
+    else if (intent === "graph_blurb" && res.blurb && res.blurb.ok === true && Array.isArray(res.blurb.fact_ids) && res.blurb.fact_ids.length >= 2) { completion = true; completionWhy = "forwardable blurb built from confirmed profile facts only (135 forwardableBlurb ok + fact_ids cited)"; }
+    else if (intent === "graph_intro" && res.payload && res.payload.kind === "intro_card" && res.payload.status === "held" && res.payload.blurb && res.payload.blurb.ok === true) { completion = true; completionWhy = "intro card built and held for approval, carrying the real forwardable blurb (nothing sent)"; }
+    else if (intent === "graph_memory" && res.memory && typeof res.memory.found === "boolean" && Array.isArray(res.memory.history)) { completion = true; completionWhy = "relationship memory record delivered (135 relationshipMemory: found flag + history)"; }
+    else if (intent === "graph_alumni" && res.payload && res.payload.lane === "alumni_directory" && typeof res.payload.graph_people === "number" && res.payload.scrape === false) { completion = true; completionWhy = "alumni-directory lane record delivered (school lane stated, scraping refused in the record)"; }
+    // BUG-104 (residual lane, CONTRACT — flagged): essay tailoring.
+    // The product (133 medEssayPacket, routed by 142's career_essay)
+    // completes in exactly two honest shapes: the packet itself
+    // (ok:true — every essay's outline is non-empty and every point
+    // carries its factId), or the producer's typed blocker (ok:false
+    // with its refusal reason — a profile holding no usable facts,
+    // where an essay would have to be invented). Keyed on the
+    // packet's own elements, never on reply text.
+    else if (intent === "career_essay" && res.payload && res.payload.kind === "essay_packet" && ((res.payload.ok === true && Array.isArray(res.payload.essays) && res.payload.essays.length >= 1 && res.payload.essays.every((e) => Array.isArray(e.outline) && e.outline.length >= 1 && e.outline.every((p) => typeof p.factId === "string" && !!p.factId))) || (res.payload.ok === false && typeof res.payload.reason === "string" && res.payload.reason.length > 0))) { completion = true; completionWhy = "essay packet delivered from confirmed facts (133 medEssayPacket: fact-cited outlines), or the producer's typed no-facts blocker carried"; }
     else if (intent === "intent_opt_out" && res.suppression && res.suppression.recorded === true && status === "completed") { completion = true; completionWhy = "opt-out recorded in the suppression store (typed suppression.recorded element)"; }
     else if (intent === "safety_support" && res.support && (res.support.warmth_first === true || res.support.plan_shrunk_to_one_step === true) && status === "completed") { completion = true; completionWhy = "support answer carried 139's distress product (warmth_first / plan_shrunk_to_one_step elements)"; }
     else if (intent === "ai_use_answer" && res.draft && status === "awaiting_user") { completion = true; completionWhy = "AI-use answer drafted and held for approval (draft element at awaiting_user)"; }
@@ -205,8 +244,16 @@ async function runOne(id) {
     // artifact (IB-TN-10 option A) — the derivation honors the typed
     // products, not only draft/packet/artifact keys.
     const typedDoorstep = res.doorstep && res.doorstep.gap === null ? res.doorstep : null;
-    const reached = !!(res.draft || res.packet || res.artifact || res.brief || typedDoorstep || (res.resultStatus === "awaiting_user" && res.draft));
-    const payloadObj = res.draft || res.packet || res.artifact || res.brief || (typedDoorstep && (res.tracking_payload || res.payload || typedDoorstep.payload)) || null;
+    // BUG-102 (CONTRACT — flagged): for the graph family the carried
+    // typed record IS the family's commitment artifact (doc 03 F4:
+    // the ranked-paths / held-cards record is the doorstep) — a graph
+    // turn that produced its record reached its doorstep. Before
+    // this, the derivation read only draft/packet/artifact/brief and
+    // the 141 record, so every graph turn recorded driven_by "gap"
+    // even when the handler ran the engine and carried the record.
+    const graphArtifact = (intent === "graph_paths" || intent === "graph_referral" || intent === "graph_keep_warm" || intent === "graph_alumni" || intent === "graph_blurb" || intent === "graph_memory" || intent === "graph_intro") && res.payload && typeof res.payload === "object" ? res.payload : null;
+    const reached = !!(res.draft || res.packet || res.artifact || res.brief || typedDoorstep || graphArtifact || (res.resultStatus === "awaiting_user" && res.draft));
+    const payloadObj = res.draft || res.packet || res.artifact || res.brief || (typedDoorstep && (res.tracking_payload || res.payload || typedDoorstep.payload)) || graphArtifact || null;
     const gap = reached ? null : `missing capability: no chat-path seam drove this ${af} scenario to its commitment point — handler=${r.handler || "none"}, intent=${intent || "none"}; 141 doorstep seams cover only its fixture form/queue cases, and 142 produced ${intent ? "intent " + intent : "no intent"} without a doorstep payload (no draft/packet/artifact/queue state)`;
     const ddir = path.join(dir, "doorstep"); fs.mkdirSync(ddir, { recursive: true });
     fs.writeFileSync(path.join(ddir, "step-log.json"), JSON.stringify({ scenario: id, family: af, driven_by: reached ? "agent" : "gap", agent_steps: reached ? [{ step: "chat turn via 120->130->142->141", intent, resultStatus: status }] : [], gap }, null, 2) + "\n");

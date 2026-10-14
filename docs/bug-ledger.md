@@ -348,3 +348,43 @@ The finisher-era rows BUG-010 / BUG-012 / BUG-016 / BUG-023 (and the BUG-031/033
 | BUG-102 | same run (SCEN-A4 on all 30) — CONTRACT (flagged) | no completion branch existed for the graph family's honest terminal records: run-grand's only graph branch validated F4, which by construction requires a non-empty ranked_paths — in the canonical empty-graph world the family's completed work (findPaths envelope over zero people, timing decision, conversion/intel/merge records, blurb, memory, intro card) could never complete; and A4.4's doorstep derivation never counted the graph record as the family's commitment artifact, so every graph turn recorded driven_by "gap" even when the handler ran the engine and carried the record | the completion chain and the doorstep derivation were written for the populated case only | run-grand.cjs: element-keyed branches added for each graph record kind (kind + its own arrays/counters — never intent alone, never reply text), F4 validation still fires first for the populated case; A4.4 honors the graph payload as the family's doorstep artifact (doc 03 F4: the ranked-paths/held-cards record IS the doorstep) | family re-run (records in ~/workspace/your_files/upmore-career-gauntlet-referrals-fix + referrals-fix-index.json): grader-v2 30/30 PASS, S0 zero (before: 0/30); branches commented CONTRACT in source per the BUG-073/076/078 precedent | fixed |
 | BUG-103 | same run + IB-2 regression caught during the fix | a findPaths row can carry no shared fact (a bare connection from the user's own export): doc 03 F4 requires every ranked person to show the ground their path stands on, while IB-2 (standing integration test) requires that same ingested connection to BE a live path the next turn finds — reading either law alone breaks the other | the doorstep record assembly (142) passed engine rows through without stating each row's basis | graphEnvelopeOf (142) states the basis on the record: basis "shared_fact" with the fact in why[], or basis "connection" with why[] completed by the true ground ("in your graph (<source>) — the connection itself is the path; no shared fact on record"); connection-only rows are ALSO listed under `cold`. 135 untouched | tests/career-referrals-completion.test.cjs populated SC-146 test (record validates F4 via doorstep-contracts; alum + bare connection both paths; departed excluded) + tests/career-ib-outreach-integration.test.cjs IB-2/IB-2b stay green | fixed |
 | BUG-104 | true-score run (SC-096 flipped PASS→FAIL honestly) | "Tailor med-school application essays from my real clinical and research experiences" reached no essay product: 133's medEssayPacket existed for exactly this scenario but no 142 branch called it — the fixed build routed the ask to discovery (an honest non-answer about medicine roles); the earlier build's PASS was a canned SWE resume tailor over a mismatched doorstep | routing without execution, again: the producer was built, the route was not | 142 gains handleEssayTailor + an essay-first branch inside the tailor dispatch: runs medEssayPacket, carries the packet as payload AND artifact (the BUG-077 application-family pattern), and the reply names which asked-for themes (clinical/research) the profile holds and which are missing — unrelated experience is never dressed as clinical/research material. CONTRACT (flagged): run-grand completion branch keyed on the packet's own elements (ok:true with fact-cited outlines, or ok:false with the producer's typed refusal reason) | tests/career-essay-tailor.test.cjs (5: canonical P1 packet + missing-themes naming, clinical-persona themes, empty-profile typed blocker, non-essay negative) — red before (1/5), green after; SC-096 fresh re-run grades PASS under grader-v2 | fixed |
+
+## Residual deterministic lane — Outreach (2026-10-14)
+
+BUG-105 — Outreach plan/state turns carried no typed product the completion
+chain or the doorstep derivation reads: every no-campaign branch of 142's
+outreach handlers returned prose only (or carried its product under a key no
+reader consumes — `safety_plan`, `yield`, `breaker`, `followup`), so 19
+Outreach scenarios failed STATE_doorstep_gap + SCEN-A4 in the true-score run
+(SC-011/025/034/036/037/039/040/041/042/043/044/045/046/047/048/049/050 +
+doorstep-only SC-033/035/038). Fix: each branch now carries its typed
+plan/state record as payload + artifact (intake_plan, tier_mix, firm_cap,
+followup_wave_plan, campaign_digest, close_out, suppression_record,
+followup_reschedule, bounce_breaker, seed_test_plan, suppression_check,
+reserve_pool, voice_profile, list_surgery, draft_surgery, safety_plan with
+the REAL 124 card, yield_report, safety_refusal) — handlers that already
+built the product (safetyPlan, honestYield, bounce breaker, OOO reschedule)
+had it re-keyed, never re-invented; empty states are zeroed records, never
+estimated numbers. CONTRACT (flagged, run-grand.cjs): element-keyed
+completion branches per record kind (BUG-073/102 style), incl. the
+safety-plan artifact branch mirroring the campaign-plan branch and the
+OOO branch on intent_followup_status. Guard:
+tests/career-outreach-completion.test.cjs 0/39 → 39/39. Fresh family re-run
+(upmore-career-gauntlet-outreach-fix, grader-v2): 20/20 PASS, S0 zero.
+Rule: FR-279.
+
+BUG-106 — SC-025's H-5 shortfall sentence never fired: handleTierMix's
+count pattern required the number to touch the people-noun, so "175
+middle-market bankers" parsed as no count and the reply never stated the
+ask's count or the true selected count (0). Fix: the pattern now allows up
+to three modifier words between the number and the noun. Guard:
+tests/career-outreach-completion.test.cjs (SC-025 record + reply
+assertions). Rule: FR-280.
+
+BUG-107 — SC-044's honest empty digest tripped REFUSAL_NO_ALTERNATIVE: the
+reply opened with a bare "No campaign is running…" and its next step
+matched no alternative shape the rule reads. Fix: the headline leads with
+the state ("The digest is empty — …") and the next step offers the
+alternative as a question; the zeroed digest record rides as payload +
+artifact (BUG-105). Guard: tests/career-outreach-completion.test.cjs
+(SC-044: record + no bare-refusal opening). Rule: FR-281.

@@ -2487,3 +2487,41 @@ Engine side landed in `e023f4a` (126/128/141 + tests/career-track-negotiation-fi
 - **IB-TN-9 (SC-209 R-C5 + A4):** roleplay ask misrouted to mock prep ("Tell me about yourself and why this role…"); `128.roleplayTurn` never invoked. Route roleplay asks to 128.
 - **IB-TN-10 (scope note):** SC-135/136/141/144/145 sit in the Track bucket but their engines are 127/136 (other lanes); in this lane's scope their only defect is IB-TN-1. SC-122–124/126/127/138 also carry 142's generic "The tracker moved itself: …" literals, which the emitTrackingLog wiring replaces.
 - **Pre-existing failure, not this wave:** tests/career-killswitch-ra4.test.cjs 5/6 — the 124 send-pending test expects /global_pause/ and gets the parallel lane's new `SEND_DISABLED` string from their uncommitted 124 edit. Owner of 124 to reconcile the expectation.
+
+## SEND-DISABLED — email transmission hard-disabled in the career build (owner ruling 2026-10-13 ~19:45 CDT)
+
+Owner ruling: Upmore must NOT be able to send email. Outreach is drafts-only; the send capability itself is disabled at the sink in module 124, not merely unused. Kill switch (R-A4) and caps are unchanged — this is stricter, layered on top.
+
+### Audit — every send-capable path reachable from the career build
+
+| Path | State before | State after |
+|---|---|---|
+| `124.sendPending(campaign, {transport})` — the only queue→transmission loop | LIVE: transmitted via any injected transport (mock-proven) | Guards keep their original typed refusals in original order (no transport → `NOT_WIRED`; global pause → `refused_global_pause`; unapproved → `campaign_not_approved`; breaker → `circuit_breaker_tripped`); a call passing every guard is refused at the sink: `SEND_DISABLED` / `refusal_state: refused_send_disabled`, sent 0, transport never invoked, queue items untouched, campaign never flips to `running`. The send loop is REMOVED, not dormant. |
+| `124.createGmailTransport(gmailApi)` — the only Gmail-shaped transmitter factory | LIVE: wrapped `gmailApi.users.messages.send` and transmitted | Valid-shaped client → disabled transport (`disabled: true`; every send refuses `SEND_DISABLED`; the injected client is never called). Absent/invalid client → pre-existing `NOT_WIRED` stub, unchanged. `buildGmailRaw` (MIME encoder) remains exported but has no transmitting caller. |
+| Router bundle `supabase/functions/_shared/router_core.js` | Carried live 124 send code | Rebuilt (`python3 scripts/build-router-core.py`, verified `--check` clean at rebuild time; `SEND_DISABLED` present ×5). No other transmission code exists in the bundle: repo-wide grep finds no `transport.send` / `.send({` call outside 124, and no Resend/SMTP/Nodemailer/SendGrid/Mailgun reference in any career module. |
+| Gate-5 staging path (self-test campaign, seed test) | Rode `sendPending` + a Gmail transport — would have transmitted to the owner's own inboxes | Same sink: `SEND_DISABLED`. `createSeedTest` is a state object only; no independent transmitter exists in the Gate-5 path. NOTE for the owner: the Hunter terms-clarification email was a Gate-5 send item — under this ruling Upmore cannot send it at all; the owner sends it himself or it does not go. |
+| `141` doorstep | References `sendPending` in one comment only; its own header law is "armed, not fired — no transport is ever invoked here" | Unchanged; no email path. (Application submission is a separate owner-approved lane, untouched by this change.) |
+| `147` platform drafts | Exports `draftMessage` only — "this module has NO transport of any kind" | Unchanged. |
+| Scenario scripts (`scripts/career/scenarios/w03-campaign.cjs`, SC-033/034/036/037/038/044/048, …) | Call `sendPending` with labeled mock transports to stage sent/reply state for grading | Now receive `sent: 0` / the typed refusals. These are grading fixtures, not product paths; scenario expectations that stage state via a live send need re-staging via `importState` with pre-sent items. Brief for the gauntlet lane; not edited here. |
+| Edge functions (`supabase/functions/**`) | No Gmail send call exists anywhere (agent-exec only READS Gmail: `messages?q=` / `messages/{id}` GETs) | Unchanged; nothing to disable. |
+| Career OAuth grant — `120` `CAREER_SCOPES` + `supabase/functions/gmail-oauth/career.ts` (lockstep-pinned pair) | Requests `gmail.send` at consent; `120` reports `can_send: true` for the career grant | **NOT changed here — brief below.** It is a consent-time capability grant, not a transmission path: no career code can exercise it now that 124's sink is disabled, and Google connect is not owner-approved. |
+
+### Brief — OAuth scope (for the access lane / owner, not done in this change)
+Drop `gmail.send` from `CAREER_SCOPES` in BOTH `packages/domain/120-career-access.js` and `supabase/functions/gmail-oauth/career.ts` (they are lockstep-pinned by test — change together), and re-point `can_send` reporting in 120 accordingly. Effect: a future career Google connect would hold a read-only Gmail grant, so the product could not transmit even if a new sender were written against the raw API. Owner approval needed because it changes the connect surface; Google connect stays NOT APPROVED meanwhile.
+
+### Brief — 142 (routing lane owns it; not edited here)
+No send path runs through 142: it never calls `sendPending`/`createGmailTransport` (grep-verified). One copy line only: 142's connect copy says the product can "read and send from your own Gmail" — under this ruling that sentence is false for the career build and should be reworded to drafts-only when the routing lane next touches that handler.
+
+### Tests — `tests/career-send-disabled.test.cjs` (new, 8 tests)
+Fail-first, proven against the pre-fix 124 taken from HEAD: the 3 transmission tests FAIL there (sendPending transmitted via a recording mock transport; sendPending transmitted through a Gmail transport built on a mock Gmail API; `createGmailTransport` transmitted) and PASS after the fix; the 5 guard/regression tests pass both before and after. Post-fix: **8/8 green**. Regressions covered: drafting (`draftFor`/`prepareDraft` → reviewable draft, gate pass, `awaiting_approval`), queue-for-review (`enqueue` + `planWave`), reply classification + tracking (`classifyReply`, `recordOutcome`, export/import state), kill-switch seam (`enqueue` refuses under global pause).
+
+### Known by-ruling failures in pre-existing suites (transmission assertions the ruling invalidates — test owners to re-point at the refusal contract; NOT edited here per one-owner-per-file)
+- `tests/career-outreach.test.cjs` 6: OUTE-007 sends-once/no-double-send; OUTE-008 mid-queue opt-out; OUTE-008 bounce + crash-safe sent state; OUTE-007 follow-up wave gating; OUTR-004 transmit leg (its NOT_WIRED leg passes); W3 (i) follow-ups leg (needs a pre-sent item; sends can no longer create one).
+- `tests/career-outreach-ext-w02.test.cjs` 1: W02 runFollowUps (depends on items reaching `sent` via sendPending).
+- `tests/career-spec-gates.test.cjs` 1: S2 duplicate-submit (asserts `sent: 3`). Its S2 unapproved-send test PASSES again (guard order preserved).
+- `tests/career-spec1-gates.test.cjs` 2: §12 #14 sends-exactly-once; §12 #21 send-time opt-out kill. §12 #31 (unapproved sends nothing) PASSES again.
+- `tests/career-killswitch-ra4.test.cjs` 1: only the final sanity leg ("without a pause, the same campaign shape still sends", line ~156) — the pause legs pass again with the guard order restored. This reconciles the Track+Negotiation wave's note above ("expects /global_pause/ and gets SEND_DISABLED"): the seam's typed refusal is back; the still-sends leg is what the ruling removes.
+Re-point pattern for each: expect `sent: 0`, the typed refusal (`SEND_DISABLED` past the guards), transport call count 0, queue items still `queued`.
+
+### Bundle note for lanes pinning here
+The router bundle was rebuilt as part of this change and at rebuild time was current with the ENTIRE working tree (including the in-flight 127/142/144/146/147 sources and the outreach wave's 124 edits) — `tests/router-bundle.test.cjs` 3/3 at that moment. Any lane committing domain sources after this point must rebuild + commit the bundle in the same commit (AGENTS.md rule), as always.

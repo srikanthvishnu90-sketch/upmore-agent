@@ -1,7 +1,10 @@
 /* Career outreach engine (Doc 1, OUTR-001..008 / OUTE-001..013). Pure domain logic: the clock, DNS lookup,
-   transports and the user's profile are passed in. Sends ride an INJECTED transport only — the Gmail shape
-   (createGmailTransport) wraps a caller-supplied Gmail API client; this module never sends by itself and
-   holds no key, token or vendor credential. Mocks live only in tests and are labeled mock there.
+   transports and the user's profile are passed in. This module holds no key, token or vendor credential.
+   SEND-DISABLED (owner ruling 2026-10-13): the career build must NOT be able to send email — outreach is
+   drafts-only. sendPending's guards keep their original typed refusals; any call that passes them is
+   refused at the sink with SEND_DISABLED, and createGmailTransport can no longer construct a transmitting
+   transport. Drafting, queueing for review, approval gating, reply classification and tracking are
+   unaffected. Mocks live only in tests.
    OWNER RULES (decided 2026-10-12, not provisional): send only from the user's own Gmail via OAuth;
    caps start 10-15/day, ramp +5 per 2-3 days, ceiling 30/day, and the agent REFUSES to raise caps;
    per-domain throttle 3-5/day; per-firm cap 15 per 30 days; per-person 1 initial + max 2 follow-ups
@@ -61,6 +64,10 @@ const CareerOutreach = (() => {
     if (/\blawyers?\b|\battorneys?\b/.test(w)) { q.industry = "law"; q.role_family = "law"; }
     if (/\bresidents?\b/.test(w) && /\bmed|medical|hospital|pre-med/.test(w)) { q.industry = "healthcare"; q.role_family = "medical_resident"; }
     if (/\bmarketing\b/.test(w)) { q.role_family = q.role_family || "marketing"; q.industry = q.industry || "consumer_goods"; }
+    // Wave fix (SC-019): product designers are a role family of their own.
+    // Without this, a designer ask matched nothing, fell into the vague
+    // branch below, and came back wearing the investment-banking default.
+    if (/\b(product\s+)?designers?\b|\bproduct design\b|\bux\b/.test(w)) { q.role_family = "product_design"; q.industry = /consumer/.test(w) ? "consumer_goods" : /startups?/.test(w) ? "startups" : (q.industry || "tech"); }
     if (/\b(ops|operations) managers?\b/.test(w)) { q.role_family = "operations"; q.industry = q.industry || "logistics"; }
     if (/\bventure\b/.test(w)) { q.role_family = q.role_family || "venture"; q.industry = q.industry || "venture_capital"; }
     if (/\breal[- ]estate\b/.test(w)) { q.role_family = q.role_family || "real_estate_pe"; q.industry = q.industry || "real_estate_pe"; }
@@ -79,8 +86,8 @@ const CareerOutreach = (() => {
     else if (/\bprincipals?\b/.test(w)) q.seniority_band = "principal";
     else if (/\bmanagers?\b/.test(w)) q.seniority_band = "manager";
     else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
-    const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
-    if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : geo[1];
+    const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|LA|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
+    if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : /^la$/i.test(geo[1]) ? "Los Angeles" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
     else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
     const stage = raw.match(/series\s+([A-Z])(?:\s*[-–]\s*([A-Z]))?/i);
@@ -128,6 +135,14 @@ const CareerOutreach = (() => {
   function normalizeCandidate(r) {
     const c = Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false, latest_title: null, former_employer_note: "" }, r || {});
     c.email_verification = normVerification(c.email_verification);
+    // Wave fix (D1): the candidate sources the router actually holds speak
+    // two field dialects — 124/135 records carry work_email + source_list,
+    // while 122 connections and 146 intake records carry email + sources.
+    // Without this alias, a 146/122-shaped candidate normalized to
+    // work_email: null and drafted to null through the doorstep. work_email
+    // always wins when both are present; the alias only fills a gap.
+    if (!c.work_email && c.email) c.work_email = c.email;
+    if ((!Array.isArray(c.source_list) || !c.source_list.length) && Array.isArray(c.sources) && c.sources.length) c.source_list = [...c.sources];
     return c;
   }
   function resolveCandidates(records) {
@@ -321,7 +336,7 @@ const CareerOutreach = (() => {
   function suppressedRefusal(target, _opts, _user) {
     const c = normalizeCandidate(target || {});
     return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
-      message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
+      message: "This recipient is suppressed and cannot be contacted, so no draft was prepared. Instead, I can draft to the next person on your list who has not opted out — want me to line that draft up?",
       person_id: c.person_id || null, to: c.work_email || null,
       suppression: { checked: true, suppressed: true } };
   }
@@ -808,7 +823,7 @@ const CareerOutreach = (() => {
   function dailyCapForDay(dayIndex) { const d = Math.max(0, Math.floor(dayIndex || 0)); return Math.min(CAPS.ceilingPerDay, CAPS.startPerDay + CAPS.rampStep * Math.floor(d / CAPS.rampEveryDays)); }
   function refuseRaiseCap(requested) {
     const cap = CAPS.ceilingPerDay;
-    if (requested != null && Number(requested) > cap) return { refused: true, cap, requested: Number(requested), reason: `Cap stays at ${cap}/day. Raising it risks your Gmail account and reply quality; the schedule is the schedule (owner rule, decided 2026-10-12).` };
+    if (requested != null && Number(requested) > cap) return { refused: true, cap, requested: Number(requested), reason: `Cap stays at ${cap}/day. Raising it risks your Gmail account and reply quality; the schedule is the schedule (owner rule, decided 2026-10-12). Instead, I can widen the list or start the wave sooner inside the cap — want me to re-cut the plan that way?` };
     return { refused: false, cap: requested != null ? Math.min(Number(requested), cap) : cap };
   }
   function seededRng(seed) { let s = (seed >>> 0) || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
@@ -916,31 +931,20 @@ const CareerOutreach = (() => {
     return it || null;
   }
   async function sendPending(campaign, opts) {
+    // SEND-DISABLED (owner ruling 2026-10-13): email transmission is hard-disabled in the
+    // career build — outreach is drafts only. The pre-existing guards keep their exact
+    // typed refusals in their original order (no transport → NOT_WIRED, global pause →
+    // refused_global_pause, unapproved campaign → campaign_not_approved, tripped breaker
+    // → circuit_breaker_tripped); a call that passes every guard reaches the sink below
+    // and is refused with SEND_DISABLED before any item is touched or any transport is
+    // invoked. The pre-disable send loop is removed, not dormant — re-enabling sending
+    // means rewriting a sender, a deliberate act. Queue items stay queued for review;
+    // caps, the breaker, the pause seam and tracking are unchanged.
     opts = opts || {}; const transport = opts.transport; if (!transport || typeof transport.send !== "function") return { sent: 0, error: "NOT_WIRED: no injected transport" };
     if (globalPauseOf(campaign, opts)) return { sent: 0, error: "global_pause_set", refused: true, refusal_state: "refused_global_pause", status: campaign.status };
     if (campaign.status !== "approved" && campaign.status !== "running") return { sent: 0, error: "campaign_not_approved", status: campaign.status };
     if (campaign.breaker.tripped) return { sent: 0, error: "circuit_breaker_tripped", cause: campaign.breaker.cause };
-    campaign.status = "running";
-    const suppression = opts.suppression || null; const max = opts.maxItems || Infinity; let sent = 0; const outcomes = [];
-    for (const item of campaign.items) {
-      if (sent >= max) break;
-      if (item.status === "sent") continue;
-      if (item.status !== "queued" && item.status !== "sending") continue;
-      // SEND-TIME suppression check (severity-1): a mid-queue opt-out kills pending sends.
-      if (suppression && suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { item.status = "suppressed"; outcomes.push({ item_id: item.id, result: "suppressed_at_send_time" }); continue; }
-      if (campaign.sentKeys.includes(item.idempotencyKey)) { item.status = "sent"; outcomes.push({ item_id: item.id, result: "already_sent_idempotent" }); continue; }
-      if (item.status === "sending" && typeof transport.hasSent === "function" && await transport.hasSent(item.idempotencyKey)) { item.status = "sent"; campaign.sentKeys.push(item.idempotencyKey); outcomes.push({ item_id: item.id, result: "recovered_after_crash" }); continue; }
-      item.status = "sending";
-      const res = await transport.send({ to: item.email, subject: item.draft ? item.draft.subject : "", body: item.draft ? item.draft.body : "", idempotencyKey: item.idempotencyKey, from_channel: "gmail_oauth_only" });
-      if (res && res.bounced) { item.status = "bounced"; recordOutcome(campaign, { type: "bounce", item, suppression }); outcomes.push({ item_id: item.id, result: "bounced" }); if (campaign.breaker.tripped) break; continue; }
-      item.status = "sent"; item.message_id = res && res.messageId || null;
-      if (!campaign.sentKeys.includes(item.idempotencyKey)) campaign.sentKeys.push(item.idempotencyKey);
-      const pk = item.person_id || item.email; campaign.touches[pk] = (campaign.touches[pk] || 0) + 1;
-      campaign.firmWindow.push({ firm: norm((item.candidate || {}).current_firm), at: opts.nowIso || null });
-      recordOutcome(campaign, { type: "sent" }); sent++; outcomes.push({ item_id: item.id, result: "sent" });
-      if (campaign.breaker.tripped) break;
-    }
-    return { sent, outcomes, status: campaign.status, breaker: campaign.breaker };
+    return { sent: 0, outcomes: [], refused: true, error: "SEND_DISABLED: email sending is disabled in the career build (owner ruling 2026-10-13) — outreach is drafts only", refusal_state: "refused_send_disabled", status: campaign.status };
   }
   function scheduleFollowUps(campaign, opts) {
     opts = opts || {};
@@ -959,7 +963,11 @@ const CareerOutreach = (() => {
   }
   function createGmailTransport(gmailApi) {
     if (!gmailApi || !gmailApi.users || !gmailApi.users.messages || typeof gmailApi.users.messages.send !== "function") return { kind: "gmail", send: async () => ({ error: "NOT_WIRED: Gmail API client not injected" }) };
-    return { kind: "gmail", send: async (msg) => { const r = await gmailApi.users.messages.send({ userId: "me", requestBody: { raw: buildGmailRaw(msg) } }); return { messageId: (r && (r.id || (r.data && r.data.id))) || "gmail-sent" }; } };
+    // SEND-DISABLED (owner ruling 2026-10-13): with a valid-shaped Gmail API client the
+    // factory used to return a transmitting transport; it now returns a disabled one —
+    // every send refuses with SEND_DISABLED and the injected client is never invoked.
+    // The career build is drafts only; no code path here can transmit an email.
+    return { kind: "gmail", disabled: true, send: async () => ({ refused: true, error: "SEND_DISABLED: email sending is disabled in the career build (owner ruling 2026-10-13) — outreach is drafts only" }) };
   }
 
   // ---------- OUTE-010: reply classifier (rule-based v1, Doc 1 §6.1) ----------
@@ -1347,7 +1355,13 @@ const CareerOutreach = (() => {
     if (dropBands.length) ops.push("drop_seniority:" + dropBands.join(","));
     if (keepSchool) ops.push("keep_school:" + keepSchool);
     if (keepFirms) ops.push("keep_firm_set:elite_boutique");
-    const matches = (c) => { if (dropBands.includes(String(c.seniority_band || "").toLowerCase())) return false; if (keepSchool && !(c.schools || []).map(norm).includes(norm(keepSchool))) return false; if (keepFirms && !keepFirms.includes(norm(c.current_firm))) return false; return true; };
+    // Wave fix (D7): the school a user names in a surgery instruction is
+    // usually the short form ("DePaul") while records carry the full name
+    // ("DePaul University") — an exact-equality filter silently emptied
+    // the list. A school matches on normalized containment either way;
+    // exact equality is the special case of it, so pinned behavior holds.
+    const schoolHit = (c) => (c.schools || []).some((sc) => { const a = norm(sc), b = norm(keepSchool); return !!a && !!b && (a === b || a.includes(b) || b.includes(a)); });
+    const matches = (c) => { if (dropBands.includes(String(c.seniority_band || "").toLowerCase())) return false; if (keepSchool && !schoolHit(c)) return false; if (keepFirms && !keepFirms.includes(norm(c.current_firm))) return false; return true; };
     const before = { selected: (pool.selected || []).length, reserve: (pool.reserve || []).length };
     const removed = (pool.selected || []).filter((c) => !matches(c));
     const keptSel = (pool.selected || []).filter(matches);

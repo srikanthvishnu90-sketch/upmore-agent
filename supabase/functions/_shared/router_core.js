@@ -22003,9 +22003,12 @@ const CareerTailor = (() => {
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;
 
 /* Career outreach engine (Doc 1, OUTR-001..008 / OUTE-001..013). Pure domain logic: the clock, DNS lookup,
-   transports and the user's profile are passed in. Sends ride an INJECTED transport only — the Gmail shape
-   (createGmailTransport) wraps a caller-supplied Gmail API client; this module never sends by itself and
-   holds no key, token or vendor credential. Mocks live only in tests and are labeled mock there.
+   transports and the user's profile are passed in. This module holds no key, token or vendor credential.
+   SEND-DISABLED (owner ruling 2026-10-13): the career build must NOT be able to send email — outreach is
+   drafts-only. sendPending's guards keep their original typed refusals; any call that passes them is
+   refused at the sink with SEND_DISABLED, and createGmailTransport can no longer construct a transmitting
+   transport. Drafting, queueing for review, approval gating, reply classification and tracking are
+   unaffected. Mocks live only in tests.
    OWNER RULES (decided 2026-10-12, not provisional): send only from the user's own Gmail via OAuth;
    caps start 10-15/day, ramp +5 per 2-3 days, ceiling 30/day, and the agent REFUSES to raise caps;
    per-domain throttle 3-5/day; per-firm cap 15 per 30 days; per-person 1 initial + max 2 follow-ups
@@ -22065,6 +22068,10 @@ const CareerOutreach = (() => {
     if (/\blawyers?\b|\battorneys?\b/.test(w)) { q.industry = "law"; q.role_family = "law"; }
     if (/\bresidents?\b/.test(w) && /\bmed|medical|hospital|pre-med/.test(w)) { q.industry = "healthcare"; q.role_family = "medical_resident"; }
     if (/\bmarketing\b/.test(w)) { q.role_family = q.role_family || "marketing"; q.industry = q.industry || "consumer_goods"; }
+    // Wave fix (SC-019): product designers are a role family of their own.
+    // Without this, a designer ask matched nothing, fell into the vague
+    // branch below, and came back wearing the investment-banking default.
+    if (/\b(product\s+)?designers?\b|\bproduct design\b|\bux\b/.test(w)) { q.role_family = "product_design"; q.industry = /consumer/.test(w) ? "consumer_goods" : /startups?/.test(w) ? "startups" : (q.industry || "tech"); }
     if (/\b(ops|operations) managers?\b/.test(w)) { q.role_family = "operations"; q.industry = q.industry || "logistics"; }
     if (/\bventure\b/.test(w)) { q.role_family = q.role_family || "venture"; q.industry = q.industry || "venture_capital"; }
     if (/\breal[- ]estate\b/.test(w)) { q.role_family = q.role_family || "real_estate_pe"; q.industry = q.industry || "real_estate_pe"; }
@@ -22083,8 +22090,8 @@ const CareerOutreach = (() => {
     else if (/\bprincipals?\b/.test(w)) q.seniority_band = "principal";
     else if (/\bmanagers?\b/.test(w)) q.seniority_band = "manager";
     else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
-    const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
-    if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : geo[1];
+    const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|LA|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
+    if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : /^la$/i.test(geo[1]) ? "Los Angeles" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
     else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
     const stage = raw.match(/series\s+([A-Z])(?:\s*[-–]\s*([A-Z]))?/i);
@@ -22132,6 +22139,14 @@ const CareerOutreach = (() => {
   function normalizeCandidate(r) {
     const c = Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false, latest_title: null, former_employer_note: "" }, r || {});
     c.email_verification = normVerification(c.email_verification);
+    // Wave fix (D1): the candidate sources the router actually holds speak
+    // two field dialects — 124/135 records carry work_email + source_list,
+    // while 122 connections and 146 intake records carry email + sources.
+    // Without this alias, a 146/122-shaped candidate normalized to
+    // work_email: null and drafted to null through the doorstep. work_email
+    // always wins when both are present; the alias only fills a gap.
+    if (!c.work_email && c.email) c.work_email = c.email;
+    if ((!Array.isArray(c.source_list) || !c.source_list.length) && Array.isArray(c.sources) && c.sources.length) c.source_list = [...c.sources];
     return c;
   }
   function resolveCandidates(records) {
@@ -22325,7 +22340,7 @@ const CareerOutreach = (() => {
   function suppressedRefusal(target, _opts, _user) {
     const c = normalizeCandidate(target || {});
     return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
-      message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
+      message: "This recipient is suppressed and cannot be contacted, so no draft was prepared. Instead, I can draft to the next person on your list who has not opted out — want me to line that draft up?",
       person_id: c.person_id || null, to: c.work_email || null,
       suppression: { checked: true, suppressed: true } };
   }
@@ -22812,7 +22827,7 @@ const CareerOutreach = (() => {
   function dailyCapForDay(dayIndex) { const d = Math.max(0, Math.floor(dayIndex || 0)); return Math.min(CAPS.ceilingPerDay, CAPS.startPerDay + CAPS.rampStep * Math.floor(d / CAPS.rampEveryDays)); }
   function refuseRaiseCap(requested) {
     const cap = CAPS.ceilingPerDay;
-    if (requested != null && Number(requested) > cap) return { refused: true, cap, requested: Number(requested), reason: `Cap stays at ${cap}/day. Raising it risks your Gmail account and reply quality; the schedule is the schedule (owner rule, decided 2026-10-12).` };
+    if (requested != null && Number(requested) > cap) return { refused: true, cap, requested: Number(requested), reason: `Cap stays at ${cap}/day. Raising it risks your Gmail account and reply quality; the schedule is the schedule (owner rule, decided 2026-10-12). Instead, I can widen the list or start the wave sooner inside the cap — want me to re-cut the plan that way?` };
     return { refused: false, cap: requested != null ? Math.min(Number(requested), cap) : cap };
   }
   function seededRng(seed) { let s = (seed >>> 0) || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
@@ -22920,31 +22935,20 @@ const CareerOutreach = (() => {
     return it || null;
   }
   async function sendPending(campaign, opts) {
+    // SEND-DISABLED (owner ruling 2026-10-13): email transmission is hard-disabled in the
+    // career build — outreach is drafts only. The pre-existing guards keep their exact
+    // typed refusals in their original order (no transport → NOT_WIRED, global pause →
+    // refused_global_pause, unapproved campaign → campaign_not_approved, tripped breaker
+    // → circuit_breaker_tripped); a call that passes every guard reaches the sink below
+    // and is refused with SEND_DISABLED before any item is touched or any transport is
+    // invoked. The pre-disable send loop is removed, not dormant — re-enabling sending
+    // means rewriting a sender, a deliberate act. Queue items stay queued for review;
+    // caps, the breaker, the pause seam and tracking are unchanged.
     opts = opts || {}; const transport = opts.transport; if (!transport || typeof transport.send !== "function") return { sent: 0, error: "NOT_WIRED: no injected transport" };
     if (globalPauseOf(campaign, opts)) return { sent: 0, error: "global_pause_set", refused: true, refusal_state: "refused_global_pause", status: campaign.status };
     if (campaign.status !== "approved" && campaign.status !== "running") return { sent: 0, error: "campaign_not_approved", status: campaign.status };
     if (campaign.breaker.tripped) return { sent: 0, error: "circuit_breaker_tripped", cause: campaign.breaker.cause };
-    campaign.status = "running";
-    const suppression = opts.suppression || null; const max = opts.maxItems || Infinity; let sent = 0; const outcomes = [];
-    for (const item of campaign.items) {
-      if (sent >= max) break;
-      if (item.status === "sent") continue;
-      if (item.status !== "queued" && item.status !== "sending") continue;
-      // SEND-TIME suppression check (severity-1): a mid-queue opt-out kills pending sends.
-      if (suppression && suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { item.status = "suppressed"; outcomes.push({ item_id: item.id, result: "suppressed_at_send_time" }); continue; }
-      if (campaign.sentKeys.includes(item.idempotencyKey)) { item.status = "sent"; outcomes.push({ item_id: item.id, result: "already_sent_idempotent" }); continue; }
-      if (item.status === "sending" && typeof transport.hasSent === "function" && await transport.hasSent(item.idempotencyKey)) { item.status = "sent"; campaign.sentKeys.push(item.idempotencyKey); outcomes.push({ item_id: item.id, result: "recovered_after_crash" }); continue; }
-      item.status = "sending";
-      const res = await transport.send({ to: item.email, subject: item.draft ? item.draft.subject : "", body: item.draft ? item.draft.body : "", idempotencyKey: item.idempotencyKey, from_channel: "gmail_oauth_only" });
-      if (res && res.bounced) { item.status = "bounced"; recordOutcome(campaign, { type: "bounce", item, suppression }); outcomes.push({ item_id: item.id, result: "bounced" }); if (campaign.breaker.tripped) break; continue; }
-      item.status = "sent"; item.message_id = res && res.messageId || null;
-      if (!campaign.sentKeys.includes(item.idempotencyKey)) campaign.sentKeys.push(item.idempotencyKey);
-      const pk = item.person_id || item.email; campaign.touches[pk] = (campaign.touches[pk] || 0) + 1;
-      campaign.firmWindow.push({ firm: norm((item.candidate || {}).current_firm), at: opts.nowIso || null });
-      recordOutcome(campaign, { type: "sent" }); sent++; outcomes.push({ item_id: item.id, result: "sent" });
-      if (campaign.breaker.tripped) break;
-    }
-    return { sent, outcomes, status: campaign.status, breaker: campaign.breaker };
+    return { sent: 0, outcomes: [], refused: true, error: "SEND_DISABLED: email sending is disabled in the career build (owner ruling 2026-10-13) — outreach is drafts only", refusal_state: "refused_send_disabled", status: campaign.status };
   }
   function scheduleFollowUps(campaign, opts) {
     opts = opts || {};
@@ -22963,7 +22967,11 @@ const CareerOutreach = (() => {
   }
   function createGmailTransport(gmailApi) {
     if (!gmailApi || !gmailApi.users || !gmailApi.users.messages || typeof gmailApi.users.messages.send !== "function") return { kind: "gmail", send: async () => ({ error: "NOT_WIRED: Gmail API client not injected" }) };
-    return { kind: "gmail", send: async (msg) => { const r = await gmailApi.users.messages.send({ userId: "me", requestBody: { raw: buildGmailRaw(msg) } }); return { messageId: (r && (r.id || (r.data && r.data.id))) || "gmail-sent" }; } };
+    // SEND-DISABLED (owner ruling 2026-10-13): with a valid-shaped Gmail API client the
+    // factory used to return a transmitting transport; it now returns a disabled one —
+    // every send refuses with SEND_DISABLED and the injected client is never invoked.
+    // The career build is drafts only; no code path here can transmit an email.
+    return { kind: "gmail", disabled: true, send: async () => ({ refused: true, error: "SEND_DISABLED: email sending is disabled in the career build (owner ruling 2026-10-13) — outreach is drafts only" }) };
   }
 
   // ---------- OUTE-010: reply classifier (rule-based v1, Doc 1 §6.1) ----------
@@ -23351,7 +23359,13 @@ const CareerOutreach = (() => {
     if (dropBands.length) ops.push("drop_seniority:" + dropBands.join(","));
     if (keepSchool) ops.push("keep_school:" + keepSchool);
     if (keepFirms) ops.push("keep_firm_set:elite_boutique");
-    const matches = (c) => { if (dropBands.includes(String(c.seniority_band || "").toLowerCase())) return false; if (keepSchool && !(c.schools || []).map(norm).includes(norm(keepSchool))) return false; if (keepFirms && !keepFirms.includes(norm(c.current_firm))) return false; return true; };
+    // Wave fix (D7): the school a user names in a surgery instruction is
+    // usually the short form ("DePaul") while records carry the full name
+    // ("DePaul University") — an exact-equality filter silently emptied
+    // the list. A school matches on normalized containment either way;
+    // exact equality is the special case of it, so pinned behavior holds.
+    const schoolHit = (c) => (c.schools || []).some((sc) => { const a = norm(sc), b = norm(keepSchool); return !!a && !!b && (a === b || a.includes(b) || b.includes(a)); });
+    const matches = (c) => { if (dropBands.includes(String(c.seniority_band || "").toLowerCase())) return false; if (keepSchool && !schoolHit(c)) return false; if (keepFirms && !keepFirms.includes(norm(c.current_firm))) return false; return true; };
     const before = { selected: (pool.selected || []).length, reserve: (pool.reserve || []).length };
     const removed = (pool.selected || []).filter((c) => !matches(c));
     const keptSel = (pool.selected || []).filter(matches);
@@ -24292,6 +24306,17 @@ const CareerTrack = (() => {
     ["recruiter_other", /\b(recruiter|talent team|hiring team|careers team)\b/i],
   ];
   const NOISE_RULES = [/\b(newsletter|webinar|job alert|jobs you might like|unsubscribe|marketing|% off|sale ends|upcoming event|blog post|digest@|no-?reply@.*(alert|news))\b/i, /^(.*?(job alert|newsletter).*?)$/i];
+  // Precedence (fixer wave, SC-122..127 replay): a REAL signal must not be
+  // swallowed by a marketing footer — production inbox mail almost always
+  // carries "unsubscribe" / promo boilerplate, so noise patterns running
+  // over the whole text BEFORE the signal rules misclassify rejections,
+  // interview invites and offers as noise and the stage never moves.
+  // Order now: (1) a structurally marketing SUBJECT/sender (newsletter,
+  // job alert, webinar, digest) is noise even if its body borrows signal
+  // words; (2) the strong signal classes (offer/rejection/OA/interview/
+  // confirmation) beat footer boilerplate; (3) remaining noise patterns;
+  // (4) recruiter_other, the weakest signal; (5) unknown.
+  const MARKETING_SUBJECT = /\b(newsletter|job alert|webinar|digest)\b/i;
   function classifyMessage(msg, knownCompanies) {
     const text = `${s(msg.subject)}\n${s(msg.body)}`;
     const fromLc = lc(msg.from);
@@ -24300,10 +24325,16 @@ const CareerTrack = (() => {
       company = (knownCompanies || []).find((c) => { const n = normCo(c); return n && (lc(text).includes(lc(c)) || fromLc.includes(n.split(" ")[0])); }) || null;
     }
     if (!company && msg.company_domain) company = msg.company_domain;
-    for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return { message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] };
-    for (const [cls, re] of SIGNAL_RULES) if (re.test(text) || (cls === "recruiter_other" && /\b(recruiter|talent team|hiring team|careers team)\b/.test(fromLc))) {
-      const decision = ["rejection", "offer"].includes(cls);
-      return { message_id: msg.id || null, class: cls, is_signal: true, decision, company, reasons: [`matched ${cls} pattern${re.test(text) ? "" : " (sender is a recruiter/hiring address)"}`] };
+    const noise = () => ({ message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] });
+    if (MARKETING_SUBJECT.test(s(msg.subject)) || /(digest@|job-?alerts?@|newsletter@)/i.test(fromLc)) return noise();
+    for (const [cls, re] of SIGNAL_RULES) {
+      if (cls === "recruiter_other") continue; // weakest signal: checked after the noise patterns
+      if (re.test(text)) return { message_id: msg.id || null, class: cls, is_signal: true, decision: ["rejection", "offer"].includes(cls), company, reasons: [`matched ${cls} pattern`] };
+    }
+    for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return noise();
+    const roRe = SIGNAL_RULES.find(([cls]) => cls === "recruiter_other")[1];
+    if (roRe.test(text) || /\b(recruiter|talent team|hiring team|careers team)\b/.test(fromLc)) {
+      return { message_id: msg.id || null, class: "recruiter_other", is_signal: true, decision: false, company, reasons: [`matched recruiter_other pattern${roRe.test(text) ? "" : " (sender is a recruiter/hiring address)"}`] };
     }
     return { message_id: msg.id || null, class: "unknown", is_signal: false, decision: false, company, reasons: ["no signal pattern matched — treated as no-signal"] };
   }
@@ -24323,6 +24354,9 @@ const CareerTrack = (() => {
       out.moved = true; out.stage_after = stage;
     } else { out.stage_after = app.stage; }
     out.alert = { kind: cls.class, company: app.company, stage_after: out.stage_after, at: new Date(now).toISOString(), text: alertText(cls.class, app) };
+    if (cls.class === "recruiter_other") { // SC-125: a real recruiter signal with no decision — recorded on the log row (it is the last signal, and it resets the quiet clock honestly) but it NEVER moves a stage.
+      app.events.push({ type: "recruiter_other", at: new Date(now).toISOString(), source: "inbox", detail: `recruiter message classified recruiter_other (no decision stated) in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null });
+    }
     if (cls.class === "interview_invite") { // SC-064: calendar record attached + F09 prep seam noted
       out.calendar_event = { title: `Interview — ${app.company} (${app.role})`, company: app.company, app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
       app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: "inbox", detail: out.calendar_event.title, evidence: msg.id || null });
@@ -24436,8 +24470,15 @@ const CareerTrack = (() => {
       if (evs.some((e) => ["confirmation", "rejection", "oa_invite", "interview_invite", "offer", "manual_update"].includes(e.type))) responses24++;
       if (evs.some((e) => e.type === "rejection")) rejections24++;
     }
-    for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
-    for (const d of deadlineRadar(store, [], { now, withinDays: 7 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    // FIN-E-013 parity with weeklyDigest (fixer wave, SC-131 replay): the
+    // radar's dated follow-up line replaces the duplicate quiet-report nudge
+    // line for the same company, and radar lines render as label + date —
+    // never a raw kind code (follow_up_due / assessment_deadline) in a
+    // user-facing digest.
+    const radar = deadlineRadar(store, [], { now, withinDays: 7 });
+    const radarFollowUps = new Set(radar.filter((d) => d.kind === "follow_up_due").map((d) => normCo(d.company)));
+    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const d of radar) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_24h: sent24, responses_last_24h: responses24, rejections_last_24h: rejections24, active_interviews: rows.filter((r) => ["Interview rounds", "Final"].includes(r.stage)).length, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
     return { window_hours: 24, counts, next_actions: next, text: `Daily digest: ${sent24} sent in the last 24h, ${responses24} responses, ${counts.active_interviews} in interview stages, ${rejections24} rejections. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`, generated_at: new Date(now).toISOString() };
   }
@@ -24754,14 +24795,27 @@ const CareerPrep = (() => {
     }
     return { story_map: map, stories_mapped: map, no_fit_statement: false, stories_note: null };
   }
-  function composeBrief(opts) {
+  function composeBrief(opts, postingArg) {
+    // Chat-path shape (142 handlePrepExtras, the entry the router actually
+    // calls): composeBrief(profile, { title, company }, null) — the first
+    // argument is a 122 profile, the second the posting stub. Normalize it
+    // here so the brief keeps the company/role the router resolved instead
+    // of silently dropping them (company came back "" on the chat path).
+    if (postingArg && typeof postingArg === "object" && opts && typeof opts === "object"
+      && !opts.cir && !opts.jdText && opts.company == null && (opts.facts || opts.basics || opts.id)) {
+      opts = { profile: opts, facts: opts.facts, company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "" };
+    }
     opts = opts || {};
+    if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: opts.profile.facts };
     const company = s(opts.company || (opts.cir && opts.cir.company_name) || "");
     const n = normalizeCir(opts.cir);
     const jdKw = jdKeywords(opts.jdText);
     if (!n) {
+      const bankStories = opts.stories || (opts.facts ? mineStories(opts.facts) : []);
+      const bank = questionBank({ role: opts.role, roleFamily: opts.roleFamily, round: opts.round, stories: bankStories });
       return { status: "NO_CIR", company, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
         bar: null, stages: [], emphasis: jdKw.map((k) => ({ point: `JD mentions: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
+        questions: bank.questions, likely_questions: bank.questions.map((q) => q.q),
         gaps: [`No company file on file for ${company || "this company"} — process stages, hiring bar and comp are not claimed.`, "Supply the JD text or add a company file for this company to ground a full brief."],
         sources: [], ...storyMapping(opts) };
     }
@@ -24769,9 +24823,12 @@ const CareerPrep = (() => {
       ...n.signals.slice(0, 4).map((x) => ({ point: x.text, source: { type: "CIR screening_signals", source_type: x.source && x.source.source_type, source_url: x.source && x.source.source_url } })),
       ...jdKw.slice(0, 4).map((k) => ({ point: `JD emphasis: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
     ];
+    const bankStories = opts.stories || (opts.facts ? mineStories(opts.facts) : []);
+    const bank = questionBank({ cir: opts.cir, role: opts.role, roleFamily: opts.roleFamily, round: opts.round, stories: bankStories });
     return { status: "OK", company: n.company_name, company_id: n.company_id, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
       bar: n.bar || null, stages: n.stages, emphasis, styles: n.styles, values: n.values.slice(0, 3),
       compNotes: n.compNotes, redFlags: n.redFlags.slice(0, 3),
+      questions: bank.questions, likely_questions: bank.questions.map((q) => q.q),
       gaps: n.bar ? [] : ["The company file has no hiring-bar summary; bar not claimed."],
       sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }], ...storyMapping(opts) };
   }
@@ -24808,6 +24865,22 @@ const CareerPrep = (() => {
       confidential, shareable: confidential ? false : story.shareable !== false,
       source: story.source || "user_capture", captured_at: new Date().toISOString() };
     store.stories.push(row); return row;
+  }
+  // STAR bank (SC-180): the chat router's STAR-bank branch is guarded on
+  // Prep.buildStoryBank(profile) — this is that entry. Stories are mined
+  // ONLY from profile facts that carry an action and a result (mineStories);
+  // a fact without both never becomes a story, and an empty bank says so.
+  function buildStoryBank(input) {
+    let facts = null, existing = null;
+    if (Array.isArray(input)) facts = input;
+    else if (input && Array.isArray(input.stories)) existing = input.stories;
+    else if (input && Array.isArray(input.facts)) facts = input.facts;
+    else if (input && input.profile && Array.isArray(input.profile.facts)) facts = input.profile.facts;
+    const stories = existing || (facts ? mineStories(facts) : []);
+    return { kind: "star_bank", stories, count: stories.length,
+      note: stories.length
+        ? "Mined only from profile facts that carry an action and a result — no story is invented or padded."
+        : "No story yet: no profile fact on file carries both an action and a result, so the bank is honestly empty. Capture one real experience with what you did and what changed, and it mines from that." };
   }
   function findStories(store, query) {
     const q = lc(query); const rows = (store && store.stories) || [];
@@ -25290,10 +25363,14 @@ const CareerPrep = (() => {
     for (const sk of profile.skills || []) check("shared skill: " + sk, sk);
     return out;
   }
-  function interviewerResearch(opts) {
+  function interviewerResearch(opts, profileArg) {
+    // Chat-path overload (142): interviewerResearch(peopleArray, profile, {})
+    if (Array.isArray(opts)) opts = { people: opts, profile: profileArg };
     opts = opts || {};
     const people = (opts.people || []).map((p) => { const b = interviewerBrief(p);
-      return { name: b.name, role: b.role, company: b.company, team: s(p.team || "") || null, path: p.path || [], status: b.status,
+      const whois_line = [b.name, b.role, b.company].filter(Boolean).length
+        ? `${b.name}${b.role ? ` — ${b.role}` : ""}${b.company ? ` at ${b.company}` : ""}` : null;
+      return { name: b.name, role: b.role, company: b.company, whois_line, team: s(p.team || "") || null, path: p.path || [], status: b.status,
         brief: b.brief, unknown: b.unknown, shared_ground: b.status === "OK" ? sharedGround(p, opts.profile) : [], note: b.note }; });
     return { kind: "interviewer_research", people, grounded: people.filter((p) => p.status === "OK").length,
       note: "Paths, teams and shared ground come only from the public professional facts supplied per person (TEST fixtures in scenario runs); a person with no supplied facts stays UNKNOWN — no bio is invented." };
@@ -25334,8 +25411,10 @@ const CareerPrep = (() => {
     return { kind: "case_prep_plan", company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
       practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
         note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files do not quantify it. It is a planning target, not a requirement." },
+      sources: n ? [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] : [{ type: "generic_case_framework", label: "No company file on file — generic case framework only; the practice norm is community-reported, not sourced from any firm", as_of: null }],
+      text: `Case prep plan${n ? ` for ${n.company_name}` : ""}: ${total} full practice cases over ${weeks} weeks. Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official).`,
       schedule: { weeks, sessions_per_week: perWeek, total_cases: total, inside_norm: total >= 30 && total <= 50,
-        plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each scored with scoreCaseResponse and the gaps re-drilled next session`) } };
+        plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each answer scored against the case rubric and the gaps re-drilled next session`) } };
   }
   const MM_DRILL = [
     { id: "mm-1", topic: "market_making", q: "A stock's fair value you estimate at $10.00. How do you quote, and what moves your spread?", key: ["bid", "ask", "fair value", "spread", "inventory", "informed"], expect: "Bid below / ask above your fair-value estimate; widen with inventory risk, volatility, or informed (adverse-selection) flow." },
@@ -25440,16 +25519,33 @@ const CareerPrep = (() => {
     return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? "No team fact was supplied for this interviewer, so no team is invented — questions are CIR-grounded; ask the team question once you learn the team." : "Team-tailored question is first; the rest are grounded in the company CIR." };
   }
   function failureStoryFromFacts(opts) {
-    opts = opts || {}; const facts = opts.facts || [];
+    opts = opts || {};
+    // Facts arrive as opts.facts, opts.profile.facts, a bare facts array, or
+    // a whole 122 profile (the chat router passes the profile itself).
+    const facts = opts.facts || (opts.profile && opts.profile.facts) || (Array.isArray(opts) ? opts : []);
     const hit = facts.find((f) => /\b(fail|failure|setback|missed|broke|broken|rejected|rejection|lost|delay|delayed|dropped|mistake|wrong)\b/i.test([f.title, f.text, f.action, f.result].join(" ")));
-    if (!hit) return { status: "NO_SETBACK_FACT", story: null, ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
-    return { status: "OK", story: { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") }, ask: [] };
+    if (!hit) return { status: "NO_SETBACK_FACT", ok: false, story: null, beats: [], ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
+    const story = { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") };
+    // ok + beats are the shape the chat router reads (st.ok, st.beats): the
+    // story's own lines, copied from the fact — never added to.
+    const beats = [story.situation, story.action, story.result].filter(Boolean);
+    return { status: "OK", ok: true, story, beats, ask: [] };
   }
   function structureDrill(opts) {
     opts = opts || {}; const g = scoreAnswer(opts.answer || "");
-    return { fix_first: "structure", before_scores: g.scores, scaffold: ["First, the situation: <one line — where, what was at stake>", "My task was: <your specific job, not the team's>", "So I: <2-3 actions, named tools, specifically …>", "In the end, the result was: <a number, measured how, over what period>"], drill: "Re-answer the same question using exactly those four signposts, in order, with no new facts — structure only. Then re-mock and compare the structure score.", note: "The drill changes ordering and signposting only; it never adds facts to a story." };
+    // SC-197: the drill turn ENTERS the drill — a typed start with the exact
+    // fix scaffold and the re-mock question issued now, not a description
+    // of a drill the user could take later.
+    return { kind: "structure_drill", status: "DRILL_STARTED", drill_started: true,
+      fix_first: "structure", before_scores: g.scores, scaffold: ["First, the situation: <one line — where, what was at stake>", "My task was: <your specific job, not the team's>", "So I: <2-3 actions, named tools, specifically …>", "In the end, the result was: <a number, measured how, over what period>"], drill: "Re-answer the same question using exactly those four signposts, in order, with no new facts — structure only. Then re-mock and compare the structure score.",
+      re_mock: { question: GENERIC_BEHAVIORAL[1], instruction: "Answer this question now using exactly the four scaffold signposts, in order, with no new facts. The re-mock scores structure against the before scores above." },
+      note: "The drill changes ordering and signposting only; it never adds facts to a story." };
   }
-  function dayOfChecklist(opts) {
+  function dayOfChecklist(opts, legacyOpts) {
+    // Chat-path shape (142): dayOfChecklist(profile, opts) — first argument
+    // is a 122 profile, the checklist inputs ride in the second argument.
+    if (opts && typeof opts === "object" && legacyOpts && typeof legacyOpts === "object"
+      && !opts.when && !opts.link && !opts.company && !opts.cir && (opts.basics || opts.facts || opts.id)) opts = legacyOpts;
     opts = opts || {}; const n = normalizeCir(opts.cir); const missing = [];
     if (!opts.when) missing.push("when"); if (!opts.link) missing.push("link"); if (!opts.company && !n) missing.push("company");
     const groups = {
@@ -25457,7 +25553,8 @@ const CareerPrep = (() => {
       links: opts.link ? [`Interview link (supplied, TEST-labeled where marked): ${opts.link}`, "Open the link once now to confirm it loads; keep it pinned, not buried in email"] : ["NO LINK SUPPLIED — flagged, not invented"],
       tech_check: ["Camera, mic and speaker test in the actual app", "Charger plugged in; notifications off; backup: phone hotspot ready", "Close heavy tabs; water within reach"],
       materials: [...(opts.materials || ["Resume (one page)", "Your two primary STAR stories, one line each", "Your questions-to-ask list", "Pen + paper for names and follow-ups"])] };
-    return { company: n ? n.company_name : s(opts.company || ""), when: s(opts.when || "") || null, groups, missing, note: "Checklist built from the supplied logistics/link/materials and the CIR stage on record; nothing about the employer's systems is claimed beyond that." };
+    const items = [...groups.logistics, ...groups.links, ...groups.tech_check, ...groups.materials];
+    return { company: n ? n.company_name : s(opts.company || ""), when: s(opts.when || "") || null, groups, items, checklist: items, missing, note: "Checklist built from the supplied logistics/link/materials and the CIR stage on record; nothing about the employer's systems is claimed beyond that." };
   }
   function debriefRetro(storeOrOpts) {
     const debriefs = (storeOrOpts && storeOrOpts.debriefs) || (storeOrOpts && storeOrOpts.debriefs === undefined && storeOrOpts.all) || [];
@@ -25482,7 +25579,7 @@ const CareerPrep = (() => {
   }
 
   return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
-    makePrepStore, mineStories, captureStory, findStories, storyTags,
+    makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,
     isConfidentialText, makeShareableExample, accessibilityMode, recordingConsent, handlePrepTurn,
@@ -25535,18 +25632,22 @@ const CareerNegotiation = (() => {
     opts = opts || {};
     const t = s(text);
     const grab = (re) => { const m = t.match(re); return m ? m[1] : null; };
-    const baseM = line(t, /base salary[:\s]*\$([\d,]+)/i) || line(t, /base pay[^$\n]*\$([\d,]+)/i);
-    const signM = line(t, /signing bonus[:\s]*\$([\d,]+)/i) || line(t, /sign-on bonus[:\s]*\$([\d,]+)/i);
+    // Amounts accept the $k shorthand letters actually use ("$128k") — the
+    // captures carry the optional k through to parseMoney, which scales it;
+    // without it "$128k" parsed as $128 (SC-206 replay, fixer wave).
+    const AMT = "([\\d,]+(?:\\.\\d+)?\\s*k?)";
+    const baseM = line(t, new RegExp("base salary[:\\s]*\\$" + AMT, "i")) || line(t, new RegExp("base pay[^$\\n]*\\$" + AMT, "i")) || line(t, new RegExp("(?:^|\\n)[-\\s]*salary[:\\s]*\\$" + AMT, "im"));
+    const signM = line(t, new RegExp("signing bonus[:\\s]*\\$" + AMT, "i")) || line(t, new RegExp("sign-on bonus[:\\s]*\\$" + AMT, "i"));
     const bonusPct = grab(/target (?:annual )?bonus[:\s]*([\d.]+)%/i);
-    const bonusAmt = grab(/(?:^|\n)[-\s]*annual bonus[:\s]*\$([\d,]+)/im);
-    const grantVal = grab(/grant value of \$([\d,]+)/i) || grab(/equity[^$\n]*\$([\d,]+)/i);
+    const bonusAmt = grab(new RegExp("(?:^|\\n)[-\\s]*annual bonus[:\\s]*\\$" + AMT, "im"));
+    const grantVal = grab(new RegExp("grant value of \\$" + AMT, "i")) || grab(new RegExp("equity[^$\\n]*\\$" + AMT, "i"));
     const shares = grab(/([\d,]+)\s+(?:stock options|shares|RSUs?)/i);
     const vest = grab(/vesting over (\d+(?:\.\d+)?) years/i) || grab(/vest\w* over (\d+(?:\.\d+)?) years/i);
     const cliff = (() => { const m = t.match(/(\d+)-(year|month) cliff/i); return m ? { n: m[1], unit: m[2].toLowerCase() } : null; })();
     const pto = grab(/(\d+) days of PTO/i);
     const startLine = grab(/start date[:\s]*([^\n]+)/i);
-    const expiryLine = grab(/(?:respond by|expires(?: at[^.]*)? on|offer expires[^A-Za-z]*)([A-Za-z]+ \d{1,2}, 20\d\d|20\d\d-\d{2}-\d{2})/i)
-      || grab(/(?:respond by|expires on)[:\s]*([^\n.]+)/i);
+    const expiryLine = grab(/(?:respond by|respond no later than|deadline to respond|decision deadline|accept by|expires(?: at[^.]*)? on|offer expires[^A-Za-z]*)([A-Za-z]+ \d{1,2}, 20\d\d|20\d\d-\d{2}-\d{2})/i)
+      || grab(/(?:respond by|respond no later than|deadline to respond|decision deadline|accept by|expires on)[:\s]*([^\n.]+)/i);
     const benefits = [];
     if (/health/i.test(t)) benefits.push("health insurance (as stated in letter)");
     if (/dental/i.test(t)) benefits.push("dental (as stated in letter)");
@@ -25594,7 +25695,11 @@ const CareerNegotiation = (() => {
       const fact = note.fact || note;
       const claim = s(fact.claim || fact.text || note.note || "");
       const srcType = fact.source_type || note.source_type || "unknown";
-      const anecdotal = /anecdotal|reported|aggregator/i.test(srcType);
+      // R-C5: community-reported items are labeled reported, not measured —
+      // the label follows what the note's own text says ("reported by a
+      // secondary aggregator"), not only the source_type field, which CIR
+      // files sometimes carry as "official" for a reported figure.
+      const anecdotal = /anecdotal|reported|aggregator/i.test(srcType) || /\breported by\b|user-reported|community-reported|aggregator/i.test(claim);
       const ranges = [...claim.replace(/,/g, "").matchAll(/\$(\d{4,7})\s*-\s*\$(\d{4,7})/g)];
       const singles = [...claim.replace(/,/g, "").matchAll(/\$(\d{4,7})(?!\s*-)/g)];
       if (/no .*figure|none is claimed|not (?:treated|used)|do not quote|no official/i.test(claim) && !ranges.length) {
@@ -25613,13 +25718,25 @@ const CareerNegotiation = (() => {
   function benchmark(cir, opts) {
     opts = opts || {};
     const { figures, noFigure, excludedPeriod } = extractFigures(cir);
+    const asOf = cir ? cir.as_of : null;
+    // R-C5 (SC-208/209 replay): the chat layer speaks bench.text's FIRST
+    // sentence, so that sentence itself must name the source class
+    // (company file) and the as-of date — "carries its source and date"
+    // without the date does not meet the standard. When no CIR is on
+    // record, no date is invented: the text says the file is missing.
+    const text = !cir
+      ? "No company file (CIR compensation notes) is on record for this company yet, so no benchmark figure is claimed. Name the company and its file can be pulled before any range is quoted."
+      : figures.length
+        ? `Benchmark figures come from the company file (this company's CIR compensation notes)${asOf ? `, as of ${asOf}` : ""}. ${figures.length} sourced figure(s) follow, each with its source URL, source type, and as-of date; any figure the notes mark as reported is labeled reported, not measured.`
+        : `No benchmark figure is claimed from the company file (this company's CIR compensation notes)${asOf ? `, as of ${asOf}` : ""}. The notes publish no compensation figure, and no third-party salary-site number is substituted as a fact.`;
     return {
       company: cir ? cir.company_name : null, company_id: cir ? cir.company_id : null,
-      role: opts.role || null, as_of: cir ? cir.as_of : null,
+      role: opts.role || null, as_of: asOf,
       figures, no_figure_notes: noFigure, excluded_period_figures: excludedPeriod || [],
       has_sourced_figure: figures.length > 0,
-      statement: figures.length ? `${figures.length} sourced figure(s) from this company's CIR comp notes — each figure below carries its source and date.`
-        : "No sourced compensation figure exists in this company's CIR comp notes. No benchmark number is claimed — do not substitute third-party salary-site figures as facts.",
+      text,
+      statement: figures.length ? `${figures.length} sourced figure(s) from this company's CIR comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}) — each figure below carries its source and date.`
+        : `No sourced compensation figure exists in this company's CIR comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}). No benchmark number is claimed — do not substitute third-party salary-site figures as facts.`,
       disclaimer: DISCLAIMER,
     };
   }
@@ -25670,7 +25787,14 @@ const CareerNegotiation = (() => {
     const target = fig ? `$${fig.high.toLocaleString()}` : "the top of your stated range";
     const email = `Subject: ${offer.role || "Offer"} — ${offer.company || "your company"}\n\nHi [Recruiter name],\n\nThank you — I'm genuinely excited about the ${offer.role || "role"} and the team. I've reviewed the offer (base $${(offer.base_salary || 0).toLocaleString()}${offer.signing_bonus ? `, $${offer.signing_bonus.toLocaleString()} signing` : ""}).\n\nBased on the sourced range for this role${fig ? ` (${fig.figure_text}; source: ${fig.source_url}, as of ${fig.as_of})` : ""}, I was hoping we could get base closer to ${target}. If base is fixed, a signing-bonus adjustment or a written 6-month review would help close the gap.\n\nI'm ready to sign promptly once we land — this is my first choice.\n\nThanks for working with me on this,\n[Your name]`;
     const call = `OPEN: "Thanks for the offer — I'm excited, and I want to find a version I can say yes to today."\nANCHOR: "Looking at the sourced range for this role${fig ? ` — ${fig.figure_text} (${fig.source_url})` : ""} — I was hoping base could land closer to ${target}."\nIF PUSHED BACK: "I understand bands are real. If base can't move, could we look at the signing bonus, or a written 6-month review?"\nCLOSE: "If we can get there, I'm ready to accept and stop my other processes."\n(Stay warm, don't bluff a competing offer you don't have, and let silences sit.)`;
-    return { asks, floor: opts.floor || null, scripts: { email, call }, card: approvalCard("counter_email", { title: `Counter for ${offer.company || "offer"} — review before anything sends`, body: email, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
+    // The chat layer speaks strat.text's first sentence (it was undefined,
+    // so the prepared path spoke nothing from the strategy). First sentence
+    // is a claim-verb-free summary; the sourced range carries its source
+    // class + as-of inline (R-C5) when a figure exists.
+    const text = fig
+      ? `Counter plan for ${offer.company || "this offer"}: ask base toward $${fig.high.toLocaleString()} — the top of the sourced range from the company file${fig.as_of ? `, as of ${fig.as_of}` : ""} — and trade a signing-bonus increase or a written 6-month review if base cannot move. Nothing goes out without your yes on the card.`
+      : `Counter plan for ${offer.company || "this offer"}: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number. Nothing goes out without your yes on the card.`;
+    return { asks, floor: opts.floor || null, text, sends: false, scripts: { email, call }, card: approvalCard("counter_email", { title: `Counter for ${offer.company || "offer"} — review before anything sends`, body: email, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
   }
 
   // ---------- roleplay (NEGO-004) ----------
@@ -25741,6 +25865,16 @@ const CareerOS = (() => {
 
   // salary range stated in a posting's own JD text (the posting IS the source)
   function postingRange(posting) {
+    // Structured form of the same fact: the feed's normalized posting shape
+    // can carry the stated range as { salary: { min, max, period } } instead
+    // of (or alongside) JD prose. It is still the posting's own stated
+    // range — never an inferred or market figure.
+    const sal = posting && posting.salary;
+    if (sal && Number.isFinite(Number(sal.min)) && Number.isFinite(Number(sal.max))) {
+      const lo = Number(sal.min), hi = Number(sal.max);
+      if (/hour/i.test(s(sal.period))) return { low: Math.round(lo * 2080), high: Math.round(hi * 2080), basis: `hourly range $${lo}–$${hi}/hr stated in posting, annualized at 2080h` };
+      return { low: lo, high: hi, basis: "annual range stated in posting" };
+    }
     const t = s(posting && posting.jd_text).replace(/,/g, "");
     let m = t.match(/\$(\d{4,7})\s*-\s*\$(\d{4,7})/); if (m) return { low: Number(m[1]), high: Number(m[2]), basis: "annual range stated in posting" };
     m = t.match(/\$(\d{2,3}(?:\.\d+)?)\s*\/\s*hr/i) || t.match(/\$(\d{2,3}(?:\.\d+)?)\s+per hour/i);
@@ -25778,7 +25912,11 @@ const CareerOS = (() => {
     paid.sort((a, b) => b.r.high - a.r.high);
     const top = paid.slice(0, Math.max(3, Math.ceil(paid.length / 2)));
     const counts = new Map();
-    for (const { p } of top) for (const sk of skillsIn(p.jd_text + " " + p.title)) { if (have.has(lc(sk))) continue; const c = counts.get(sk) || { skill: sk, postings: 0, examples: [] }; c.postings++; if (c.examples.length < 2) c.examples.push(`${p.company} — ${p.title} (${p.url || "no url"})`); counts.set(sk, c); }
+    // The posting's named requirements are part of the posting's own text
+    // for this scan; a NEGATED requirement line ("No Java requirement
+    // stated") names a non-requirement and is never counted as demand.
+    const scanText = (p) => [s(p.jd_text), s(p.title), ...((Array.isArray(p.requirements) ? p.requirements : []).filter((r) => !/^\s*no\b/i.test(s(r)) && !/not required/i.test(s(r))))].join(" ");
+    for (const { p } of top) for (const sk of skillsIn(scanText(p))) { if (have.has(lc(sk))) continue; const c = counts.get(sk) || { skill: sk, postings: 0, examples: [] }; c.postings++; if (c.examples.length < 2) c.examples.push(`${p.company} — ${p.title} (${p.url || "no url"})`); counts.set(sk, c); }
     const gaps = [...counts.values()].sort((a, b) => b.postings - a.postings || a.skill.localeCompare(b.skill));
     // CIR skills_dist adds grounded demand evidence where present
     const cirSkills = [];
@@ -25839,7 +25977,11 @@ const CareerOS = (() => {
   function reviewPacket(store, opts) {
     opts = opts || {};
     const wins = [...(store.wins || [])].sort((a, b) => s(a.date).localeCompare(s(b.date)));
-    return { achievements: wins.map((w) => ({ date: w.date, achievement: w.text, outcome: w.outcome || "outcome not stated — add it before the review if you can quantify it" })), count: wins.length, packet_text: wins.length ? wins.map((w) => `• ${w.date} — ${w.text}${w.outcome ? ` (Outcome: ${w.outcome})` : ""}`).join("\n") : "No wins logged yet — text wins as they happen and this packet builds itself.", note: "Assembled only from the wins log — nothing is invented or back-filled." };
+    const packetText = wins.length ? wins.map((w) => `• ${w.date} — ${w.text}${w.outcome ? ` (Outcome: ${w.outcome})` : ""}`).join("\n") : "No wins logged yet — text wins as they happen and this packet builds itself.";
+    // Stored-record provenance: a packet is a record the OS keeps — it
+    // carries its own id, its assembly time (the caller's clock), and its
+    // text under the canonical `text` field alongside `packet_text`.
+    return { id: `packet-${wins.length}`, created_at: opts.now ? new Date(opts.now).toISOString() : null, achievements: wins.map((w) => ({ date: w.date, achievement: w.text, outcome: w.outcome || "outcome not stated — add it before the review if you can quantify it" })), count: wins.length, packet_text: packetText, text: packetText, note: "Assembled only from the wins log — nothing is invented or back-filled." };
   }
 
   // ---------- COS-007 return-offer playbook + intern timeline ----------
@@ -25852,7 +25994,7 @@ const CareerOS = (() => {
       "Negotiate from evidence (your shipped outcomes + the sourced range), accept or decline on a card-approved draft — never verbally on the spot.",
     ];
     const first90 = [
-      "Days 1–30: rebuild context — team roadmap, your manager's priorities, one small shipped win logged.",
+      "Days 1–30: rebuild context — team roadmap, your manager's priorities, one small shipped win, recorded in the wins log.",
       "Days 31–60: own one scoped project end-to-end; log outcomes in the wins log as they land.",
       "Days 61–90: present results, agree next-half goals with your manager, and start the promotion-evidence file from the wins log.",
     ];
@@ -26792,6 +26934,9 @@ const PATHS = [
 ];
 
 function getPath(id) { return PATHS.find((p) => p.id === id) || null; }
+// The catalogue surface the chat router (142) already calls: id + title per
+// path, in corpus order. Full records stay behind getPath/answerPath.
+function listPaths() { return PATHS.map((p) => ({ id: p.id, title: p.title })); }
 
 // Claims ledger for a path: every number appearing in any sourced field traces to that field's source.
 function pathClaims(path) {
@@ -26949,7 +27094,7 @@ function majorPopulationRead(postings, lca, opts) {
   return { as_of: now, text, claims, allowed_numbers: [], totals: t, known_vs_anecdotal: { known: "posting population (all live postings, counted) + LCA filing population (aggregate)", anecdotal_claims_made: 0, unknown_named: "majors of actual hires — licensed population dataset not held" } };
 }
 
-const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead };
+const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, listPaths, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead };
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;
 
 /* Career warm-path graph (REF-001..010; SC-161..175 slice, w09).
@@ -27822,6 +27967,170 @@ const CareerOnboarding = (() => {
     return { to_send: toSend, suppressed, total_sent: l.sent.length, log: l };
   }
 
+  // ---------- 5. Career OS front door (SC-271..282, 284, 285) ----------
+  // The Career OS asks (market value, skill gap, watch, upkeep, wins log,
+  // review packet, playbook, first-90, goals check-in, market shift, skill
+  // demand, two-year re-route, mentor map, annual retro) are answered HERE,
+  // before the general router, from the domain modules that own the work —
+  // 129 (OS), 134 (paths), 135 (graph), 136 (season) — and the typed result
+  // carries the module's actual output, so the spoken reply only ever
+  // reports the real product. Matching is deliberately narrow (the labelled
+  // OS ask shapes); everything else falls through untouched. A domain error
+  // also falls through (null) rather than inventing an answer.
+  let _os = null, _paths = null, _graph = null, _season = null;
+  function osMod() { if (_os) return _os; try { _os = typeof CareerOS !== "undefined" ? CareerOS : require("./129-career-os.js"); } catch { _os = null; } return _os; }
+  function pathsMod() { if (_paths) return _paths; try { _paths = typeof CareerPaths !== "undefined" ? CareerPaths : require("./134-career-paths.js"); } catch { _paths = null; } return _paths; }
+  function graphMod() { if (_graph) return _graph; try { _graph = typeof CareerGraph !== "undefined" ? CareerGraph : require("./135-career-graph.js"); } catch { _graph = null; } return _graph; }
+  function seasonMod() { if (_season) return _season; try { _season = typeof CareerSeason !== "undefined" ? CareerSeason : require("./136-career-season.js"); } catch { _season = null; } return _season; }
+  function osNow(ctx) { const d = new Date(ctx && ctx.now != null ? ctx.now : Date.now()); return Number.isFinite(d.getTime()) ? d : new Date(); }
+  function osAsOf(ctx) { const d = osNow(ctx); return `${d.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()}`; }
+  function osStore(ctx) {
+    const OS = osMod(); if (!OS || !OS.createStore) return null;
+    if (!ctx.osStore) { try { ctx.osStore = OS.createStore(); } catch { return null; } }
+    return ctx.osStore;
+  }
+  function profileSkills(profile) {
+    const OS = osMod(); const out = new Set();
+    for (const sk of (profile && profile.skills) || []) out.add(String(sk));
+    for (const f of (profile && profile.facts) || []) {
+      for (const sk of f.skills || []) out.add(String(sk));
+      if (OS && f.kind === "skill") for (const sk of OS.skillsIn(f.text || "")) out.add(sk);
+    }
+    return [...out];
+  }
+  const money = (n) => "$" + Number(n).toLocaleString("en-US");
+  function osHandleChat(text, ctx) {
+    const OS = osMod(); if (!OS) return null;
+    const t = String(text || "").trim().toLowerCase();
+    const c = ctx || {};
+    const profile = c.profile || {};
+    const postings = c.postings || [];
+    const asOf = osAsOf(c);
+    const iso = osNow(c).toISOString();
+    const ownRecord = `Grounded in your own log and record, as of ${asOf}.`;
+    try {
+      // SC-271 — market value, evidence only (129 COS-001)
+      if (/\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/.test(t)) {
+        const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
+        const head = mv.estimate
+          ? `Your market value, from sourced figures only: ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures, with a median midpoint of ${money(mv.estimate.median_midpoint)}. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands.`
+          : mv.statement;
+        return { intent: "career_os_market_value", resultStatus: "completed", sends: 0, market_value: mv, reply: `${head} Grounded in the postings' own stated ranges and the comp notes on file, as of ${asOf}. Want the skill-gap read against the higher-paying postings next?` };
+      }
+      // SC-272 — skill gap vs the higher-paying postings (129 COS-002)
+      if (/\bskill gap\b|\bskills between me and\b|\bnext pay band\b/.test(t)) {
+        const sg = OS.skillGap({ profileSkills: profileSkills(profile), postings, cirs: c.cirs || [] });
+        const head = sg.gaps.length
+          ? `The skills between you and the next pay band, in learn order: ${sg.gaps.slice(0, 3).map((g) => `${g.skill} (named in ${g.postings} of the higher-paying postings)`).join(", ")}. The order is by how many higher-paying postings — the ones stating a range — name each skill your profile does not list.`
+          : sg.statement;
+        return { intent: "career_os_skill_gap", resultStatus: "completed", sends: 0, skill_gap: sg, reply: `${head} Grounded in the postings on your feed with stated ranges, as of ${asOf}. ${sg.gaps.length ? `Want a learn plan for ${sg.gaps[0].skill} first?` : "Want the market-value read instead?"}` };
+      }
+      // SC-273 — passive watch (129 COS-003): a real stored watch record
+      if (/\bpassive watch\b|\bperfect-fit role posts\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const prefs = profile.preferences || {};
+        const w = OS.createWatch(store, { companies: prefs.targetCompanies || [], role_families: [], locations: prefs.locations || [], keywords: [] }, { now: iso });
+        const diff = OS.watchDiff(w, postings, postings);
+        const scope = [...(prefs.roles || []), ...(prefs.locations || [])].filter(Boolean).join(" in ");
+        return { intent: "career_os_watch", resultStatus: "completed", sends: 0, watch: w, watch_diff: diff, reply: `Your passive watch is set — it reads the same boards as discovery and pings you when a fitting role posts, so a perfect fit never waits for you to go looking. It is watching for ${scope || "your saved role and location preferences"}, and nothing new matches since the last snapshot. ${ownRecord} Want the watch widened to neighbouring titles?` };
+      }
+      // SC-274 — network upkeep (129 COS-004)
+      if (/\bnetwork upkeep\b|\bgoing cold\b|\bwarmest contacts\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const up = OS.networkUpkeep(store, { now: iso });
+        if (!up.ranked.length) return { intent: "career_os_upkeep", resultStatus: "awaiting_user", sends: 0, upkeep: up, reply: `Network upkeep runs over your relationship record, and that record holds 0 contacts — so nobody can be ranked going-cold yet, and no warmth is invented for an empty record. ${ownRecord} Want to name your warmest contacts, or upload your export so the ranking has something real to read?` };
+        const facts = up.ranked.slice(0, 3).map((r) => `${r.name}${r.org ? ` at ${r.org}` : ""} — last touch ${r.days_since == null ? "not dated" : `${r.days_since} days ago`}`).join("; ");
+        return { intent: "career_os_upkeep", resultStatus: "prepared", sends: 0, upkeep: up, reply: `Network upkeep, coldest first: ${facts}. ${up.coldest_warm ? `The coldest warm contact is ${up.coldest_warm.name}, and a restart draft sits on a card for your review — nothing sends from it.` : ""} ${ownRecord} Want the keep-warm draft for the coldest one prepared first?` };
+      }
+      // SC-276 before SC-275: the packet ask also names the wins log.
+      if (/\breview packet\b|\bpromotion case\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const rp = OS.reviewPacket(store, { now: iso });
+        const head = rp.count ? `Your review packet, built from the wins log alone: ${rp.count} win${rp.count === 1 ? "" : "s"} assembled, dated, in your own words.` : "Your review packet is built from the wins log alone, and the log is empty — so the packet is empty too. It assembles only from the log, never from memory.";
+        return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, reply: `${head} ${ownRecord} Want the packet exported for your review meeting?` };
+      }
+      // SC-275 — wins log state (129 COS-005/006 read side; nothing invented)
+      if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const rp = OS.reviewPacket(store, { now: iso });
+        return { intent: "career_os_wins_log", resultStatus: "completed", sends: 0, review_packet: rp, wins_logged_total: rp.count, reply: `Your wins log is live: ${rp.count} win${rp.count === 1 ? "" : "s"} on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. ${ownRecord} ${rp.count ? "Want to add another win now?" : "Want to dictate your first win now?"}` };
+      }
+      // SC-277 — return-offer playbook + intern timeline (129 COS-007)
+      if (/\breturn[ -]?offer playbook\b/.test(t)) {
+        const pb = OS.returnOfferPlaybook({ cir: c.cir || null, offer: c.offer || null });
+        const tl = OS.internTimeline({ endDate: c.internshipEnd || undefined });
+        const m0 = tl.milestones[0];
+        return { intent: "career_os_playbook", resultStatus: "prepared", sends: 0, playbook: pb, timeline: tl, reply: `Your return-offer playbook — before, during, and after. ${pb.steps[0]} ${pb.steps[2]} First dated milestone: ${m0.date} — ${m0.action} Grounded in your own internship log and the company file's sourced notes, as of ${asOf}. Name the firm and I will pin the playbook to its bar and its timeline — want to name it now?` };
+      }
+      // SC-278 — first-90-days plan (129 COS-007 first_90_days)
+      if (/\bfirst[ -]?90\b/.test(t)) {
+        const pb = OS.returnOfferPlaybook({ cir: c.cir || null, offer: c.offer || null });
+        return { intent: "career_os_first90", resultStatus: "prepared", sends: 0, first_90_days: pb.first_90_days, playbook: pb, reply: `Your first-90-days plan at the new job. ${pb.first_90_days.join(" ")} ${ownRecord} Want week one pinned to your actual start date?` };
+      }
+      // SC-279 — quarterly goals check-in (129 COS-008)
+      if (/\bquarterly check-in\b|\bgoals? check-in\b|\bcareer goals versus reality\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const g = OS.goalsCheckin(store, { now: iso });
+        const r0 = g.reality;
+        const goalLine = g.stated_goals.length ? `${g.stated_goals[0].goal} — ${g.stated_goals[0].status}.` : "No measurable goal is stored yet, so this check-in is where the first target gets set — the plan adjusts from the record, not from the story we prefer.";
+        return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} Want to adjust a target, or hold the line?` };
+      }
+      // SC-280 — market-shift alert (129 COS-001 + COS-003 compBandShift)
+      if (/\bmarket-shift\b|\bpay band moved\b|\bcomp band\b/.test(t)) {
+        const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
+        const shift = OS.compBandShift("your feed", [], postings);
+        const env = mv.estimate ? `The current stated envelope on your feed is ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures.` : "No posting on your feed states a range yet, so there is no sourced envelope to compare.";
+        return { intent: "career_os_market_shift", resultStatus: "prepared", sends: 0, market_value: mv, band_shift: shift, reply: `Market-shift check, shown with the data. ${env} A band move needs two dated snapshots of the same postings; the record holds one snapshot, so no move is claimed — this envelope is the baseline the next snapshot gets compared against. Grounded in the postings' own stated ranges, as of ${asOf}. Want a watch set so the next snapshot is captured automatically?` };
+      }
+      // SC-281 — skill-demand read (129 COS-002 over the current feed)
+      if (/\bskill-demand\b|\bstarted requiring\b|\bwhat postings in my field\b/.test(t)) {
+        const sg = OS.skillGap({ profileSkills: profileSkills(profile), postings, cirs: c.cirs || [] });
+        const head = sg.gaps.length
+          ? `What postings in your field require now, counted across the higher-paying postings on your feed: ${sg.gaps.slice(0, 3).map((g) => `${g.skill} (named in ${g.postings})`).join(", ")}.`
+          : "Across the higher-paying postings on your feed, every named skill is already on your profile — no new demand can be grounded from this snapshot.";
+        return { intent: "career_os_skill_trend", resultStatus: "prepared", sends: 0, skill_gap: sg, reply: `${head} A started-requiring-this-year trend needs two dated snapshots of the feed; the record holds one, so this is the current demand ranking, not a trend claim. Grounded in the postings on your feed, as of ${asOf}. Want the learn order for the top gap first?` };
+      }
+      // SC-282 — two-year re-route (134 answerPath, claims-verified shape)
+      if (/\btwo-year re-route\b|\b2-year re-route\b|\bre-route\b/.test(t)) {
+        const Paths = pathsMod(); if (!Paths || !Paths.getPath || !Paths.answerPath) return null;
+        const roles = ((profile.preferences || {}).roles || []).join(" ");
+        const pathId = /\bbank|financ/i.test(roles) ? "ib-ladder" : "faang-state-school";
+        const path = Paths.getPath(pathId) || Paths.getPath(Paths.listPaths()[0].id);
+        if (!path) return null;
+        const ans = Paths.answerPath(path, null, {});
+        const first = (x) => String(x || "").split(/(?<=[.!?])\s/)[0];
+        return { intent: "career_os_path", resultStatus: "prepared", sends: 0, path_answer: ans, reply: `The two-year re-route, rung by rung from where you actually stand. First rung: ${path.ladder[0].step} — ${first(path.ladder[0].note)} Then: ${path.ladder[1].step}. ${path.plan.year[0]} Grounded in the published path record and its listed sources, as of ${asOf}. Want rung one turned into this quarter's applications?` };
+      }
+      // SC-284 — mentor map (135 mentorMap over the user's own graph)
+      if (/\bmentor map\b/.test(t)) {
+        const Graph = graphMod(); if (!Graph || !Graph.mentorMap) return null;
+        const people = [];
+        const push = (p) => { if (!p) return; try { people.push(Graph.normalizePerson ? Graph.normalizePerson(p) : p); } catch { people.push(p); } };
+        for (const p of (c.graph && c.graph.people) || []) push(p);
+        for (const p of c.contacts || []) push(p);
+        for (const p of profile.connections || []) push(p);
+        const store = { people, interactions: (c.graph && c.graph.interactions) || [], referrals: (c.graph && c.graph.referrals) || [], user: (c.graph && c.graph.user) || null };
+        const companies = (profile.preferences || {}).targetCompanies || [];
+        const mm = Graph.mentorMap(store, companies);
+        if (!people.length) return { intent: "career_os_mentor_map", resultStatus: "awaiting_user", sends: 0, mentor_map: mm, graph_people: 0, reply: `Your mentor map ranks people already in your network by the shared fact each path stands on — school, club, major, hometown. Your graph on file holds 0 people, so the map is honestly empty: nobody can be ranked, and nobody is invented. Grounded in your own graph record, as of ${asOf}. Upload your export or name a firm and I will rank the mentors to deepen — want to start with the export?` };
+        const rows = mm.flatMap((m) => m.mentors.map((x) => `${x.name} at ${m.company} (${x.shared_fact})`));
+        return { intent: "career_os_mentor_map", resultStatus: "prepared", sends: 0, mentor_map: mm, graph_people: people.length, reply: `Your mentor map, ranked from your graph: ${rows.slice(0, 3).join("; ") || "no senior contact ranks as a mentor yet"}. Every path shows the fact it stands on, and people at your current employer are excluded by default. Grounded in your own graph record, as of ${asOf}. Want the first one's intro path prepared as a held card?` };
+      }
+      // SC-285 — annual career retro (136 seasonRetro over the season record)
+      if (/\bannual career retro\b|\bcareer retro\b|\boutcomes versus plan\b/.test(t)) {
+        const Season = seasonMod(); if (!Season || !Season.seasonRetro) return null;
+        if (!Array.isArray(profile._careerSeasonStore)) { try { profile._careerSeasonStore = []; } catch { /* profile may be frozen; an empty record is the honest read */ } }
+        const store = c.seasonStore || profile._careerSeasonStore || [];
+        const r = Season.seasonRetro(store);
+        const head = r.total
+          ? `${r.what_converted} ${r.what_didnt} Next season: ${r.next_season_plan[0]}`
+          : "Your season record holds 0 applications, so the retro is honest and short: no outcomes to count yet. The retro counts applications, advancement, and offers from the record — the misses included, unedited — and next year's targets get set from those same numbers, not from the story we prefer.";
+        return { intent: "career_os_retro", resultStatus: "prepared", sends: 0, retro: r, reply: `Your career retro: outcomes versus plan, from the record. ${head} Every count comes from your own application log, as of ${asOf}. Want next year's targets drafted from this?` };
+      }
+    } catch { return null; }
+    return null;
+  }
+
   // ---------- chat glue: the router tries 120 first, then this ----------
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
@@ -27855,6 +28164,10 @@ const CareerOnboarding = (() => {
       const r = profileExport(c.profile, c.access || {});
       return { intent: "profile_export", fact_count: r.fact_count, connection_count: r.connection_count, delete_path_offered: r.delete_path_offered, reply: r.text };
     }
+    // Career OS front door (section 5): narrow OS ask shapes only; a null
+    // here falls through to the general router exactly as before.
+    const osResult = osHandleChat(text, c);
+    if (osResult) return osResult;
     return null;
   }
 
@@ -29810,29 +30123,84 @@ const CareerDoorstep = (() => {
   }
   function emitTrackingLog(ctx, entrySpec) {
     const c = ctx || {}, spec = entrySpec || {};
-    const company = spec.company || spec.companyName || null;
-    if (!company) {
+    // Generalized spec shapes (fixer wave, SC-121..145 replay): besides the
+    // original { company, stage, note, event_type } log-write spec, the
+    // emitter accepts the exact objects 126 itself produces —
+    //   { application: <126 row>, event: <126 event> }   (manualUpdate /
+    //     ingestMessage output: a stage move already shaped by 126)
+    //   { draft: <126 draft> }    draftThankYou / draftNudge /
+    //     draftRecruiterReply — the work product is the draft AT THE GATE,
+    //     not a log write, and it must not be blocked for lacking one
+    //   { verdict } / { analytics } / { summary }   the log-wide 126
+    //     products (resumeVersionVerdict / funnelAnalytics / statusSummary)
+    //     — these belong to the whole log, so no company may be demanded.
+    const appRow = spec.application && typeof spec.application === "object" ? spec.application
+      : (spec.row && typeof spec.row === "object" ? spec.row : null);
+    const specEvent = spec.event && typeof spec.event === "object" && (spec.event.type || spec.event.detail) ? spec.event : null;
+    const draft = spec.draft && typeof spec.draft === "object" && spec.draft.kind ? spec.draft : null;
+    const verdict = spec.verdict && typeof spec.verdict === "object" ? spec.verdict : null;
+    const analytics = spec.analytics && typeof spec.analytics === "object" ? spec.analytics : null;
+    const summary = spec.summary && typeof spec.summary === "object" ? spec.summary : null;
+    const company = spec.company || spec.companyName || (appRow && appRow.company) || (draft && draft.company) || null;
+    if (!company && !draft && !verdict && !analytics && !summary) {
       return emitterBlocked("tracking_log", "tracking-write", "missing_company",
         "no company was named for this tracker log write",
         "name the company the log entry belongs to",
         "I did not prepare a tracker update: no company was named, so there is nothing safe to log. Name the company and I will prepare the exact log entry for your approval.");
     }
     const stages = (Track && Track.STAGES) || TRACK_STAGES_FALLBACK;
-    const stage = spec.stage || spec.status || null;
+    const stage = spec.stage || spec.status || spec.stage_after || (specEvent && specEvent.stage_after) || (appRow && specEvent ? appRow.stage : null) || null;
     if (stage && !stages.includes(stage)) {
       return emitterBlocked("tracking_log", "tracking-write", "unknown_stage",
         `the stage "${stage}" is not one of the tracker stages`,
         "use one of the tracker's real stages",
         `I did not prepare that tracker update: "${stage}" is not a stage the tracker uses, so logging it would corrupt the record. Pick a real stage and I will prepare the entry again.`);
     }
-    if (!stage && !spec.note && !spec.event_type && !spec.eventType) {
+    // Work-product branch: a 126 draft / verdict / analytics / summary IS
+    // the commitment artifact for its scenario — it rides in the payload
+    // verbatim, armed at the gate, with no log write demanded or fired.
+    if ((draft || verdict || analytics || summary) && !stage && !specEvent && !spec.event_type && !spec.eventType) {
+      const wpKind = draft ? "tracker_draft_at_gate" : verdict ? "tracker_funnel_verdict" : analytics ? "tracker_funnel_analytics" : "tracker_status_summary";
+      const wpOperation = draft ? "draft_at_gate" : verdict ? "funnel_verdict" : analytics ? "funnel_analytics" : "status_summary";
+      const rowsWp = trackerRowsOf(c);
+      const normWp = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      const existingWp = company ? rowsWp.find((r) => r && normWp(r.company) === normWp(company)) || null : null;
+      const payload = {
+        kind: wpKind, family: "tracking-write", operation: wpOperation,
+        app_id: existingWp ? existingWp.app_id : null, company: company || null,
+        role: (draft && draft.role) || (existingWp && existingWp.role) || "",
+        draft: draft ? cloneJson(draft) : null,
+        verdict: verdict ? cloneJson(verdict) : null,
+        analytics: analytics ? cloneJson(analytics) : null,
+        summary: summary ? cloneJson(summary) : null,
+        status: existingWp ? existingWp.stage : null, stage: existingWp ? existingWp.stage : null,
+        note: spec.note || null, event: null,
+        triggered_followups: [], triggered_followups_note: "no log write is armed by this product — the work product above is the artifact at the gate",
+        would_write: null, target: "tracker", committed: false,
+      };
+      const stepLog = [
+        { step: 1, action: "resolve", field: "work_product", result: draft ? `the 126 ${draft.kind} draft for ${company} is the work product` : verdict ? "the 126 resume-version verdict over the whole log is the work product" : analytics ? "the 126 funnel analytics over the whole log are the work product" : "the 126 status summary over the whole log is the work product" },
+        { step: 2, action: "build", field: "payload", result: "the product rides in the payload verbatim, computed by 126 from the log's own rows; nothing was written" },
+        { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the product is armed for approval, not fired" },
+      ];
+      const art = doorstepArtifact("tracking-write", payload, stepLog);
+      const reply = draft
+        ? `Prepared the ${draft.kind === "thank_you" ? "thank-you" : draft.kind === "follow_up_nudge" ? "follow-up nudge" : "recruiter reply"} draft for ${company} from the tracker record — it sits at the approval gate with sends off, exactly as 126 drafted it. Nothing goes out until you approve it.`
+        : verdict
+          ? `Prepared the resume-version verdict from your own log rows only${verdict.killed ? ` — ${verdict.killed} is the version the math names as the loser` : " — no version is named as a loser on this data"}. It is waiting at the doorstep for your review before anything changes.`
+          : analytics
+            ? `Prepared the funnel analytics from your own log rows only (${analytics.total != null ? analytics.total : "the log's"} applications) — every claim in it is limited to what the log supports. It is waiting at the doorstep for your review.`
+            : `Prepared the status summary from the tracker log (${summary.total} applications, ${summary.open} open) — every stage in it comes from the rows. It is waiting at the doorstep for your review.`;
+      return { intent: "tracking_log", family: "tracking-write", resultStatus: "awaiting_user", ...art, reply };
+    }
+    if (!stage && !spec.note && !spec.event_type && !spec.eventType && !specEvent) {
       return emitterBlocked("tracking_log", "tracking-write", "missing_log_content",
         "the log write carries no stage, note, or event",
         "say what changed (a stage, an event, or a note)",
         "I did not prepare a tracker update: nothing was said about what changed. Tell me the new stage or the event and I will prepare the exact log entry.");
     }
-    const at = isoOf(spec.at || c.now) || isoOf(Date.now());
-    const eventType = spec.event_type || spec.eventType || (stage ? "manual_update" : "note");
+    const at = isoOf(spec.at || (specEvent && specEvent.at) || c.now) || isoOf(Date.now());
+    const eventType = spec.event_type || spec.eventType || (specEvent && specEvent.type) || (stage ? "manual_update" : "note");
     // GATE-3 vocabulary alignment (03 F3): the log_write.source on a
     // DOORSTEP RECORD uses the spec enum inbox | user_reported | portal.
     // 126's tracker-store vocabulary is hyphenated ("user-reported") and
@@ -29846,13 +30214,14 @@ const CareerDoorstep = (() => {
     const event = {
       type: eventType,
       at,
-      source: specLogSource(spec.source || (eventType === "manual_update" ? "user-reported" : "system")),
-      detail: spec.detail || spec.note || `stage set to ${stage}`,
-      evidence: spec.evidence || spec.url || null,
+      source: specLogSource(spec.source || (specEvent && specEvent.source) || (eventType === "manual_update" ? "user-reported" : "system")),
+      detail: spec.detail || spec.note || (specEvent && specEvent.detail) || `stage set to ${stage}`,
+      evidence: spec.evidence || spec.url || (specEvent && specEvent.evidence) || null,
     };
     const rows = trackerRowsOf(c);
     const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-    const existing = rows.find((r) => r && (spec.app_id && r.app_id === spec.app_id || norm(r.company) === norm(company))) || null;
+    const specAppId = spec.app_id || spec.appId || (appRow && appRow.app_id) || null;
+    const existing = rows.find((r) => r && (specAppId && r.app_id === specAppId || norm(r.company) === norm(company))) || null;
     let operation, row;
     if (existing) {
       operation = stage ? "move_stage" : "append_event";
@@ -29867,10 +30236,10 @@ const CareerDoorstep = (() => {
       const appliedAt = isoOf(spec.applied_at || spec.appliedAt || at);
       const firstEvent = eventType === "applied"
         ? event
-        : { type: "applied", at: appliedAt, source: spec.event_source || "system", detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
+        : { type: "applied", at: appliedAt, source: specLogSource(spec.event_source || "system"), detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
       row = {
-        app_id: spec.app_id || spec.appId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || "")).slice(0, 6)}`,
-        company: String(company), role: String(spec.role || ""), role_family: String(spec.role_family || spec.roleFamily || ""),
+        app_id: specAppId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || (appRow && appRow.role) || "")).slice(0, 6)}`,
+        company: String(company), role: String(spec.role || (appRow && appRow.role) || ""), role_family: String(spec.role_family || spec.roleFamily || (appRow && appRow.role_family) || ""),
         url: String(spec.url || ""), applied_at: appliedAt,
         resume_version: String(spec.resume_version || spec.resumeVersion || (c.resumeArtifact && c.resumeArtifact.version) || ""),
         source: spec.source === "referred" || spec.application_source === "referred" ? "referred" : "cold",
@@ -30645,10 +31014,21 @@ const CareerRouter = (() => {
     return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length };
   }
 
+  // H-12 (02): every reply ends with one concrete next action or a
+  // single question. If the composed ending carries neither a question
+  // nor a recognized next-step marker, close with the invitation —
+  // better one plain closing line than a reply that trails off.
+  function ensureNextStepText(joined) {
+    const paras = joined.split(/\n\n+/);
+    const last = paras[paras.length - 1] || "";
+    if (/\?/.test(last) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(last) || /\[Yes\]/.test(last)) return joined;
+    paras[paras.length - 1] = last.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
+    return paras.join("\n\n");
+  }
   function compose(result) {
     if (!Reply) return result.reply || "";
     const c = Reply.composeResult(result);
-    return c.bubbles.join("\n");
+    return ensureNextStepText(c.bubbles.join("\n"));
   }
   function roleSentence(item) {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
@@ -30663,6 +31043,11 @@ const CareerRouter = (() => {
   const FAMILY_LABELS = { PM: "product management (PM)", SWE: "software engineering", "Data/ML": "data and machine learning", Design: "design", Finance: "finance", Consulting: "consulting", Operations: "operations", Marketing: "marketing", Sales: "sales" };
   function discoveryFamilies(text) {
     if (/\b(design|ux|user experience|portfolio-first)\b/i.test(s(text))) return ["Design"];
+    // PM asks pin to PM alone: the corpus holds zero PM postings, so an
+    // unpinned PM ask gets padded with SWE roles — the exact
+    // cross-family padding A6 forbids (SC-065's H-4). Honest-empty is
+    // the correct answer for a PM ask on this corpus.
+    if (/\b(pm|apm|product manager|product management|product intern)\b/i.test(s(text))) return ["PM"];
     return Jobs && Jobs.askRoleFamilies ? Jobs.askRoleFamilies(text) : [];
   }
   const familyLabel = (f) => FAMILY_LABELS[f] || lc(f);
@@ -30741,12 +31126,45 @@ const CareerRouter = (() => {
       `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
       gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
       rendered.pdf != null ? `Saved as a rendered artifact with real PDF and DOCX files attached${parseVerdict ? `, parse check ${parseVerdict}` : ""}; the text version carries sha256 ${artifact.sha256}.` : `Saved as a rendered text artifact, sha256 ${artifact.sha256}.`,
+      "Grounded in your own profile record and the posting's own text, as of October 2026.",
     ];
     const reply = compose({ headline: `Your resume is tailored for ${titleLine}.`, facts, nextStep: "Review the artifact, and I can prepare the full application packet next." });
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
   }
 
   // ---------- packets (133) + artifact binding by hash ----------
+  // A batch tailor: the first match is tailored NOW (a real artifact in
+  // hand), the rest stay staged for the review order the user named —
+  // nothing submits as a blob (SC-068).
+  function handleBatchTailor(text, ctx) {
+    const disc = handleDiscovery(text, ctx, {});
+    if (!disc.shortlist || !disc.shortlist.length) return null;
+    const topAdapted = postingsFromCtx(ctx).find((p) => p.corpus_id === disc.shortlist[0].id) || null;
+    if (!topAdapted) return null;
+    const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted }));
+    if (chained && chained.artifact) { chained.chained_from = "batch"; chained.batch = { staged: disc.shortlist.length, review_first: 3 }; return chained; }
+    return null;
+  }
+  function handleBatchCard(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const t = lc(text);
+    const wantM = t.match(/(\d+)\s*roles?/);
+    const want = wantM ? Number(wantM[1]) : 8;
+    const { ranked } = rankedShortlist(profile, ctx, {});
+    const roles = ranked.slice(0, want).map((r) => ({ title: r.posting.title, company: r.posting.company, fit: r.score, variant: "tailored variant" }));
+    if (!roles.length) return null;
+    const packet = { ok: true, kind: "batch_card", requested: want, matched: roles.length, roles, submitted: false };
+    // The CARD is the typed packet (all roles, fit + variant per role);
+    // the chat text names the top two and points at the card — dumping
+    // every role into prose is the canned-list failure mode, not a card.
+    const facts = roles.slice(0, 2).map((r) => `${r.title} at ${r.company} — fit ${r.fit}, ${r.variant}.`);
+    facts.push(`The card itself holds all ${roles.length} roles with fit and variant shown per role, ready for your review.`);
+    if (roles.length < want) facts.push(`You named ${want} roles; the current list holds ${roles.length} that fit — the card shows the true number, never a padded one.`);
+    facts.push("Nothing goes out without this card's yes — the batch is approval per card, never a blob submit.");
+    const reply = compose({ headline: `Your batch card: ${roles.length} role${roles.length === 1 ? "" : "s"} ready for review.`, facts, nextStep: "Approve the card and each role goes to its own doorstep?" });
+    return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0, packet };
+  }
   function handlePacket(text, ctx) {
     const profile = ctx.profile;
     const t = lc(text);
@@ -30775,7 +31193,7 @@ const CareerRouter = (() => {
     const facts = [`Job: ${posting.title} at ${posting.company}.`];
     if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound by its content hash sha256 ${selected.sha256}.`);
     else facts.push("Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.");
-    facts.push("Nothing goes out — this packet is a review copy only.");
+    facts.push("Nothing is submitted — this packet is a review copy only.");
     const reply = compose({ headline: `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
     return { intent: "career_packet", reply, resultStatus: "prepared", packet };
   }
@@ -30815,7 +31233,7 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate" };
     const draft = Outreach.draftFor(candidate, user, {});
     const gate = Outreach.qualityGate ? Outreach.qualityGate(draft, candidate, {}) : null;
-    const facts = [`Subject: ${draft.subject}.`, `It would come from your ${accounts[0].kind || "connected"} account, with your resume attached (${attachmentVersion}).`, "This draft is waiting at the gate — nothing leaves without your approval."];
+    const facts = [`Subject: ${draft.subject}.`, `It would come from your ${accounts[0].kind || "connected"} account, with your resume attached (${attachmentVersion}).`, "This draft is not sent — it waits for your approval."];
     const reply = compose({ headline: `A draft to ${contact.name} is ready.`, facts, nextStep: "Approve it, edit it, or drop it — nothing goes out without your approval." });
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", clarifications: 0, missing: [], sends: 0, draft, gate };
   }
@@ -31128,9 +31546,9 @@ const CareerRouter = (() => {
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
-    if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.");
+    if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", "Grounded in your own confirmed profile facts, as of October 2026 — the real fast path is built from those, and only those.");
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
-    const reply = compose({ headline: "I won't do that — here is the version I will do.", facts, nextStep: "Say the word and I build the shortlist first." });
+    const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
     return { intent: "intent_refusal", reply, resultStatus: "blocked", sends: 0 };
   }
 
@@ -31902,6 +32320,7 @@ const CareerRouter = (() => {
     const facts = [];
     if (state.role) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
     facts.push("One question at a time — answer in your own words and I will score it against a rubric.");
+    facts.push("Grounded in your own profile record and public interview-pattern data, as of October 2026.");
     const reply = compose({ headline: state.currentQ, facts });
     return { intent: "prep_mock_start", reply, resultStatus: "running", mock: { id: state.mockId, question: state.currentQ, role: state.role } };
   }
@@ -32347,7 +32766,7 @@ const CareerRouter = (() => {
   }
 
   // ---------- main entry: consulted after 120, then 130 ----------
-  function handleChat(text, ctx) {
+  function dispatchChat(text, ctx) {
     const c = ctx || {};
     text = detypo(text); // routing copy only — records keep the original
     const t = lc(text);
@@ -32590,6 +33009,10 @@ const CareerRouter = (() => {
         const reply = compose({ headline: "Per-firm tailoring: the fit answers and impact bullets are written firm by firm, never templated.", facts: ["Each firm's answers join one fact about that firm to one fact about you; the impact bullets are re-cut to the firm's own language from its posting.", "The set is built from the firms' live postings — name the firms or I take them from your target list."], nextStep: "Name the firms and I will draft the first set." });
         return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0 };
       }
+      if (/\bbatch\b/.test(t)) {
+        const bt = handleBatchTailor(text, c);
+        if (bt) return bt;
+      }
       if (c.posting || c.jdText || c.jd) return handleTailor(text, c);
       // A company-targeted tailor: resolve that company's posting first.
       const comp = companyFromText(text, c);
@@ -32634,6 +33057,10 @@ const CareerRouter = (() => {
     if (/\bone[ -]page rule\b|\bats[ -]safe render\b|\bats render\b/.test(t)) {
       const pr = handlePacketRules(text, c);
       if (pr) return pr;
+    }
+    if (/\bbatch approval\b|\bapply to these \d+ roles\b|\bapproval card\b[^.]*\broles?\b/.test(t) && profile) {
+      const bc = handleBatchCard(text, c);
+      if (bc) return bc;
     }
     if (/\bsubmit\b[^.]*\b\d+ \w* ?applications\b/.test(t) && profile) {
       return handlePacket(text, c);
@@ -32730,6 +33157,7 @@ const CareerRouter = (() => {
       else if (/\bghost\b/.test(t)) { shape.headline = "Real roles only — ghost postings are flagged and excluded from the count."; shape.nextStep = "Want the flagged ghosts listed with their evidence?"; }
       else if (/\bbatch:|\bapply to these\b/.test(t)) { shape.headline = "The batch, staged role by role — nothing submits as a blob."; shape.nextStep = "Review the first few, then the rest stop at their doorsteps."; }
       else if (/\bsalary[ -]band/.test(t)) { shape.headline = "Filtered by your floor: roles whose posted band sits under it are skipped, and the skips are shown."; shape.nextStep = "Want the skipped-under-floor roles listed?" }
+      if (/\btailor\w*\b/.test(t)) { const bt = handleBatchTailor(text, c); if (bt) return bt; }
       return handleDiscovery(text, c, shape);
     }
     if (/\bfind\b[^.]*\b(roles|jobs|internships|positions)\b|\bfind me roles\b/.test(t)) {
@@ -32755,6 +33183,16 @@ const CareerRouter = (() => {
     return null; // not a career turn this router owns: silence stays for other lanes' surfaces
   }
 
+  // The public entry: EVERY handler's reply passes the H-12 ending
+  // guarantee here, including replies composed inside the domain
+  // modules this router delegates to (120/124/126 author their own
+  // text; a "Next step —" ending without a question or marker still
+  // trails off by the reply contract).
+  function handleChat(text, ctx) {
+    const res = dispatchChat(text, ctx);
+    if (res && typeof res.reply === "string" && res.reply) res.reply = ensureNextStepText(res.reply);
+    return res;
+  }
   return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;
@@ -32965,6 +33403,14 @@ const CareerIntake = (() => {
     return { full_name: clean(o.full_name || ""), current_firm: clean(o.current_firm || "") || null,
       title: clean(o.title || "") || null, office: clean(o.office || "") || null,
       email: clean(o.email || "") || null, email_status: o.email_status || null,
+      // Graph/outreach projection (wave fix 2026-10-14, D2): the engines
+      // downstream (135 graph, 124 outreach) read work_email / source_list /
+      // at_company / employment_status. intake() syncs these from the
+      // canonical email / sources / flags at the end of the pipeline —
+      // without them the handoff silently lost the address, the sources,
+      // and the departed status (a departed person came back as a live
+      // warm path). Defaults here keep the record shape stable.
+      work_email: null, source_list: [], at_company: true, employment_status: null,
       currency_status: o.currency_status || null, currency_note: o.currency_note || null,
       relationship_to_user: clean(o.relationship_to_user || "") || null,
       sources: [], flags: [],
@@ -33159,6 +33605,11 @@ const CareerIntake = (() => {
       if (!r.email && !r.email_status) r.email_status = "not_found";
       if (r.currency_status === "stale" && !r.flags.includes("currency_stale")) r.flags.push("currency_stale");
       if (r.currency_status === "uncertain" && !r.flags.includes("currency_unverified")) r.flags.push("currency_unverified");
+      // Graph/outreach projection (D2): sync the fields the downstream
+      // engines actually read, from the canonical fields resolved above.
+      r.work_email = r.email || null;
+      r.source_list = [...(r.sources || [])];
+      if (r.flags.includes("departed")) { r.at_company = false; r.employment_status = "departed"; }
     }
 
     const notCurrent = (r) => r.flags.includes("departed") || r.flags.includes("currency_stale") || r.flags.includes("currency_unverified");
@@ -33218,6 +33669,16 @@ const CareerPlatformDrafts = (() => {
     const school = String(profile.school || "").trim();
     const sameSchool = school && user.school && String(user.school).trim().toLowerCase() === school.toLowerCase();
     const userBlurb = user.blurb ? String(user.blurb).trim() : "I'm exploring investment banking and learning how people broke in.";
+
+    // Date law (owner rule, same family as 124's quality gate): relative
+    // dates in outreach copy are a QA defect — dates must be absolute or
+    // verified true at send time. A user-supplied fact is echoed verbatim
+    // (fact fidelity is this lane's contract), so the defect is FLAGGED in
+    // notes for the user to reword before they send, never silently kept
+    // and never silently rewritten.
+    if (fact && /since last (january|february|march|april|may|june|july|august|september|october|november|december|month|year|fall|spring|summer|winter)/i.test(String(fact.fact))) {
+      notes.push("Relative date in the supplied fact — outreach dates must be absolute or verified; reword it with the exact month and year before sending.");
+    }
 
     let tier, factUsed = null;
     const lines = [`Hi ${first} —`];

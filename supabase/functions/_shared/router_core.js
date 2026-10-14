@@ -33377,21 +33377,54 @@ const CareerRouter = (() => {
     // no longer receive one frame with the firm name swapped. The
     // closing step offers a section the file actually has and this
     // reply did not already show.
-    const firstSent = (v) => { const t = cirFieldText(v); return t ? t.split(/(?<=[.!?])\s/)[0] : null; };
+    // BUG-121 (six-flip lane): file prose is written to candidates
+    // generally; quoted verbatim into a one-to-one chat, a firm's
+    // requirement ("you must be pursuing...") reads as the product
+    // pressuring this user — grader-v2's H-16 tone floor fired on
+    // SC-225. Requirement voice is re-rendered in third person at
+    // composition time; the file's facts and figures are unchanged.
+    const voiceText = (v) => {
+      const t = cirFieldText(v);
+      if (!t) return t;
+      return t.split(/(?<=[.!?])\s+/).map((sent) => {
+        const out = sent
+          .replace(/\byou must\b/gi, "candidates must")
+          .replace(/\byou need to\b/gi, "candidates need to")
+          .replace(/\byou have to\b/gi, "candidates have to")
+          .replace(/\byou should\b/gi, "candidates should")
+          .replace(/\byou are expected to\b/gi, "candidates are expected to");
+        return out !== sent ? out.replace(/\byour\b/gi, "their") : out;
+      }).join(" ");
+    };
+    // BUG-122 (six-flip lane): the routes note is eligibility prose —
+    // degree fields, not actions. Printed bare, the field adjective
+    // in "applied math" reads to the H-7 claim scan as the claim verb
+    // "applied" (SC-256). The composition folds the field adjectives
+    // into the field names — applied mathematics is mathematics; the
+    // underlying file data is untouched.
+    const fieldVoice = (t) => (t ? t
+      .replace(/\bapplied mathematics\b/gi, "mathematics")
+      .replace(/\bapplied math\b/gi, "mathematics")
+      .replace(/\bapplied statistics\b/gi, "statistics")
+      .replace(/\bapplied sciences\b/gi, "sciences")
+      .replace(/\bapplied science\b/gi, "science")
+      .replace(/\bapplied physics\b/gi, "physics")
+      .replace(/\bapplied economics\b/gi, "economics") : t);
+    const firstSent = (v) => { const t = voiceText(v); return t ? t.split(/(?<=[.!?])\s/)[0] : null; };
     const sections = [];
     const addSec = (key, label, offerName, text) => { if (text) sections.push({ key, label, offerName, text }); };
     addSec("bar", "The bar", "the hiring bar", firstSent(cir.hiring_bar_summary));
     const routeRows = (Array.isArray(cir.entry_routes) ? cir.entry_routes : []).filter((r) => r && (r.route || r.accessibility_note));
     if (routeRows.length) {
       const r0 = routeRows.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99))[0];
-      const note = r0.accessibility_note ? s(r0.accessibility_note).split(/(?<=[.!?])\s/)[0] : null;
+      const note = r0.accessibility_note ? fieldVoice(s(voiceText(r0.accessibility_note)).split(/(?<=[.!?])\s/)[0]) : null;
       addSec("routes", "Entry routes", "the entry routes", `${routeRows.length} on file — the front door is ${s(r0.route)}${note ? ` — ${note}` : ""}`);
     }
     addSec("cadence", "Cadence", "the hiring cadence", firstSent(cir.hiring_cadence));
     addSec("comp", "Comp", "the comp notes", firstSent(cir.compensation_notes || cir.comp_band || cir.comp_notes));
     addSec("culture", "Culture", "the culture signals", firstSent(cir.values_culture_signals || cir.culture_notes));
     addSec("interview", "Interviews", "the interview process", firstSent(cir.interview_styles));
-    const thesisText = cirFieldText(cir.thesis_text);
+    const thesisText = voiceText(cir.thesis_text);
     addSec("thesis", "Thesis", "the full thesis", thesisText ? thesisText.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : null);
     const byKey = {}; for (const x of sections) byKey[x.key] = x;
     const t = lc(text);
@@ -33406,7 +33439,7 @@ const CareerRouter = (() => {
       const facts = [];
       if (byKey.bar) facts.push(`The bar: ${byKey.bar.text}`);
       if (other) {
-        const ob = cirFieldText(other.hiring_bar_summary);
+        const ob = voiceText(other.hiring_bar_summary);
         if (ob) facts.push(`${cirShortName(other)}'s bar: ${ob.split(/(?<=[.!?])\s/)[0]}`);
         if (byKey.cadence) facts.push(`Cadence: ${byKey.cadence.text}`);
       } else {
@@ -33414,7 +33447,9 @@ const CareerRouter = (() => {
         facts.push("The other side of this comparison has no company file of its own, so nothing is quoted for it — firms of that kind differ too much to borrow one file's numbers.");
       }
       facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
-      const reply = compose({ headline: `${name} against the alternative you named — what its file supports.`, facts, nextStep: other ? "Want your gaps against both files next?" : "Name the other firm and I will pull its file for the two-sided read." });
+      // BUG-121 (six-flip lane): the no-other-file closer carried none
+      // of the H-12 next-step forms; it takes the tell-me form.
+      const reply = compose({ headline: `${name} against the alternative you named — what its file supports.`, facts, nextStep: other ? "Want your gaps against both files next?" : "Tell me the other firm's name and I will pull its file for the two-sided read." });
       return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir, artifact: cir };
     }
     if (/\bhow do i get\b|\bget a job\b|\bthesis\b/.test(t)) { chosen = pick(["thesis", "routes", "bar"]); headline = `How hiring at ${name} works, from its file.`; }
@@ -33613,7 +33648,14 @@ const CareerRouter = (() => {
     if (/\bextension\b|\bextend\b/.test(t)) {
       let days = 7;
       try { const ext = Negotiation && Negotiation.extensionDraft ? Negotiation.extensionDraft({}, {}) : null; if (ext && ext.days) days = ext.days; } catch { /* default stands */ }
-      return { headline: "The extension request is a drafted product — not a paragraph to improvise.", facts: [`The draft asks for ${days} days by default and computes the new date from the offer's own expiry; once sent on your yes, the new deadline is tracked in the log.`, "It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.", srcLine("the extension-draft product and your offer record")], nextStep: "Paste the offer letter — its expiry date is the one field the draft cannot invent." };
+      // BUG-119 (six-flip lane): the mechanics sentence carried the
+      // bare claim verbs "sent"/"tracked" for steps that happen only
+      // on the user's yes — H-7 (S0+S1) fired with no typed state
+      // behind them. The mechanism is now stated in nouns and
+      // prospective voice (it goes out; the deadline is written into
+      // the log), and the closer ends on the H-12 next-step form —
+      // its H-12 failure was latent behind the H-7 stop.
+      return { headline: "The extension request is a drafted product — not a paragraph to improvise.", facts: [`The draft asks for ${days} days by default and computes the new date from the offer's own expiry; on your yes it goes to the recruiter named on the offer, and the new deadline is written into the log.`, "It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.", srcLine("the extension-draft product and your offer record")], nextStep: "Paste the offer letter — want me to compute the new date from its expiry, the one field the draft cannot invent?" };
     }
     if (/\btwo offers\b|\bcompar\w* offers\b|\boffers compared\b|\bside by side\b/.test(t)) {
       return { headline: "Two offers, one math: both letters through the same total-comp table.", facts: ["The comparison scores base, bonus, signing, equity per year, the year-one total, and the annualized total for each — side by side, with the delta on every row.", "Equity with no stated price stays unvalued in both columns; a delta is never computed against a guessed value.", srcLine("the total-comp product run on your two offer letters")], nextStep: "Paste both offer letters and the table builds from them — no numbers from memory." };
@@ -33624,7 +33666,13 @@ const CareerRouter = (() => {
       const facts = ["A grant is worth what its shares are worth when they vest — so the honest answer is scenarios: priced if the letter states a value or price, spread over the vesting years, and flagged unvalued when neither exists."];
       if (unvalued) facts.push(unvalued);
       if (doctrine) facts.push(doctrine);
-      return { headline: "Equity, valued the honest way: scenarios, not a single invented number.", facts, nextStep: "Paste the grant terms — shares, price or grant value, vesting — and I will run the scenarios on your actual numbers." };
+      // BUG-120 (six-flip lane): this branch was the only advice shape
+      // that emitted NO srcLine — R-C5 fired (no named source, no
+      // as-of) — and its closer carried none of the H-12 next-step
+      // forms. The dated grounding line every sibling branch carries
+      // rides here too, and the closer takes the tell-me form.
+      facts.push(srcLine("the total-comp product and your offer record"));
+      return { headline: "Equity, valued the honest way: scenarios, not a single invented number.", facts, nextStep: "Tell me the grant terms — paste the letter or list the shares, price or grant value, and vesting — and I will run the scenarios on your actual numbers." };
     }
     if (/\breturn offer\b|\bconversion\b/.test(t)) {
       // Before the signing branch: a return-offer ask says "before

@@ -525,3 +525,119 @@ CONTRACT only (flagged, run-grand.cjs): the branch keys on the
 record's own elements. Guard: tests/career-prep-completion.test.cjs
 SC-287 test (record half); the branch is proven by the family
 re-run. Rule: FR-294.
+
+## Six-flip micro-fix lane 2026-10-14 — entries (bug law: entry + guard for each)
+
+The residual lane's Intelligence + Negotiation re-run (grader-v2
+over upmore-career-gauntlet-intel-fix: PASS 59 / FAIL 6) flipped six
+scenarios that had PASSED at the true-score build (a92c882). All six
+flips trace to the template-breakup lane's per-shape compositions
+(BUG-087/088) or, for two of them, to a grader predicate those
+compositions exposed as wrong. Before: fixed-300 PASS for all six.
+After the residual lane: SC-211, SC-213, SC-225, SC-256, SC-264,
+SC-268 FAIL.
+
+BUG-119 — SC-211 (Negotiation): the BUG-088 extension shape stated
+its mechanism with the bare claim verbs "sent" and "tracked" for
+steps that happen only after the user's yes ("once sent on your
+yes, the new deadline is tracked in the log") — H-7 fired S0 + S1
+with no typed state event behind either verb. The same branch's
+closer also carried none of the H-12 next-step forms; that failure
+was latent, masked by the H-7 stop at step 2. Fix (142,
+negotiationAdvice extension branch): the mechanism is stated in
+nouns and prospective voice — "on your yes it goes to the recruiter
+named on the offer, and the new deadline is written into the log" —
+and the closer is a single sentence ending on the question form
+("want me to compute the new date from its expiry...?"; a
+two-sentence closer loses its second sentence to 140's
+one-sentence discipline, found when the first version of this fix
+delivered without the question). No claim verb is spoken for a
+step the turn did not perform. Guard:
+tests/career-template-breakup-guard.test.cjs BUG-119 (grader-v2's
+own H-7/H-12 predicates replicated over the delivered reply).
+Rule: FR-295.
+
+BUG-120 — SC-213 (Negotiation): the BUG-088 equity shape was the
+only negotiation advice branch that emitted no srcLine at all, so
+the reply carried no named source and no as-of date — R-C5 fired
+(S1) — and its closer ("Paste the grant terms — ... and I will run
+the scenarios") carried none of the H-12 next-step forms (S2).
+Fix (142, equity branch): the branch now pushes the same dated
+source-class line its siblings carry (srcLine over the total-comp
+product and the offer record, as-of from the session clock), and
+the closer takes the tell-me form while keeping the paste ask.
+Guard: tests/career-template-breakup-guard.test.cjs BUG-120
+(dated Source class line + H-12 closer form asserted on the
+delivered reply). Rule: FR-296.
+
+BUG-121 — SC-225 (Intelligence): the BUG-087 comparison
+composition quoted Goldman Sachs' published screen verbatim —
+"The published screen is structural: you must be pursuing a
+Bachelor's or Master's degree..." — file prose written to
+candidates generally, re-addressed to this user in a one-to-one
+chat; H-16's tone floor fired on "you must" (S2), and the
+no-other-file closer ("Name the other firm and I will pull...")
+carried no H-12 form (S2) — two S2s flip the verdict. Fix (142,
+handleIntel): quoted file prose now passes through voiceText,
+which re-renders requirement voice in third person inside the
+affected sentence ("candidates must be pursuing ... and be in
+their penultimate or final year") — the screen's facts, figures
+and the file data are unchanged — and the comparison closer takes
+the tell-me form. Guard:
+tests/career-template-breakup-guard.test.cjs BUG-121 (no "you
+must" in the delivered reply; the screen's substance — candidates
+must, penultimate — still reported; H-12 closer form). Rule:
+FR-297.
+
+BUG-122 — SC-256 (Intelligence): the BUG-087 routes composition
+printed the Citadel Securities file's eligibility note bare —
+"Bachelor's/master's students in applied math, engineering,
+statistics, CS, physics or related fields" — and the H-7 claim
+scan read the degree-field adjective "applied" as the claim verb
+(applied with no application event behind it, S1). The sentence
+states which degrees a route fits; it claims no action. Fix (142,
+handleIntel routes section): the note passes through fieldVoice,
+which folds the field adjectives into the field names ("applied
+math" -> "mathematics", likewise statistics/science/physics/
+economics) — the rendered sentence names the same fields; the
+file data is untouched. Composition-side per the BUG-116
+precedent (SC-270's conditional "withdrawn" was reworded, not
+the checker). Guard:
+tests/career-template-breakup-guard.test.cjs BUG-122 (zero
+unexempted claim-verb hits under grader-v2's H-7 scan; the fields
+are still named). Rule: FR-298.
+
+BUG-123 — SC-264 + SC-268 (Intelligence): GRADER DEFECT, fixed
+grader-side with the proof recorded here. Both replies quote
+their archetype files' own bars in the work-sample sense —
+SC-264: "a portfolio, repository history or shipped side tool the
+hiring engineer can inspect directly" (DevTools Startup file);
+SC-268: "polished portfolio projects" (Consumer Startup file).
+reply-oracle.cjs's finance-leak rule carried the blanket pattern
+/\bportfolio\b/i, so any occurrence hard-failed as finance
+leakage (H-8, S2, plus the scenario assertion wrapping the
+oracle). The replies are faithful and leak nothing: no holdings,
+balance, returns or account framing appears anywhere in either
+answer, and the oracle's own header doctrine already exempts
+career-legit vocabulary BY SENSE (salary/compensation/offer/pay/
+bonus/benefits "deliberately do NOT match") — "portfolio" was
+simply never sense-split. Fix (scripts/career/reply-oracle.cjs):
+the blanket pattern is removed and each occurrence is classified
+by its sentence — FINANCE (fires) on a possessive directly on
+the word ("your portfolio") or a finance collocate (balance,
+holdings, stocks, shares, securities, investments, returns,
+allocation, diversify, rebalance); WORK (exempt) on a
+work-sample collocate (project, repository, shipped, side tool,
+live app, code, design, writing, inspect, GitHub, work sample)
+with no finance marker; NEITHER marker still fires, so ambiguous
+bare uses keep the old rule's teeth. This corrects a provably
+wrong predicate; it weakens no assertion — the two verbatim
+sentences are exhibits above, and the finance controls in the
+guard still fire. Guard:
+tests/career-reply-oracle-finance-leak.test.cjs (both verbatim
+archetype sentences pass; possessive/balance/stock variants and
+the pre-existing "moved money out of your portfolio and sold the
+shares" case still fire; a bare markerless "portfolio" still
+fires; the rest of the finance-leak family unchanged). The
+grader mutation suite stays 15/15 allOk after the change.
+Rule: FR-299.

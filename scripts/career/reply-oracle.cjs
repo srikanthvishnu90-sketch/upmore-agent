@@ -127,9 +127,12 @@ const RULES = [
   {
     // Money-movement / finance vocabulary has no place in a CAREER reply —
     // its presence means a finance flow leaked into the career surface.
-    // Heuristic vocabulary list (charge/billing/subscription/portfolio/trade/
+    // Heuristic vocabulary list (charge/billing/subscription/trade/
     // dividend/balance family). Career-legit money words — salary,
     // compensation, offer, pay, bonus, benefits — deliberately do NOT match.
+    // "portfolio" is judged by sense, per occurrence (portfolioLeakIndex,
+    // BUG-123): the work-sample sense is career vocabulary; the
+    // holdings-account sense is a leak.
     rule: "finance-leak",
     find(text) {
       let best = null;
@@ -137,6 +140,8 @@ const RULES = [
         const m = re.exec(text);
         if (m && (best === null || m.index < best)) best = m.index;
       }
+      const p = portfolioLeakIndex(text);
+      if (p !== null && (best === null || p < best)) best = p;
       return best;
     },
   },
@@ -151,13 +156,50 @@ const FINANCE_PATTERNS = [
   /\bcharge[ds]?\b[^.]{0,30}\b(?:card|account)\b/i,
   /\bcharged your\b/i,
   /\bbilling\b/i,
-  /\bportfolio\b/i,
   /\bdividends?\b/i,
   /\bwire transfer\b/i,
   /\btrade[sd]?\b[^.]{0,20}\b(?:stocks?|shares?|securities|positions?|crypto)\b/i,
   /\b(?:buy|sell|buying|selling)\s+(?:the\s+|your\s+)?(?:stocks?|shares?|securities)\b/i,
   /\bstock trade\b/i,
 ];
+
+// BUG-123 (six-flip lane, 2026-10-14): "portfolio" left the blanket
+// pattern list above. The career product legitimately quotes hiring
+// bars that name a WORK portfolio — "a portfolio, repository history
+// or shipped side tool the hiring engineer can inspect directly"
+// (DevTools Startup archetype file), "polished portfolio projects"
+// (Consumer Startup archetype file). The blanket pattern hard-failed
+// both faithful quotes as finance leakage and flipped SC-264/SC-268
+// PASS -> FAIL in the residual lane's family re-run, while the rule's
+// own doctrine (above) already exempts career-legit vocabulary by
+// sense. Each occurrence is now classified by its own sentence:
+//   FINANCE (leak): a possessive directly on the word ("your
+//     portfolio", "my portfolio"), or a finance collocate in the
+//     sentence (balance, holdings, stocks, shares, securities,
+//     investments, returns, allocation, diversify, rebalance).
+//   WORK (exempt): a work-sample collocate in the sentence (project,
+//     repository, shipped, side tool, live app, code, design,
+//     writing, inspect, GitHub, work sample) and no finance marker.
+//   NEITHER marker: still a leak — the conservative default keeps
+//     the blanket rule's teeth for ambiguous uses.
+// Guard: tests/career-reply-oracle-finance-leak.test.cjs.
+const PORTFOLIO_FIN = /\b(balance|holdings?|stocks?|shares|securities|investments?|returns?|allocations?|diversif\w*|rebalanc\w*)\b/i;
+const PORTFOLIO_WORK = /\b(projects?|repositor\w*|shipped|side tools?|live app|code|coding|design|writing|inspect\w*|github|work samples?)\b/i;
+function portfolioLeakIndex(text) {
+  const t = String(text == null ? "" : text);
+  const re = /\bportfolio\b/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    const start = Math.max(t.lastIndexOf(".", m.index), t.lastIndexOf("!", m.index), t.lastIndexOf("?", m.index), t.lastIndexOf("\n", m.index)) + 1;
+    const ends = [t.indexOf(".", m.index), t.indexOf("!", m.index), t.indexOf("?", m.index), t.indexOf("\n", m.index)].filter((x) => x >= 0);
+    const end = ends.length ? Math.min(...ends) + 1 : t.length;
+    const sentence = t.slice(start, end);
+    if (/\b(?:your|my|his|her|their)\s+portfolio\b/i.test(sentence) || PORTFOLIO_FIN.test(sentence)) return m.index;
+    if (!PORTFOLIO_WORK.test(sentence)) return m.index; // ambiguous bare use: conservative fire
+    // work-sample sense with no finance marker: exempt — keep scanning
+  }
+  return null;
+}
 
 // --- false-completion -------------------------------------------------------
 // HARD FAIL: the agent claims a completed real-world action while the

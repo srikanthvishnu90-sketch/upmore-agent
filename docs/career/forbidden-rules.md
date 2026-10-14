@@ -1844,9 +1844,39 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-prep-completion.test.cjs SC-287 test + run-grand.cjs BUG-118 branch + prep/access re-run.
 - **STATUS:** ENFORCED
 
+### FR-295 — A conditional mechanism is never stated with a bare claim verb (BUG-119)
+- **FORBIDDEN:** Stating a step that happens only on the user's yes ("once sent...", "the deadline is tracked...") with a past-tense claim verb and no typed state event behind it; conditional mechanics are spoken in nouns and prospective voice (it goes out on your yes; the deadline is written into the log), and every closer is a single sentence carrying a next-step form (140 keeps one sentence — a second sentence is silently dropped).
+- **FROM:** Six-flip micro-fix lane 2026-10-14 — SC-211 flipped PASS -> FAIL (H-7 S0+S1) on the BUG-088 extension shape's own text; its H-12 closer failure was latent behind the H-7 stop.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-119 (grader-v2's H-7 scan + H-12 predicate replicated over the delivered SC-211 reply).
+- **STATUS:** ENFORCED
+
+### FR-296 — Every negotiation advice shape carries the dated grounding line and a next-step closer (BUG-120)
+- **FORBIDDEN:** A per-shape advice branch that emits no source-class line (the R-C5 floor: named source + as-of date) or whose closer carries none of the next-step forms; a new shape inherits both obligations from its sibling branches, never as an afterthought.
+- **FROM:** Six-flip micro-fix lane 2026-10-14 — SC-213 flipped PASS -> FAIL (R-C5 S1 + H-12 S2): the BUG-088 equity branch was the only advice shape with no srcLine.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-120 (dated "Source class: ..., checked as of" line + H-12 closer form on the delivered SC-213 reply).
+- **STATUS:** ENFORCED
+
+### FR-297 — Quoted file prose is re-voiced to third person, never re-addressed to the user (BUG-121)
+- **FORBIDDEN:** Printing a firm's published requirement verbatim in the second person ("you must be pursuing...") so the firm's screen reads as the product pressuring the user; quoted requirement voice is rendered as third-person reporting (candidates must...) with the file's facts and figures unchanged, and a comparison with no second file ends on a next-step closer.
+- **FROM:** Six-flip micro-fix lane 2026-10-14 — SC-225 flipped PASS -> FAIL (H-16 S2 + H-12 S2) on the BUG-087 comparison composition's verbatim Goldman screen quote.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-121 (no "you must" in the delivered SC-225 reply; the screen's substance still reported; H-12 closer form).
+- **STATUS:** ENFORCED
+
+### FR-298 — Eligibility prose names degree fields without the bare claim token (BUG-122)
+- **FORBIDDEN:** Printing a route's eligibility note so a degree-field adjective stands as a bare claim-verb token ("students in applied math...") with no action claimed and no state behind it; the composition folds field adjectives into the field names (applied mathematics is mathematics) and the file data stays untouched.
+- **FROM:** Six-flip micro-fix lane 2026-10-14 — SC-256 flipped PASS -> FAIL (H-7 S1 "applied") on the BUG-087 routes composition's bare quote of the Citadel Securities note.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-122 (zero unexempted hits under grader-v2's H-7 scan on the delivered SC-256 reply; the fields still named).
+- **STATUS:** ENFORCED
+
+### FR-299 — The reply oracle judges "portfolio" by sense, never by blanket pattern (BUG-123)
+- **FORBIDDEN:** Hard-failing every occurrence of a dual-sense word as leakage; in the finance-leak rule, "portfolio" fires only in its holdings-account sense (a possessive directly on the word, or a finance collocate in the sentence — balance, holdings, stocks, shares, securities, investments, returns, allocation, diversify, rebalance) and on markerless ambiguous uses, and never on a provable work-sample collocation (project, repository, shipped, side tool, live app, code, design, writing, inspect, GitHub, work sample).
+- **FROM:** Six-flip micro-fix lane 2026-10-14 — SC-264/SC-268 flipped PASS -> FAIL (H-8) on faithful quotes of their archetype files' bars ("a portfolio, repository history or shipped side tool the hiring engineer can inspect"; "polished portfolio projects"); grader defect, corrected with the proof recorded in BUG-123.
+- **ENFORCEMENT:** tests/career-reply-oracle-finance-leak.test.cjs (both verbatim archetype sentences pass; finance-sense and bare uses still fire; family otherwise unchanged) + grader-v2 mutation suite 15/15 after the change.
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 201 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 294
+Counts: ENFORCED 206 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 299
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2144,5 +2174,10 @@ Counts: ENFORCED 201 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-292 (BUG-116) | ENFORCED | tests/career-intel-completion.test.cjs SC-269/SC-270 tests |
 | FR-293 (BUG-117) | ENFORCED | tests/career-prep-completion.test.cjs (6 tests) + run-grand BUG-117 branches |
 | FR-294 (BUG-118) | ENFORCED | tests/career-prep-completion.test.cjs SC-287 test + run-grand BUG-118 branch |
+| FR-295 (BUG-119) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-119 |
+| FR-296 (BUG-120) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-120 |
+| FR-297 (BUG-121) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-121 |
+| FR-298 (BUG-122) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-122 |
+| FR-299 (BUG-123) | ENFORCED | tests/career-reply-oracle-finance-leak.test.cjs + grader-v2 mutation suite |
 
-<!-- totals: total=294 enforced=201 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=299 enforced=206 guarded_red=1 hard_shut=1 unenforced=91 -->

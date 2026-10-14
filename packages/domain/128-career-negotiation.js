@@ -131,18 +131,18 @@ const CareerNegotiation = (() => {
     // without the date does not meet the standard. When no CIR is on
     // record, no date is invented: the text says the file is missing.
     const text = !cir
-      ? "No company file (CIR compensation notes) is on record for this company yet, so no benchmark figure is claimed. Name the company and its file can be pulled before any range is quoted."
+      ? "No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed. Name the company and its file can be pulled before any range is quoted."
       : figures.length
-        ? `Benchmark figures come from the company file (this company's CIR compensation notes)${asOf ? `, as of ${asOf}` : ""}. ${figures.length} sourced figure(s) follow, each with its source URL, source type, and as-of date; any figure the notes mark as reported is labeled reported, not measured.`
-        : `No benchmark figure is claimed from the company file (this company's CIR compensation notes)${asOf ? `, as of ${asOf}` : ""}. The notes publish no compensation figure, and no third-party salary-site number is substituted as a fact.`;
+        ? `Benchmark figures come from the company file (this company's company-file compensation notes)${asOf ? `, as of ${asOf}` : ""}. ${figures.length} sourced figure(s) follow, each with its source URL, source type, and as-of date; any figure the notes mark as reported is labeled reported, not measured.`
+        : `No benchmark figure is claimed from the company file (this company's company-file compensation notes)${asOf ? `, as of ${asOf}` : ""}. The notes publish no compensation figure, and no third-party salary-site number is substituted as a fact.`;
     return {
       company: cir ? cir.company_name : null, company_id: cir ? cir.company_id : null,
       role: opts.role || null, as_of: asOf,
       figures, no_figure_notes: noFigure, excluded_period_figures: excludedPeriod || [],
       has_sourced_figure: figures.length > 0,
       text,
-      statement: figures.length ? `${figures.length} sourced figure(s) from this company's CIR comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}) — each figure below carries its source and date.`
-        : `No sourced compensation figure exists in this company's CIR comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}). No benchmark number is claimed — do not substitute third-party salary-site figures as facts.`,
+      statement: figures.length ? `${figures.length} sourced figure(s) from this company's company-file comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}) — each figure below carries its source and date.`
+        : `No sourced compensation figure exists in this company's company-file comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}). No benchmark number is claimed — do not substitute third-party salary-site figures as facts.`,
       disclaimer: DISCLAIMER,
     };
   }

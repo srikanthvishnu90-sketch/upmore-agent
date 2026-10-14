@@ -95,6 +95,11 @@ const CareerRouter = (() => {
     });
   }
   const nowOf = (ctx) => { const n = ctx && ctx.now; const ms = n == null ? Date.now() : (typeof n === "number" ? n : Date.parse(n)); return Number.isFinite(ms) ? ms : Date.now(); };
+  // BUG-074 (W5 class E): as-of lines are DERIVED from the turn's own
+  // clock, never a hard-coded month — a literal "as of October 2026"
+  // stamped by a template is a date claim no product data made.
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const asOfMonthYear = (ctx) => { const d = new Date(nowOf(ctx || {})); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
 
   // ---------- pure-JS sha256 (no deps, so the module stays bundle-safe) ----------
   function sha256(ascii) {
@@ -328,15 +333,11 @@ const CareerRouter = (() => {
   // nor a recognized next-step marker, close with the invitation —
   // better one plain closing line than a reply that trails off.
   function ensureNextStepText(joined) {
-    // Composer fix §1a (2026-10-14): the grader tests only the LAST
-    // delivered bubble, and delivery regroups sentences 3-per-bubble
-    // — so the predicate must test the last SENTENCE of the joined
-    // text, not the whole reply. A "tell me" early in the reply used
-    // to suppress the append while the reply still ended bare.
-    const sentences = joined.split(/(?<=[.!?])\s+|\n+/);
-    const lastSentence = sentences[sentences.length - 1] || "";
-    if (/\?/.test(lastSentence) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(lastSentence) || /\[Yes\]/.test(lastSentence)) return joined;
-    return joined.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
+    // BUG-080: the ending rule lives ONCE in 140 (CareerReply.ensureNextStep).
+    // A specific next step (handler nextStep / closing question / task-specific
+    // imperative) is never stamped over with the generic closer; the generic
+    // is appended only when the reply carries no next step at all.
+    return Reply.ensureNextStep(joined);
   }
   function compose(result) {
     if (!Reply) return result.reply || "";
@@ -465,7 +466,7 @@ const CareerRouter = (() => {
       // (the proof) — it is never spoken. The composer (140) also strips
       // any digest that reaches it, so this can never leak again.
       rendered.pdf != null ? `Saved as PDF and DOCX files, attached for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.` : "Saved as a rendered text artifact.",
-      "Grounded in your own profile record and the posting's own text, as of October 2026.",
+      `Grounded in your own profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`,
     ];
     const reply = compose({ headline: `Your resume is tailored for ${titleLine}.`, facts, nextStep: "Review the artifact, and I can prepare the full application packet next." });
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
@@ -1019,7 +1020,7 @@ const CareerRouter = (() => {
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
-    if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", "Grounded in your own confirmed profile facts, as of October 2026 — the real fast path is built from those, and only those.");
+    if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", `Grounded in your own confirmed profile facts, as of ${asOfMonthYear(ctx)} — the real fast path is built from those, and only those.`);
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
     const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
     return { intent: "intent_refusal", reply, resultStatus: "blocked", sends: 0 };
@@ -1058,7 +1059,7 @@ const CareerRouter = (() => {
     const r = OS.returnOfferPlaybook({ cir: ctx.cir || cirFor(text, ctx) || null, offer: ctx.offer || null });
     const firstSentence = (x) => s(x).split(/(?<=[.!?])\s/)[0];
     const facts = (r.steps || []).slice(0, 3).map((st) => firstSentence(`${st.action} — ${st.why}`));
-    facts.push("Grounded in your own internship log and the company file's sourced notes, as of October 2026.");
+    facts.push(`Grounded in your own internship log and the company file's sourced notes, as of ${asOfMonthYear(ctx)}.`);
     const reply = compose({ headline: "Your return-offer playbook — before, during, and after.", facts, nextStep: "Name the firm and I will pin the playbook to its bar and its timeline." });
     return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0, playbook: r };
   }
@@ -1430,7 +1431,7 @@ const CareerRouter = (() => {
     const culture = cirFieldText(cir.culture_notes);
     if (culture) facts.push(`Culture: ${culture.split(/(?<=[.!?])\s/)[0]}`);
     if (!facts.length) facts.push("The file is thin right now — status and sourcing only, no invented detail.");
-    facts.push(`Source: the ${name} company file (public sources), as of ${cir.as_of || "October 2026"}.`);
+    facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
     const reply = compose({ headline: `Here is what the ${name} file supports.`, facts, nextStep: "Want the interview process or the comp detail next?" });
     return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name };
   }
@@ -1509,7 +1510,14 @@ const CareerRouter = (() => {
     // plainly that no file exists — never a hard-coded as-of line.
     let bench = null;
     try { bench = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cir, {}) : null; } catch { bench = null; }
-    const benchSentence = bench && bench.text ? s(bench.text).split(/(?<=[.!?])\s/)[0] : "No company file (CIR compensation notes) is on record for this company yet, so no benchmark figure is claimed.";
+    // BUG-074 (W5 class E): when no company file exists there is no
+    // as-of to quote from it — the reply instead names the source
+    // class and the date the files on hand were checked (the turn's
+    // own clock), so the R-C5 line is real product data, not a bare
+    // template stamp.
+    const benchSentence = bench && bench.text
+      ? (bench.as_of ? s(bench.text).split(/(?<=[.!?])\s/)[0] : `${s(bench.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`)
+      : `No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`;
     if (offerText && Negotiation && Negotiation.parseOffer) {
       try {
         const offer = Negotiation.parseOffer(offerText, {});
@@ -1519,7 +1527,11 @@ const CareerRouter = (() => {
         if (strat && strat.text) facts.push(s(strat.text).split(/(?<=[.!?])\s/)[0]);
         if (!facts.length) facts.push(benchSentence);
         const reply = compose({ headline: "Your offer, parsed and benchmarked — here is the counter plan.", facts, nextStep: "Approve the counter shape and I will draft the exact reply for your review." });
-        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench };
+        // BUG-071 (W5 class B): the parsed offer record rides UNDER
+        // payload — the keys the F6 validator reads (base_salary,
+        // signing_bonus, start_date, expiry_date, equity, benefits,
+        // missing) — not only at top level beside strategy/bench.
+        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench, payload: offer };
       } catch { /* fall through to the advice answer */ }
     }
     // IB-TN-6 (SC-208): script-shaped counter asks get 128's scripts
@@ -1532,11 +1544,14 @@ const CareerRouter = (() => {
         if (bench && bench.text) facts.push(s(bench.text).split(/(?<=[.!?])\s/)[0]);
         if (strat && strat.text) facts.push(s(strat.text).split(/(?<=[.!?])\s/)[0]);
         const reply = compose({ headline: "Your counter scripts — email and call versions, word for word, held on the card.", facts, nextStep: "Approve the card and the email version is ready to send from your account — nothing moves before your yes." });
-        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench };
+        // BUG-071: the offer record rides under payload (F6 keys).
+        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench, payload: offer };
       } catch { /* fall through to the advice answer */ }
     }
     const reply = compose({ headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts: ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence], nextStep: "Paste the offer letter and I will parse it line by line before you answer." });
-    return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0, bench };
+    // BUG-071: the benchmark product rides under payload on the
+    // advice path too — its text/statement is the cited record.
+    return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0, bench, payload: bench };
   }
 
   // IB-TN-9: roleplay asks belong to 128's roleplay engine, not mock
@@ -1549,10 +1564,14 @@ const CareerRouter = (() => {
     if (!st) return null;
     profile._careerRoleplay = st;
     // IB-TN-9 Patch 2: the sourcing line comes from 128's benchmark
-    // product, never a hard-coded as-of.
-    let benchSentence = "Grounded in the negotiation method; no company file is on record for this company yet, so no benchmark figure is claimed.";
-    try { const b = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cirFor(text, ctx) || null, {}) : null; if (b && b.text) benchSentence = s(b.text).split(/(?<=[.!?])\s/)[0]; } catch { /* keep the no-file sentence */ }
-    const facts = ["Roleplay: I am playing the recruiter — answer as you would on the real call, and the round is scored when it closes.", benchSentence];
+    // product, never a hard-coded as-of. BUG-074: the no-file case
+    // names the source class + the check date from the turn's clock.
+    let benchSentence = `Grounded in the negotiation method; no company file is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`;
+    try { const b = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cirFor(text, ctx) || null, {}) : null; if (b && b.text) benchSentence = b.as_of ? s(b.text).split(/(?<=[.!?])\s/)[0] : `${s(b.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`; } catch { /* keep the no-file sentence */ }
+    // BUG-080 ordering: the sourced line precedes the roleplay
+    // instruction, whose closing sentence is this reply's specific
+    // ending — the generic closer must never stamp over it.
+    const facts = [benchSentence, "Roleplay: I am playing the recruiter — answer as you would on the real call, and the round is scored when it closes."];
     if (st.feedback) facts.push(st.feedback.split(/(?<=[.!?])\s/)[0]);
     const reply = compose({ headline: st.recruiter || "Tell me more — what would make this an easy yes for you?", facts });
     return { intent: "negotiation_roleplay", reply, resultStatus: st.done ? "completed" : "running", sends: 0, roleplay: { turn: st.turn, done: !!st.done } };
@@ -1574,7 +1593,7 @@ const CareerRouter = (() => {
     const profile = ctx.profile || {};
     let store = ctx.osStore || null;
     if (!store && OS.createStore) { try { store = OS.createStore((profile.basics && profile.basics.name) || "you"); ctx.osStore = store; } catch { store = null; } }
-    const sourceLine = "Grounded in your own log and record, as of October 2026.";
+    const sourceLine = `Grounded in your own log and record, as of ${asOfMonthYear(ctx)}.`;
     try {
       if (/\bwins? log\b|\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && OS.logWin && store) {
         OS.logWin(store, { text: s(text).replace(/.*(log a win|wins? log)[:\s]*/i, "") || "a win you named", at: new Date(nowOf(ctx)).toISOString() });
@@ -1742,7 +1761,7 @@ const CareerRouter = (() => {
   function handleIntelGuidance(text, ctx) {
     const cir = cirFor(text, ctx);
     const profile = ctx.profile || {};
-    const sourceLine = "Grounded in the company files and their population data, as of October 2026.";
+    const sourceLine = cir ? `Grounded in the company files and their population data, as of ${cir.as_of || asOfMonthYear(ctx)}.` : `Grounded in the company files and their population data on hand, checked as of ${asOfMonthYear(ctx)}.`;
     if (Guidance && Guidance.answerGuidance) {
       const g = guidanceIntentFor(lc(text));
       if (g) {
@@ -1935,7 +1954,7 @@ const CareerRouter = (() => {
     const facts = rows.length
       ? rows.map((r) => `${r.title || "Application"} at ${r.company}: stage ${r.stage || "unknown"} (not a portal guess), dated ${r.applied_at || "date not on record"} — ${r.cross_check}${r.inbox_proof && r.inbox_proof.length ? ` (proof: ${r.inbox_proof.map((p) => p.msg_id).join(", ")})` : ""}.`)
       : [`No application to ${company} is on your record in this session, and no inbox message references one — the honest status is: nothing logged, nothing hidden.`, "Log it and the status is spoken from the record plus the inbox proof from then on."];
-    facts.push("Grounded in your own application log and inbox record, as of October 2026.");
+    facts.push(`Grounded in your own application log and inbox record, as of ${asOfMonthYear(ctx)}.`);
     const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: "Want the full timeline for it, or another company's status?" });
     return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, status_rows: rows };
   }
@@ -2323,7 +2342,7 @@ const CareerRouter = (() => {
     const facts = [];
     if (state.role) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
     facts.push("One question at a time — answer in your own words and I will score it against a rubric.");
-    facts.push("Grounded in your own profile record and public interview-pattern data, as of October 2026.");
+    facts.push(`Grounded in your own profile record and public interview-pattern data, as of ${asOfMonthYear(ctx)}.`);
     const reply = compose({ headline: state.currentQ, facts });
     return { intent: "prep_mock_start", reply, resultStatus: "running", mock: { id: state.mockId, question: state.currentQ, role: state.role } };
   }
@@ -3165,14 +3184,25 @@ const CareerRouter = (() => {
     // intel-shaped; guidance shapes go to the thesis/path machinery.
     {
       if (/\bgoes stale\b|\bstale\b[^.]*\bfile\b/.test(t)) {
-        const reply = compose({ headline: "Stale files get labeled, never silently served.", facts: ["A company file whose hiring status is over 90 days old is re-verified against current public postings before it answers anything; until then it is labeled stale, with the date it was last verified.", "Source class: the company's own careers page and public postings, as of October 2026."], nextStep: "Name the company and I will re-verify its file now." });
-        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0 };
+        const reply = compose({ headline: "Stale files get labeled, never silently served.", facts: ["A company file whose hiring status is over 90 days old is re-verified against current public postings before it answers anything; until then it is labeled stale, with the date it was last verified.", `Source class: the company's own careers page and public postings, checked as of ${asOfMonthYear(c)}.`], nextStep: "Name the company and I will re-verify its file now." });
+        // BUG-074: the turn carries 125's refresh record for the
+        // named company's file — or a typed blocker when no company
+        // (hence no file) is named — never a bare template result.
+        const staleCir = cirFor(text, c);
+        let refresh = null;
+        try { refresh = staleCir && Intel && Intel.refreshDue ? Intel.refreshDue(staleCir, new Date(nowOf(c)).toISOString().slice(0, 10)) : null; } catch { refresh = null; }
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, refresh: refresh || undefined, payload: refresh || staleCir || undefined, blocker: refresh ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this ask, so no refresh record can be computed" } };
       }
       if (/\badvice\b[^.]*\b(wrong|outdated)\b|\breport a piece of advice\b/.test(t)) {
         // IB-F5F7-5: flagged is the only state this turn creates —
         // the headline and the outcome stay in the future tense.
-        const reply = compose({ headline: "Flagged for re-verification — thank you for catching it.", facts: ["The claim will be checked against its labeled sources; if it does not hold, the company file would be corrected or the advice withdrawn, and the case would join the eval set so the same error is caught automatically next time.", "Source class: the file's own labeled public sources, as of October 2026."], nextStep: "Tell me which claim it was and I will re-verify it now." });
-        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0 };
+        const reply = compose({ headline: "Flagged for re-verification — thank you for catching it.", facts: ["The claim will be checked against its labeled sources; if it does not hold, the company file would be corrected or the advice withdrawn, and the case would join the eval set so the same error is caught automatically next time.", `Source class: the file's own labeled public sources, checked as of ${asOfMonthYear(c)}.`], nextStep: "Tell me which claim it was and I will re-verify it now." });
+        // BUG-074: 125's reportOutdated log record rides the result
+        // when a company file is named; otherwise a typed blocker.
+        const flagCir = cirFor(text, c);
+        let report = null;
+        try { report = flagCir && Intel && Intel.reportOutdated ? Intel.reportOutdated(flagCir, s(text), new Date(nowOf(c)).toISOString().slice(0, 10)) : null; } catch { report = null; }
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, report: report || undefined, payload: report || flagCir || undefined, blocker: report ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this report, so no re-verification log can be opened" } };
       }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;

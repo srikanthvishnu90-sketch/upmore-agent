@@ -227,7 +227,7 @@ const CareerTailor = (() => {
     swe: [/\bsoftware engineer/, /\bback[- ]?end/, /\bfront[- ]?end/, /\bfull[- ]?stack/, /\bapi\b/, /\bdeployment/, /\bkubernetes/, /\breact\b/, /\bangular\b/, /\bjava\b/, /\btypescript/, /\bnode\.?js/, /\bsoftware development/],
   };
   const FAMILY_PRIORITY = ["medicine", "law", "real_estate", "consulting", "ib_finance", "quant", "pm", "data_ml", "design", "swe"];
-  const CONSULTING_FIRMS = /\b(capco|pariveda|mckinsey|bain & company|bain\b|boston consulting|bcg\b|accenture|deloitte|kpmg|pwc\b|oliver wyman|kearney|roland berger|strategy&)\b/;
+  const CONSULTING_FIRMS = /\b(capco|pariveda|mckinsey|bain & company|boston consulting|bcg\b|accenture|deloitte|kpmg|pwc\b|oliver wyman|kearney|roland berger|strategy&)\b/;
   function detectFamily(text) {
     const raw = String(text || "");
     const signal = jdSegments(raw).filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate").map((sg) => sg.text).join(" ");
@@ -239,10 +239,17 @@ const CareerTailor = (() => {
       for (const re of patterns) { if (re.test(t)) sc += 1; if (re.test(head)) sc += 1; }
       scores[fam] = sc;
     }
-    // Firm identity: a named consultancy + any consulting signal is the
-    // firm's own declaration — it outvotes practice-area tokens (a Capco
-    // BA's "wealth & asset management practice" is a practice, not the job).
-    if (scores.consulting > 0 && CONSULTING_FIRMS.test(t)) scores.consulting += 3;
+    // Firm identity: a named consultancy + any consulting signal ANYWHERE
+    // in the document is the firm's own declaration — it outvotes
+    // practice-area tokens (a Capco BA's "wealth & asset management
+    // practice" is a practice, not the job). The identity check reads the
+    // full text on purpose: a consultancy often declares itself only in a
+    // Why-Join/About segment ("entrepreneurial consulting culture"), which
+    // the segment filter correctly excludes from SKILL signal but which is
+    // still the employer's identity.
+    const full = raw.toLowerCase();
+    const fullConsulting = FAMILY_PATTERNS.consulting.filter((re) => re.test(full)).length;
+    if (fullConsulting > 0 && CONSULTING_FIRMS.test(full)) scores.consulting = Math.max(scores.consulting, fullConsulting) + 3;
     let best = "general", bestScore = 0;
     for (const fam of FAMILY_PRIORITY) if (scores[fam] > bestScore) { best = fam; bestScore = scores[fam]; }
     return bestScore > 0 ? best : "general";
@@ -296,10 +303,43 @@ const CareerTailor = (() => {
     return rows.sort((a, b) => (wanted.includes(b.name) - wanted.includes(a.name)));
   }
 
+  // BUG-058 (FV-11/SS-12): the consulting X-by-Y-Z template concatenated the
+  // fact's action/method/result fields raw — but those fields are verb
+  // phrases ("built a …", "prepared 10 pages …"), producing ungrammatical
+  // bullets ("Accomplished built … resulting in prepared …") on the very
+  // documents where a typo is a named rejection trigger; the correctly
+  // classified consulting run was the worst hit (5/5 bullets mangled).
+  // The template now CONJUGATES: action and result are converted to gerund
+  // form ("Accomplished — building … by modelling …, resulting in
+  // preparing …"), and when a field cannot be conjugated safely (unknown
+  // verb shape, passive "used by …" results) the style layer falls back to
+  // the fact's own polished bullet — it may never ship a bullet less
+  // grammatical than its source.
+  const GERUND_IRREGULAR = { built: "building", led: "leading", ran: "running", made: "making", took: "taking", wrote: "writing", drove: "driving", grew: "growing", taught: "teaching", sold: "selling", won: "winning", held: "holding", oversaw: "overseeing", brought: "bringing", began: "beginning", spent: "spending", sent: "sending", met: "meeting", set: "setting", cut: "cutting", put: "putting", hit: "hitting", chose: "choosing", spoke: "speaking" };
+  function gerundOf(word) {
+    const w = String(word || "").toLowerCase();
+    if (!w) return null;
+    if (/ing$/.test(w)) return w;
+    if (GERUND_IRREGULAR[w]) return GERUND_IRREGULAR[w];
+    if (/ied$/.test(w)) return `${w.slice(0, -3)}ying`;
+    if (/eed$/.test(w)) return `${w.slice(0, -1)}ing`;
+    if (/ed$/.test(w)) return `${w.slice(0, -2)}ing`;
+    return null; // not a past-tense verb shape we can conjugate safely
+  }
+  function gerundPhrase(phrase) {
+    const p = String(phrase || "").trim();
+    if (!p || /^(used|adopted) by\b/i.test(p)) return null; // passive results do not gerund ("using by 12 teams")
+    const words = p.split(/\s+/);
+    const g = gerundOf(words[0]);
+    if (!g) return null;
+    words[0] = g;
+    return words.join(" ");
+  }
   function bulletFor(fact, family) {
     const fam = FAMILIES[family] || FAMILIES.swe;
     if (fam.bulletStyle === "accomplished-x-by-y-z" && fact.action && fact.method && fact.result) {
-      return { text: `Accomplished ${fact.action} by ${fact.method}, resulting in ${fact.result}`, factIds: [fact.id] };
+      const a = gerundPhrase(fact.action), r = gerundPhrase(fact.result);
+      if (a && r) return { text: `Accomplished — ${a} by ${fact.method}, resulting in ${r}`, factIds: [fact.id] };
     }
     const base = (fact.bullets && fact.bullets[0]) || fact.text;
     return { text: base, factIds: [fact.id] };

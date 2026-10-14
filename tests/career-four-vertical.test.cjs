@@ -141,6 +141,16 @@ test("FV-10: 123 skill lexicon sees healthcare/legal requirements — credential
   assert.ok(ma.some((s) => /medical assistant|patient care/i.test(s)), `medical-assistant posting produced no clinical must-have: [${ma.join(", ")}]`);
 });
 
+test("FV-11: 123 bullet styles must not mangle a fact's polished bullets into broken template grammar", () => {
+  const { profile } = persona("test-persona.json");
+  const r = Tailor.tailorResume(profile, jdText("greenhouse-robinhood-8198142.json"), { jobId: "FV-11", date: "2026-10-13" });
+  assert.equal(r.ok, true);
+  assert.ok(!/^Accomplished [a-z]/m.test(r.rendered.text),
+    `consulting X-by-Y-Z style produced ungrammatical bullets: ${(r.rendered.text.match(/^Accomplished [a-z].*$/m) || [""])[0]}`);
+  assert.ok(!/resulting in [a-z]+ed \d/.test(r.rendered.text) || /resulting in (prepared|cut|ran)/.test(r.rendered.text) === false,
+    "template 'resulting in' clause garbled the fact's result text");
+});
+
 /* ---------------- GUARDS (green on 2026-10-13 tree — must stay green) ---------------- */
 
 test("FV-G1: truth audit holds in regulated fields — a tailored resume never upgrades a credential the persona does not hold", () => {

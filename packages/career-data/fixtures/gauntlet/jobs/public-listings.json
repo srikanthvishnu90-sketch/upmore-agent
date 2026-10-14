@@ -7,7 +7,7 @@
     "lever",
     "smartrecruiters"
   ],
-  "listings_count": 14,
+  "listings_count": 17,
   "lever_note": "Lever IS represented, but only by leverdemo, the sole live Lever board in the registry (a demo board \u2014 flagged per-listing). No real-employer Lever board is in the registry; Netflix/Ramp Lever are dead (see blocked_coverage). The 3-family minimum is met without Lever via greenhouse + ashby + smartrecruiters.",
   "listings": [
     {
@@ -54,6 +54,20 @@
     },
     {
       "ats_family": "greenhouse",
+      "company": "Stripe",
+      "board": "stripe",
+      "posting_id": "8128745",
+      "title": "Software Engineer, Intern (Summer or Winter)",
+      "location": "San Francisco, Seattle, New York City",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/8128745?content=true",
+      "retrieved_at": "2026-10-13T20:59:15.177284-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-stripe-8128745.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
       "company": "Datadog",
       "board": "datadog",
       "posting_id": "8181440",
@@ -82,6 +96,20 @@
     },
     {
       "ats_family": "greenhouse",
+      "company": "Datadog",
+      "board": "datadog",
+      "posting_id": "3851927",
+      "title": "Senior Software Engineer - Distributed Systems",
+      "location": "Boston, Massachusetts, USA; New York, New York, USA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/3851927?content=true",
+      "retrieved_at": "2026-10-13T20:59:16.177284-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-datadog-3851927.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
       "company": "Jane Street",
       "board": "janestreet",
       "posting_id": "8786447002",
@@ -106,6 +134,20 @@
       "timezone": "America/Chicago",
       "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
       "snapshot_file": "public-snapshots/greenhouse-janestreet-8786398002.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Jane Street",
+      "board": "janestreet",
+      "posting_id": "8573523002",
+      "title": "Quantitative Trader",
+      "location": "New York, New York, United States",
+      "url": "https://boards-api.greenhouse.io/v1/boards/janestreet/jobs/8573523002?content=true",
+      "retrieved_at": "2026-10-13T20:59:17.177284-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-janestreet-8573523002.json",
       "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
     },
     {

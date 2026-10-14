@@ -1,0 +1,59 @@
+{
+  "pipeline": [
+    {
+      "seq": 1,
+      "action": "classify_target",
+      "url": "https://jobs.lever.co/leverdemo-8/ae8bc3d9-37e2-44aa-b18a-256f74c1b9fe/apply",
+      "kind": "employer_ats",
+      "code": null
+    },
+    {
+      "seq": 2,
+      "action": "open",
+      "host": "jobs.lever.co"
+    },
+    {
+      "seq": 3,
+      "action": "captcha_stop",
+      "at": "open"
+    }
+  ],
+  "driver": [
+    {
+      "seq": 1,
+      "action": "open",
+      "url": "https://jobs.lever.co/leverdemo-8/ae8bc3d9-37e2-44aa-b18a-256f74c1b9fe/apply",
+      "finalUrl": "https://jobs.lever.co/leverdemo-8/ae8bc3d9-37e2-44aa-b18a-256f74c1b9fe/apply",
+      "fieldCount": 0,
+      "captchaTech": [
+        "hcaptcha",
+        "hcaptcha-widget"
+      ],
+      "navSteps": [
+        "goto:https://jobs.lever.co/leverdemo-8/ae8bc3d9-37e2-44aa-b18a-256f74c1b9fe/apply"
+      ]
+    },
+    {
+      "seq": 2,
+      "action": "captcha_detected",
+      "at": "open"
+    },
+    {
+      "seq": 3,
+      "action": "screenshot",
+      "path": "/home/hatch/workspace/.seam-tmp/upmore-portal-seam-a075K0/captcha-bb-1-open.png"
+    },
+    {
+      "seq": 4,
+      "action": "captcha_screenshot",
+      "at": "open",
+      "screenshot_ref": "/home/hatch/workspace/.seam-tmp/upmore-portal-seam-a075K0/captcha-bb-1-open.png"
+    },
+    {
+      "seq": 5,
+      "action": "screenshot",
+      "path": "/home/hatch/workspace/upmore-career/docs/career/evidence/portal-doorstep/lever/doorstep.png"
+    }
+  ],
+  "formAnalysis": []
+}

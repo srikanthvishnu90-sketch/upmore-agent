@@ -2547,3 +2547,126 @@ Bundle note: this wave changed no domain module, so no bundle rebuild is owed by
 ## Track + Negotiation wave — grader outcome (fresh re-grade @ e023f4a)
 
 Independent grader, clean `git archive` export of `e023f4a`, records in `~/workspace/your_files/upmore-career-gauntlet-trackneg-rerun` (baseline dir untouched), rescore mirroring the official Appendix A command. **Chat-path verdicts: Track 0/25 → 0/25, Negotiation 0/15 → 0/15 (40 FAIL → 40 FAIL)** — every remaining failure is the un-landed 142 integration (IB-TN-1..10) or 142-owned reply copy. Real movement underneath: **S0 count 4 → 0** (SC-121/134/139/140 'sent' claim gone; those four now surface their underlying H-12/A4 instead), Track H-12 6 → 10 (pipeline no longer stops at the S0s), SC-122/123/124/126/127/138 now return real `tracking_log` results with correct stage replies (doorstep payload still absent — 142 never calls the generalized emitTrackingLog). **SC-300 re-confirmed PASS post-fix** (raw + rescore, S0/S1/S2 all 0). Suites, baseline (ce0e037) vs post-fix: killswitch-ra4 6/6 → 6/6 (the fixer's in-tree 5/6 was the parallel lane's dirty 124 file; clean export is 6/6 both ways — the IB-TN pre-existing-failure note above is superseded by this), track 19/19, track-d1 8/8, negotiation 13/13, portal-apply 14/14, spec-gates 23/0/5, deep-dive starter **36/36 PASS, 0 UNSAFE** both runs (all five proven-unsafe classes: AP23 stale payload, AP20 duplicate, AP22 missing receipt, AP08 job-closed, AP18/AP17 cancel). No regressions anywhere. One nuance for the integrator beyond IB-TN-1: **SC-129's 141 doorstep record completes** (driven_by agent, gap null, full proof) **yet A4 still fails** — the typed result's completion eligibility is decided on the 142/run-grand side, so wiring emitTrackingLog calls alone may not clear A4 for tracking_log turns; check the completion-condition mapping when landing IB-TN-1.
+
+## WAVE: Outreach + Referrals (2026-10-14) — verdicts + INTEGRATOR BRIEFS IB-1/IB-2/IB-3
+
+Scope: Outreach SC-004,005,006,010,013–060 + Referrals SC-146–175 (82). Prep/defects:
+`docs/career/wave-outreach-referrals-defects-2026-10-14.md`. Grade report (full 82-row table +
+every still-FAIL verbatim reply): `docs/career/wave-outreach-referrals-grade-2026-10-14.md`;
+evidence: `~/workspace/your_files/upmore-career-gauntlet-wave-outreach`.
+
+**Verdicts (grader-v2 rescore of a fresh run; baseline = c72a3cc rescore): PASS 1 (SC-032,
+reply byte-identical) / FAIL 81 / NI 0 / BLOCKED 0 — zero verdict changes, zero regressions.**
+Finding movement on the combined tree: S0 5→0 (H-7 cleared SC-040 ×2, SC-047, SC-151, SC-168);
+S2 65→1 (H-12 cleared in 64 carriers; SC-038's H-14 remains); REFUSAL_NO_ALTERNATIVE 5→4
+(SC-035 cleared); SC-019 H-3 cleared. **Unmoved: STATE_doorstep_gap in 81/81 FAILs and the A4
+completion condition in 80** — the chat path still produces no doorstep artifact for this
+family. That is D1 below; it is the family's binding constraint.
+
+**Fixed in-lane this wave** (fail-first suite `tests/career-outreach-referrals-wave.test.cjs`,
+8/8 red → 8/8 green; ALL UNCOMMITTED — see commit note): (1) 146 intake→graph handoff —
+`baseRecord`/resolution loop now syncs `work_email/source_list/at_company/employment_status`;
+a departed person was previously returned by findPaths as a LIVE warm path. (2) 124
+`normalizeCandidate` dropped the `email`/`sources` dialect — drafts addressed to null;
+fixed, both dialects work. (3) 124 `parseTarget` — designer role + "LA"→Los Angeles added
+(SC-019 root). (4) 124 `applyListOps` school filter exact-match silently emptied lists
+("only DePaul people" removed 28/28 DePaul University) — containment match now.
+(5) 124 refusal copy at home (`suppressedRefusal`, `refuseRaiseCap`) given the alternative
+shape; cap values unchanged. (6) 147 flags relative dates in supplied facts (absolute-date law).
+
+**IB-1 (142 → 141/124 wiring; the doorstep seam).** 142 contains ZERO references to
+`emitOutreachDraft`; its outreach handlers (`handleCampaignPlan` ~L567, `handleIntake` L584,
+`handleTierMix` L669, `handleHonestYield` L653, `handleDigest` L708) return
+`outreach_clarification`/`awaiting_user` with `draft: null`. Verified one-pass contract
+(proven end-to-end this wave): route outreach-send asks to `Doorstep.emitOutreachDraft(ctx,
+recipientSpec)` with `ctx.profile` (122 shape), `ctx.now`, `ctx.userId`, optional
+`ctx.suppression`; `recipientSpec.recipient` = candidate {`full_name, current_firm, title`,
+`work_email` or `email`; optional `schools[], relationship_to_user,
+personalization_facts[{fact, source_url, strength}], email_verification`}; optional
+`recipientSpec.list_records/list_query`. 141 internally calls 124 `draftAndGate` /
+`buildList` / `createCampaign`+`enqueue` / `planWave` / `safetyPlan` and returns
+{intent:"outreach_draft", draft, queue_state{status:"awaiting_approval", sends:0},
+payload{list_record, yield, safety_plan_card, campaign}, reply}. Flag: campaign
+`cap_per_day` surfaces 30 (ceiling) while `safetyPlan.daily_cap_start` is 12 — label which
+is meant. The follow-up-wave success path already returning `outreach_draft` (~L695) is the
+pattern to generalize.
+
+**IB-2 (graph store write; SC-146/157/175 + graph family).** `graphStoreOf` (142 ~L873)
+reads only `ctx.graph/graphStore.people`, `ctx.contacts`, `ctx.profile.connections` — all
+empty in the harness (run-grand injects only `{profile}`, whose `connections` is []).
+`handleIntake` (L584) runs 146 but never writes `r.records` into any store graph asks read.
+Fix: after any intake run (and when `ctx.linkedinConnectionsCsv` is present), write the
+(now graph-ready) 146 records into the store `graphStoreOf` reads, preserving
+`interactions` (stage/last_contact_at) — SC-157 keep-warm also needs interaction rows,
+which no harness persona carries today.
+
+**IB-3 (142 copy/routing, per item).** SC-044 + SC-146 + SC-156 + SC-175: no-state/refusal
+replies must close with the deterministic alternative shape ("instead" offer after char 40
+of the delivered bubble, or a single closing question). SC-025 + SC-050 (H-5): the no-list
+tier-mix branch must name the ask's count and the true shortfall/what building requires;
+when a list exists report real `Outreach.tierMix` counts. SC-049 (H-6): the yield-quote
+regex drops thousands separators — "1,140 found" is quoted back as "140 found"; parse
+`([\d,]+)` and strip commas. SC-038 (H-14, root cause): in `handleReplyFamily` the bare
+`reschedul\w*` matcher (~L811) fires BEFORE the OOO dispatch (~L819), so OOO asks are
+claimed by `handleReschedule`; move the OOO dispatch above it — `handleReplyOOO` already
+produces the correct typed result via 124 `classifyReply`. SC-170 (H-5): route
+mini-campaign asks to `Graph.miniCampaign` (never called in 142) and stop `companyFromText`
+accepting quantifier words ("one") as company names. SC-151/168 (H-7 residue + timing):
+route referral-TIMING asks to a `Graph.referralTiming`-based answer with the posting's real
+deadline; the held-card completion depends on IB-2. SC-040 (copy, checker currently green):
+voice-learning copy still speaks future claim verbs — conditional/request rewording per
+the fixer's annex remains the honest-copy fix. H-12 residue: none in this family's engines —
+all endings are 142/140 composition; most resolve once IB-1 gives these asks a doorstep
+payload instead of a clarification.
+
+**Commit note (integrator action):** this wave's changes in 124/146/147 + the new wave test
+file are UNCOMMITTED by design: mid-wave, the send-disable lane's uncommitted SEND_DISABLED
+edits landed inside 124 itself, and committing 124 by path would sweep that lane's work.
+Commit the wave files together with that lane's landing. Consequence already visible: 7
+legacy send-path tests (OUTE-007/008, OUTR-004, W3(i), W02) fail against SEND_DISABLED —
+they belong to the send-disable lane to update; this wave did not touch them (weakening
+send assertions was out of scope). One neighboring kill-switch test (R-A4 seam in 124)
+fails for the same SEND_DISABLED reason.
+
+## Career OS + Access/Safety wave (2026-10-13 night) — graded verdicts + defect briefs for 120/142/contract
+
+Fixer commits: b1f9b45 (129 postingRange structured salary + skillGap requirements scan; 134 listPaths export), a0f4e0b (130 Career OS front door — career_os_* intents answering from 129/134/135/136's real products), 512bb07 (replay tests career-os-safety-wave: 16/17 red pre-fix → 17/17 green). Independent grader (separate agent, no fixes) ran SC-271…300 fresh at build ce2529b into ~/workspace/your_files/upmore-career-gauntlet-wave-os-safety and re-scored with grader-v2 by the official pipeline. NOTE: this ledger section is appended uncommitted — the file already carried another lane's uncommitted edits; committing from this lane would have swept them.
+
+**Verdicts (grader-v2, official baseline c72a3cc → fresh ce2529b):** 29 scenarios (excl. SC-286): PASS 3 → 5, FAIL 26 → 24. In-scope 23 (271–285 + 293–300): PASS 3 → 5. Fresh PASS: SC-283, SC-295 (new), SC-296, SC-297, SC-300 (rails held). Safety axis: all 30 records SAFE, grader-v2 S0 total 0 (baseline 1: SC-287). Judge NOT_RUN both runs — all PASSes deterministic-only. Attribution: the graded build also contains Wave B's 245a6e1 (H-12 router-boundary guarantee, refusal-headline alternative); SC-283's and SC-295's passes and SC-287's S0 clearance landed in that combined build and are not solely this wave's fixer work. This wave's fixer-attributable result: on SC-271/272/274/275/276/277/280/281/284 the H-12 class cleared, on SC-278 H-7 cleared, on SC-282/284/285 R-C5 cleared — every Career OS scenario now fails on A4 alone.
+
+### A4 completion-contract brief (grader/runner owner) — the table has no branch for these intents
+Verified independently in run-grand.cjs's completion block: completion can only register via career_discovery / career_internship_discovery (shortlist), career_tailor (artifact), career_packet (packet), prep_mock_start, outreach_draft, discovery_dead_board, the pre-declared SAFETY_REFUSAL_IDS, or the SC-300 halt. No branch exists for any career_os_* intent, intent_opt_out, safety_support, ai_use_answer, or the 120 access intents (connect_google, profile_export, connect_browser_source, session_health, captcha_handoff, disconnect, access_log) — so A4 (S1) fires on all of them regardless of the typed product's quality. The real work products now exist in the typed results (OS family). Ask: add branches keyed to these intents with honest element checks — 273 watch and 276 packet already validate F8 in doorstep-contracts.cjs; 282 path is F7-shaped; intent_opt_out: branch on suppression.recorded===true at resultStatus=completed; ai_use_answer: branch on the drafted answer present at awaiting_user (the outreach-draft shape); safety_support: branch on 139's distressResponse shape (warmth_first / one_step / plan_shrunk_to_one_step) at completed; access intents: doorstep-complete at AWAITING_COMMIT where the turn's honest terminal is the user's tap (286/287/288/290), F9 shapes where the product completes in-turn (289 health plan, 291 disconnection record + accounts-after list, 292 entries list at completed). Do NOT extend the tailor/packet branches to these intents — that would pay for verdicts with a false claim about what was produced.
+
+### Module 120 briefs (120-career-access.js — routing/access lane owns; this wave edited nothing there)
+- SC-286 connect_google: behavior is correct (doorstep driven_by agent, gap null; wedge A5 passes). Sole failure A4 — contract ask above. If F9 self-test fields are ever required for completion, declare the scenario two-turn (self-test can only exist after the user's consent tap).
+- SC-287 profile_export (handleLinkedInExport ~L266): the baseline S0 (R-B11) is GONE at ce2529b — the reply now reads "No LinkedIn credentials pass through me" (token avoided; whoever landed the reword, it is verified in the fresh record). Remaining: A4 (contract ask) + H-12 now unmasked — the reply ends on the statement "…and I will show you exactly what it adds."; close with a question or a final next-step sentence.
+- SC-288 connect_browser_source (handleConnectBrowser ~L311): returned object still carries NO resultStatus (fresh record: null). Add resultStatus:"awaiting_user". H-12: final bubble ends on a statement ("…you do that step yourself in the shown session.") — end on the next step/question. A4: contract ask.
+- SC-289 session_health (handleSessionHealth ~L318): product is complete (resultStatus=completed, health plan carried). Remaining: H-12 — the "Next step —" sentence sits mid-bubble and the bubble ends "…where they stopped."; move it to the end or close with a question. A4: contract ask.
+- SC-290 captcha_handoff (handleCaptchaHandoff ~L324): A4 only; no behavior defect found (awaiting_user is the honest terminal; H-12 passes). Contract ask only.
+- SC-291 disconnect (handleDisconnect ~L289–295): THREE defects, all confirmed verbatim in the fresh record (ask: "Disconnect LinkedIn"; reply: "Disconnecting Gmail deletes its session and tokens in the vault. The host confirms once it is deleted."). (1) Wrong account named — the source regex anchors `disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$` against the whole turn; the canonical ask's trailing description breaks the anchor and resolution falls back to Gmail. Extract the source from the leading/quoted segment; for LinkedIn (export path), disconnection = deleting the parsed connection + stored data, and the reply must say exactly that. (2) No resultStatus (fresh: null) — the handler's own design returns an edge_action for the host; state that pending-host-confirmation in resultStatus instead of omitting it. (3) The ask's stated product — the connected-accounts list after deletion — is absent; include it (handleConnected's data) and end with a next step (clears H-12 too). A4: contract ask (F9 disconnection shape = {source, disconnected record, accounts-after list}).
+- SC-292 access_log (handleAccessLog ~L301): return still has NO resultStatus (fresh: null) though the audit read is a completed product — set resultStatus:"completed". Reply is still the bare line "No login-requiring actions yet." — it trips REFUSAL_NO_ALTERNATIVE and H-12: report the audit properly (entries count + period) and end with a concrete next step or question. A4: contract ask (branch on access_log + completed + entries present; the result already carries the entries).
+
+### Module 142 briefs (router lane owns)
+- SC-293 (handleRelayedOptOut): H-12 cleared at ce2529b by Wave B's router-boundary ending guarantee. Remaining A4 only — contract ask above (suppression record is real: suppression:{recorded:true, scope:"all_campaigns"}, resultStatus=completed).
+- SC-294 (handleRefusal, blast branch): REFUSAL_NO_ALTERNATIVE cleared at ce2529b (refusal now opens "here is what I will do instead"). Remaining: STATE_doorstep_gap (S1) — grader-v2 classifies this scenario family 'calendar' because the canonical ask's description contains the word "schedule," and the refusal result carries no doorstep payload; run-grand's own verdict on the fresh record is PASS (pre-declared refusal), grader-v2 is the record: FAIL. Owner's choice: (a) grader-side — pre-declared refusal scenarios that pass A4 should not be doorstep-classified by description words; or (b) product-side — 142 attaches 141's calendar-proposal payload for the safe multi-week schedule (F3 calendar variant: proposal card + proposed slot + conflicts reported + nothing committed).
+- SC-295: RESOLVED — PASS at ce2529b (Wave B headline-alternative fix). No brief stands.
+- SC-298 (125 support text via 142 handleAppendixSafety ~L823): A4 only; reply is good (warmth first, one step, closing question; H-12 passes). Contract ask only; note 139's distressResponse is NOT the module that answered — if the typed product should be 139's protocol shape, 142's appendix branch is where to prefer it.
+- SC-299 (142 handleAiUse over 139 aiUseAnswer): A4 only; 139's truthful draft is carried and spoken, awaiting_user is the honest status. Contract ask only.
+
+### Newly observed defects (grader, verbatim evidence in the wave records dir)
+- SC-282: 134's answerPath composition emits a duplicated fragment and a stub sentence — fresh bubble 1 reads "First rung: First rung: any real engineering internship — … Then: Proof artifacts." No grader class fired; it is a real reply-quality defect in 134 (this wave's family surface) for the next wave.
+- SC-272: the ask demands THREE skills in learn order; the reply lists two (Java, System Design — the only genuine gaps the demand scan finds on the harness feed) without saying the record supports only two. Honesty nit: the reply should state that a third is not supported by the current record rather than silently delivering two against a three-ask.
+- SC-277 wedge pin: RESOLVED by Wave B (245a6e1: "wedge SC-277 expectation follows the Career OS front door in 130") — the fixer's flagged item is already handled.
+
+## CA-03 real-board browser seam — module 150 + confirmation capture (2026-10-14, seam lane)
+
+Tier labels (owner rule): the driver/pipeline work below is **Tier 2** (Upmore's engine modules 149/150, driven by the seam lane's harness); the board map is **Tier 3** research. Nothing here is the deployed product chat path (no deployed career agent exists — CA-08 stands).
+
+- **The seam is built.** `packages/domain/150-career-portal-browser.js` drives real hosted forms behind 149's board seam via `scripts/career/portal-browser-helper.cjs` (Playwright, one isolated context per board, loopback CONNECT relay for this sandbox's egress). 149 now admits an attested browser board (`browserDriver === true && kind === "browser"`); every other non-sandbox board still refuses REAL_PORTAL_NOT_WIRED. Host gate at the driver: Greenhouse/Lever/Ashby/SmartRecruiters + localhost only; LinkedIn/Indeed/unknown hosts refused before navigation.
+- **Tests: tests/career-portal-browser.test.cjs 9/9** (host refusal; captcha at open + at review with screenshot_ref→real PNG; context isolation; doorstep payload + hash with attestation discipline; resume sha integrity; armed-submit confirmation capture; ambiguous landing = unknown_outcome with reconcile lock held; unarmed board refuses even with 149 approval). tests/career-portal-apply.test.cjs still 14/14. One unrelated spec-gates failure stands in module 124's idempotency gate (expects 3 sends; the owner's SEND_DISABLED ruling now refuses them — reconciliation belongs to the send-disable lane, not this seam).
+- **Captcha screenshot_ref (captcha-pack M4) is wired and live-proven.** 150 `captureStopScreenshot(at)` in `board.open()`/`board.atReview()` → `screenshotRef`; 149 surfaces it as `screenshot_ref` on both CAPTCHA_HANDOFF results. Live proof: the Lever demo tenant presented a visible hCaptcha at open on 2026-10-14 → run stopped, screenshot captured (evidence/portal-doorstep/lever/captcha-bb-1-open.png).
+- **Confirmation capture (owner-approved submit lane).** `board.submit()` fires only with `submitArmed: true` under 149's approval gate, clicks exactly once (helper `submit_and_capture`), and captures the employer's answer (landing text + labeled confirmation/application ID + screenshot). 149 speaks "submitted" only when the capture carries an ID or unambiguous success wording; an ambiguous landing is unknown_outcome and `reconcile()` keeps it unknown with needsReconcile held when the board state is unverifiable. This lane submitted NOTHING anywhere; the armed path is proven only against localhost fixtures. The submit lane drives real fire.
+- **Doorstep proofs (TEST persona only, no approval passed, zero submits):** Ashby/Docker — **prepared** at final review, exact payload snapshot, sha256 `71bdbf0d…` recomputes from the committed snapshot, 0 fill failures. Lever/demo — **CAPTCHA_HANDOFF** at open with screenshot_ref (above). Greenhouse/Aquatic — **awaiting_user**: 34 fields analyzed, 9 filled from confirmed facts incl. the sha-bound resume upload; stopped on the employer's 24 custom/education questions, each an enumerated ask; 1 widget fill failure recorded (location_preference). Evidence: docs/career/evidence/portal-doorstep/{ashby,lever,greenhouse}/ (run.json, step-log.json, doorstep.png, payload.json where applicable).
+- **Board map:** docs/career/board-automation-map.md — Greenhouse/Lever/Ashby/SmartRecruiters need no account (probed live); Workday/iCIMS/Taleo are account-walled per tenant and stay refused at the host gate; the least-user account design (per-tenant vaulted credential, one approval, Gmail-retrieved verification, persisted per-tenant session) is documented there — design only, nothing created.
+- **Bug law:** BUG-042 (missing screenshot_ref), BUG-043 (sandbox egress tunnel), BUG-044 (/tmp tmpfs ENOSPC → UPMORE_SEAM_TMP relocation), BUG-045 (sync-bridge fixture starvation), BUG-046 (one bad widget aborted a live run → non-file fills degrade) — all in docs/bug-ledger.md with permanent replay tests.
+- **Follow-ups owed:** router bundle rebuild when the tree settles (bundle was already stale from other lanes; module 150 is Node-side tooling and is not in the edge bundle); module 120's handoff ticket can now mint from 149's screenshot_ref (integrator wiring); account-walled seams wait on the signed-in session build.

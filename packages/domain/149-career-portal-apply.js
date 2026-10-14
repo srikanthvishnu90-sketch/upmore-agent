@@ -16,14 +16,19 @@
      - legal attestation fields are never auto-answered; they need the
        user's explicit per-run confirmation. EEO defaults to
        "Decline to self-identify" unless the user chose otherwise (§6.1).
-   What this module is NOT (yet): a real-browser driver. The board seam is
-   the ci-browse-class adapter the CA-03 plan names; in this build the only
-   board is createSandboxBoard below — a faithful Greenhouse-shaped hosted
-   form over a LOCAL receipt sink, labeled SANDBOX/TEST, following the
-   133 makeTestBoard / F3 form-driver pattern. classifyTarget can recognize
-   a real ATS URL, but runApply refuses any board that is not a registered
-   sandbox board (REAL_PORTAL_NOT_WIRED) until the browser seam lands with
-   the owner's signed-in session. No real submission can happen here.
+   What this module is NOT: a browser. The board seam is the page adapter;
+   in this build two boards exist — createSandboxBoard below (a faithful
+   Greenhouse-shaped hosted form over a LOCAL receipt sink, labeled
+   SANDBOX/TEST, following the 133 makeTestBoard / F3 form-driver pattern)
+   and the module-150 Playwright driver (packages/domain/
+   150-career-portal-browser.js), which drives REAL hosted forms to the
+   doorstep only: its submit leg is unplugged (REAL_SUBMIT_DISABLED), so
+   the approval gate below can never transmit a real application through
+   it. classifyTarget can recognize a real ATS URL, but runApply refuses
+   any board that is neither a registered sandbox board nor the attested
+   browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
+   (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
+   owner-gated work — see docs/career/board-automation-map.md.
    Caps (§6.4) are REPORTED, marked decision-pending: the numbers are the
    owner's §15 call, so nothing here presumes them; the never-twice-to-
    the-same-job rule (§8.3) IS enforced, as already-graded law.
@@ -194,9 +199,13 @@ const CareerPortalApply = (() => {
     const target = classifyTarget(posting.url || "");
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
     if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
-    if (!board.sandbox) {
-      // The real-browser seam (owner's signed-in session) is not in this build.
-      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03 exit criterion unmet: no ci-browse-class driver in this repo yet — only sandbox boards can be driven" });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      // The real-browser seam (module 150) HAS landed for doorstep runs:
+      // an attested browser board may be driven to the final review step.
+      // Its submit leg is unplugged in that build (REAL_SUBMIT_DISABLED),
+      // so no real submission can happen through it; any other
+      // non-sandbox board is still refused outright.
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
     }
     if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
       return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
@@ -215,7 +224,7 @@ const CareerPortalApply = (() => {
     logStep("open", { host: board.host });
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
     }
     // §11(F): the name on the board account must be the person applying
     if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
@@ -284,7 +293,7 @@ const CareerPortalApply = (() => {
     const review = board.atReview();
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
     const boardAnswers = board.answers();
     const payload = {};
@@ -329,13 +338,15 @@ const CareerPortalApply = (() => {
     const board = session.board;
     const out = board.submit();
     if (out.outcome === "accepted") {
-      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind };
+      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind,
+        confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
     session.needsReconcile = true;
-    session.submission = { status: "unknown_outcome", needsHuman: true, receiptBoard: board.kind };
+    session.submission = { status: "unknown_outcome", needsHuman: true, receiptBoard: board.kind,
+      confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
     return { resultStatus: "unknown_outcome", submission: session.submission,
       reason: "the board did not answer — the application may or may not have landed; check before any retry" };
   }
@@ -345,8 +356,18 @@ const CareerPortalApply = (() => {
     const st = session.board.submissionState();
     if (st.submitted) {
       session.needsReconcile = false;
-      session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true };
+      session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true,
+        confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null };
       return { resultStatus: "completed", submission: Object.assign({ onBoard: true }, session.submission) };
+    }
+    if (st.unverifiable === true) {
+      // The board cannot prove a negative (a real portal without account
+      // access): the outcome STAYS unknown and the reconcile lock stays
+      // on — a human reads the captured evidence; no retry is cleared.
+      return { resultStatus: "unknown_outcome",
+        submission: { status: "unknown_outcome", onBoard: null, needsHuman: true, receiptBoard: session.board.kind,
+          confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null },
+        reason: "the board's state cannot be read back — the captured confirmation evidence is attached; a human verifies before any retry" };
     }
     session.needsReconcile = false; // state is now KNOWN: nothing landed; a fresh approval may retry
     return { resultStatus: "unknown_outcome",

@@ -80,14 +80,108 @@ const CareerTailor = (() => {
   const numbersIn = (text) => (String(text || "").match(/\d[\d,.]*%?/g) || []).map((x) => x.replace(/,/g, ""));
 
   // ---- JD parsing (Doc 2 §3.1 step 1) ----
+  // BUG-057 (FV-5/SS-8): parseJD treated the ENTIRE JD as the must-have zone,
+  // so lexicon tokens in culture boilerplate, season dates and example
+  // project stacks were invented as requirements ("Spring" from a graduation
+  // season, "Spark" from "spark innovation", "Go" from "go lives",
+  // Java/Angular from a Sample Projects paragraph describing the TEAM's
+  // stack) — and the eligibility judge then enforced the inventions.
+  // Extraction is now section-scoped: the JD is segmented by its own
+  // headings; example/boilerplate segments never contribute must-haves; a
+  // skill counts as a must-have only inside a requirements segment, or in a
+  // requirement-shaped sentence / repeated mention when the JD has no
+  // requirements segment; ambiguous tokens (Spring, Spark, Go, R) count only
+  // with technical context in the same sentence.
+  const AMBIGUOUS_SKILLS = new Set(["Spring", "Spark", "Go", "R"]);
+  const REQ_SHAPE = /(required|requirements?|qualifications?|experience (with|in)|proficien|knowledge of|familiar|expertise|must (have|bring|be|hold)|you (have|bring)|looking for|strong (skills|understanding|ability)|demonstrated|ability to|skills (in|using|with)|proficient)/i;
+  const TECH_CONTEXT = /(programming|language|framework|back[- ]?end|front[- ]?end|software|develop|engineer|stack|code|coding|technolog|apache|data (pipeline|engineering|platform))/i;
+  const SEGMENT_HEADINGS = [
+    [/sample projects|example projects|examples of projects|projects you (could|might) work on/i, "example"],
+    [/about (us|the company|the team)|who we are|why join|benefits|perks|compensation|equal opportunity|equal employment|our culture|life at/i, "boilerplate"],
+    [/what you.?ll do|responsibilities|position responsibilities|about the role|what you will do|your role/i, "duties"],
+    [/required|requirements?|qualifications|what you|what we|we look for|who you are|you bring|you have|your background|minimum|preferred|skills/i, "requirements"],
+  ];
+  function jdSegments(raw) {
+    const segments = [{ kind: "intro", text: "" }];
+    const lines = String(raw || "").split(/\n+/);
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+      let headed = false;
+      if (line.length < 110) {
+        for (const [re, kind] of SEGMENT_HEADINGS) {
+          const m = line.match(re);
+          if (m) {
+            // "Requirements: Medical Assistant Certification …" — the text
+            // after the colon is segment CONTENT, not part of the heading.
+            const colon = line.indexOf(":");
+            const rest = colon >= 0 && colon > m.index ? line.slice(colon + 1).trim() : (line.length <= 60 ? "" : line);
+            segments.push({ kind, text: rest || "" });
+            headed = true;
+            break;
+          }
+        }
+      }
+      if (!headed) segments[segments.length - 1].text += (segments[segments.length - 1].text ? " " : "") + line;
+    }
+    return segments.filter((sg) => sg.text || sg.kind !== "intro");
+  }
+  function sentencesOf(text) { return String(text || "").split(/(?<=[.;])\s+/).map((x) => x.trim()).filter(Boolean); }
+  function skillQualifies(skill, zoneSegs, inRequirementsSegment) {
+    const zoneText = zoneSegs.map((sg) => sg.text).join(" ");
+    const hits = [];
+    for (const sg of zoneSegs) for (const sent of sentencesOf(sg.text)) if (skillsInText(sent).includes(skill)) hits.push(sent);
+    if (!hits.length) return false;
+    if (AMBIGUOUS_SKILLS.has(skill)) {
+      // A season/verb must never become a skill: require technical context
+      // NEAR the token (JD requirement lists are run-on mega-sentences, so
+      // whole-sentence context lets a distant "software" vouch for a
+      // graduation-season "Spring" 200 characters away).
+      for (const sent of hits) {
+        const low = sent.toLowerCase(), needle = skill.toLowerCase();
+        let idx = low.indexOf(needle);
+        while (idx >= 0) {
+          const win = low.slice(Math.max(0, idx - 70), idx + needle.length + 70);
+          if (TECH_CONTEXT.test(win) || skillsInText(win).some((x) => x !== skill && !AMBIGUOUS_SKILLS.has(x))) return true;
+          idx = low.indexOf(needle, idx + 1);
+        }
+      }
+      return false;
+    }
+    if (inRequirementsSegment) return true; // the JD's own requirements section IS the requirement shape
+    const zoneCount = skillsInText(zoneText).filter((x) => x === skill).length;
+    return hits.some((sent) => REQ_SHAPE.test(sent) || sent.split(/\s+/).length <= 14) || zoneCount >= 2;
+  }
+  // Knockout requirements carried on the parse (FV-7 fix direction: the
+  // eligibility stage reads these, it does not re-guess from prose). The
+  // enforcing implementation lives in 121 (detectKnockouts/evaluateKnockouts,
+  // BUG-050); this is the same pattern family, surfaced for tailor callers.
+  function extractKnockouts(text) {
+    const out = [];
+    for (const sent of sentencesOf(text)) {
+      const sl = sent.toLowerCase();
+      const lic = sl.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
+      if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sl)) out.push({ type: "license", requirement: `${lic[1].trim().split(/\s+/).slice(-4).join(" ")} license`, evidence: sent.slice(0, 220) });
+      if (/\bjd\b/.test(sl) && /(law school|juris|from a|degree)/.test(sl)) out.push({ type: "degree", level: "jd", requirement: "JD (Juris Doctor) degree", evidence: sent.slice(0, 220) });
+      else if (/\bdegree\b/.test(sl) && /(required|must (hold|have|possess)|is required)/.test(sl) && !/(graduating|pursuing|currently enrolled|rising (senior|junior|sophomore))/.test(sl)) out.push({ type: "degree", level: /master/.test(sl) ? "master" : /associate/.test(sl) ? "associate" : "bachelor", requirement: "conferred degree", evidence: sent.slice(0, 220) });
+      const ym = sl.match(/(?:minimum|min\.?|at least)\s*(?:of\s*)?(\d+)(?:\s*[-–]\s*\d+)?\s*\+?\s*years?\b[^.;]{0,40}?experience/) || sl.match(/(\d+)\s*\+\s*years?\s+of\s+[^.;]{0,90}?experience/) || sl.match(/(\d+)\s*[-–]\s*\d+\s*years?\s+of\s+[^.;]{0,60}?experience/);
+      if (ym) out.push({ type: "min_experience", min_years: Number(ym[1]), requirement: `at least ${ym[1]} years of experience`, evidence: sent.slice(0, 220) });
+    }
+    return out;
+  }
   function parseJD(text) {
     const raw = String(text || "");
     const low = raw.toLowerCase();
     const niceIdx = low.search(/nice to have|preferred qualifications|bonus points|plus(es)?[:\s]|preferred[:\s]/);
     const mustText = niceIdx >= 0 ? raw.slice(0, niceIdx) : raw;
     const niceText = niceIdx >= 0 ? raw.slice(niceIdx) : "";
-    const mustSkills = skillsInText(mustText);
-    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s));
+    const segments = jdSegments(mustText);
+    const reqSegs = segments.filter((sg) => sg.kind === "requirements");
+    const inReq = reqSegs.length > 0;
+    const zoneSegs = inReq ? reqSegs : segments.filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate");
+    const zoneSkills = [...new Set(zoneSegs.flatMap((sg) => skillsInText(sg.text)))];
+    const mustSkills = zoneSkills.filter((sk) => skillQualifies(sk, zoneSegs, inReq));
+    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s) && (!AMBIGUOUS_SKILLS.has(s) || skillQualifies(s, [{ kind: "other", text: niceText }], false)));
     let level = "unspecified";
     if (/intern(ship)?\b/i.test(raw)) level = "intern";
     else if (/new grad|entry[- ]level|junior/i.test(raw)) level = "new-grad/junior";
@@ -95,7 +189,7 @@ const CareerTailor = (() => {
     else if (/manager|lead\b/i.test(raw)) level = "manager/lead";
     const keywords = [...new Set(raw.toLowerCase().replace(/[^a-z0-9+# ]/g, " ").split(/\s+/).filter((w) => w.length > 4))].slice(0, 200);
     const family = detectFamily(raw);
-    return { mustHaveSkills: mustSkills, niceToHaveSkills: niceSkills, level, keywords, family, rawText: raw };
+    return { mustHaveSkills: mustSkills, niceToHaveSkills: niceSkills, level, keywords, family, knockouts: extractKnockouts(raw), rawText: raw };
   }
   function detectFamily(text) {
     const t = String(text || "").toLowerCase();
@@ -456,6 +550,6 @@ const CareerTailor = (() => {
     return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version };
   }
 
-  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, scoreFact, selectFacts, provenSkills, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;

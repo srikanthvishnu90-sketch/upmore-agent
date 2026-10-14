@@ -1874,9 +1874,63 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-reply-oracle-finance-leak.test.cjs (both verbatim archetype sentences pass; finance-sense and bare uses still fire; family otherwise unchanged) + grader-v2 mutation suite 15/15 after the change.
 - **STATUS:** ENFORCED
 
+### FR-300 — A firm extraction never fires on a lowercase prose lookalike (BUG-124)
+- **FORBIDDEN:** Matching a lexicon firm's first token against normalized prose; a first-token fallback fires only when the token stands in the raw ask in its lexicon casing, the same raw-capital discipline the ≤3-letter names (UPS, EY) already require.
+- **FROM:** Wording-backlog lane 2026-10-14 — SC-016's "competition-math backgrounds" extracted "MATH Venture Partners" and the plan ran wave math for a firm the user never named.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-124 (parse + delivered reply name the quant set, never MATH Venture Partners).
+- **STATUS:** ENFORCED
+
+### FR-301 — A plan reply never defers work the user already asked for (BUG-125)
+- **FORBIDDEN:** Closing a campaign-plan reply with a "Say go and I build…" deferral, or otherwise making the user re-ask for the list they just requested; the plan stance is building-now, the counts return before any draft exists, and the reply closes on the one real approval (the whole plan).
+- **FROM:** Wording-backlog lane 2026-10-14 — 31 of 52 Outreach plan replies deferred with "Say go…"; the capstone judge capped every on-target plan at avg 2.43 (D1/D2/D6/D7 = 2).
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-125 (building-now opener, no "Say go" deferral, pairwise-distinct plan replies).
+- **STATUS:** ENFORCED
+
+### FR-302 — Partial-name machinery never rewrites a different firm's full name (BUG-126)
+- **FORBIDDEN:** Rewriting a user-named firm into a lexicon firm that shares its first token ("Bain Capital" → "Bain & Company"), or letting a set alias fire on a partial name that belongs to another firm (mbb on "bain capital"); a capitalized shadow phrase in the ask is the user's firm, verbatim.
+- **FROM:** Wording-backlog lane 2026-10-14 — SC-027's PE ask was re-dressed as a consulting ask for a firm the user never named.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-126 (firms extracted and spoken are "Bain Capital" and "KKR"; role phrase "associates").
+- **STATUS:** ENFORCED
+
+### FR-303 — Every parsed facet of an ask is spoken; the ask's own role phrase is used (BUG-127)
+- **FORBIDDEN:** Composing a plan reply from a single winning if/else filter branch while other parsed facets (stage, cohort, school screen, major, background, club, warmth, sequence, purpose) go unspoken; and substituting a role-family label ("consultants", "designers", "investment bankers") for the role phrase the user actually used ("associates", "UX researchers", "data scientists").
+- **FROM:** Wording-backlog lane 2026-10-14 — the capstone judge rowed the dropped second filter on SC-014/015/016/018/019/020/021/022/023/024/030/055/058 and the role-phrase substitutions on SC-014/027/028/029/059.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-127 (sixteen facet cases across the family).
+- **STATUS:** ENFORCED
+
+### FR-304 — A default count is never spoken as the size of a population the user described (BUG-128)
+- **FORBIDDEN:** Reporting the product's default plan size (40) as the size of a population the user named ("every founder in the latest YC batch", "everyone I know at Palantir"); a population ask is answered as a population — the population is named, and no total is stated for it anywhere in the reply.
+- **FROM:** Wording-backlog lane 2026-10-14 — SC-005/SC-006 carried wording S1s for the invented 40.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-128 (population headline and sequence spoken; no "40" anywhere in either reply).
+- **STATUS:** ENFORCED
+
+### FR-305 — A firm-less ask is proposed its own universe, never a default banking set (BUG-129)
+- **FORBIDDEN:** Serving the bulge-bracket proposal to an ask that named a different universe — a firm-less PE ask is proposed the mega-fund PE set, a firm-less category ask (healthtech companies, Fortune 500 companies, fintech and insurtech, dream companies) is proposed its own category, and "name the firms you actually want" is never said to a user who specified a category instead of firms.
+- **FROM:** Wording-backlog lane 2026-10-14 — one byte-identical bulge proposal served SC-010/020/026/028/029/030/059/060; wrong for seven of the eight.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-129 (PE set proposed for SC-010; no bulge text in the category replies; category + role phrase spoken).
+- **STATUS:** ENFORCED
+
+### FR-306 — A decision the user already gave is never re-asked (BUG-130)
+- **FORBIDDEN:** Closing a reply by asking the user to decide something their own ask just decided (the Tier C hold in SC-025); the reply states the given decision as settled and moves to the work it unlocks. The question form is reserved for asks that actually ask.
+- **FROM:** Wording-backlog lane 2026-10-14 — SC-025's reply re-asked "Hold Tier C back, or release it…?" under an ask that said "Tier C held back entirely".
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-130 (settled statement present; the re-ask absent).
+- **STATUS:** ENFORCED
+
+### FR-307 — A reply speaks its record's own numbers and names, in plain words (BUG-131)
+- **FORBIDDEN:** Reporting a count as "this one" instead of its number; substituting a stock smaller number for the ask's own count (voice samples); asking whether to place work that is already placed instead of saying where it is; packing two sentences into one composer fact so the second is silently truncated (the safety-plan daily cap); pointing the user at a record that is not loaded instead of stating the honest no-record state; and explaining rules in internal jargon ("enforced in code", "by construction").
+- **FROM:** Wording-backlog lane 2026-10-14 — SC-033/039/040/042/043/045/046/047/048 rows in the capstone Outreach judge table.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-131 (per-scenario spoken-number, placement, cap and jargon assertions).
+- **STATUS:** ENFORCED
+
+### FR-308 — A calendar proposal names its offered times (BUG-132)
+- **FORBIDDEN:** Delivering a calendar proposal that says "the proposed time is free" without naming every offered slot — weekday, absolute date, time and timezone — and which of them is free; a proposal the user cannot see the times of is not approvable, and it never ends on the generic closer.
+- **FROM:** Wording-backlog lane 2026-10-14 — SC-031 named neither of the banker's two offered times and closed with "Tell me what you'd like to do next."; the same emitter serves Track's SC-143.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-132 (both offered times named with absolute dates; no generic closer).
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 206 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 299
+Counts: ENFORCED 215 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 308
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2179,5 +2233,14 @@ Counts: ENFORCED 206 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-297 (BUG-121) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-121 |
 | FR-298 (BUG-122) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-122 |
 | FR-299 (BUG-123) | ENFORCED | tests/career-reply-oracle-finance-leak.test.cjs + grader-v2 mutation suite |
+| FR-300 (BUG-124) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-124 |
+| FR-301 (BUG-125) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-125 |
+| FR-302 (BUG-126) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-126 |
+| FR-303 (BUG-127) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-127 |
+| FR-304 (BUG-128) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-128 |
+| FR-305 (BUG-129) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-129 |
+| FR-306 (BUG-130) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-130 |
+| FR-307 (BUG-131) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-131 |
+| FR-308 (BUG-132) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-132 |
 
-<!-- totals: total=299 enforced=206 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=308 enforced=215 guarded_red=1 hard_shut=1 unenforced=91 -->

@@ -641,3 +641,139 @@ shares" case still fire; a bare markerless "portfolio" still
 fires; the rest of the finance-leak family unchanged). The
 grader mutation suite stays 15/15 allOk after the change.
 Rule: FR-299.
+
+## Wording-backlog lane 2026-10-14 — Outreach entries (bug law: entry + guard for each)
+
+The capstone (build e107f58) measured Outreach wording at 8/52
+with 44 defect rows: the deterministic products passed while the
+spoken plan replies capped at judge avg 2.43 — a deferral stance,
+an if/else lead chain that spoke at most one parsed filter, and a
+bulge-bracket proposal served to eight asks that had named their
+own universes. All fixes below are reply-composition and target
+extraction only; no deterministic contract changed. Guard for the
+whole lane: tests/career-wording-backlog-guard.test.cjs.
+
+BUG-124 — SC-016 (Outreach): an ungrounded firm name from prose.
+"Competition-math backgrounds" normalized to " competition math ",
+and extractNamedFirms' first-token fallback matched the token
+"math" to the lexicon's "MATH Venture Partners" — the plan then
+ran per-firm wave math for a firm the user never named (wording
+S1; the ask's quant set was displaced). The ≤3-letter rule already
+required raw capital form for exactly this reason ("follow-ups" is
+not UPS); the fallback had no such discipline. Fix (124): the
+first-token fallback fires only when the token stands in the RAW
+ask in its lexicon casing. The ask's quant alias now governs and
+the reply names the quant set. Rule: FR-300.
+
+BUG-125 — Outreach plan family (31 of 52 replies): the plan reply
+deferred instead of delivering. Every on-target plan opened "Here
+is the plan for…" and closed "Say go and I build…" — the user had
+already asked for the list; the reply made them ask again, and
+the judge capped D1/D2/D6/D7 at 2 (avg 2.43) on every one. Fix
+(142 handleCampaignPlan + pool branch + tier branch): the stance
+is building-now — headline "Building the list now: <count> <the
+ask's role phrase> <scope>", every parsed facet spoken (BUG-127),
+and the reply closes on the one real user decision: "drafting
+starts only when you approve the whole plan." Rule: FR-301.
+
+BUG-126 — SC-027 (Outreach): a partial-name rewrite of a different
+firm. "Bain Capital" was rewritten to the lexicon's "Bain &
+Company" by the first-token fallback, and the mbb set alias fired
+on "bain", re-dressing a PE ask as consulting ("110 consultants").
+Fix (124): a capitalized phrase that opens with a lexicon first
+token but continues as a different firm (Capital/Partners/Group/
+Ventures/Management/Advisors/Securities/Holdings/Bank/Financial/
+Global) is recorded verbatim as the user's named firm and the
+bare token may not rewrite it; the mbb alias no longer fires on
+"bain capital". Rule: FR-302.
+
+BUG-127 — Outreach plan family: parsed facets the reply dropped.
+parseTarget extracted at most what the composer's if/else lead
+chain could speak, and several facets were never extracted at
+all: Series A behind a GitHub filter (SC-055), seed stage behind
+a first-hire filter (SC-015), fresh cohorts (SC-030), state
+schools (SC-026), the shared major (SC-014), competition math
+(SC-016), the finance club (SC-023), hometown warmth ranking
+(SC-020), startup-first interns (SC-021), startups hiring
+engineers (SC-024), deal-specific personalization (SC-058 — the
+extractor matched only the literal phrase "deal-specific"),
+restructuring purpose (SC-022), consumer startups (SC-019), the
+known-first sequence (SC-006), and the ask's own role phrase
+("data scientists", "strategy analysts", "UX researchers",
+"associates" — replaced by family labels like "consultants" and
+"designers"). Fix (124 + 142): the facets are extracted
+(background_filters + role_phrase + purpose + tone +
+universe_label) and the composer speaks EVERY parsed facet as
+its own sentence instead of one if/else winner. The plural
+"bulge brackets" is also recognized by the set alias (SC-030
+previously reached its set only through the vague default).
+Rule: FR-303.
+
+BUG-128 — SC-005/SC-006 (Outreach): an invented count. Both asks
+name a population ("every founder in the latest YC batch",
+"everyone I know at Palantir") and no number; the headline
+reported the product's default 40 as that population's size
+(wording S1 ×2). Fix (124 + 142): parseTarget records
+count_source (stated|default); a population ask is answered as
+a population — headline names the population, the caps sentence
+carries no total, and the single-firm wave sentence drops its
+count. Rule: FR-304.
+
+BUG-129 — SC-010/020/026/028/029/030/059/060 (Outreach): one
+bulge-bracket proposal served eight firm-less asks. The vague
+branch assigned the bulge set to every firm-less ask, so PE
+associates, boutique analysts, healthtech SWEs, Fortune 500
+strategy analysts, UX researchers, teachers-turned-product
+people, and a dream-50 list all heard "the bulge bracket —
+Goldman Sachs, Morgan Stanley, JPMorgan, Bank of America…" and
+"name the firms you actually want" — misreading a category spec
+as a forgotten firm list. Two halves were extraction: SC-020's
+"boutique" matched no set (now elite_boutique) and SC-059's
+"teachers-turned" never matched prior_career (norm strips the
+hyphen the regex required; fixed under BUG-127). Fix (124): the
+proposal follows the ask — a firm-less PE ask is proposed the
+mega-fund PE set; a firm-less CATEGORY ask is proposed its own
+category as the starting universe, firms held empty; the bulge
+proposal remains only for genuinely unspecified banking asks.
+Rule: FR-305.
+
+BUG-130 — SC-025 (Outreach): a settled decision re-asked. The
+tier reply explained Tier C and then asked "Hold Tier C back,
+or release it…?" — the decision the ask itself had just given
+("Tier C held back entirely"). Fix (142 handleTierMix): when
+the ask instructs the hold, the reply states it as settled
+("Tier C is held at zero, exactly as you set it") and closes on
+the build; the question form remains for asks that actually ask.
+Rule: FR-306.
+
+BUG-131 — Outreach carried shapes (SC-033/039/040/042/043/045/
+046/047/048): replies under-spoke or mis-spoke their records.
+SC-033 reported a suppression as "this one" instead of the
+number (now: "1 person suppressed"); SC-039 asked "Want the seed
+run staged…?" for a run the product stages as part of the plan
+(now stated as staged, approval pointed at the wave); SC-040
+worked from "two or three of your own past emails" when the ask
+named 8 (now the ask's count); SC-042 asked whether to place
+the re-rendered samples instead of saying where they are (now:
+at the top of the review doc); SC-043's safety-plan reply never
+stated the daily cap — the cap sentence was packed behind the
+channel sentence inside one fact and the composer's
+one-sentence-per-fact discipline truncated it (facts are now
+one sentence each by construction); SC-045 pointed at an
+unloaded campaign record (now an honest no-record statement
+with the real next input); SC-046/047 explained rules in
+internal jargon ("enforced in code, twice", "by construction"
+— now plain words: checked twice, once at list build and again
+at queue time); SC-048 described the reserve pool as a riddle
+instead of the user's own split (now: the 40 next names in rank
+order behind the 500 selected, top reserve name takes a bounced
+slot). Rule: FR-307.
+
+BUG-132 — SC-031 (Outreach) + SC-143 (Track): a calendar
+proposal that named no times. 141's emitCalendarProposal said
+"the proposed time is free" without naming either offered time,
+and the reply ended on the appended generic closer. Fix (141):
+the reply names every offered slot with weekday, absolute date,
+time and timezone, names which day is free, and closes on the
+approval ("approve the card and that time goes to them as the
+proposal — nothing is booked until they confirm"). Rule: FR-308.

@@ -960,7 +960,25 @@ const CareerDoorstep = (() => {
     const analytics = spec.analytics && typeof spec.analytics === "object" ? spec.analytics : null;
     const summary = spec.summary && typeof spec.summary === "object" ? spec.summary : null;
     const company = spec.company || spec.companyName || (appRow && appRow.company) || (draft && draft.company) || null;
-    if (!company && !draft && !verdict && !analytics && !summary) {
+    // TN-1a — OWNER RULING (2026-10-14, resolving BUG-2026-10-14-TN1A-
+    // CONFLICT / FR-199): a tracking/reporting write of a DETECTED JOB
+    // EVENT is never refused for a missing company. Every detected job
+    // gets its tracking record; when the source names no company, the
+    // record carries the company as explicitly not-stated (company:
+    // null + company_not_stated) — never invented, never guessed. A
+    // write is a detected-event report when it carries a detected
+    // event: an inbox-sourced spec or event, one of 126's inbox signal
+    // classes (confirmation / rejection / oa_invite / interview_invite /
+    // offer), or a 126 row already carrying the not-stated marker.
+    // Writes that ATTRIBUTE an action to a company — a submission
+    // record ("applied"), an unmarked manual stage move — are NOT
+    // detected-event reports and keep the missing_company refusal
+    // below; emitApplicationPacket and emitOutreachDraft keep theirs.
+    const DETECTED_EVENT_TYPES = ["confirmation", "rejection", "oa_invite", "interview_invite", "offer"];
+    const declaredEventType = spec.event_type || spec.eventType || (specEvent && specEvent.type) || null;
+    const recordNotStated = !!(appRow && appRow.company == null && appRow.company_not_stated === true);
+    const companyNotStated = !company && (recordNotStated || spec.source === "inbox" || (specEvent && specEvent.source === "inbox") || DETECTED_EVENT_TYPES.includes(declaredEventType));
+    if (!company && !draft && !verdict && !analytics && !summary && !companyNotStated) {
       return emitterBlocked("tracking_log", "tracking-write", "missing_company",
         "no company was named for this tracker log write",
         "name the company the log entry belongs to",
@@ -1039,7 +1057,12 @@ const CareerDoorstep = (() => {
     const rows = trackerRowsOf(c);
     const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
     const specAppId = spec.app_id || spec.appId || (appRow && appRow.app_id) || null;
-    const existing = rows.find((r) => r && (specAppId && r.app_id === specAppId || norm(r.company) === norm(company))) || null;
+    // A not-stated write binds ONLY by an explicit app_id — never by a
+    // company match, where an empty normalized name could hijack a
+    // named company's row.
+    const existing = companyNotStated
+      ? (specAppId ? rows.find((r) => r && r.app_id === specAppId) || null : null)
+      : rows.find((r) => r && (specAppId && r.app_id === specAppId || norm(r.company) === norm(company))) || null;
     let operation, row;
     if (existing) {
       operation = stage ? "move_stage" : "append_event";
@@ -1056,8 +1079,11 @@ const CareerDoorstep = (() => {
         ? event
         : { type: "applied", at: appliedAt, source: specLogSource(spec.event_source || "system"), detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
       row = {
-        app_id: specAppId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || (appRow && appRow.role) || "")).slice(0, 6)}`,
-        company: String(company), role: String(spec.role || (appRow && appRow.role) || ""), role_family: String(spec.role_family || spec.roleFamily || (appRow && appRow.role_family) || ""),
+        app_id: specAppId || (companyNotStated
+          ? `app-not-stated-${sha256("not-stated|" + (spec.role || spec.title || (appRow && appRow.role) || "") + "|" + eventType + "|" + appliedAt).slice(0, 6)}`
+          : `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || (appRow && appRow.role) || "")).slice(0, 6)}`),
+        company: companyNotStated ? null : String(company), ...(companyNotStated ? { company_not_stated: true } : {}),
+        role: String(spec.role || spec.title || (appRow && appRow.role) || (appRow && appRow.title) || ""), role_family: String(spec.role_family || spec.roleFamily || (appRow && appRow.role_family) || ""),
         url: String(spec.url || ""), applied_at: appliedAt,
         resume_version: String(spec.resume_version || spec.resumeVersion || (c.resumeArtifact && c.resumeArtifact.version) || ""),
         source: spec.source === "referred" || spec.application_source === "referred" ? "referred" : "cold",
@@ -1069,7 +1095,8 @@ const CareerDoorstep = (() => {
       };
       if (stage) event.stage_after = stage;
     }
-    const wouldWrite = { operation, app_id: row.app_id, company: row.company, row: cloneJson(row), event: cloneJson(event) };
+    const rowNotStated = !!(row && row.company == null && row.company_not_stated === true);
+    const wouldWrite = { operation, app_id: row.app_id, company: row.company, ...(rowNotStated ? { company_not_stated: true } : {}), row: cloneJson(row), event: cloneJson(event) };
     // Triggered follow-ups, from 126's own follow-up state: the quiet-period
     // radar (deadlineRadar -> quietReport) run over the would-be log (the
     // existing rows with this write applied). A company whose follow-up is
@@ -1077,7 +1104,9 @@ const CareerDoorstep = (() => {
     // and empty WITH the reason, computed from the same radar — never a
     // follow-up invented for the record.
     let triggeredFollowups = [], triggeredNote = "126's follow-up radar is unavailable in this build, so no follow-up state could be read";
-    if (Track && typeof Track.deadlineRadar === "function" && typeof Track.quietReport === "function") {
+    if (rowNotStated) {
+      triggeredNote = "no follow-ups are armed: this record's company is not stated, so 126's quiet-period radar has no named company to read follow-up state for";
+    } else if (Track && typeof Track.deadlineRadar === "function" && typeof Track.quietReport === "function") {
       const nowMs = Date.parse(at) || Date.now();
       const rowsAfter = existing ? rows.map((r) => (r && r.app_id === row.app_id ? row : r)) : [...rows, row];
       const radar = Track.deadlineRadar({ rows: rowsAfter }, [], { now: nowMs, withinDays: 14 });
@@ -1092,15 +1121,15 @@ const CareerDoorstep = (() => {
     }
     const payload = {
       kind: "tracker_log_write", family: "tracking-write", operation,
-      app_id: row.app_id, company: row.company, role: row.role || spec.role || "",
-      application: { app_id: row.app_id, company: row.company, role: row.role || spec.role || "", stage_before: existing ? existing.stage : null },
+      app_id: row.app_id, company: row.company, ...(rowNotStated ? { company_not_stated: true } : {}), role: row.role || spec.role || spec.title || "",
+      application: { app_id: row.app_id, company: row.company, ...(rowNotStated ? { company_not_stated: true } : {}), role: row.role || spec.role || spec.title || "", stage_before: existing ? existing.stage : null },
       status: row.stage, stage: row.stage,
       note: spec.note || null, event: cloneJson(event),
       triggered_followups: triggeredFollowups, triggered_followups_note: triggeredNote,
       would_write: wouldWrite, target: "tracker", committed: false,
     };
     const stepLog = [
-      { step: 1, action: "resolve", field: "company", result: existing ? `matched the existing tracker row for ${row.company}` : `no tracker row for ${row.company} yet — this write would add one` },
+      { step: 1, action: "resolve", field: "company", result: rowNotStated ? "the source names no company — under the TN-1a ruling the record carries the company as not stated (company: null, company_not_stated); no company was invented" : existing ? `matched the existing tracker row for ${row.company}` : `no tracker row for ${row.company} yet — this write would add one` },
       { step: 2, action: "build", field: "log_write", result: `built the exact ${operation} payload in the tracker row and event shape; nothing was written` },
       { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the tracker write is armed for approval, not fired" },
     ];
@@ -1108,9 +1137,11 @@ const CareerDoorstep = (() => {
     return {
       intent: "tracking_log", family: "tracking-write", resultStatus: "awaiting_user",
       ...art,
-      reply: existing
-        ? `Prepared the tracker update for ${row.company} — it would move the application to "${row.stage}" and log your note. Nothing has been written yet: it is waiting at the doorstep for your approval.`
-        : `Prepared the tracker entry for ${row.company} at stage "${row.stage}" — the full log row is ready. Nothing has been written yet: it is waiting at the doorstep for your approval.`,
+      reply: rowNotStated
+        ? `Prepared the tracker entry at stage "${row.stage}" — the message names no company, so the record carries the company as not stated rather than guessed. Nothing has been written yet: it is waiting at the doorstep for your approval.`
+        : existing
+          ? `Prepared the tracker update for ${row.company} — it would move the application to "${row.stage}" and log your note. Nothing has been written yet: it is waiting at the doorstep for your approval.`
+          : `Prepared the tracker entry for ${row.company} at stage "${row.stage}" — the full log row is ready. Nothing has been written yet: it is waiting at the doorstep for your approval.`,
     };
   }
 
@@ -1234,12 +1265,27 @@ const CareerDoorstep = (() => {
       { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the proposal card is armed for approval; no invite was created" },
     ];
     const art = doorstepArtifact("calendar", payload, stepLog);
+    // WORDING-BACKLOG (BUG-132): the reply NAMES the offered times —
+    // every slot with its absolute date, its time and timezone, and
+    // which one is free. A proposal the user cannot see the times of
+    // is not a proposal they can approve.
+    const fmtSlot = (e) => {
+      try {
+        const d = new Date(e.utc || e.start_iso || e.start);
+        if (Number.isNaN(d.getTime())) return String(e.start || "the offered time");
+        const parts = {};
+        for (const p of new Intl.DateTimeFormat("en-US", { timeZone: e.timezone || defaultTz, weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).formatToParts(d)) parts[p.type] = p.value;
+        return `${parts.weekday} ${parts.month} ${parts.day} at ${parts.hour}:${parts.minute} ${parts.dayPeriod} ${parts.timeZoneName}`;
+      } catch { return String(e.start || "the offered time"); }
+    };
+    const offered = evaluations.map((e) => fmtSlot(e)).join(" or ");
+    const freeNames = evaluations.filter((e) => !e.conflict).map((e) => fmtSlot(e).split(" at ")[0]);
     return {
       intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
       ...art,
       reply: proposed.conflict
-        ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the proposed time is free on the calendar in context and outside quiet hours. Nothing has been booked or sent: the card is waiting at the doorstep for your approval.`,
+        ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
+        : `Prepared the calendar proposal card for "${title}" — the offered times are ${offered}, and ${freeNames.length ? `${freeNames.join(" and ")} is free` : "the proposed time is free"} on the calendar in context and outside quiet hours. Nothing has been booked or sent: approve the card and that time goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 

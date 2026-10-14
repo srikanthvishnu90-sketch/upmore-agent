@@ -41,8 +41,8 @@ const CareerOutreach = (() => {
 
   // ---------- OUTE-001: target-spec parser ----------
   const SET_ALIASES = [
-    ["bulge_bracket", /\bbulge bracket\b|\bbb banks?\b/], ["elite_boutique", /\belite boutique/],
-    ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b|\bbcg\b|\bboston consulting\b/],
+    ["bulge_bracket", /\bbulge brackets?\b|\bbb banks?\b/], ["elite_boutique", /\belite boutique|\bboutique\b/],
+    ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b(?! capital)|\bbcg\b|\bboston consulting\b/],
     ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
     ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
     ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
@@ -69,6 +69,24 @@ const CareerOutreach = (() => {
     const firstTokenCount = {};
     for (const n of _firmLexicon) { const tok = norm(n).split(" ")[0]; if (tok) firstTokenCount[tok] = (firstTokenCount[tok] || 0) + 1; }
     const hits = [];
+    // WORDING-BACKLOG (BUG-126): a capitalized phrase in the ask that
+    // OPENS with a lexicon first token but continues as a DIFFERENT
+    // firm ("Bain Capital" where the lexicon holds "Bain & Company")
+    // is the user's own named firm, in the user's own words. It is
+    // recorded verbatim and the bare token may not rewrite it into
+    // the lexicon's firm.
+    const SHADOW_SUFFIX = /^(Capital|Partners|Group|Ventures|Management|Advisors|Securities|Holdings|Bank|Financial|Global)$/;
+    const shadowByToken = {};
+    for (const m of raw.matchAll(/\b([A-Z][A-Za-z]+)\s+([A-Z][A-Za-z]+)\b/g)) {
+      const tok = norm(m[1]);
+      if (!tok || tok.length < 4 || firstTokenCount[tok] !== 1 || FIRM_TOKEN_STOP.has(tok)) continue;
+      if (!SHADOW_SUFFIX.test(m[2])) continue;
+      const phrase = `${m[1]} ${m[2]}`;
+      if (_firmLexicon.some((n) => norm(n) === norm(phrase))) continue; // the lexicon's own full name
+      const owner = _firmLexicon.find((n) => norm(n).split(" ")[0] === tok);
+      if (!owner || !norm(owner).includes(" ")) continue; // one-word names (KKR, UPS) have no shadow class
+      if (!shadowByToken[tok]) shadowByToken[tok] = { name: phrase, idx: m.index, nn: norm(phrase) };
+    }
     for (const name of _firmLexicon) {
       const nn = norm(name);
       if (!nn) continue;
@@ -83,9 +101,23 @@ const CareerOutreach = (() => {
       let idx = w.indexOf(" " + nn + " ");
       if (idx < 0) {
         const tok = nn.split(" ")[0];
-        if (tok && tok.length >= 4 && firstTokenCount[tok] === 1 && !FIRM_TOKEN_STOP.has(tok)) idx = w.indexOf(" " + tok + " ");
+        // BUG-124: the first-token fallback fires only when the token
+        // stands in the RAW ask in its lexicon casing (a capitalized
+        // firm mention). Normalized prose is full of lookalikes —
+        // "competition-math backgrounds" is not "MATH Venture
+        // Partners" — the same raw-capital discipline the ≤3-letter
+        // rule above already applies.
+        if (tok && tok.length >= 4 && firstTokenCount[tok] === 1 && !FIRM_TOKEN_STOP.has(tok)) {
+          const rawTok = name.split(" ")[0].replace(/[^A-Za-z]/g, "");
+          if (rawTok && new RegExp("\\b" + rawTok + "\\b").test(raw)) idx = w.indexOf(" " + tok + " ");
+        }
       }
       if (idx >= 0) hits.push({ name, idx, nn });
+    }
+    // The shadow phrase replaces any bare-token hit on the same token.
+    for (const [tok, sh] of Object.entries(shadowByToken)) {
+      for (let i = hits.length - 1; i >= 0; i--) if (hits[i].nn.split(" ")[0] === tok && hits[i].name !== sh.name) hits.splice(i, 1);
+      if (!hits.some((h) => h.name === sh.name)) hits.push(sh);
     }
     for (const [abbr, full] of Object.entries(FIRM_ABBREV)) if (w.includes(" " + abbr + " ") && !hits.some((h) => h.name === full)) hits.push({ name: full, idx: w.indexOf(" " + abbr + " "), nn: norm(full) });
     // A shorter name that is the opening phrase of a longer hit at
@@ -95,11 +127,51 @@ const CareerOutreach = (() => {
     kept.sort((a, b) => a.idx - b.idx);
     return kept.map((h) => h.name);
   }
+  // The ask's own words for who is being found — the plan headline
+  // speaks the user's phrase ("strategy analysts", "UX researchers",
+  // "associates") never a family label substituted for it (BUG-127).
+  const ROLE_PHRASES = [
+    [/teachers? turned product people/, "teachers-turned product people"],
+    [/alumni of my high school/, "alumni of your high school"],
+    [/quant traders?/, "quant traders"],
+    [/data scientists?/, "data scientists"],
+    [/strategy analysts?/, "strategy analysts"],
+    [/ux researchers?/, "UX researchers"],
+    [/pe associates?\s*\/?\s*principals?|pe associates? and principals?/, "PE associates and principals"],
+    [/product designers?/, "product designers"],
+    [/civil engineers?/, "civil engineers"],
+    [/ml engineers?/, "ML engineers"],
+    [/software engineers?/, "software engineers"],
+    [/\bswes?\b/, "software engineers"],
+    [/restructuring bankers?/, "restructuring bankers"],
+    [/(ops|operations) managers?/, "operations managers"],
+    [/venture analysts?/, "venture analysts"],
+    [/marketing associates?/, "marketing associates"],
+    [/named people/, "people"],
+    [/students?\b/, "students"],
+    [/interns?\b/, "interns"],
+    [/associates?\b/, "associates"],
+    [/principals?\b/, "principals"],
+    [/analysts?\b/, "analysts"],
+    [/founders?\b/, "founders"],
+    [/bankers?\b/, "bankers"],
+    [/consultants?\b/, "consultants"],
+    [/lawyers?\b/, "lawyers"],
+    [/residents?\b/, "medical residents"],
+    [/managers?\b/, "managers"],
+    [/designers?\b/, "designers"],
+    [/engineers?\b/, "engineers"],
+  ];
+  function rolePhraseOf(w) { for (const [re, p] of ROLE_PHRASES) if (re.test(w)) return p; return null; }
   function parseTarget(text, profile) {
     profile = profile || {};
     const raw = String(text || ""); const w = " " + norm(raw) + " ";
     const q = { industry: null, firm_set: null, firms: [], firms_named: false, firms_source: null, role_family: null, seniority_band: null, geography: null, school_filter: null, background_filters: {}, exclusions: [], count: null, vague: false, proposed_default: null };
     const num = raw.match(/\b(\d{1,4})\b/); q.count = num ? Number(num[1]) : null;
+    // BUG-128: a count the user never stated is the product default,
+    // and no reply may present it as the size of a population the
+    // user described ("every founder in the latest YC batch").
+    q.count_source = num ? "stated" : "default";
     const named = extractNamedFirms(raw, w);
     for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
     if (named.length) { q.firms = named; q.firms_named = true; q.firms_source = "named"; }
@@ -118,9 +190,43 @@ const CareerOutreach = (() => {
     if (/\bventure\b/.test(w)) { q.role_family = q.role_family || "venture"; q.industry = q.industry || "venture_capital"; }
     if (/\breal[- ]estate\b/.test(w)) { q.role_family = q.role_family || "real_estate_pe"; q.industry = q.industry || "real_estate_pe"; }
     if (/started as analysts?/.test(w)) q.background_filters.started_as_analyst = true;
-    if (/teachers?-turned|teachers? (who|now) .*product|former teachers?/.test(w)) { q.background_filters.prior_career = "teaching"; q.role_family = q.role_family || "product_management"; }
+    if (/teachers?-turned|teachers? turned|teachers? (who|now) .*product|former teachers?/.test(w)) { q.background_filters.prior_career = "teaching"; q.role_family = q.role_family || "product_management"; }
     if (/publish\w* on github|active on github|github/.test(w)) q.background_filters.publishes_on_github = true;
-    if (/deal[- ]specific/.test(w)) q.background_filters.deal_specific = true;
+    if (/deal[- ]specific|personalize.*deal|deal they worked/.test(w)) q.background_filters.deal_specific = true;
+    // WORDING-BACKLOG lane (BUG-127): the ask's remaining facets are
+    // extracted so the plan reply can SPEAK them. A facet the parse
+    // drops is a facet the reply silently loses — the capstone judge
+    // rowed exactly these omissions (seed stage behind a first-hire
+    // filter, fresh cohorts, competition math, state schools, the
+    // shared major, the finance club, hometown warmth, deal-specific
+    // personalization, the known-first sequence).
+    if (/\bstate schools?\b|\bpublic universit/.test(w)) q.background_filters.state_schools = true;
+    const fcM = w.match(/hired in the last (\d+) years?|joined in the last (\d+) years?|started in the last (\d+) years?/);
+    if (fcM) q.background_filters.fresh_cohort_years = Number(fcM[1] || fcM[2] || fcM[3]);
+    if (/interned at (a )?startups? first|interns? who interned/.test(w)) q.background_filters.interned_startup_first = true;
+    if (/shares? (my|your) major|same major|my major/.test(w)) q.background_filters.major_match = true;
+    if (/finance club/.test(w)) q.background_filters.finance_club = true;
+    if (/competition math|math competition/.test(w)) q.background_filters.competition_math = true;
+    if (/same hometown|hometown first|warmth/.test(w)) q.background_filters.warmth_hometown = true;
+    if (/everyone i know|people i know|then second degree|second degree connections?/.test(w)) q.background_filters.sequence_known_first = true;
+    if (/\bhiring engineers?\b/.test(w)) q.background_filters.hiring_role = "engineers";
+    if (/consumer startups?/.test(w)) q.background_filters.consumer_startups = true;
+    if (/latest (yc )?batch|newest batch/.test(w)) q.background_filters.latest_batch = /yc|y combinator/.test(w) ? "YC" : "latest";
+    if (/restructuring/.test(w)) q.background_filters.restructuring = true;
+    if (/fortune 500/.test(w)) q.fortune_500 = true;
+    if (/alumni of my high school/.test(w)) q.high_school_alumni = true;
+    if (/peer level tone|peer tone/.test(w)) q.tone = "peer";
+    if (/warm paths? ranked|rank(ing|ed)? (by|on) warm/.test(w)) q.warm_paths_ranked = true;
+    const purposeM = w.match(/for (coffee chats|restructuring chats|exploratory chats|a career switch|my podcast|pre med advising chats|advising chats)/);
+    if (purposeM) q.purpose = purposeM[1];
+    else if (/\bcoffee chats?\b/.test(w)) q.purpose = "coffee chats"; // the object form: "Get me 40 coffee chats with…"
+    if (/healthtech|health tech/.test(w)) q.universe_label = "healthtech companies";
+    else if (q.fortune_500) q.universe_label = "Fortune 500 companies";
+    else if (q.background_filters.consumer_startups) q.universe_label = "consumer startups";
+    else if (/fintech/.test(w) && /insurtech/.test(w)) q.universe_label = "fintech and insurtech companies";
+    else if (/fintechs?\b/.test(w)) q.universe_label = "fintechs";
+    else if (/dream (50|companies|firms)/.test(w)) { const dm = raw.match(/(\d+)\s+dream companies/i); q.universe_label = dm ? `your ${dm[1]} dream companies` : "your dream companies"; }
+    q.role_phrase = rolePhraseOf(w);
     if (/\binvestment bank|bankers?\b|ib analyst|\bm&a\b|levfin/.test(w)) { q.industry = "investment_banking"; q.role_family = q.role_family || "investment_banking"; }
     if (/\bconsult/.test(w)) { q.industry = "consulting"; q.role_family = q.role_family || "consulting"; }
     if (/\b(pms?|product managers?)\b/.test(w)) { q.role_family = "product_management"; q.industry = q.industry || "tech"; }
@@ -149,17 +255,35 @@ const CareerOutreach = (() => {
     if (!q.count) q.count = 40;
     if (!q.firm_set && !q.firms_named && !Object.keys(q.background_filters).length && !q.school_filter && !q.geography) {
       q.vague = true;
-      q.proposed_default = { industry: "investment_banking", firm_set: "bulge_bracket", role_family: "investment_banking", seniority_band: "analyst_associate", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
-      // BUG-110: the default proposes a FIRM SET only. An ask that
-      // carries its own role or industry (founders of seed startups)
-      // keeps them — the default may not re-dress the user's ask as
-      // an investment-banking ask.
-      Object.assign(q, { industry: q.industry || q.proposed_default.industry, firm_set: q.proposed_default.firm_set, role_family: q.role_family || q.proposed_default.role_family });
-      // BUG-110: the default stays available to list-building, but it
-      // is marked as what it is — a PROPOSAL the user never chose —
-      // so no reply may present these firms as the user's target.
-      q.firms = (FIRM_SETS.sets.bulge_bracket ? FIRM_SETS.sets.bulge_bracket.firms.map((f) => f.name) : []);
-      q.firms_source = "default";
+      if (q.industry === "private_equity") {
+        // BUG-129: a firm-less private-equity ask is proposed the PE
+        // peer set — the bulge bracket is a banking universe and
+        // proposing it for a PE ask answers a different question.
+        q.proposed_default = { industry: "private_equity", firm_set: "mega_fund_pe", role_family: "private_equity", seniority_band: "associate_principal", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
+        Object.assign(q, { firm_set: "mega_fund_pe", role_family: q.role_family || "private_equity" });
+        q.firms = (FIRM_SETS.sets.mega_fund_pe ? FIRM_SETS.sets.mega_fund_pe.firms.map((f) => f.name) : []);
+        q.firms_source = "default";
+      } else if (q.universe_label) {
+        // BUG-129: a firm-less CATEGORY ask (healthtech companies,
+        // Fortune 500 companies, fintech and insurtech) is proposed
+        // its own category as the starting universe. No firm set is
+        // substituted for a category the user named.
+        q.proposed_default = { kind: "category", label: q.universe_label, count: q.count, note: "Vague ask: the category the user named is the proposed starting universe (Doc 1 §2.1)." };
+        q.firms = [];
+        q.firms_source = "default";
+      } else {
+        q.proposed_default = { industry: "investment_banking", firm_set: "bulge_bracket", role_family: "investment_banking", seniority_band: "analyst_associate", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
+        // BUG-110: the default proposes a FIRM SET only. An ask that
+        // carries its own role or industry (founders of seed startups)
+        // keeps them — the default may not re-dress the user's ask as
+        // an investment-banking ask.
+        Object.assign(q, { industry: q.industry || q.proposed_default.industry, firm_set: q.proposed_default.firm_set, role_family: q.role_family || q.proposed_default.role_family });
+        // BUG-110: the default stays available to list-building, but it
+        // is marked as what it is — a PROPOSAL the user never chose —
+        // so no reply may present these firms as the user's target.
+        q.firms = (FIRM_SETS.sets.bulge_bracket ? FIRM_SETS.sets.bulge_bracket.firms.map((f) => f.name) : []);
+        q.firms_source = "default";
+      }
     }
     if (!q.seniority_band && q.role_family) q.seniority_band = null;
     return q;

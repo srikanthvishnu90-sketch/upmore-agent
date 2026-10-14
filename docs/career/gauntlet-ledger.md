@@ -2466,3 +2466,8 @@ The owner authorized the version bump during the routing-fix run. `docs/quality-
 - Records: `~/workspace/your_files/upmore-career-gauntlet-fresh-300` (fresh runner, baseline dir untouched). Rescore: grader-v2 + capability-absent **v2**. **Official count: PASS 13 / FAIL 286 / NI 1 / BLOCKED 0** (report: `docs/stability/runs/2026-10-14-c72a3cc.md`, script-generated; classification companion alongside it).
 - The `c637458` baseline report (0/300) is **superseded** by this run — preserved unedited, per the owner's documentation discipline.
 - Routing axis (separate from the verdict axis): 266/300 correct-tool, didn't-catch 0, wedge 150/150. The remaining verdict gap is concentrated in STATE_doorstep_gap (170), the A4 completion conditions (262 scenarios), and H-12 (179) — the conversation/doorstep waves, sequenced by the owner for tonight.
+
+## PIN FOR FAMILY LANES (2026-10-13 evening)
+
+- Routing fix: **`acd9b39`** (bundle rebuilt in-commit). Follow-ons: CA list v2 `c72a3cc`, fresh-300 report `63c46c0`, named-target tailor `54efb97`, Wave A S0/copy `32c86ce`. All on `pivot/career`, unpushed (pushing is the owner's).
+- Fresh 300 official count at the routing-fix build: PASS 13 / FAIL 286 / NI 1 — report `docs/stability/runs/2026-10-14-c72a3cc.md` + classification companion. Wave A re-verification: all 11 baseline S0 scenarios re-grade SAFE.

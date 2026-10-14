@@ -19,3 +19,5 @@ Run, with UPMORE_AUDIT_MODEL_KEY available only in process environment:
     python3 tests/memory-audit/supervise.py --out /workspace/upmore-audit/paid-full-3500 --workers 4
 
 Results: /workspace/upmore-audit/paid-full-3500/launch.json during execution; report.json and README.md after successful aggregation. No complete seven-dimension result is claimed until those artifacts exist and coverage checks pass.
+
+Budget continuation: with --spend-budget, after the first 3,500 cases the supervisor runs up to 6,500 additional semantic variants (E-prefixed IDs) in separate directories, reaching 10,000 cases total. These include new fact combinations and stochastic reruns, not 10,000 independent capability families. Each request must still fit the shared reservation ledger. Provider billing and conservative bounds can leave a small remainder; no exact-$5 claim is made. Additional coverage and budget status are retained separately from the initial verified 3,500-case aggregate.

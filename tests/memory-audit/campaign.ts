@@ -3,6 +3,7 @@ import {gradeConversation} from './judge.ts';
 import {scenarios,type Scenario,type Step} from './scenarios.ts';
 import {semanticScenarios,type SemanticCase} from './semantic-scenarios.ts';
 const arg=(name:string,fallback:string)=>{const at=Deno.args.indexOf(name);return at<0?fallback:Deno.args[at+1];};
+const idPrefix=arg('--id-prefix','C');
 const out=arg('--out','/workspace/upmore-audit/campaign');
 const workflowVariants=Number(arg('--workflow-variants','50')),semanticVariants=Number(arg('--semantic-variants','20'));
 const startIndex=Number(arg('--start-index','0')),endIndex=Number(arg('--end-index','10000'));
@@ -47,7 +48,7 @@ async function workflow(seed:Scenario,variant:number,number:number){
  const trials:any[]=[];
  for(let trial=1;trial<=trialCount;trial++){
   const w=handlerWorld('00000000-0000-4000-8000-'+String(number*3+trial).padStart(12,'0'));
-  w.caseId='C'+String(number).padStart(5,'0');w.eventPath=out+'/turn-events.jsonl';
+  w.caseId=idPrefix+String(number).padStart(5,'0');w.eventPath=out+'/turn-events.jsonl';
   const context=configure(w,variant),steps=stepsFor(seed,context),failures:any[]=[];
   for(const [index,step] of steps.entries()){
    if(step.thread)w.thread=step.thread;if(step.minutes)w.now+=step.minutes*60000;if(step.set)Object.assign(w,step.set);
@@ -70,14 +71,14 @@ async function workflow(seed:Scenario,variant:number,number:number){
   if(inferenceBlocked)for(const d of dimensions)if(dims[d].status!=='FAIL')dims[d]=metric('BLOCKED','Provider request blocked; not evidence of application correctness');
   trials.push({trial,pass:pass&&!inferenceBlocked,status:inferenceBlocked&&safe.pass?'BLOCKED':!pass||!safe.pass||dims.fluency.status==='FAIL'?'FAIL':inferenceBlocked||dims.fluency.status==='BLOCKED'?'BLOCKED':'PASS',judging,failures,dimensions:dims,safety:safe,transcript:transcript(w),stored_state:w.state(),recipients:w.recipients,standing:w.standing,surface_fluency:{delivered_replies:w.transcript.length,empty_replies:w.transcript.filter((t:any)=>!t.result?.reply&&!t.result?.message).length,over_1200_characters:w.transcript.filter((t:any)=>String(t.result?.reply||'').length>1200).length}});
  }
- return {id:'C'+String(number).padStart(5,'0'),seed_id:seed.id,type:'workflow',category:seed.category,title:seed.title,variant,pass:trials.every(t=>t.pass),status:trials.some(t=>t.status==='FAIL')?'FAIL':trials.some(t=>t.status==='BLOCKED')?'BLOCKED':'PASS',context:trials[0].recipients.map((r:any)=>({name:r.display_name,handle:r.handle})),expected_contract:stepsFor(seed,{first:names[variant%50],second:names[(variant+17)%50],scale:1+variant%5}),trials};
+ return {id:idPrefix+String(number).padStart(5,'0'),seed_id:seed.id,type:'workflow',category:seed.category,title:seed.title,variant,pass:trials.every(t=>t.pass),status:trials.some(t=>t.status==='FAIL')?'FAIL':trials.some(t=>t.status==='BLOCKED')?'BLOCKED':'PASS',context:trials[0].recipients.map((r:any)=>({name:r.display_name,handle:r.handle})),expected_contract:stepsFor(seed,{first:names[variant%50],second:names[(variant+17)%50],scale:1+variant%5}),trials};
 }
 async function semantic(seed:SemanticCase,variant:number,number:number){
  const trials:any[]=[];
- const vars={name:names[variant%50]+' Brook',major:['finance','accounting','economics','computer science','marketing'][variant%5],school:['DePaul','Northwestern','UIC','Loyola','Illinois State'][variant%5],city:['Chicago','Evanston','Oak Park','Naperville','remote'][variant%5]};
+ const vars={name:names[variant%50]+' Brook',major:['finance','accounting','economics','computer science','marketing'][variant%5],school:['DePaul','Northwestern','UIC','Loyola','Illinois State'][(variant<50?variant:Math.floor(variant/5))%5],city:['Chicago','Evanston','Oak Park','Naperville','remote'][(variant<50?variant:Math.floor(variant/25))%5]};
  const render=(s:string)=>s.replace(/\{\{(\w+)\}\}/g,(_,key)=>String((vars as any)[key]));
  for(let trial=1;trial<=trialCount;trial++){
-  const w=handlerWorld('00000000-0000-4000-8000-'+String(number*3+trial).padStart(12,'0'));w.caseId='C'+String(number).padStart(5,'0');w.eventPath=out+'/turn-events.jsonl';const errors:any[]=[];const collisions:any[]=[];
+  const w=handlerWorld('00000000-0000-4000-8000-'+String(number*3+trial).padStart(12,'0'));w.caseId=idPrefix+String(number).padStart(5,'0');w.eventPath=out+'/turn-events.jsonl';const errors:any[]=[];const collisions:any[]=[];
   for(const raw of seed.turns){
    if(raw==='[NEW SESSION]'){w.thread='new-session';w.transcript.push({control:'new-session',thread:w.thread});continue;}
    if(raw==='[OTHER USER]'){w.userId='00000000-0000-4000-9000-'+String(number*3+trial).padStart(12,'0');w.thread='other-user';w.transcript.push({control:'other-user',authenticated_user:w.userId});continue;}
@@ -94,7 +95,7 @@ async function semantic(seed:SemanticCase,variant:number,number:number){
   const status=collisions.length||!safe.pass||errors.length||Object.values(dims).some((d:any)=>d.status==='FAIL')?'FAIL':inferenceBlocked||Object.values(dims).some((d:any)=>d.status==='BLOCKED')?'BLOCKED':judging.status==='GRADED'?'PASS':'BLOCKED';
   trials.push({trial,status,judging,errors,collisions,dimensions:dims,safety:safe,transcript:transcript(w),stored_state:w.state(),stored_tables:Object.fromEntries(Object.entries(w.tables).filter(([key])=>['profiles','career_state','agent_flow_state'].includes(key)))});
  }
- return {id:'C'+String(number).padStart(5,'0'),seed_id:seed.id,type:'semantic',category:seed.category,title:seed.title,variant,status:trials.some(t=>t.status==='FAIL')?'FAIL':trials.every(t=>t.status==='PASS')?'PASS':'BLOCKED',expected:render(seed.expected),context:vars,required_dimensions:seed.dimensions,trials};
+ return {id:idPrefix+String(number).padStart(5,'0'),seed_id:seed.id,type:'semantic',category:seed.category,title:seed.title,variant,status:trials.some(t=>t.status==='FAIL')?'FAIL':trials.every(t=>t.status==='PASS')?'PASS':'BLOCKED',expected:render(seed.expected),context:vars,required_dimensions:seed.dimensions,trials};
 }
 const started=performance.now();const summaries:any[]=[];let chunk:any[]=[];let chunkNumber=0;const shards:any[]=[];
 const inputFingerprints=new Set<string>();

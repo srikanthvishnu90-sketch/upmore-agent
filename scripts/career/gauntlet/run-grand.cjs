@@ -90,7 +90,7 @@ async function runOne(id) {
   const refusal = /(can't|cannot|won't|will not|not going to|refus|instead|safer|safe path|real path)/i.test(text);
   // completion conditions per result type (computed)
   let completion = false, completionWhy = "no completion condition met";
-  if ((intent === "career_discovery" || intent === "career_internship_discovery") && ((res.shortlist || []).length >= 1) && /\b(roles|jobs|internships|positions)\b/i.test(ask)) { completion = true; completionWhy = `discovery delivered ${(res.shortlist || []).length} shortlist roles for a role/job ask`; }
+  if ((intent === "career_discovery" || intent === "career_internship_discovery") && ((res.shortlist || []).length >= 1) && /\b(roles?|jobs?|internships?|positions?)\b/i.test(ask)) { completion = true; completionWhy = `discovery delivered ${(res.shortlist || []).length} shortlist roles for a role/job ask`; }
   else if (intent === "career_tailor" && status === "prepared" && res.artifact) { completion = true; completionWhy = "tailored artifact prepared"; }
   else if (intent === "career_packet" && status === "prepared" && res.packet) { completion = true; completionWhy = "packet prepared"; }
   else if (intent === "prep_mock_start") { completion = true; completionWhy = "mock session started with a question"; }
@@ -112,6 +112,12 @@ async function runOne(id) {
   }
   else if (intent === "doorstep_status" && res.doorstep && res.doorstep.gap === null && res.doorstep.driven_by === "agent" && (res.salary || res.triage || res.referral || res.sensitive || res.judgement || res.cooldown || res.assessment || res.rule || res.radar || res.windows || res.corrections || res.attach_guard || res.blocker)) {
     completion = true; completionWhy = "apply-rules turn carried its 132/Apply3 product (or typed blocker) beside 141's packet doorstep record (gap null)";
+  }
+  else if (intent === "intent_prior_application" && res.prior_application && res.prior_application.disclosed === true) {
+    // BUG-078 (W5, CONTRACT FIX — flagged): the prior-application
+    // turn's genuine elements — the disclosed manual application,
+    // logged with its channel — had no branch reading them.
+    completion = true; completionWhy = "prior manual application disclosed and logged (duplicate protection record carried)";
   }
   else if (intent === "negotiation_plan" && res.offer && res.strategy) {
     completion = true; completionWhy = "offer parsed and counter strategy produced from the plumbed offer + company file";

@@ -125,3 +125,69 @@ test("BUG-073 SC-242 trend ask carries 144's cited record (the ok:false honest r
   const v = DC.validate("F7", res.payload);
   assert.ok(v.valid, `SC-242: payload validates F7 (missing: ${v.missing.join(",")})`);
 });
+
+// ------------------------------------------------------------------
+// BUG-076 — the discovery A4 branch's ask-side word check accepted
+// only plural forms (roles|jobs|internships|positions); canonical
+// asks phrased with the singular ("every new-grad SWE role posted…",
+// SC-063/106/117/119) carried a genuine 5-role shortlist the branch
+// could never read. SC-111 is NOT affected (its shortlist is 0).
+// ------------------------------------------------------------------
+test("BUG-076 contract discovery branch reads singular role/job ask forms", () => {
+  const src = fs.readFileSync(path.join(__dirname, "../scripts/career/gauntlet/run-grand.cjs"), "utf8");
+  assert.ok(/\(roles\?\|jobs\?\|internships\?\|positions\?\)/.test(src), "discovery ask check accepts singular + plural forms (BUG-076)");
+  const r = turn("SC-063"); const res = r.result || {};
+  assert.ok(Array.isArray(res.shortlist) && res.shortlist.length >= 1, "SC-063: the shortlist element is genuinely present");
+});
+
+// ------------------------------------------------------------------
+// BUG-077 — four tailor sub-branches answered in prose only and
+// returned no artifact at all, although each has a real 123 product:
+// the truth audit (auditResume), the bans-AI outline (coverOutline),
+// the diff review, and per-firm impact/fit tailoring (which pre-empted
+// the company/discovery tailor chains that DO produce artifacts).
+// ------------------------------------------------------------------
+test("BUG-077 SC-071 truth-audit branch carries the audit artifact", () => {
+  const r = turn("SC-071"); const res = r.result || {};
+  assert.ok(res.artifact && res.artifact.kind === "truth_audit", `SC-071: audit artifact missing: keys=${Object.keys(res)}`);
+});
+test("BUG-077 SC-076 bans-AI branch delivers the outline artifact (prepared)", () => {
+  const r = turn("SC-076"); const res = r.result || {};
+  assert.ok(res.artifact && res.artifact.kind === "cover_outline", `SC-076: outline artifact missing: keys=${Object.keys(res)}`);
+  assert.equal(res.resultStatus, "prepared");
+});
+test("BUG-077 SC-089 per-firm impact-bullets ask chains to a real tailored artifact", () => {
+  const r = turn("SC-089"); const res = r.result || {};
+  assert.ok(res.artifact && typeof res.artifact === "object", `SC-089: artifact missing: keys=${Object.keys(res)}`);
+});
+test("BUG-077 SC-097 diff review carries the quoted changes as the review artifact", () => {
+  const r = turn("SC-097"); const res = r.result || {};
+  assert.ok(res.artifact && res.artifact.kind === "resume_diff_review" && Array.isArray(res.artifact.changes) && res.artifact.changes.length >= 2, `SC-097: diff artifact missing: keys=${Object.keys(res)}`);
+});
+
+// ------------------------------------------------------------------
+// BUG-078 — no A4 branch read the prior-application turn: SC-079's
+// typed result carries 126/142's prior_application record
+// (disclosed:true, the manual application logged, duplicate apply
+// suppressed) at completed, and the chain had no element branch
+// for the intent at all.
+// ------------------------------------------------------------------
+test("BUG-078 contract carries an element branch for the prior-application record", () => {
+  const src = fs.readFileSync(path.join(__dirname, "../scripts/career/gauntlet/run-grand.cjs"), "utf8");
+  assert.ok(/intent_prior_application/.test(src) && /prior_application\.disclosed === true/.test(src), "A4 reads the disclosed prior-application record (BUG-078)");
+  const r = turn("SC-079"); const res = r.result || {};
+  assert.ok(res.prior_application && res.prior_application.disclosed === true, "SC-079: the disclosed record is genuinely present");
+});
+
+// ------------------------------------------------------------------
+// BUG-079 — handleApplyRules' link-triage branch only triggered on
+// "apply to these N links" phrasing, so a "Triage 30 pasted links"
+// ask (SC-114) fell through to discovery, whose regex claims the
+// word triage — the turn shipped a shortlist instead of 132's
+// triage verdicts + the packet doorstep.
+// ------------------------------------------------------------------
+test("BUG-079 SC-114 triage ask reaches the apply-rules triage branch", () => {
+  const r = turn("SC-114"); const res = r.result || {};
+  assert.equal(res.intent, "doorstep_status", `SC-114: intent was ${res.intent}`);
+  assert.ok(Array.isArray(res.triage) && res.triage.length >= 1, "SC-114: triage verdicts carried");
+});

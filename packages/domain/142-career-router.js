@@ -2180,7 +2180,7 @@ const CareerRouter = (() => {
       try { ruleProd = Apply && Apply.createRule ? Apply.createRule({ minFit: fitM ? Number(fitM[1]) : undefined, maxPerDay: maxM ? Number(maxM[1]) : undefined, companies: [] }, { approvedByUser: true }) : null; } catch { ruleProd = null; }
       return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want this rule run over tonight's new postings?", ruleProd ? { rule: ruleProd } : { blocker: { code: "rule_producer_unavailable", reason: "132's createRule returned no product" } });
     }
-    if (/\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
+    if (/\btriage\b[^.]*\blinks?\b|\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
       // IB-AP §1.2: verdicts come from 132's triageBatch over the
       // postings the turn carries (pasted URLs triage via triageLinks
       // when the ask actually contains them).
@@ -3070,7 +3070,7 @@ const CareerRouter = (() => {
     // Apply family: the rulebook shapes (autopilot rule, link triage,
     // saved sensitive answers, knockouts, cooldowns) are answered by the
     // rules handler; a plain auto-apply ask chains to the doorstep.
-    if (/\bauto[ -]?apply\b|\bapply on my behalf\b|\bautopilot\b|\bapply to (these|the) \d+ links\b|\breferral stacking\b|\bsponsorship question\b|\beeo\b|\bself-identify\b|\bknockout\b|\bcooldown\b|\breapply\b|\bhackerrank invite\b|\bassessment invite\b|\bsalary expectation\b|\bsophomore\b[^.]*\bsweep\b|\bats parser\b|\bparser mangled\b|\bwrong-resume\b|\bnearly attached\b|\bdeadline radar\b/.test(t)) {
+    if (/\bauto[ -]?apply\b|\bapply on my behalf\b|\bautopilot\b|\bapply to (these|the) \d+ links\b|\btriage\b[^.]*\blinks?\b|\breferral stacking\b|\bsponsorship question\b|\beeo\b|\bself-identify\b|\bknockout\b|\bcooldown\b|\breapply\b|\bhackerrank invite\b|\bassessment invite\b|\bsalary expectation\b|\bsophomore\b[^.]*\bsweep\b|\bats parser\b|\bparser mangled\b|\bwrong-resume\b|\bnearly attached\b|\bdeadline radar\b/.test(t)) {
       const ar = handleApplyRules(text, c);
       if (ar) return ar;
       const aa = handleAutoApply(text, c);
@@ -3094,15 +3094,30 @@ const CareerRouter = (() => {
         let violations = null;
         try { const a = Tailor.auditResume(profile); violations = (a && (a.violations || a.findings)) || null; } catch { violations = null; }
         const reply = compose({ headline: "The truth audit runs over every tailored bullet before anything is saved.", facts: [violations && violations.length ? `${violations.length} bullets failed the audit and come out — each one is shown to you with the reason.` : "Every bullet on the current version traces to a confirmed fact; anything that cannot is dropped and shown to you with the reason, never quietly kept."], nextStep: "Want the audit run on a specific version?" });
-        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, audit: violations ? { violations } : null };
+        // BUG-077: the audit report itself is this branch's prepared
+        // artifact — the record of the audit over the current version.
+        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, audit: violations ? { violations } : null, artifact: { kind: "truth_audit", scope: "current resume version", violations: violations || [], clean: !(violations && violations.length) } };
       }
       if (/\bresume diff\b|\bdiff review\b/.test(t)) {
         const reply = compose({ headline: "The diff review, bullet by bullet.", facts: ["Every change is shown as a line: what moved, what was added, and the fact each addition traces to — an added skill names the project that proves it.", "Nothing enters a version silently; a change you did not approve does not ship."], nextStep: "Want the current version's diff against the master?" });
-        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0 };
+        // BUG-077: when the ask itself states the diff (the quoted
+        // change list), that list IS the review surface — it rides as
+        // the branch's artifact, each change awaiting the user's
+        // approval, exactly as the reply describes.
+        const quoted = (s(text).match(/["“]([^"”]{10,})["”]/) || [])[1] || "";
+        const changes = quoted ? quoted.split(/,\s*/).map((x) => x.trim()).filter(Boolean) : [];
+        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, ...(changes.length >= 2 ? { artifact: { kind: "resume_diff_review", changes, approval_state: "awaiting_user" } } : {}) };
       }
       if (/\bbans? ai\b|\bai[ -]written\b|\boutline \+ bullets\b/.test(t)) {
-        const reply = compose({ headline: "That company bans AI-written applications, so I will not write the paragraph.", facts: ["What I can do: the outline and the bullets, from facts on your profile, in the order the posting rewards.", "You write the prose in your own words; then I check it against the posting and your facts, and flag anything that drifts."], nextStep: "Paste the posting and I will lay out the outline." });
-        return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0 };
+        // BUG-077: 123's coverOutline is this branch's product — the
+        // outline + fact-cited bullets are DELIVERED as the artifact
+        // (the scenario's ask), not merely offered in prose; the
+        // paragraph itself stays the user's, per the ban.
+        let outline = null;
+        try { outline = Tailor && Tailor.coverOutline ? Tailor.coverOutline(profile, s(text), cirFor(text, c)) : null; } catch { outline = null; }
+        const points = outline && Array.isArray(outline.points) ? outline.points : [];
+        const reply = compose({ headline: "That company bans AI-written applications, so I will not write the paragraph.", facts: [points.length ? "Your outline and bullets are ready on the card — built only from facts on your profile, in the order the posting rewards." : "What I can do: the outline and the bullets, from facts on your profile, in the order the posting rewards.", "You write the prose in your own words; then I check it against the posting and your facts, and flag anything that drifts."], nextStep: "Write your paragraph from the outline, paste it back, and I will check it line by line." });
+        return { intent: "career_tailor", reply, resultStatus: points.length ? "prepared" : "awaiting_user", sends: 0, ...(points.length ? { artifact: { kind: "cover_outline", points } } : {}) };
       }
       if (/\banswer bank\b|\bwhy this company\b/.test(t) && Tailor && Tailor.buildAnswerBank) {
         try {
@@ -3111,10 +3126,6 @@ const CareerRouter = (() => {
           const reply = compose({ headline: "Your answer bank: the company parts are rewritten every time, never templated.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Each answer joins one fact about the company to one fact about you; the shared spine is yours, the company half is fresh per application."], nextStep: "Name the six companies and I will draft the set." });
           return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, answer_bank: bank };
         } catch { /* fall through to the tailor chain */ }
-      }
-      if (/\bimpact bullets\b|\bfit answers\b/.test(t)) {
-        const reply = compose({ headline: "Per-firm tailoring: the fit answers and impact bullets are written firm by firm, never templated.", facts: ["Each firm's answers join one fact about that firm to one fact about you; the impact bullets are re-cut to the firm's own language from its posting.", "The set is built from the firms' live postings — name the firms or I take them from your target list."], nextStep: "Name the firms and I will draft the first set." });
-        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0 };
       }
       if (/\bbatch\b/.test(t)) {
         const bt = handleBatchTailor(text, c);
@@ -3157,6 +3168,15 @@ const CareerRouter = (() => {
           const chained = handleTailor(text, Object.assign({}, c, { posting: topAdapted }));
           if (chained && chained.artifact) { chained.chained_from = "career_discovery"; chained.shortlist = disc.shortlist; return chained; }
         }
+      }
+      // BUG-077: the per-firm impact/fit explainer is the LAST
+      // fallback, not a pre-emption — it used to fire before the
+      // company-target and discovery chains above, so a named firm's
+      // ask (SC-089 McKinsey) got prose instead of the tailored
+      // artifact those chains produce.
+      if (/\bimpact bullets\b|\bfit answers\b/.test(t)) {
+        const reply = compose({ headline: "Per-firm tailoring: the fit answers and impact bullets are written firm by firm, never templated.", facts: ["Each firm's answers join one fact about that firm to one fact about you; the impact bullets are re-cut to the firm's own language from its posting.", "The set is built from the firms' live postings — name the firms or I take them from your target list."], nextStep: "Name the firms and I will draft the first set." });
+        return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0 };
       }
       return disc;
     }

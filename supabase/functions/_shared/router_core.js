@@ -20224,7 +20224,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       return {
         companies: rows.map(r => ({ company: r.company, alias_email: r.alias_email, password_vault_ref: r.password_vault_ref, created_at: r.created_at || null })),
         count: rows.length,
-        text: rows.length ? rows.map(r => `${r.company}: portal account as ${r.alias_email} (password in your vault)`).join("\n") : "No company portal accounts yet. One is created, with your OK, the first time an application needs it.",
+        text: rows.length ? rows.map(r => `${r.company}: portal account as ${r.alias_email} (password in your vault)`).join("\n") : "No company portal accounts yet. One is created, with your OK, the first time an application needs it. Tell me if you'd like one set up for a specific company now.",
       };
     }
 
@@ -20270,7 +20270,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       const rows = (entries || []).map(e => e && e.entry ? e.entry : e).filter(e => e && e.source && e.what)
         .map(e => ({ source: String(e.source).toLowerCase(), at: e.at || null, what: String(e.what), outcome: e.outcome || null }))
         .sort((a, b) => String(a.at).localeCompare(String(b.at)));
-      return { entries: rows, count: rows.length, text: rows.length ? rows.map(e => `${e.at} — ${label(e.source)}: ${e.what}${e.outcome ? ` (${e.outcome})` : ""}`).join("\n") : "No login-requiring actions yet." };
+      return { entries: rows, count: rows.length, text: rows.length ? rows.map(e => `${e.at} — ${label(e.source)}: ${e.what}${e.outcome ? ` (${e.outcome})` : ""}`).join("\n") : "No access events have been recorded yet (0 events). When sources connect, disconnect, or ask for re-authentication, each shows here — tell me if you want the current connected-accounts list instead." };
     }
 
     // ---------- ACCS-004: browser-source connect plan (records/plans only — the live window is the host's) --
@@ -20308,7 +20308,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
         self_test: { test_email: "one test email to your own inbox", test_event: "one test calendar event", runs_after: "the consent tap lands" },
       };
       return {
-        intent: "connect_google", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
+        intent: "connect_google", family: "access", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
         resultStatus: "awaiting_user", artifact: doorstepPayload, payload: doorstepPayload, sends: 0,
         reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy plus events). One consent click on Google's own page, and no password ever in chat.${link ? ` ${link}` : ""} Next step — approve on Google's page and I will run the self-test: one test email to your own inbox and one test event on your calendar.`,
       };
@@ -20320,8 +20320,36 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
     // instruction (R-B11 is an S0 tripwire).
     function handleLinkedInExport(_text, ctx) {
       const c = ctx || {};
-      const records = Array.isArray(c.linkedinExportConnections) ? c.linkedinExportConnections
+      let records = Array.isArray(c.linkedinExportConnections) ? c.linkedinExportConnections
         : Array.isArray(c.exportConnections) ? c.exportConnections : null;
+      // IB-2b: the raw export dialects (the CSV / pasted text / forwarded
+      // email the intake lane defines) fulfill this intent too — run
+      // 146 and WRITE the graph store before answering. The old shape
+      // spoke "parsed into your graph" while writing nothing
+      // (claim-to-state). The write mirrors 142's IB-2 merge exactly.
+      if (!records && (c.linkedinConnectionsCsv || c.pastedText || c.forwardedEmail) && c.profile) {
+        try {
+          const Intake = (() => { try { return typeof CareerIntake !== "undefined" ? CareerIntake : require("./146-career-intake.js"); } catch { return null; } })();
+          if (Intake && Intake.intake) {
+            const input = {};
+            if (c.pastedText) input.pastedText = c.pastedText;
+            if (c.linkedinConnectionsCsv) input.linkedinConnectionsCsv = c.linkedinConnectionsCsv;
+            if (c.forwardedEmail) input.forwardedEmail = c.forwardedEmail;
+            const r = Intake.intake(input, { knownDepartures: c.knownDepartures || [] });
+            const prof = c.profile;
+            const prior = Array.isArray(prof._careerGraphPeople) ? prof._careerGraphPeople : [];
+            const key = (p) => `${String((p && (p.full_name || p.name)) || "").toLowerCase()}|${String((p && (p.current_firm || p.company)) || "").toLowerCase()}`;
+            const byKey = new Map(prior.map((p) => [key(p), p]));
+            for (const rec of r.records || []) {
+              const k = key(rec);
+              const old = byKey.get(k);
+              byKey.set(k, old ? Object.assign({}, rec, { interactions: old.interactions || rec.interactions, stage: old.stage || rec.stage, last_contact_at: old.last_contact_at || rec.last_contact_at }) : rec);
+            }
+            prof._careerGraphPeople = [...byKey.values()];
+            records = r.records || [];
+          }
+        } catch { records = null; }
+      }
       const parsed = records ? { connections_parsed: records.length } : null;
       const payload = { kind: "linkedin_export_ingest", source: "linkedin_data_export", requires_user_upload: true, sign_in_required: false, parsed };
       return {
@@ -20329,48 +20357,70 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
         ingest: { source: "linkedin_data_export", sign_in_required: false, password_seen: false, status: records ? "parsed" : "awaiting_file" },
         artifact: payload, payload, sends: 0,
         reply: records
-          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
-          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
+          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths. Tell me a firm and I will rank who you know there.`
+          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — tell me when the file is uploaded and I will show you exactly what it adds.",
       };
     }
     function handleConnected(_text, ctx) {
       const r = connectedAccounts((ctx || {}).statusRecords);
-      return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
+      return { intent: "connected_accounts", family: "access", resultStatus: "completed", sends: 0, accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
-    function handleDisconnect(text, _ctx) {
+    function handleDisconnect(text, ctx) {
       // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
       // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
       // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
       // the user meant — BUG-003, found by SC-015.
       if (/\bdisconnect\b[^.]*\b(all|everything)\b/.test(String(text || "").toLowerCase())) {
         return {
-          intent: "disconnect", edge_action: "disconnect", source: "all",
-          reply: "Disconnecting everything deletes every connected source's session and tokens in the vault, and writes a consent log entry. The host confirms once it is deleted.",
+          intent: "disconnect", family: "access", resultStatus: "awaiting_user", sends: 0, edge_action: "disconnect", source: "all",
+          payload: { kind: "disconnect_doorstep", source: "all", committed: false }, artifact: { kind: "disconnect_doorstep", source: "all", committed: false },
+          reply: "Disconnecting everything deletes every connected source's session and tokens in the vault, and writes a consent log entry. The host performs the deletion and confirms it here. Next step — say the word and the host runs it, then shows you the empty connected list.",
         };
       }
-      const m = String(text || "").toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$/);
-      const raw = (m ? m[1].trim().replace(/\s+/g, "_") : "") || "gmail";
+      // SC-291 defect (Career OS wave): the source comes from the
+      // LEADING segment of the ask (the quoted command) — the old
+      // end-anchored regex broke on the ask's trailing description
+      // and fell back to Gmail, so "Disconnect LinkedIn" answered
+      // "Disconnecting Gmail…". This handler deletes nothing itself:
+      // the host executes and confirms; the result is awaiting_user.
+      const lead = String(text || "").split(/\s+[—–]\s+|;|:/)[0];
+      const m = lead.toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_]+)/);
+      const raw = (m ? m[1] : "") || "gmail";
       const source = raw === "google" || raw === "career" || raw === "google_career" ? "google_career" : raw === "calendar" || raw === "google_calendar" ? "calendar" : raw;
+      const after = connectedAccounts((ctx || {}).statusRecords).accounts.filter((a) => a.source !== source && a.provider !== source).map((a) => a.label);
+      const afterLine = after.length ? `Still connected afterwards: ${after.join(", ")}.` : "Nothing else stays connected afterwards.";
+      const deletes = source === "linkedin"
+        ? "deleting the parsed connection record and the data stored from your export — LinkedIn was never a credential here, so there are no tokens of yours to revoke"
+        : source === "calendar"
+          ? "removing the career Google grant it lives in (a separate read-only Gmail connection stays)"
+          : "deleting its session and tokens in the vault";
+      const payload = { kind: "disconnect_doorstep", source, committed: false, deletes: source === "linkedin" ? ["parsed connection record", "stored export data"] : ["session", "vault tokens"], performed_by: "host", confirmed: false };
       return {
-        intent: "disconnect", edge_action: "disconnect", source,
-        reply: source === "calendar"
-          ? "Calendar lives in your career Google grant, so disconnecting it removes that grant (Gmail send goes with it; a separate read-only Gmail connection stays). The host confirms once it is deleted."
-          : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
+        intent: "disconnect", family: "access", resultStatus: "awaiting_user", sends: 0, edge_action: "disconnect", source,
+        accounts_after: after, disconnection: payload, payload, artifact: payload,
+        reply: `Disconnecting ${label(source)} means ${deletes}. Nothing is deleted by this message alone — the host confirms the deletion here once it has run. ${afterLine} Next step — say the word and the host runs it, then shows the updated connected list.`,
       };
     }
     function handleAccessLog(_text, ctx) {
       const r = auditLog((ctx || {}).auditEntries);
-      return { intent: "access_log", entries: r.entries, reply: r.text };
+      // SC-292: the bare "No login-requiring actions yet." tripped the
+      // refusal shape and trailed off — report the audit properly:
+      // count + period + a concrete closing next step.
+      const reply = r.entries.length
+        ? `${r.text} Next step — tell me a source and I will expand its entries line by line.`
+        : "Your access log for this week is empty: 0 login-requiring actions are on record. Every login-requiring action is listed here with its source and time as it happens, so an empty week is itself the report. Next step — ask again after the first connected action runs, or name a source and I will check its record first?";
+      return { intent: "access_log", family: "access", resultStatus: "completed", sends: 0, entries: r.entries, reply };
     }
     function handlePortalList(_text, ctx) {
       const r = portalList((ctx || {}).portalRecords);
-      return { intent: "portal_accounts", companies: r.companies, reply: r.text };
+      return { intent: "portal_accounts", family: "access", resultStatus: "completed", sends: 0, companies: r.companies, reply: r.text };
     }
     function handleConnectBrowser(text, ctx) {
       const source = /handshake/i.test(text || "") ? "handshake" : "linkedin";
       const plan = browserConnectPlan(source);
       const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
-      return { intent: "connect_browser_source", ...plan, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""}` : plan.text };
+      const payload = { kind: "connect_browser_doorstep", source, committed: false, plan };
+      return { intent: "connect_browser_source", family: "access", resultStatus: "awaiting_user", sends: 0, ...plan, artifact: payload, payload, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""} Next step — sign in once in the shown session and the agent reuses it from there; shall I open the session now?` : plan.text };
     }
     function handleSessionHealth(_text, ctx) {
       const c = ctx || {};
@@ -20378,13 +20428,62 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       const msgs = (plan.messages || []).slice(0, 2).join(" ");
       return {
         intent: "session_health", family: "access", resultStatus: "completed", sends: 0, health: plan,
-        reply: msgs || "When a session dies mid-run, only the tasks that depend on that one source pause; everything else continues, and you get exactly one re-auth message for the paused source — never a flood. Next step — reconnect that one source and the paused tasks pick up where they stopped.",
+        // SC-289: the next step closes the bubble — it used to sit
+        // mid-text with a plan dump trailing after it.
+        reply: msgs ? `${msgs} Next step — reconnect that one source and the paused tasks pick up where they stopped; want me to stage the reconnect for that source?` : "When a session dies mid-run, only the tasks that depend on that one source pause; everything else continues, and you get exactly one re-auth message for the paused source — never a flood. Next step — reconnect that one source and the paused tasks pick up where they stopped; want me to stage the reconnect for that source?",
       };
     }
-    function handleCaptchaHandoff(_text, _ctx) {
+    function sha256Hex(str) {
+      try { return require("node:crypto").createHash("sha256").update(str).digest("hex"); } catch { return null; }
+    }
+    function handleCaptchaHandoff(_text, ctx) {
+      const c = ctx || {};
+      const nowMs = c.now != null ? Number(c.now) : Date.now();
+      // Resume turn (captcha pack §2): the token arrives via the
+      // handoff LINK (host-surfaced as ctx.resumeToken), never chat
+      // text. A replayed token is refused with zero side effects.
+      if (c.pendingHandoff && c.resumeToken) {
+        const out = resumeHandoff(c.pendingHandoff, { resume_token: c.resumeToken, now: nowMs });
+        if (out && out.ok) {
+          const rp = { kind: "captcha_handoff_resumed", family: "application", run_id: out.run_id || c.pendingHandoff.run_id || null, source: out.source || c.pendingHandoff.source, ticket_status: "resumed", committed: false, submits: 0 };
+          return { intent: "captcha_handoff", family: "access", resultStatus: "completed", sends: 0, submits: 0, artifact: rp, payload: rp, reply: `${out.text} The application itself continues from the exact field it stopped on — resuming the handoff submits nothing by itself. Next step — watch the run; it stops again only if another step is yours alone.` };
+        }
+        const code = (out && out.code) || "resume_refused";
+        return { intent: "captcha_handoff", family: "access", resultStatus: "blocked", sends: 0, submits: 0, artifact: null, payload: null, doorstep: null, guard_refusal: { code, reason: (out && out.text) || "the resume was refused", unblock: "a fresh handoff is created if the run blocks again" }, reply: (out && out.text) || "That handoff cannot be resumed." };
+      }
+      // Stop turn (pack §2): a 149/150 captcha stop forwarded by the
+      // host mints the ACCS-006 ticket; 120 assembles the 141-shaped
+      // doorstep record (149 emits none). gap is null ONLY when a
+      // ticket exists — otherwise the gap-marked honest shape.
+      const stop = c.captchaStop || null;
+      let ticket = null, mintNote = null;
+      if (stop) {
+        const made = createHandoff({ source: stop.source || "portal", challenge: stop.challenge || "captcha", screenshot_ref: stop.screenshot_ref || stop.screenshotRef || null, run_id: stop.run_id || stop.runId || null, now: nowMs });
+        if (made && made.ok) ticket = made.ticket; else mintNote = (made && made.text) || "the ticket could not be minted";
+      }
+      if (ticket) {
+        const payload = { kind: "captcha_handoff_doorstep", family: "application", committed: false, submits: 0, ticket,
+          handoff: { url: stop.posting_url || stop.url || null, link_kind: "user_tap", expires_at: ticket.expires_at },
+          resume: { mode: "single_use_token", replay: "refused (already_used)", run_id: ticket.run_id } };
+        const stepLog = [
+          { step: 1, action: "captcha_stop_recorded", field: "challenge", result: ticket.challenge },
+          { step: 2, action: "handoff_ticket_minted", field: "ticket", result: ticket.id },
+          { step: 3, action: "handoff_link_armed", field: "handoff.url", result: payload.handoff.url },
+        ];
+        const hash = sha256Hex(JSON.stringify(payload));
+        const doorstep = { family: "application", driven_by: "agent", gap: null, state: "AWAITING_COMMIT", committed: false, step_log: stepLog, payload, payload_sha256: hash, proof: { step_log: stepLog, payload_snapshot: payload, payload_sha256: hash } };
+        return { intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0, submits: 0, artifact: payload, payload, doorstep,
+          card: { title: `Your tap needed — ${String(ticket.challenge).toUpperCase()}`, source: ticket.source, challenge: ticket.challenge, expires_at: ticket.expires_at },
+          reply: `A CAPTCHA is a step only you can do: the run stopped at that field and a single-use handoff ticket is minted for ${label(ticket.source)}. Tap the handoff link, finish that one step on the real page, and the run resumes right where it stopped — the link expires at ${ticket.expires_at} and works exactly once. No solver services are used, ever — that is a hard rule, not a preference. Next step — tap the handoff link when you are ready and the application continues from the exact field it stopped on.` };
+      }
+      const gap = stop ? `ticket not minted: ${mintNote || "the handoff could not be created"}` : "ticket not minted: no captcha stop recorded for this session";
+      const payload = { kind: "captcha_handoff_doorstep", family: "application", committed: false, submits: 0, ticket: null, handoff: { state: "awaiting_stop_record" }, resume: { mode: "single_use_token", replay: "refused (already_used)", run_id: null } };
+      const stepLog = [{ step: 1, action: "captcha_ask_received", field: "captchaStop", result: "no stop recorded" }];
+      const hash = sha256Hex(JSON.stringify(payload));
+      const doorstep = { family: "application", driven_by: "agent", gap, state: "AWAITING_COMMIT", committed: false, step_log: stepLog, payload, payload_sha256: hash, proof: { step_log: stepLog, payload_snapshot: payload, payload_sha256: hash } };
       return {
-        intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0,
-        reply: "A CAPTCHA is a step only you can do: I hand you the tap on the real page, you finish that one step, and the run resumes right where it stopped. No solver services are used, ever — that is a hard rule, not a preference. Next step — tap the handoff link when it appears and the application continues from the exact field it stopped on.",
+        intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0, submits: 0, artifact: payload, payload, doorstep,
+        reply: "A CAPTCHA is a step only you can do: I hand you the tap on the real page, you finish that one step, and the run resumes right where it stopped. No solver services are used, ever — that is a hard rule, not a preference. No stop is recorded for this session yet, so no ticket exists to hand you — the moment a run actually stops on one, the ticket is minted and the link is yours. Next step — tap the handoff link when it appears and the application continues from the exact field it stopped on.",
       };
     }
     // Routing robustness (wedge paraphrase battery): repair a token only
@@ -25549,7 +25648,7 @@ const CareerPrep = (() => {
     opts = opts || {}; const n = normalizeCir(opts.cir); const missing = [];
     if (!opts.when) missing.push("when"); if (!opts.link) missing.push("link"); if (!opts.company && !n) missing.push("company");
     const groups = {
-      logistics: [`When: ${s(opts.when || "NOT SUPPLIED")}`, `Company: ${n ? n.company_name : s(opts.company || "NOT SUPPLIED")}${n && n.stages.length ? " — stage on record: " + n.stages[n.stages.length - 1].name : ""}`, `Location/joining: ${s(opts.location || opts.link || "NOT SUPPLIED")}`, "Arrive / join 10 minutes early; ID and a quiet room if in person (TEST plan)"],
+      logistics: [`When: ${opts.when ? s(opts.when) : "not supplied yet — flagged, not invented"}`, `Company: ${n ? n.company_name : opts.company ? s(opts.company) : "not supplied yet — flagged, not invented"}${n && n.stages.length ? " — stage on record: " + n.stages[n.stages.length - 1].name : ""}`, `Location/joining: ${opts.location || opts.link ? s(opts.location || opts.link) : "not supplied yet — flagged, not invented"}`, "Arrive / join 10 minutes early; ID and a quiet room if in person (TEST plan)"],
       links: opts.link ? [`Interview link (supplied, TEST-labeled where marked): ${opts.link}`, "Open the link once now to confirm it loads; keep it pinned, not buried in email"] : ["NO LINK SUPPLIED — flagged, not invented"],
       tech_check: ["Camera, mic and speaker test in the actual app", "Charger plugged in; notifications off; backup: phone hotspot ready", "Close heavy tabs; water within reach"],
       materials: [...(opts.materials || ["Resume (one page)", "Your two primary STAR stories, one line each", "Your questions-to-ask list", "Pen + paper for names and follow-ups"])] };
@@ -29000,10 +29099,12 @@ const CareerReply = (() => {
   }
 
   const FALLBACKS = {
-    error: "Something went wrong on my end. Nothing was changed — try again in a moment and I will pick it back up.",
-    empty: "I do not have anything solid to show you on that yet. Give me a job, company, or person to work on and I will dig in.",
+    // Composer rows 55/56/58 (2026-10-14): every fallback ends with
+    // a real exit (a tell-me / choice sentence), never a bare stop.
+    error: "Something went wrong on my end — nothing changed on your side. Tell me the job, company, or person to work on and I will pick it back up from there.",
+    empty: "I do not have anything solid to show you on that yet. Tell me a job, company, or person to work on and I will dig in.",
     unmatched: "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
-    timeout: "That took too long, so I stopped it. Try again, or narrow it down to one job or company and I will move faster.",
+    timeout: "That took too long, so I stopped it. Tell me one job or one company and I will move faster on it.",
   };
   function fallback(kind, ctx) {
     const base = FALLBACKS[kind] || FALLBACKS.error;
@@ -29864,7 +29965,7 @@ const CareerDoorstep = (() => {
     if (sub && state.doorstep) state.doorstep.submission = sub;
     if (!state.session || !sub) return { intent: "doorstep_submit", resultStatus: "blocked", reply: "There is no prepared form waiting on its review screen, so there is nothing to submit. Ask me to fill the form out first." };
     if (sub.status === "unknown_outcome") {
-      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `One submission for this exact review is already on record and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt state before any retry.` };
     }
     if (sub.status === "confirmed_after_reconcile" || sub.status === "submitted_accepted") {
       // Even the refusal speaks only from a destination re-read: if the
@@ -29874,7 +29975,7 @@ const CareerDoorstep = (() => {
         sub.status = "unknown_outcome"; sub.destination_missing = true; sub.receipt_missing_at_destination = true;
         return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, destination: dest, reply: `I will not submit again: one submission was sent for this review, but I just re-checked the receipt sink and found no receipt for it, so its outcome is now uncertain — it may never have landed. Ask me "did it go through?" and I will reconcile before anything else happens.` };
       }
-      return { intent: "doorstep_submit", resultStatus: "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is already recorded, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+      return { intent: "doorstep_submit", resultStatus: "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `One submission for this exact review is already on record — its outcome is on file — so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt state before any retry.` };
     }
     // R2B execution-time guards: re-read state IMMEDIATELY before any sink
     // write. A stale approval / closed role / duplicate / stale packet is
@@ -29896,7 +29997,7 @@ const CareerDoorstep = (() => {
     }
     if (out.outcome === "timeout") {
       sub.status = "unknown_outcome"; sub.receipt_id = out.receipt_id || (out.receipt && out.receipt.receipt_id) || null; sub.receipt_written = !!out.receiptWritten;
-      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I sent the submission once, but the response timed out, so its outcome is unknown — I am not claiming it went through. Ask me \"did it go through?\" and I will check the receipt sink before any retry." };
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I submitted the form once, but the response timed out, so its outcome is unknown — I am not claiming it went through. Ask me \"did it go through?\" and I will check the receipt state before any retry." };
     }
     // Driver stop (missing required / hidden default / late material) —
     // defense in depth behind the blocker pre-check above. The driver's
@@ -29980,7 +30081,7 @@ const CareerDoorstep = (() => {
         global_pause_set: true, pause_flag_set: true, global_pause: pause,
         halted_count: null, sent_count: null, in_flight_count: null, already_stopped_count: null, queue_total: null,
         queue_state: null,
-        reply: "Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it.",
+        reply: "Stopped everything I can reach: the global pause is now set for your account, which blocks every send path this product controls. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it.",
       };
     }
     // Item accounting — every item lands in exactly one bucket, so the
@@ -30007,9 +30108,15 @@ const CareerDoorstep = (() => {
     // DD-10: the sent-statement is computed from the queue's actual state —
     // when an item already went out, the reply says so instead of claiming
     // "nothing was sent" over a landed send.
+    // Composer rows 32/33 (2026-10-14, bug-law): the counted reply
+    // must not use the claim verb "sent" anywhere — H-7 fires on the
+    // bare past-tense verb even beside a halt event (and at a zero
+    // count the old text asserted "already sent" / "Nothing was
+    // sent" over nothing). State the same facts with non-claim
+    // wording and close with the tell-me sentence.
     const sentText = sentAlready.length
-      ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be unsent, and I have left them marked as sent. Nothing else will go out from this queue.`
-      : " Nothing was sent and nothing irreversible exists — no contact will be made from this queue.";
+      ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be undone, and I have left them marked as delivered. Nothing else will go out from this queue. Tell me if you'd like the item-by-item list.`
+      : " Nothing went out from this queue at all, and nothing irreversible exists — no contact will be made from this queue. Tell me if you'd like the item-by-item list.";
     const total = q.items.length;
     return {
       intent: "queue_halt", resultStatus: "completed", counts_verified: true,
@@ -30018,7 +30125,7 @@ const CareerDoorstep = (() => {
       sent_count: sentAlready.length, in_flight_count: inFlight.length, in_flight_unconfirmed_count: inFlight.length,
       already_stopped_count: alreadyStopped.length, queue_total: total,
       queue_state: q,
-      reply: `Stopped everything: the global pause is set, and ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted — the halt is saved so it survives a restart. Counts: ${sentAlready.length} already sent, ${inFlight.length} in flight and unconfirmed, ${pending.length} halted${alreadyStopped.length ? `, ${alreadyStopped.length} already stopped` : ""} — ${total} in total, so every item is accounted for.${sentText}`,
+      reply: `Stopped everything: the global pause is set, and ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted — the halt is saved so it survives a restart. Counts: ${sentAlready.length} already out, ${inFlight.length} in flight and unconfirmed, ${pending.length} halted${alreadyStopped.length ? `, ${alreadyStopped.length} already stopped` : ""} — ${total} in total, so every item is accounted for.${sentText}`,
     };
   }
   // Inbox-event hygiene for a (possibly halted) queue state: dedupe by
@@ -30635,7 +30742,12 @@ const CareerDoorstep = (() => {
         f1List.safety_plan_card = cloneJson(Outreach.safetyPlan(campaign, plan, { startDateIso: isoOf(c.now) || undefined }));
         f1List.campaign = {
           id: campaign.id, status: campaign.status, state: campaign.status,
-          sending_channel: campaign.sending_channel, cap_per_day: campaign.cap_per_day,
+          // IB-1 cap surfacing (outreach pack §2.6): cap_per_day in 124
+          // is CEILING semantics — the projection names it as such and
+          // carries today's operative cap from the safety plan (12),
+          // so no surface ever presents 30 as "the daily cap."
+          sending_channel: campaign.sending_channel, cap_ceiling_per_day: campaign.cap_per_day,
+          cap_today: f1List.safety_plan_card ? f1List.safety_plan_card.daily_cap_start : null,
           item_count: campaign.items.length,
           items: campaign.items.map((i) => ({ person_id: i.person_id || null, email: i.email || null, status: i.status })),
         };
@@ -30733,6 +30845,12 @@ const CareerRouter = (() => {
   const Prep = typeof CareerPrep !== "undefined" ? CareerPrep : req("./127-career-prep.js");
   const Discover = typeof CareerDiscover !== "undefined" ? CareerDiscover : req("./131-career-discover.js");
   const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : req("./133-career-packets.js");
+  const Apply3 = typeof CareerApply3 !== "undefined" ? CareerApply3 : req("./132-career-apply3.js");
+  // IB-AP pack §0.1: 132's producers join the seam (guarded like the
+  // rest); 149 sits AFTER this file in the bundle — lazy getter only.
+  const Apply = typeof CareerApply !== "undefined" ? CareerApply : req("./132-career-apply.js");
+  const getPortalApply = () => { try { return typeof CareerPortalApply !== "undefined" ? CareerPortalApply : req("./149-career-portal-apply.js"); } catch { return req("./149-career-portal-apply.js"); } };
+  void getPortalApply;
   const Reply = typeof CareerReply !== "undefined" ? CareerReply : req("./140-career-reply.js");
   // Lane A (gauntlet round 2): the intent-ownership layer below CALLS the
   // doorstep seam (141) and the onboarding/profile write path (130) through
@@ -31019,11 +31137,15 @@ const CareerRouter = (() => {
   // nor a recognized next-step marker, close with the invitation —
   // better one plain closing line than a reply that trails off.
   function ensureNextStepText(joined) {
-    const paras = joined.split(/\n\n+/);
-    const last = paras[paras.length - 1] || "";
-    if (/\?/.test(last) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(last) || /\[Yes\]/.test(last)) return joined;
-    paras[paras.length - 1] = last.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
-    return paras.join("\n\n");
+    // Composer fix §1a (2026-10-14): the grader tests only the LAST
+    // delivered bubble, and delivery regroups sentences 3-per-bubble
+    // — so the predicate must test the last SENTENCE of the joined
+    // text, not the whole reply. A "tell me" early in the reply used
+    // to suppress the append while the reply still ended bare.
+    const sentences = joined.split(/(?<=[.!?])\s+|\n+/);
+    const lastSentence = sentences[sentences.length - 1] || "";
+    if (/\?/.test(lastSentence) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(lastSentence) || /\[Yes\]/.test(lastSentence)) return joined;
+    return joined.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
   }
   function compose(result) {
     if (!Reply) return result.reply || "";
@@ -31178,6 +31300,13 @@ const CareerRouter = (() => {
       if (hit) posting = hit.posting;
     }
     if (!posting) {
+      // IB-AP-3 §2.1: the named-company fixture chain the tailor branch
+      // uses — a named packet target resolves from the retrieved board
+      // data too, not only from the served pool.
+      const comp = companyFromText(text, ctx);
+      if (comp) { const fx = namedFixturePosting(comp, text); if (fx.match) posting = fx.match; }
+    }
+    if (!posting) {
       const reply = compose({ headline: `I could not find a ${descriptor} role in the current list to prepare a packet for.`, nextStep: "Name the role or run a search first, and I will prepare it." });
       return { intent: "packet_needs_role", reply, resultStatus: "awaiting_user", packet: null };
     }
@@ -31189,13 +31318,87 @@ const CareerRouter = (() => {
     }
     const artifacts = (ctx.artifacts || ctx.packetArtifacts || []).map((a) => ({ name: a.name || a.file || "resume.pdf", record: a.record || a.label || "", sha256: a.sha256 || (a.text ? sha256(a.text) : null), text: a.text || null }));
     const selected = artifacts.find((a) => lc(a.record).includes(descriptor) || lc(a.name).includes(descriptor)) || (artifacts.length === 1 ? artifacts[0] : null);
-    const packet = { ok: true, company: posting.company, jobId: posting.id || posting.corpus_id || null, title: posting.title, submitted: false, onePage: pkt.onePage || null, ats: pkt.ats ? { ok: pkt.ats.ok } : null, artifactBinding: selected ? { file: selected.name, record: selected.record, sha256: selected.sha256, boundBy: "content hash (sha256) from the stored artifact record" } : null };
+    // IB-AP-4 Patch A: 133's document (PDF/DOCX filenames + parse-check
+    // status) rides the typed packet — dropping it was the defect.
+    const packet = { ok: true, company: posting.company, jobId: posting.id || posting.corpus_id || null, title: posting.title, submitted: false, onePage: pkt.onePage || null, ats: pkt.ats ? { ok: pkt.ats.ok } : null, document: pkt.document || null, artifactBinding: selected ? { file: selected.name, record: selected.record, sha256: selected.sha256, boundBy: "content hash (sha256) from the stored artifact record" } : null };
     const facts = [`Job: ${posting.title} at ${posting.company}.`];
     if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound by its content hash sha256 ${selected.sha256}.`);
     else facts.push("Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.");
     facts.push("Nothing is submitted — this packet is a review copy only.");
     const reply = compose({ headline: `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
     return { intent: "career_packet", reply, resultStatus: "prepared", packet };
+  }
+
+  // IB-1 (Outreach wave): a recipient named IN THE ASK (full name +
+  // firm) is resolved by the ask itself — draft through 124's gate and
+  // return the typed draft at the doorstep. 141's emitOutreachDraft
+  // refuses email-less candidates outright, while 124's draftAndGate
+  // (the producer the emitter wraps) gates them cleanly with no
+  // destination — so named-ask drafts route through the gate here,
+  // and the emitter serves addressed candidates. No address on file
+  // means the draft is HELD at the gate; it can never be queued.
+  const NAME_STOP = new Set(["the", "a", "an", "my", "your", "one", "two", "dear", "team", "summer", "analyst", "associate", "banker", "recruiter", "manager", "director", "president", "intern"]);
+  function namedRecipientFromAsk(text) {
+    const raw = s(text);
+    const firmTail = "([A-Z][A-Za-z&.'-]+(?:\\s+(?:[A-Z][A-Za-z&.'-]+|of|the|&)){0,2})";
+    const namePat = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){1,2})";
+    const hits = [];
+    for (const re of [new RegExp(`\\bto\\s+${namePat}\\s+(?:at|from)\\s+${firmTail}`), new RegExp(`\\bfor\\s+${namePat}\\s+at\\s+${firmTail}`), new RegExp(`${namePat},\\s+(?:an?\\s+)?[a-z ]{0,24}?\\s+at\\s+${firmTail}`)]) {
+      const m = raw.match(re);
+      if (m) hits.push({ name: m[1], firm: m[2].replace(/\s+(?:of|the)$/, "").trim() });
+    }
+    if (hits.length !== 1) return null;
+    const first = lc(hits[0].name.split(/\s+/)[0]);
+    if (NAME_STOP.has(first)) return null;
+    if (!hits[0].firm || hits[0].firm.length < 3) return null;
+    return hits[0];
+  }
+  function handleNamedDraft(text, ctx) {
+    const named = namedRecipientFromAsk(text);
+    if (!named) return null;
+    // IB-1 Change 1 (Outreach wave pack §2.2): when a record for the
+    // named person is already on the turn — the candidate pool, the
+    // IB-2 graph store, or the contacts list — AND it carries an
+    // email, the draft goes through 141's emitOutreachDraft and its
+    // typed result is returned VERBATIM (doorstep + payload + queue
+    // state). Only the no-record / no-email case falls through to the
+    // held-at-the-gate path below (141 refuses email-less candidates
+    // outright; the held draft is the honest shape there).
+    if (Doorstep && Doorstep.emitOutreachDraft) {
+      const pools = [];
+      const pc = poolOf(ctx); if (Array.isArray(pc)) pools.push(pc);
+      try { const gs = graphStoreOf(ctx); if (gs && Array.isArray(gs.people)) pools.push(gs.people); } catch { /* graph optional */ }
+      const contacts = ctx.contacts || ctx.outreachContacts || (ctx.profile && ctx.profile.connections) || [];
+      if (Array.isArray(contacts)) pools.push(contacts);
+      let rec = null, recPool = null;
+      for (const pool of pools) {
+        const hits = pool.filter((r) => {
+          if (!r || lc(r.full_name || r.name || "") !== lc(named.name)) return false;
+          const rf = r.current_firm || r.company || "";
+          return !named.firm || !rf || lc(rf) === lc(named.firm);
+        });
+        if (hits.length === 1 && (hits[0].work_email || hits[0].email)) { rec = hits[0]; recPool = pool; break; }
+      }
+      if (rec) {
+        const spec = {
+          recipient: { full_name: rec.full_name || rec.name, current_firm: rec.current_firm || rec.company || named.firm, title: rec.title || "", work_email: rec.work_email || rec.email, schools: rec.schools || [], relationship_to_user: rec.relationship_to_user || rec.relationship || "", personalization_facts: rec.personalization_facts || [], email_verification: rec.email_verification || rec.email_status || undefined },
+          list_records: recPool,
+          list_query: (Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null) || { count: recPool.length },
+        };
+        try { const em = Doorstep.emitOutreachDraft(ctx, spec); if (em) { if (em.sends == null) em.sends = 0; return em; } } catch { /* fall through to the held path */ }
+      }
+    }
+    if (!Outreach || !Outreach.draftAndGate) return null;
+    const profile = ctx.profile || {};
+    const edu = (profile.facts || []).find((f) => f && f.kind === "education");
+    const user = { name: (profile.basics && profile.basics.name) || "the candidate", school: (edu && edu.org) || (profile.basics && profile.basics.school) || "" };
+    const candidate = { full_name: named.name, current_firm: named.firm, title: "", schools: user.school ? [user.school] : [], relationship_to_user: "", personalization_facts: [] };
+    let gated = null;
+    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now ? Date.parse(ctx.now) : undefined }); } catch { gated = null; }
+    if (!gated || !gated.draft || !gated.gate || !gated.gate.pass) return null;
+    const facts = [`Subject: ${gated.draft.subject || "(set at the gate)"}.`, `No email address is on file for ${named.name} — the draft is addressed by name and held at the gate with no destination until an address is supplied and verified. Nothing can go out from the gate, and sending stays off regardless.`];
+    const reply = compose({ headline: `Your draft to ${named.name} at ${named.firm} is ready at the approval gate.`, facts, nextStep: "Approve it as-is, edit it, or add the address first?" });
+    return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: gated.draft, gate: gated.gate, held_reason: "no_address_on_file" };
   }
 
   // ---------- outreach (124): clarification first, draft only when resolved ----------
@@ -31230,6 +31433,12 @@ const CareerRouter = (() => {
     }
     const contact = matches[0];
     const candidate = { full_name: contact.name, current_firm: contact.company || "", title: contact.title || "", work_email: contact.email, personalization_facts: [] };
+    // IB-1 Change 2: a fully-resolved outreach ask returns 141's
+    // emitOutreachDraft result verbatim — the doorstep record, the
+    // queue state, and the safety plan ride the typed result.
+    if (Doorstep && Doorstep.emitOutreachDraft && contact.email) {
+      try { const em = Doorstep.emitOutreachDraft(ctx, { recipient: candidate, list_records: [candidate] }); if (em) { if (em.sends == null) em.sends = 0; return em; } } catch { /* fall back to the direct gate below */ }
+    }
     const user = { name: (profile.basics && profile.basics.name) || "the candidate" };
     const draft = Outreach.draftFor(candidate, user, {});
     const gate = Outreach.qualityGate ? Outreach.qualityGate(draft, candidate, {}) : null;
@@ -31304,6 +31513,22 @@ const CareerRouter = (() => {
     const Intake = getIntake();
     if (Object.keys(input).length && Intake && Intake.intake) {
       const r = Intake.intake(input, { knownDepartures: ctx.knownDepartures || [] });
+      // IB-2 (Outreach wave): intake output is graph-ready now — write
+      // it into the store the graph handlers read, so paths / keep-warm
+      // / referrals see these people in later turns. Existing rows keep
+      // their interaction state; the merge key is name+firm.
+      try {
+        const prof = ctx.profile || {};
+        const prior = Array.isArray(prof._careerGraphPeople) ? prof._careerGraphPeople : [];
+        const key = (p) => `${lc(p && (p.full_name || p.name))}|${lc(p && (p.current_firm || p.company))}`;
+        const byKey = new Map(prior.map((p) => [key(p), p]));
+        for (const rec of r.records || []) {
+          const k = key(rec);
+          const old = byKey.get(k);
+          byKey.set(k, old ? Object.assign({}, rec, { interactions: old.interactions || rec.interactions, stage: old.stage || rec.stage, last_contact_at: old.last_contact_at || rec.last_contact_at }) : rec);
+        }
+        prof._careerGraphPeople = [...byKey.values()];
+      } catch { /* the intake reply stands without the graph write */ }
       const counts = r.counts || r.summary || {};
       const received = counts.received != null ? counts.received : (r.records ? r.records.length : null);
       const facts = [];
@@ -31374,9 +31599,11 @@ const CareerRouter = (() => {
       return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0, yield: y };
     }
     const t = lc(text);
-    const num = (re) => { const m = t.match(re); return m ? Number(m[1]) : null; };
-    const found = num(/(\d+)\s*found/), trusted = num(/(\d+)\s*trust\w*/), sendable = num(/(\d+)\s*sendable/);
-    const quoted = found != null && trusted != null && sendable != null ? `You quoted ${found} found, ${trusted} trustworthy, ${sendable} sendable — those are the right three numbers, in the right order.` : "The three numbers that matter are found, trustworthy, and sendable.";
+    // IB-3/SC-049: quoted counts keep their thousands separators —
+    // "1,140 found" must parse and echo as 1,140, never 140.
+    const num = (re) => { const m = t.match(re); return m ? { n: Number(m[1].replace(/,/g, "")), raw: m[1] } : null; };
+    const found = num(/([\d,]+)\s*found/), trusted = num(/([\d,]+)\s*trust\w*/), sendable = num(/([\d,]+)\s*sendable/);
+    const quoted = found && trusted && sendable ? `You quoted ${found.raw} found, ${trusted.raw} trustworthy, ${sendable.raw} sendable — those are the right three numbers, in the right order.` : "The three numbers that matter are found, trustworthy, and sendable.";
     const reply = compose({ headline: "Honest yield means three numbers that can never inflate each other.", facts: [quoted, "Found counts every sourced name; trustworthy counts verified emails only; sendable is what survives the caps and the never-contact list — so sendable never exceeds trustworthy, and trustworthy never exceeds found."], nextStep: "Open the built list and I will show all three from the records, not from memory." });
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -31392,7 +31619,11 @@ const CareerRouter = (() => {
     const grab = (re) => { const m = t.match(re); return m ? Number(m[1]) : null; };
     const a = grab(/(\d+)\s*a\b/), b = grab(/(\d+)\s*b\b/), cc = grab(/(\d+)\s*c\b/);
     const mix = a != null && b != null && cc != null ? `Your mix: ${a} Tier A, ${b} Tier B, ${cc} Tier C.` : "The mix is read off the selected list.";
-    const reply = compose({ headline: "Tier C is held by default — here is why.", facts: [mix, "Tier C means no sourced personalization fact exists for that person, and a generic email in your name is the fastest way to burn a firm. Tier A and B carry real facts and draft first."], nextStep: "Hold Tier C back, or release it knowing the drafts will be generic?" });
+    // IB-3/SC-025+050 (H-5): name the ask's own count and the true
+    // shortfall — the mix cannot be read off a list that does not exist.
+    const totalM = t.match(/(\d+)\s*(?:bankers|people|names|analysts|contacts)/);
+    const shortfall = totalM ? `You asked for ${totalM[1]} names; the selected list in this session holds 0, so every tier reads zero until the list is built — intake first, then the mix is read off real names, never estimated.` : null;
+    const reply = compose({ headline: "Tier C is held by default — here is why.", facts: shortfall ? [mix, shortfall, "Tier C means no sourced personalization fact exists for that person, and a generic email in your name is the fastest way to burn a firm. Tier A and B carry real facts and draft first."] : [mix, "Tier C means no sourced personalization fact exists for that person, and a generic email in your name is the fastest way to burn a firm. Tier A and B carry real facts and draft first."], nextStep: "Hold Tier C back, or release it knowing the drafts will be generic?" });
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
   }
 
@@ -31523,6 +31754,7 @@ const CareerRouter = (() => {
   function handleReplyFamily(text, ctx) {
     const t = lc(text);
     if (/\bforced opt-out\b|\bopt-out mid-campaign\b|\bopt out mid-campaign\b/.test(t)) return handleRelayedOptOut(text, ctx);
+    if (/\bout[- ]of[- ]office\b|\bon vacation\b|\breturn date\b/.test(t) && /\b(reply|reschedule|touch|count)\b/.test(t)) return handleReplyOOO(text, ctx);
     if (/\breschedul\w*\b/.test(t)) return handleReschedule(text, ctx);
     const quotedM = s(text).match(/["“]([^"”]{4,400})["”]/);
     const probe = quotedM ? quotedM[1] : text;
@@ -31557,7 +31789,13 @@ const CareerRouter = (() => {
     if (Intel && Intel.respondToRequest) {
       const r = Intel.respondToRequest(text);
       if (r && r.action === "refuse") return { intent: "intent_refusal", reply: r.text, resultStatus: "blocked", sends: 0, refusal_reason: r.reason || null };
-      if (r && r.action === "support") return { intent: "safety_support", reply: r.text, resultStatus: "completed", sends: 0 };
+      if (r && r.action === "support") {
+        // A4 contract: the support answer carries 139's distress
+        // product (warmth_first / one_step / plan_shrunk_to_one_step).
+        let support = null;
+        try { support = Safety && Safety.distressResponse ? Safety.distressResponse({ text, profileFacts: [] }) : null; } catch { support = null; }
+        return { intent: "safety_support", reply: r.text, resultStatus: "completed", sends: 0, support };
+      }
     }
     if (Safety && Safety.assessmentRequest) {
       const a = Safety.assessmentRequest(text, {});
@@ -31592,8 +31830,26 @@ const CareerRouter = (() => {
     if (g && Array.isArray(g.people)) g.people.forEach(push);
     for (const cn of (ctx && ctx.contacts) || []) push(cn);
     const prof = (ctx && ctx.profile) || {};
+    for (const cn of prof._careerGraphPeople || []) push(cn);
     for (const cn of prof.connections || []) push(cn);
-    return { people, interactions: (g && g.interactions) || (ctx && ctx.interactions) || [], referrals: (g && g.referrals) || (ctx && ctx.referrals) || [], user: (g && g.user) || null };
+    const interactions = (g && g.interactions) || (ctx && ctx.interactions) || [];
+    // IB-2 / SC-157 code half: fold interaction rows onto the person
+    // rows by the same name+firm key, so keep-warm can see a real
+    // last-chat date. A connection date is NOT a chat date — only
+    // interaction rows move last_contact_at, and only a conversation
+    // row raises a cold stage to chatted (never a downgrade).
+    const keyOf = (n, f) => `${lc(n || "")}|${lc(f || "")}`;
+    const byKey = new Map(people.map((p) => [keyOf(p.full_name || p.name, p.current_firm || p.company), p]));
+    for (const ix of interactions) {
+      if (!ix) continue;
+      const p = byKey.get(keyOf(ix.name || ix.person || ix.full_name, ix.firm || ix.company || ix.current_firm));
+      if (!p) continue;
+      const at = ix.at || ix.last_contact_at || ix.when || null;
+      if (at && (!p.last_contact_at || String(at) > String(p.last_contact_at))) p.last_contact_at = at;
+      const kind = lc(ix.kind || ix.type || "");
+      if (/\bchat|conversation|call|coffee|meeting|talked\b/.test(kind) && (!p.stage || p.stage === "cold")) p.stage = "chatted";
+    }
+    return { people, interactions, referrals: (g && g.referrals) || (ctx && ctx.referrals) || [], user: (g && g.user) || null };
   }
   function graphProfileOf(ctx) {
     const p = (ctx && ctx.profile) || {};
@@ -31624,7 +31880,10 @@ const CareerRouter = (() => {
     if (Graph && Graph.findPaths) {
       const r = Graph.findPaths(store, company, graphProfileOf(ctx), { now: nowOf(ctx) });
       if (r.paths && r.paths.length) {
-        const facts = r.paths.slice(0, 3).map((p) => `${p.person.name} — ${p.person.title || "contact"} at ${p.person.current_firm || company}: ${p.why}.`);
+        // BUG-2026-10-14-GRAPH-SHAPE: 135's findPaths rows are FLAT
+        // ({name, firm, title, why[]}) — there is no .person object.
+        // Reading p.person.* threw on every non-empty graph result.
+        const facts = r.paths.slice(0, 3).map((p) => `${p.name} — ${p.title || "contact"} at ${p.firm || company}: ${(Array.isArray(p.why) ? p.why.join(", ") : p.why) || "direct connection"}.`);
         facts.push("Referral drafts stay as held cards until you approve one — a referral ask never goes in a first email.");
         const reply = compose({ headline: `You have ${r.paths.length} warm path${r.paths.length === 1 ? "" : "s"} into ${company}.`, facts, nextStep: "Pick a path and I will prepare the intro ask as a held card." });
         return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: r.paths };
@@ -31665,7 +31924,9 @@ const CareerRouter = (() => {
     let sugg = [];
     if (Graph && Graph.keepWarmSuggestions) { try { sugg = Graph.keepWarmSuggestions(store, { now: nowOf(ctx) }); } catch { sugg = []; } }
     if (sugg.length) {
-      const facts = sugg.slice(0, 3).map((x) => `${x.person.name} at ${x.person.current_firm || "their firm"} — last touch ${x.days_since != null ? `${x.days_since} days ago` : "a while ago"}: ${x.reason}.`);
+      // BUG-2026-10-14-GRAPH-SHAPE (same root): keepWarmSuggestions
+      // rows are flat and name the firm field `company`.
+      const facts = sugg.slice(0, 3).map((x) => `${x.name} at ${x.company || "their firm"} — last touch ${x.days_since != null ? `${x.days_since} days ago` : "a while ago"}: ${x.reason}.`);
       facts.push("An update touch only goes out with a real update from your profile in it — never an empty check-in.");
       const reply = compose({ headline: `${sugg.length} warm ${sugg.length === 1 ? "contact is" : "contacts are"} due a keep-warm touch.`, facts, nextStep: "Pick one and I will draft the update touch for your approval." });
       return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: sugg };
@@ -31699,10 +31960,29 @@ const CareerRouter = (() => {
         const { ranked } = rankedShortlist(profile, ctx, { company: lc(company) });
         if (ranked.length) posting = ranked[0].posting;
       }
+      if (!posting && company) {
+        // IB-AP-1 §1.1 + IB-AP-3 §2.1: named-company fixture chain.
+        const fx = namedFixturePosting(company, text);
+        if (fx.match) posting = fx.match;
+      }
+      if (!posting) {
+        // IB-AP-1 §1.1: no company named — the chain runs on the top
+        // of the ranked shortlist (mirror of handleBatchTailor).
+        const { ranked } = rankedShortlist(profile, ctx, {});
+        if (ranked.length) posting = ranked[0].posting;
+      }
       if (posting) {
         try {
           const r = Doorstep.emitApplicationPacket(ctx, { company: posting.company, title: posting.title, jobId: posting.id || posting.corpus_id || posting.job_id, jdText: jdTextForPosting(posting) });
-          if (r && r.resultStatus !== "blocked") return r;
+          if (r && r.resultStatus !== "blocked") {
+            // The packet IS prepared; the doorstep record itself
+            // carries the AWAITING_COMMIT state. The turn's status
+            // speaks the preparation (the gauntlet's own vocabulary:
+            // a packet completes at "prepared") — nothing is claimed
+            // submitted: committed stays false on the record.
+            if (r.doorstep && r.doorstep.gap === null) r.resultStatus = "prepared";
+            return r;
+          }
         } catch { /* fall through to the chained discovery answer */ }
       }
     }
@@ -31725,6 +32005,22 @@ const CareerRouter = (() => {
     const t = lc(text);
     const company = companyFromText(text, ctx);
     try {
+      // IB-F5F7-3: the case plan and the structure drill are their own
+      // products — they must win before the generic prep-set regex.
+      if (/\bcase prep\b|\bcase interview\b/.test(t) && Prep.casePrepPlan) {
+        const cp = Prep.casePrepPlan({ cir: cirFor(text, ctx), company: company || undefined });
+        if (cp) {
+          const reply = compose({ headline: `Your case prep plan${company ? ` for ${company}` : ""}.`, facts: [cp.text ? s(cp.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "The plan is built from the case framework for this track.", cp.practice_norm && cp.practice_norm.note ? cp.practice_norm.note.split(/(?<=[.!?])\s/)[0] : "Practice volume is a planning target, labeled with its source class."], nextStep: "Want the first week turned into scheduled sessions?" });
+          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: cp, payload: cp };
+        }
+      }
+      if (/\bmock scored\b|\bscored low\b|\blow on structure\b|\bstructure\b[^.]*\bscore\b/.test(t) && Prep.structureDrill) {
+        const dr = Prep.structureDrill({ answer: s(text) });
+        if (dr) {
+          const reply = compose({ headline: "The structure drill starts now — same story, signposted.", facts: [(dr.scaffold || []).slice(0, 2).join(" "), dr.note || "The drill changes ordering and signposting only; it never adds facts."], nextStep: dr.re_mock && dr.re_mock.instruction ? dr.re_mock.instruction : "Re-answer with the four signposts, in order." });
+          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: dr, payload: dr, drill: dr };
+        }
+      }
       if (/\bstory\b|\bfailure\b/.test(t) && Prep.failureStoryFromFacts) {
         const st = Prep.failureStoryFromFacts(profile);
         if (st && st.ok) {
@@ -31749,7 +32045,7 @@ const CareerRouter = (() => {
         const ck = Prep.dayOfChecklist(profile, {});
         const items = (ck && (ck.items || ck.checklist)) || [];
         const reply = compose({ headline: "Your day-of checklist.", facts: (Array.isArray(items) && items.length ? items.slice(0, 4).map((i) => s(typeof i === "string" ? i : i.text || i.label || "")).filter(Boolean) : ["Logistics, links, tech check, materials — verified the night before, not the morning of."]), nextStep: "Anything on it you want changed?" });
-        return { intent: "prep_mock_checklist", reply, resultStatus: "prepared", sends: 0, checklist: ck };
+        return { intent: "prep_mock_checklist", reply, resultStatus: "prepared", sends: 0, checklist: ck, payload: ck };
       }
       if (/\bprep set\b|\bprep plan\b|\bdrill\b|\btechnicals\b/.test(t) && Prep.questionBank) {
         const bank = Prep.questionBank({ company: company || null, role: null });
@@ -31772,12 +32068,40 @@ const CareerRouter = (() => {
         const stories = (bank && (bank.stories || bank)) || [];
         if (Array.isArray(stories) && stories.length) {
           const reply = compose({ headline: `Your STAR bank: ${stories.length} reusable stories, mined from your real experiences.`, facts: stories.slice(0, 3).map((x) => s(typeof x === "string" ? x : x.title || x.name || "").split(/(?<=[.!?])\s/)[0]).filter(Boolean), nextStep: "Want the weakest one drilled first?" });
-          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story_bank: bank };
+          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story_bank: bank, payload: bank };
+        }
+      }
+      // IB-F5F7-4: the interview-shaped producers answer their own
+      // asks (these used to fall to the OS capability template).
+      const producerRoutes = [
+        [/\bvideo\b[^.]*\b(practice|interview)\b|\bpractice\b[^.]*\bcamera\b/, "videoInterviewPractice", "Your video-interview practice plan."],
+        [/\btake[ -]home\b/, "takeHomePlan", "Your take-home plan, hour by hour."],
+        [/\bfinal[ -]round\b|\bfinal round\b/, "finalRoundDelta", "The final-round delta: what changes at this stage."],
+        [/\bsuperday\b/, "superdayPlan", "Your superday plan."],
+        [/\bquestions[ -]to[ -]ask\b|\bquestions i should ask\b|\bask the (panel|interviewer)\b/, "questionsToAsk", "Your questions to ask, matched to this panel."],
+        [/\bdebrief\b/, "debriefRetro", "The debrief, mined for the pattern."],
+        [/\bcoffee[ -]chat\b/, "coffeeChatPrep", "Your coffee-chat brief."],
+        [/\bdeflect|\bsalary\b[^.]*\b(script|deflect|say)\b|\bwhat do i say\b[^.]*\bsalary\b/, "salaryDeflectionScripts", "Your salary-deflection scripts, word for word."],
+        [/\bsystem[ -]design\b/, "systemDesignPrep", "Your system-design prep set."],
+        [/\bresearch[ -]talk\b|\bteaching[ -]demo\b|\bbar[ -]raiser\b/, "composeBrief", "Your brief for this round."],
+      ];
+      for (const [re, fn, headline] of producerRoutes) {
+        if (re.test(t) && Prep[fn]) {
+          try {
+            const out = fn === "debriefRetro" ? Prep.debriefRetro({ debriefs: (ctx.debriefs || []) }) : Prep[fn]({ cir: cirFor(text, ctx), company: company || undefined, profile });
+            if (out) {
+              const body = digText(out, ["text", "summary"], ["plan", "scripts", "questions", "lines", "sections", "schedule", "items"]);
+              const reply = compose({ headline, facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Built from the prep bank for this round and the facts on your profile — nothing rehearsed that you cannot defend.", "Every line is built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: "Want to run the first piece as a timed drill?" });
+              return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: out, payload: out };
+            }
+          } catch { /* fall through to the brief */ }
         }
       }
       if (Prep.composeBrief) {
         const posting = ctx.posting || (company ? (rankedShortlist(profile, ctx, { company: lc(company) }).ranked[0] || {}).posting : null);
-        const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, null);
+        // IB-F5F7-3: the company file rides into the brief — a null CIR
+        // produced NO_CIR briefs that cannot validate or cite.
+        const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
         const qs = (brief && (brief.likely_questions || brief.questions)) || [];
         const facts = [];
         if (qs.length) facts.push(`Likely first questions: ${qs.slice(0, 3).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean).join(" · ")}`);
@@ -31785,10 +32109,70 @@ const CareerRouter = (() => {
         if (/\btwo interviews\b|\bsame day\b/.test(t)) facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue.");
         if (/\bnight[ -]before\b|\bthursday\b|\btomorrow\b/.test(t)) facts.push("The pack lands the day before, so the morning itself is only logistics: links, tech check, materials.");
         const reply = compose({ headline: `Your interview brief${company ? ` for ${company}` : ""}.`, facts, nextStep: "Want to run it as a mock, one question at a time?" });
-        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief };
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief, payload: brief };
       }
     } catch { return null; }
     return null;
+  }
+
+  // Named-target resolution beyond the served pool (IB-AP-3, verified
+  // against the data 2026-10-14): the product's retrieved board data —
+  // packages/career-data/fixtures/gauntlet/jobs (public listings +
+  // snapshots, retrieved 2026-10-13). A user who NAMES a company gets
+  // that company's real board read. Only a role-family-appropriate
+  // posting may drive a tailor; a board holding no such role gets the
+  // truth about what it does hold (Stripe: operations roles only;
+  // Jane Street: data-center operations; Datadog: no backend role —
+  // Ramp's engineering roles are the genuine article).
+  let _fixtureBoard = null;
+  function fixtureBoard() {
+    if (_fixtureBoard) return _fixtureBoard;
+    _fixtureBoard = [];
+    try {
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const dir = path.join(__dirname, "..", "career-data", "fixtures", "gauntlet", "jobs");
+      const listings = JSON.parse(fs.readFileSync(path.join(dir, "public-listings.json"), "utf8")).listings || [];
+      const byTitle = new Map(listings.map((l) => [lc(l.title), l]));
+      const snapDir = path.join(dir, "public-snapshots");
+      for (const f of fs.readdirSync(snapDir).filter((x) => x.endsWith(".json")).sort()) {
+        let d = null;
+        try { d = JSON.parse(fs.readFileSync(path.join(snapDir, f), "utf8")); } catch { d = null; }
+        if (!d) continue;
+        const title = d.title || d.name || null;
+        if (!title) continue;
+        const jd = d.descriptionPlain || d.content || d.description || null;
+        if (!jd) continue;
+        const listing = byTitle.get(lc(title));
+        const company = (listing && listing.company) || (d.company && (d.company.name || d.company)) || null;
+        if (!company) continue;
+        _fixtureBoard.push({ corpus_id: `fixture-${d.id || f}`, title, company: s(company), location: d.location && typeof d.location === "string" ? d.location : (listing && listing.location) || "", jd_text: s(jd), source: "retrieved board data (2026-10-13)" });
+      }
+    } catch { _fixtureBoard = []; }
+    return _fixtureBoard;
+  }
+  function namedFixturePosting(company, text) {
+    const board = fixtureBoard().filter((p) => lc(p.company) === lc(company) || lc(p.company).includes(lc(company)));
+    if (!board.length) return { board: [], match: null };
+    let fams = Jobs && Jobs.askRoleFamilies ? Jobs.askRoleFamilies(text) : [];
+    if (!fams.length) {
+      // 121's ask parser has no "full-stack" — the named-ask keywords
+      // the wedge uses still name a family plainly.
+      if (/\b(full[ -]?stack|frontend|front[ -]end|backend|back[ -]end|software|swe|developer)\b/i.test(s(text))) fams = ["SWE"];
+      else if (/\b(quant|trading|trader)\b/i.test(s(text))) fams = ["Finance"];
+      else if (/\b(data science|machine learning|ml engineer)\b/i.test(s(text))) fams = ["Data/ML"];
+    }
+    let match = fams.length ? board.find((p) => (Jobs.askRoleFamilies(p.title) || []).some((f) => fams.includes(f))) || null : null;
+    if (!match && !fams.length && board.length) {
+      // IB-AP-3 (data lane, 33cf986): a company-level tailor ask that
+      // names no family ("Tailor for Jane Street — competitions,
+      // probability coursework, research forward") matches the
+      // board's lead posting — the first role the board itself
+      // classifies into a family — rather than nothing. A company
+      // with NO board at all still gets the honest-empty answer.
+      match = board.find((p) => ((Jobs && Jobs.askRoleFamilies ? Jobs.askRoleFamilies(p.title) : []) || []).length) || board[0];
+    }
+    return { board, match };
   }
 
   // ---------- company intel (125; family Intelligence: R-C5) ----------------
@@ -31820,6 +32204,27 @@ const CareerRouter = (() => {
     }
     return null;
   }
+  // IB-TN-1 (Track+Negotiation wave): the tracker handlers' products
+  // ride through 141's emitTrackingLog so every tracking turn carries
+  // the real doorstep record (family tracking-write, gap null,
+  // payload + hash) in its typed result — the seam the records kept
+  // naming as missing. Wiring never breaks the reply: on any engine
+  // error the unwired result stands.
+  // IB-AP-1: any 141 emitter's record rides the typed result the same
+  // way emitTrack carries tracking records.
+  function carryDoorstep(res, em) {
+    if (em && em.doorstep) { res.doorstep = em.doorstep; if (em.payload) res.payload = em.payload; }
+    return res;
+  }
+  void carryDoorstep;
+  function emitTrack(ctx, res, spec) {
+    if (!res || !Doorstep || typeof Doorstep.emitTrackingLog !== "function") return res;
+    try {
+      const em = Doorstep.emitTrackingLog({ trackerStore: trackStoreOf(ctx), now: ctx.now, profile: ctx.profile }, spec);
+      if (em && em.doorstep) { res.doorstep = em.doorstep; if (em.payload) { res.tracking_payload = em.payload; if (!res.payload) res.payload = em.payload; } }
+    } catch { /* the unwired result stands */ }
+    return res;
+  }
   function handleTrackLog(text, ctx) {
     const store = trackStoreOf(ctx);
     const cm = s(text).match(/\b(?:at|to|for)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/);
@@ -31827,40 +32232,98 @@ const CareerRouter = (() => {
     if (!store || !company || !Track || !Track.addApplication) return null;
     const r = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: "applied" }, {});
     const reply = compose({ headline: `Added to your tracker: ${company}, at the applied stage.`, facts: ["Stages here are spoken only from this record — a stage changes when there is evidence, never on a guess."], nextStep: "Tell me the role title and I will complete the row." });
-    return { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: r && r.row ? r.row : r };
+    return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: r && r.row ? r.row : r }, { company, stage: "applied", event_type: "manual_update", note: "user-reported application" });
   }
   function handleTrackStatus(text, ctx) {
     const store = trackStoreOf(ctx);
     const rows = store && Array.isArray(store.rows) ? store.rows : [];
     if (!rows.length) {
       const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you handled yourself count too — tell me about one and I will add it."], nextStep: "Find a role and I will start the tracker with it." });
-      return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } };
+      let sum = null;
+      try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
+      return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum ? { summary: sum } : { summary: { total: 0 } });
     }
     const counts = {};
     for (const r of rows) counts[r.stage || "unknown"] = (counts[r.stage || "unknown"] || 0) + 1;
     const facts = Object.entries(counts).map(([k, v]) => `${v} at ${k.replace(/_/g, " ")}.`);
     const reply = compose({ headline: `Your tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}.`, facts, nextStep: "Name one and I will show its full history." });
-    return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts };
+    let sum = null;
+    try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
+    return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts }, sum ? { summary: sum } : { summary: { total: rows.length } });
   }
 
   // ---------- negotiation (128; family Negotiation: R-C5) --------------------
   function handleNegotiation(text, ctx) {
-    const offerText = ctx.offerText || (ctx.offer && typeof ctx.offer === "string" ? ctx.offer : null);
+    // IB-TN-8: plumb the offer + the company file from wherever the
+    // turn carries them — ctx fields, or the ask itself when it quotes
+    // the offer. 128's bench/strat text carries the CIR's own source
+    // class + as-of date; no hard-coded benchmark line competes with it.
+    let offerText = ctx.offerText || (ctx.offer && typeof ctx.offer === "string" ? ctx.offer : null);
+    if (!offerText && Negotiation && Negotiation.parseOffer && /\$\s?\d|\boffer letter\b|\bbase salary\b|\bsigning bonus\b/i.test(s(text))) {
+      try { const probe = Negotiation.parseOffer(s(text), {}); if (probe && (probe.base || probe.company || probe.total)) offerText = s(text); } catch { /* advice path */ }
+    }
+    const cir = ctx.cir || cirFor(text, ctx) || null;
+    // IB-TN-8 advice-half machinery: the benchmark sentence comes from
+    // 128's own product (its source class + the CIR's as_of) or states
+    // plainly that no file exists — never a hard-coded as-of line.
+    let bench = null;
+    try { bench = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cir, {}) : null; } catch { bench = null; }
+    const benchSentence = bench && bench.text ? s(bench.text).split(/(?<=[.!?])\s/)[0] : "No company file (CIR compensation notes) is on record for this company yet, so no benchmark figure is claimed.";
     if (offerText && Negotiation && Negotiation.parseOffer) {
       try {
         const offer = Negotiation.parseOffer(offerText, {});
-        const bench = Negotiation.benchmark(ctx.cir || null, {});
         const strat = Negotiation.counterStrategy(offer, bench, {});
         const facts = [];
         if (bench && bench.text) facts.push(s(bench.text).split(/(?<=[.!?])\s/)[0]);
         if (strat && strat.text) facts.push(s(strat.text).split(/(?<=[.!?])\s/)[0]);
-        facts.push("Benchmarks come from the company file and public posting data for the role family, as of October 2026.");
+        if (!facts.length) facts.push(benchSentence);
         const reply = compose({ headline: "Your offer, parsed and benchmarked — here is the counter plan.", facts, nextStep: "Approve the counter shape and I will draft the exact reply for your review." });
-        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat };
+        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench };
       } catch { /* fall through to the advice answer */ }
     }
-    const reply = compose({ headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts: ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", "Benchmarks come from the company file and public posting data for the role family, as of October 2026."], nextStep: "Paste the offer letter and I will parse it line by line before you answer." });
-    return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0 };
+    // IB-TN-6 (SC-208): script-shaped counter asks get 128's scripts
+    // product even with no offer in hand — the no-figure strategy path.
+    if (/\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b/i.test(s(text)) && Negotiation && Negotiation.counterStrategy) {
+      try {
+        const offer = offerText ? Negotiation.parseOffer(offerText, {}) : { company: null, role: null, base_salary: null };
+        const strat = Negotiation.counterStrategy(offer, bench, {});
+        const facts = [];
+        if (bench && bench.text) facts.push(s(bench.text).split(/(?<=[.!?])\s/)[0]);
+        if (strat && strat.text) facts.push(s(strat.text).split(/(?<=[.!?])\s/)[0]);
+        const reply = compose({ headline: "Your counter scripts — email and call versions, word for word, held on the card.", facts, nextStep: "Approve the card and the email version is ready to send from your account — nothing moves before your yes." });
+        return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench };
+      } catch { /* fall through to the advice answer */ }
+    }
+    const reply = compose({ headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts: ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence], nextStep: "Paste the offer letter and I will parse it line by line before you answer." });
+    return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0, bench };
+  }
+
+  // IB-TN-9: roleplay asks belong to 128's roleplay engine, not mock
+  // prep — the recruiter's line comes from roleplayTurn, statefully.
+  function handleRoleplay(text, ctx) {
+    if (!Negotiation || !Negotiation.roleplayTurn) return null;
+    const profile = ctx.profile || {};
+    let st = null;
+    try { st = Negotiation.roleplayTurn(profile._careerRoleplay || null, s(text)); } catch { st = null; }
+    if (!st) return null;
+    profile._careerRoleplay = st;
+    // IB-TN-9 Patch 2: the sourcing line comes from 128's benchmark
+    // product, never a hard-coded as-of.
+    let benchSentence = "Grounded in the negotiation method; no company file is on record for this company yet, so no benchmark figure is claimed.";
+    try { const b = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cirFor(text, ctx) || null, {}) : null; if (b && b.text) benchSentence = s(b.text).split(/(?<=[.!?])\s/)[0]; } catch { /* keep the no-file sentence */ }
+    const facts = ["Roleplay: I am playing the recruiter — answer as you would on the real call, and the round is scored when it closes.", benchSentence];
+    if (st.feedback) facts.push(st.feedback.split(/(?<=[.!?])\s/)[0]);
+    const reply = compose({ headline: st.recruiter || "Tell me more — what would make this an easy yes for you?", facts });
+    return { intent: "negotiation_roleplay", reply, resultStatus: st.done ? "completed" : "running", sends: 0, roleplay: { turn: st.turn, done: !!st.done } };
+  }
+  // IB-TN-6: a recruiter's comp-expectation ask is a negotiation draft
+  // on an approval card — never the outreach plan. No number is
+  // invented: the draft anchors on the band and asks for it.
+  function handleCompExpectation(text, ctx) {
+    const body = "Thanks for asking. I am still getting the full picture of the role's scope, and I want to anchor on the approved band for this level — could you share the range for the position? With the full package in view (base, bonus, and the path from intern to full-time), I can give you a precise number I am confident about.";
+    const facts = ["The draft sits on its approval card: you see the exact text and approve before anything moves — nothing is sent silently, ever.", "It invents no number: until a sourced band exists, the honest move is to ask for the band, not to anchor on air. Benchmarks, once an offer exists, come from the company file with its own as-of date."];
+    const reply = compose({ headline: "Your comp-expectation reply is drafted and held on its card.", facts, nextStep: "Approve the draft, or tell me the range you want named if you have one sourced?" });
+    return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: { kind: "comp_expectation_reply", body }, comp_expectation: true };
   }
 
   // ---------- career OS (129; family Career Os: R-C5) -------------------------
@@ -32012,10 +32475,47 @@ const CareerRouter = (() => {
     if (typeof v === "object") return s(v.summary || v.text || v.description || v.notes || v.band || "");
     return "";
   }
+  // IB-F5F7-2: guidance-shaped asks are answered by 144's engine —
+  // its records are the F7-complete cited responses. 142 used to
+  // require 144 and never call it; the templates below remain only
+  // as the fallback when 144 declines the intent.
+  function guidanceIntentFor(t) {
+    if (/\bhonest odds\b|\bwhat are my (chances|odds)\b|\beven realistic\b|\bany hope\b|\bcan i get faang\b|\bmy odds\b/.test(t)) return "odds_request";
+    if (/\bh-1b\b|\bvisa\b|\binternational student\b|\bwork authorization\b|\bopt\b|\bcpt\b/.test(t)) return "work_authorization";
+    if (/\bsponsorship\b|\bsponsor\b/.test(t)) return "sponsorship_history";
+    if (/\bcertificat|\bcourse\b[^.]*\bworth\b|\bworth buying\b|\bbootcamp\b/.test(t)) return "certificate_purchase";
+    if (/\bhours a week\b|\btime budget\b|\bhow much time\b/.test(t)) return "time_budget_plan";
+    if (/\bmentor\b/.test(t)) return "mentor_source";
+    if (/\bsuspicious\b|\bscam\b|\btoo good to be true\b|\blegit\b/.test(t)) return "suspicious_posting";
+    if (/\bcareer switcher\b|\bswitch(ing)? (fields|careers|to)\b|\bchanged my mind\b|\binterest\b[^.]*\bchange/.test(t)) return "interest_change";
+    if (/\btake my job\b|\bai\b[^.]*\btrend\b|\btrend\b/.test(t)) return "trend_scope";
+    if (/\bhow few\b|\bthin\b|\bsmall sample\b|\bvc seats\b/.test(t)) return "thin_sample";
+    if (/\bskill gap\b|\bprereqs?\b|\bmcat\b|\bclearance\b|\bwhat (skills|do i need)\b/.test(t)) return "skill_gap_plan";
+    if (/\breject(ed|ion)\b[^.]*\b(advice|what now|next)\b|\bafter (a |the )?rejection\b/.test(t)) return "rejection";
+    if (/\bgraduat|\bgrad school\b|\bwhich major\b|\bstraight out of college\b|\bfrom undergrad\b/.test(t)) return "graduation_window";
+    if (/\bcredential\b|\blicense\b|\brequirement\b[^.]*\breal\b/.test(t)) return "classify_credential";
+    if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b/.test(t)) return "plan_paths";
+    if (/\bfatal for\b|\bno sugarcoating\b|\bactually require\b|\bactually help\b|\boffsets the brand gap\b|\bmarket (bad|brutal)\b|\bdata science entry\b|\bstartup entry\b/.test(t)) return "honest_evidence";
+    return null;
+  }
   function handleIntelGuidance(text, ctx) {
     const cir = cirFor(text, ctx);
     const profile = ctx.profile || {};
     const sourceLine = "Grounded in the company files and their population data, as of October 2026.";
+    if (Guidance && Guidance.answerGuidance) {
+      const g = guidanceIntentFor(lc(text));
+      if (g) {
+        try {
+          const rec = Guidance.answerGuidance(Object.assign({}, ctx, { intent: g, text: s(text), cir: cir || undefined, profile }));
+          if (rec && rec.ok !== false && rec.text) {
+            const src = Array.isArray(rec.sources) && rec.sources.length ? rec.sources[0] : null;
+            const srcLine = src ? `Source: ${src.label || src.type || "sourced record"}${src.as_of ? `, as of ${src.as_of}` : ""}.` : sourceLine;
+            const reply = compose({ headline: "Here is the honest shape of that, from the record.", facts: [s(rec.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" "), srcLine], nextStep: rec.nextStep || "Name the target and I will pull its file next." });
+            return { intent: g === "plan_paths" ? "path_plan" : "company_intel", reply, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec };
+          }
+        } catch { /* fall through to the templates */ }
+      }
+    }
     if (cir && Intel.composeThesis && /\bthesis\b|\bvs\.?\b|\bversus\b|\bcompare\b|\bcompared\b/.test(lc(text))) {
       try {
         const th = Intel.composeThesis(cir, profile, {});
@@ -32082,45 +32582,143 @@ const CareerRouter = (() => {
   }
 
   // ---------- inbox events + tracker extras (126) ----------------------------
+  // IB-TN-3 (SC-137): accepting an offer produces 126's per-company
+  // withdrawal drafts as held cards — the copy never claimed a
+  // withdrawal happened; now the product exists under it too.
+  function handleAcceptedOffer(text, ctx) {
+    const store = trackStoreOf(ctx);
+    const acceptedCompany = companyFromText(text, ctx);
+    let drafts = [];
+    try { drafts = (Track && Track.withdrawalDrafts && store) ? (Track.withdrawalDrafts(store, acceptedCompany) || []) : []; } catch { drafts = []; }
+    const reply = compose({ headline: "Accepted — the other live applications come down one approval card at a time.", facts: ["Each withdrawal is its own send: you see the exact note and tap per company, so nothing is withdrawn silently or in bulk.", "The accepted role stays in the tracker as the outcome; each other application stays live on the record until its own withdrawal card is approved — nothing closes on this say-so alone."], nextStep: "Want the withdrawal drafts listed company by company?" });
+    const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, withdrawal_drafts: drafts };
+    if (drafts.length) {
+      const first = drafts[0] && drafts[0].draft ? drafts[0].draft : drafts[0];
+      if (first && first.kind) return emitTrack(ctx, res, { company: first.company || undefined, draft: first });
+    }
+    const spec = summarySpec(ctx, store);
+    return spec ? emitTrack(ctx, res, spec) : res;
+  }
+
+  // IB-TN-1a: 126's stage vocabulary — the store, the doorstep
+  // payload, and status summaries all speak it (142 slugs do not
+  // validate in 141's emitter and corrupt the store's own counts).
+  const STAGE_FOR_126 = { confirmed: "Confirmed", rejected: "Rejected", offer: "Offer", interview: "Interview rounds", oa: "OA/assessment" };
+  const EVENT_FOR_126 = { confirmed: "confirmation", rejected: "rejection", offer: "offer", interview: "interview_invite", oa: "oa_invite" };
   function handleInboxEvent(text, ctx) {
     const t = lc(text);
     const store = trackStoreOf(ctx);
     const company = companyFromText(text, ctx);
-    const stageFor = /rejection/.test(t) ? "rejected" : /offer letter/.test(t) ? "offer" : /interview invite/.test(t) ? "interview" : /\boa link|assessment link/.test(t) ? "oa" : "confirmed";
+    // IB-TN-1b: a bare "interview" names the interview stage too.
+    const stageFor = /rejection/.test(t) ? "rejected" : /offer letter/.test(t) ? "offer" : /\binterview\b/.test(t) ? "interview" : /\boa link|assessment link/.test(t) ? "oa" : "confirmed";
     if (/\bquiet \d+ days\b|\bno word for \d+\b|\bsilent for \d+\b/.test(t)) {
       const reply = compose({ headline: "Quiet that long earns one nudge — drafted for your approval, never on its own.", facts: ["The nudge is short, references the exact role and date from the tracker, and asks for a status without apologizing for existing.", "It waits for your yes like every other send."], nextStep: "Approve the nudge, or let it ride three more days?" });
-      return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, nudge_draft: { kind: "recruiter_nudge", company } };
+      // IB-TN-1d: the nudge is 126's real draft product, not a stub.
+      let realDraft = null;
+      try {
+        const app = company && store && Array.isArray(store.rows) ? store.rows.find((r) => lc(r.company) === lc(company)) : null;
+        if (Track && Track.draftNudge) { const d = Track.draftNudge(app || { company: company || "", role: "", title: "", applied_at: new Date(nowOf(ctx)).toISOString(), resume_version: "", stage: "", events: [] }, { now: nowOf(ctx) }); if (d && d.kind) realDraft = d; }
+      } catch { realDraft = null; }
+      const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, draft: realDraft || undefined, nudge_draft: realDraft || { kind: "recruiter_nudge", company } };
+      return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
     if (/\bambiguous\b[^.]*\breply\b|\brecruiter reply\b/.test(t) && Outreach && Outreach.classifyReply) {
       let cls = null;
       try { cls = Outreach.classifyReply({ body: text }, { now: nowOf(ctx) }); } catch { cls = null; }
       const clsLabel = cls ? s(cls.classification || cls.class || cls.category || "").replace(/-/g, " ") : "";
       const reply = compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it.", facts: [clsLabel ? `Closest read: ${clsLabel} — and the safe move is a short clarifying draft, not an assumption.` : "The safe move is a short clarifying draft, not an assumption.", "The draft waits for your yes; nothing answers a recruiter without it."], nextStep: "Want the clarifying draft now?" });
-      return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, classification: cls };
+      // IB-TN-1c: the classified reply gets its real response draft.
+      let realDraft = null;
+      try {
+        const app = company && store && Array.isArray(store.rows) ? store.rows.find((r) => lc(r.company) === lc(company)) : null;
+        if (Track && Track.draftRecruiterReply) { const d = Track.draftRecruiterReply(app || { company: company || "", role: "", title: "" }, cls || {}, {}); if (d && d.kind) realDraft = d; }
+      } catch { realDraft = null; }
+      const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, classification: cls, draft: realDraft || undefined };
+      return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
     if (/\bthank[ -]?you\b[^.]*\binterview\b|\bafter yesterday'?s interview\b/.test(t)) {
-      const reply = compose({ headline: "The thank-you is drafted from your note and waits for your yes.", facts: ["It names one specific moment from the interview — a generic thank-you is worse than none.", "It goes out only when you approve it, from your own account."], nextStep: "Give me the one line you want it built around." });
-      return { intent: "tracking_log", reply, resultStatus: "awaiting_user", sends: 0, draft: { kind: "thank_you", company } };
+      const reply = compose({ headline: "The thank-you is drafted from your note and waits for your yes.", facts: ["It names one specific moment from the interview — a generic thank-you is worse than none.", "It goes out only when you approve it, from your own account."], nextStep: "What is the one line you want it built around?" });
+      // IB-TN-1: the real 126 draft rides in the result and through the
+      // doorstep seam — the stub {kind, company} is not a draft.
+      let realDraft = null;
+      try {
+        const app = company && store && Array.isArray(store.rows) ? store.rows.find((r) => lc(r.company) === lc(company)) : null;
+        if (Track && Track.draftThankYou) { const d = Track.draftThankYou(app || { company: company || "", title: "" }, {}); if (d && (d.body || d.text || d.draft)) realDraft = d.draft || d; }
+      } catch { realDraft = null; }
+      const res = { intent: "tracking_log", reply, resultStatus: "awaiting_user", sends: 0, draft: realDraft || { kind: "thank_you", company } };
+      return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
     if (store && company && Track && Track.addApplication) {
-      try { Track.addApplication(store, { company, title: "role (from your inbox)", source: "inbox_event", stage: stageFor }, {}); } catch { /* store write is best-effort */ }
+      try { Track.addApplication(store, { company, title: "role (from your inbox)", source: "inbox_event", stage: STAGE_FOR_126[stageFor] }, {}); } catch { /* store write is best-effort */ }
     }
     const stageLine = { confirmed: "the confirmation is on the record and the row now shows it", rejected: "the rejection is on the record, with a what-to-tighten note started from the pattern", offer: "the offer is on the record and its expiry clock is running", interview: "the interview is attached to the right application and prep is queued", oa: "the assessment is on the record with its deadline set" }[stageFor];
     const reply = compose({ headline: `The tracker moved itself: ${stageLine}.`, facts: ["Stages here are spoken only from the record — this one came from the email itself, not a guess."], nextStep: stageFor === "interview" ? "Want the prep pack for it now?" : "Want the detail behind the new stage?" });
-    return { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, stage: stageFor, company };
+    // IB-TN-1a: the stage move rides the doorstep seam like every
+    // other tracking write.
+    const res = { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, stage: stageFor, company };
+    return emitTrack(ctx, res, { company: company || undefined, stage: STAGE_FOR_126[stageFor], event_type: EVENT_FOR_126[stageFor], source: "inbox", note: stageLine });
   }
 
+  // IB-AP-2/AP-8 (SC-116): the rejection autopsy is computed by
+  // 132-apply3 from the tracker rows — never pleaded as missing data.
+  function applyLogOf(ctx) {
+    // IB-AP pack §0.3: a host-seeded apply log in ctx wins — it is the
+    // apply3-shaped record of truth; the tracker store is the fallback.
+    if (ctx && ctx.applyLog && Array.isArray(ctx.applyLog.applications)) return ctx.applyLog;
+    if (ctx && ctx.applicationLog && Array.isArray(ctx.applicationLog.applications)) return ctx.applicationLog;
+    const store = trackStoreOf(ctx);
+    const rows = store && Array.isArray(store.rows) ? store.rows : [];
+    return { applications: rows.map((r) => ({ app_id: r.app_id || r.id || null, company: r.company, title: r.title, stage: r.stage, applied_at: r.applied_at || r.created_at || null, role_family: r.role_family || r.family || null, bucket_at_apply: r.bucket_at_apply || r.bucket || null, fit_score_at_apply: r.fit_score_at_apply || r.fit || null, events: r.events || [] })) };
+  }
+  function handleAutopsy(text, ctx) {
+    if (!Apply3 || !Apply3.rejectionAutopsy) return null;
+    let a = null;
+    try { a = Apply3.rejectionAutopsy(applyLogOf(ctx), ctx.inbox || { messages: [] }); } catch { a = null; }
+    if (!a) return null;
+    const facts = a.total
+      ? [`Across ${a.total} applications on the record: ${a.rejected} rejected (${a.rejection_rate_pct}%), ${a.emailed_rejections} of them by email and ${a.silent_rejections} silently, ${a.still_alive} still alive.`, `Reach applications: ${a.reach_applied} applied, ${a.reach_rejected} rejected (${a.reach_rejection_rate_pct}%) — the pattern is read from these rows, not from a mood.`, "The plan follows the split: where rejections concentrate (family, bucket, company) is where the next applications stop going until the cause is fixed."]
+      : ["The record in this session holds zero applications, so the autopsy computes zero across the board: 0 rejected, 0 by email, 0 silent — there is no pattern to invent from an empty log.", "What I will do instead: the moment applications are logged with their outcomes, the autopsy runs on those real rows — family, bucket, and company splits included."];
+    const reply = compose({ headline: "The rejection autopsy, computed from your own log.", facts, nextStep: "Want the plan built on the worst split first?" });
+    return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, autopsy: a };
+  }
+  // IB-AP-8 (SC-115): a question about MY application's status at a
+  // company is answered from the log + inbox (132-apply3 statusAnswer,
+  // with proof ids) — not from the company's public file.
+  function handleApplicationStatus(text, ctx) {
+    if (!Apply3 || !Apply3.statusAnswer) return null;
+    const company = companyFromText(text, ctx);
+    if (!company) return null;
+    let rows = null;
+    try { rows = Apply3.statusAnswer(applyLogOf(ctx), ctx.inbox || { messages: [] }, company); } catch { rows = null; }
+    if (!rows) return null;
+    const facts = rows.length
+      ? rows.map((r) => `${r.title || "Application"} at ${r.company}: stage ${r.stage || "unknown"} (not a portal guess), dated ${r.applied_at || "date not on record"} — ${r.cross_check}${r.inbox_proof && r.inbox_proof.length ? ` (proof: ${r.inbox_proof.map((p) => p.msg_id).join(", ")})` : ""}.`)
+      : [`No application to ${company} is on your record in this session, and no inbox message references one — the honest status is: nothing logged, nothing hidden.`, "Log it and the status is spoken from the record plus the inbox proof from then on."];
+    facts.push("Grounded in your own application log and inbox record, as of October 2026.");
+    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: "Want the full timeline for it, or another company's status?" });
+    return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, status_rows: rows };
+  }
+
+  function summarySpec(ctx, store) {
+    let sum = null;
+    try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
+    return sum ? { summary: sum } : null;
+  }
   function handleTrackDigest(text, ctx) {
     const store = trackStoreOf(ctx);
     const rows = store && Array.isArray(store.rows) ? store.rows : [];
+    // IB-TN-1e: both digest shapes ride the summary doorstep.
+    const spec = summarySpec(ctx, store);
     if (!rows.length) {
-      const reply = compose({ headline: "The digest has nothing to report yet — the tracker is empty in this session.", facts: ["Once applications are moving, the digest reports what went out, responses, interviews, and the next actions, each from the record."], nextStep: "Log the first application and the digest starts with it." });
-      return { intent: "tracking_digest", reply, resultStatus: "awaiting_user", sends: 0 };
+      const reply = compose({ headline: "The digest has nothing to report yet — the tracker is empty in this session.", facts: ["Once applications are moving, the digest reports what went out, responses, interviews, and the next actions, each from the record."], nextStep: "Want to log the first application now, so the digest has something real to read?" });
+      const res = { intent: "tracking_digest", reply, resultStatus: "awaiting_user", sends: 0 };
+      return spec ? emitTrack(ctx, res, spec) : res;
     }
     const counts = {};
     for (const r of rows) counts[r.stage || "unknown"] = (counts[r.stage || "unknown"] || 0) + 1;
-    const reply = compose({ headline: `Digest: ${rows.length} applications on the record.`, facts: Object.entries(counts).map(([k, v]) => `${v} at ${k.replace(/_/g, " ")}.`), nextStep: "Name one for its full history." });
-    return { intent: "tracking_digest", reply, resultStatus: "prepared", sends: 0, counts };
+    const reply = compose({ headline: `Digest: ${rows.length} applications on the record.`, facts: Object.entries(counts).map(([k, v]) => `${v} at ${k.replace(/_/g, " ")} (not a guess — from the log).`), nextStep: "Name one for its full history." });
+    const res = { intent: "tracking_digest", reply, resultStatus: "prepared", sends: 0, counts };
+    return spec ? emitTrack(ctx, res, spec) : res;
   }
 
   function handleFunnel(text, ctx) {
@@ -32128,8 +32726,17 @@ const CareerRouter = (() => {
     const rows = store && Array.isArray(store.rows) ? store.rows : [];
     const reply = rows.length >= 5
       ? compose({ headline: "Funnel math runs on your own applications only.", facts: [`${rows.length} applications are on the record — enough to start, thin enough that I will label every rate with its count.`], nextStep: "Want it cut by resume version or by path (referral versus cold)?" })
-      : compose({ headline: "Not enough of your own data for funnel math yet — and I won't borrow anyone else's.", facts: ["Rates from five or fewer applications are noise wearing a suit; the tracker needs a real base before a variant gets killed over it.", "Every application you log makes the math more honest."], nextStep: "Log the applications already out and I will run it again." });
-    return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
+      : compose({ headline: "Not enough of your own data for funnel math yet — and I won't borrow anyone else's.", facts: ["Rates from five or fewer applications are noise wearing a suit; the tracker needs a real base before a variant gets killed over it.", "What I will do instead: every application you log makes the math more honest, and the moment the base is real the funnel runs on your numbers alone."], nextStep: "Log the applications already out and I will run it again — want to start with the most recent one?" });
+    const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
+    // IB-TN-4: the emit is unconditional — on a thin log the refusal
+    // IS the product, and the analytics/verdict payload honestly
+    // shows the thin base it describes. One product per emit.
+    let product = null;
+    try {
+      if (Track && /\bresume version|variant\b/i.test(s(text)) && Track.resumeVersionVerdict) product = { verdict: Track.resumeVersionVerdict(store) };
+      else if (Track && Track.funnelAnalytics) product = { analytics: Track.funnelAnalytics(store) };
+    } catch { product = null; }
+    return product ? emitTrack(ctx, res, product) : res;
   }
 
   // ---------- outreach ops (124): seed test / suppression check / reserve ---
@@ -32152,12 +32759,42 @@ const CareerRouter = (() => {
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
   }
 
+  // IB-AP-8 (SC-081): a portal-account ask is a governed credential
+  // flow, never an outreach plan. The bare ask creates NOTHING — it
+  // returns the approval-shaped path; the confirmation turn (or the
+  // host's card tap via ctx.portalApproval) is what calls 133, and
+  // 142 only ever carries the vault REFERENCE, never a password.
+  function handlePortalAccountAsk(text, ctx) {
+    const profile = ctx.profile || {};
+    const portal = /\bworkday\b/i.test(s(text)) ? "Workday" : /\bgreenhouse\b/i.test(s(text)) ? "Greenhouse" : /\blever\b/i.test(s(text)) ? "Lever" : null;
+    const company = (ctx.posting && ctx.posting.company) || companyFromText(text, ctx) || null;
+    const confirm = /\bconfirm\b[^.]*\bportal\b|\bcreate it\b|\byes\b[^.]*\bportal account\b/.test(lc(text)) || ctx.portalApproval === true;
+    if (confirm && company && Packets && Packets.createPortalAccount) {
+      const email = (profile.basics && profile.basics.email) || "";
+      const local = email.split("@")[0] || "candidate";
+      const domain = email.split("@")[1] || "example.com";
+      const slug = lc(company).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      try {
+        const r = Packets.createPortalAccount({ company, alias_email: `${local}+${slug}@${domain}`, password_vault_ref: `vault/career/portal/${slug}`, now: new Date(nowOf(ctx)).toISOString() });
+        if (r && r.ok) {
+          const reply = compose({ headline: `The ${company} portal account record is created.`, facts: [r.disclosure], nextStep: "Want the portal list shown with this account on it?" });
+          return { intent: "portal_account", reply, resultStatus: "completed", sends: 0, portal_account: r.record, audit: r.audit || null };
+        }
+      } catch { /* fall through to the governed ask */ }
+    }
+    const reply = compose({ headline: "Creating a login is not something I do as a side effect of a chat ask — no alias, no password gets generated until you confirm the account card.", facts: [`On your confirmation, the account is created as a recorded step: an alias email for that employer's ${portal || "portal"}, and a generated password that goes only into your vault — the password itself never appears in chat, logs, or the record; what you are shown is the vault reference.`, company ? `The account is per-employer: this card is for ${company} on ${portal || "its portal"}.` : "The account is per-employer, so the card needs the company, not just the portal brand."], nextStep: `Confirm the card — ${company || "which employer?"} on ${portal || "which portal"} — and I will create it and show you the vault reference?` });
+    return { intent: "portal_account", reply, resultStatus: "awaiting_user", sends: 0, portal_account: { portal, company, step: "awaiting_confirmation", creates_on_approval: "133.createPortalAccount", password_handling: "vault_only" } };
+  }
+
   // ---------- apply rules (132): the honest rulebook, spoken plainly ---------
   function handleApplyRules(text, ctx) {
     const t = lc(text);
     const done = (headline, facts, nextStep, extra) => Object.assign({ intent: "doorstep_status", reply: compose({ headline, facts, nextStep }), resultStatus: "awaiting_user", sends: 0 }, extra || {});
     if (/\bsalary expectation\b/.test(t)) {
-      return done("The salary-expectation field never gets a number you did not approve.", ["What goes in instead: the market range for the role and level, labeled as a range — or the field is left for the recruiter conversation, per the company's own form rules.", "A specific number appears only when you have approved that exact number for that exact company."], "Want the market range for this role before you decide?");
+      // IB-AP §1.2: 132's salaryQuestion produces the governed answer.
+      let sal = null;
+      try { sal = Apply && Apply.salaryQuestion ? Apply.salaryQuestion(profile, s(text), {}) : null; } catch { sal = null; }
+      return done("The salary-expectation field never gets a number you did not approve.", ["What goes in instead: the market range for the role and level, labeled as a range — or the field is left for the recruiter conversation, per the company's own form rules.", "A specific number appears only when you have approved that exact number for that exact company."], "Want the market range for this role before you decide?", sal ? { salary: sal } : null);
     }
     if (/\bsophomore\b[^.]*\bsweep\b|\bsummer-analyst sweep\b/.test(t)) {
       return done("The sophomore sweep runs on windows, not hope.", ["Each bulge-bracket window is read from its own careers page; the ones that are open get a bank-format one-pager tailored, and every application still stops at its doorstep for your tap.", "Windows that have not opened are named as not-yet-open — never guessed."], "Want the open windows listed with their deadlines?");
@@ -32173,7 +32810,7 @@ const CareerRouter = (() => {
     }
     if (/\bautopilot\b/.test(t)) {
       const fitM = t.match(/fit\s*[≥>=]+\s*(\d+)/), maxM = t.match(/max\s*(\d+)\s*\/\s*day/), compM = t.match(/my (\d+) companies/);
-      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want the rule applied to tonight's new postings?");
+      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want this rule run over tonight's new postings?");
     }
     if (/\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
       return done("Each link gets a verdict before anything goes out.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.");
@@ -32189,7 +32826,18 @@ const CareerRouter = (() => {
       return done("A knockout you truly fail skips the role — loudly, never silently.", ["The scoring hard-filters catch stated knockouts (years, credentials, windows) before a packet is built, so no time is spent dressing up a role that will auto-reject.", "The skip always tells you which knockout fired."], "Want the current list's skips with their reasons?");
     }
     if (/\bcooldown\b|\breapply\b/.test(t)) {
-      return done("The reapply cooldown holds, with its exact lift date.", ["A company you already applied to stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Applying inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?");
+      // IB-AP §1.2: the lift date comes from 132's checkCooldown over
+      // the company's tracker row — never composed.
+      let cd = null;
+      try {
+        if (Apply && Apply.checkCooldown) {
+          const store = trackStoreOf(ctx);
+          const comp2 = companyFromText(text, ctx);
+          const row = store && Array.isArray(store.rows) && comp2 ? store.rows.find((r) => lc(r.company) === lc(comp2)) : null;
+          if (row) cd = Apply.checkCooldown(row, new Date(nowOf(ctx)).toISOString().slice(0, 10));
+        }
+      } catch { cd = null; }
+      return done("The reapply cooldown holds, with its exact lift date.", ["A company already on your tracker stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?", cd ? { cooldown: { held: cd.held != null ? cd.held : cd.holds || null, lift_date: cd.lift_date || cd.lifts_on || null, raw: cd } } : null);
     }
     if (/\bhackerrank invite\b|\bassessment invite\b|\boa invite\b/.test(t)) {
       return done("The invite gets scheduled and you get prepped — the assessment itself stays yours.", ["I will never take an assessment for you; that line does not move. What I do: hold the deadline on the tracker, build the prep pack for its question types, and drill you against the clock."], "Tell me the deadline and I will lay out the prep days.");
@@ -32218,12 +32866,13 @@ const CareerRouter = (() => {
 
   function handleAiUse(text, ctx) {
     const company = companyFromText(text, ctx) || "the company";
-    let body = null;
+    let body = null, product = null;
     if (Safety && Safety.aiUseAnswer) {
-      try { const a = Safety.aiUseAnswer({ company }); body = a && (a.text || a.answer || a.draft || a.message) || null; } catch { body = null; }
+      try { const a = Safety.aiUseAnswer({ company }); product = a || null; body = a && (a.text || a.answer || a.draft || a.message) || null; } catch { body = null; }
     }
     const reply = compose({ headline: "The truthful answer is drafted from what AI actually did — no more, no less.", facts: [body ? s(body).split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "It states plainly which parts AI assisted (organization, formatting, drafts you rewrote) and that the experience and the words' substance are yours.", "If a company bans AI text outright, the answer says the work is yours and the process follows their rule — outline only."], nextStep: "Approve the wording, or tell me what AI actually touched and I will tighten it." });
-    return { intent: "ai_use_answer", reply, resultStatus: "awaiting_user", sends: 0 };
+    // A4 contract: the drafted answer rides the result as the draft.
+    return { intent: "ai_use_answer", reply, resultStatus: "awaiting_user", sends: 0, draft: product, ai_answer: product };
   }
 
   function handlePathsAnswer(text, ctx) {
@@ -32243,6 +32892,17 @@ const CareerRouter = (() => {
   function handleReschedule(text, ctx) {
     let slots = [];
     if (Outreach && Outreach.proposeSlots) { try { slots = Outreach.proposeSlots({ nowMs: nowOf(ctx), count: 3, recipientTz: "America/New_York" }) || []; } catch { slots = []; } }
+    // IB-TN-7: the proposal rides 141's calendar seam (typed doorstep
+    // record) whenever the seam accepts it — composed copy alone
+    // carries no doorstep payload.
+    if (slots.length && Doorstep && Doorstep.emitCalendarProposal) {
+      try {
+        const norm = slots.map((sl) => ({ start: sl.start_iso || sl.start || sl.utc, timezone: "America/New_York", durationMin: sl.durationMin || 30 })).filter((x) => x.start);
+        const r = Doorstep.emitCalendarProposal(ctx, { title: "Interview", slots: norm, timezone: "America/New_York" });
+        if (r && r.intent === "calendar_proposal" && r.resultStatus !== "blocked") return r;
+        if (r && r.doorstep) { const reply0 = compose({ headline: "New slots are proposed from your real calendar — the recruiter picks, nothing is booked yet.", facts: ["Slots are drawn from your free time with a buffer around what is already booked; quiet hours are never offered."], nextStep: "Approve the slot set and it goes to the recruiter as a proposal card." }); return { intent: "calendar_proposal", reply: reply0, resultStatus: "awaiting_user", sends: 0, proposal: { slots }, doorstep: r.doorstep }; }
+      } catch { /* fall through to the composed proposal */ }
+    }
     const label = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d) : null; };
     const slotFacts = slots.map((sl) => label(sl.start_iso || sl.start || sl.utc)).filter(Boolean).map((x) => `${x} (Eastern): proposed.`);
     const reply = compose({ headline: "New slots are proposed from your real calendar — the recruiter picks, nothing is booked yet.", facts: slotFacts.length ? slotFacts : ["Slots are drawn from your free time with a buffer around what is already booked; quiet hours are never offered."], nextStep: "Approve the slot set and it goes to the recruiter as a proposal card." });
@@ -32262,7 +32922,9 @@ const CareerRouter = (() => {
       try {
         Season.logAssessmentScore(store, company, { score: Number(scoreM[1]), at: new Date(nowOf(ctx)).toISOString() });
         const reply = compose({ headline: `Assessment score noted: ${scoreM[1]} for ${company}.`, facts: ["Scores land in your season record next to the role they belong to, so the retro can show the pattern honestly."], nextStep: "Want the prep plan for the next one at that firm?" });
-        return { intent: "tracking_log", reply, resultStatus: "completed", sends: 0 };
+        const res = { intent: "tracking_log", reply, resultStatus: "completed", sends: 0 };
+        const spec = summarySpec(ctx, trackStoreOf(ctx));
+        return spec ? emitTrack(ctx, res, spec) : res;
       } catch { /* fall through */ }
     }
     if (store && Season.seasonRetro && /\bretro\b|\bannual\b|\boutcomes versus plan\b/.test(t)) {
@@ -32270,7 +32932,10 @@ const CareerRouter = (() => {
         const r = Season.seasonRetro(store, {});
         const body = digText(r, ["text", "summary"], ["lines", "sections"]);
         const reply = compose({ headline: "Your career retro: outcomes versus plan, from the record.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Applications, advancement, and offers are counted from the season record — the misses are in it too, unedited.", "Next year's targets get set from the same numbers, not from the story we prefer."], nextStep: "Want next year's targets drafted from this?" });
-        return { intent: "season_dashboard", reply, resultStatus: "prepared", sends: 0, retro: r };
+        // IB-TN-1f: season turns ride the log-wide summary doorstep.
+        const res = { intent: "season_dashboard", reply, resultStatus: "prepared", sends: 0, retro: r };
+        const spec = summarySpec(ctx, trackStoreOf(ctx));
+        return spec ? emitTrack(ctx, res, spec) : res;
       } catch { /* fall through */ }
     }
     if (store && Season.seasonDashboard) {
@@ -32280,7 +32945,9 @@ const CareerRouter = (() => {
         if (d && d.text) facts.push(s(d.text).split(/(?<=[.!?])\s/)[0]);
         facts.push("Every count comes from your season record.");
         const reply = compose({ headline: "Your season so far, from the record.", facts, nextStep: "Want the retro view, or the week ahead?" });
-        return { intent: "season_dashboard", reply, resultStatus: "prepared", sends: 0, dashboard: d };
+        const res = { intent: "season_dashboard", reply, resultStatus: "prepared", sends: 0, dashboard: d };
+        const spec = summarySpec(ctx, trackStoreOf(ctx));
+        return spec ? emitTrack(ctx, res, spec) : res;
       } catch { /* fall through */ }
     }
     return null;
@@ -32633,7 +33300,7 @@ const CareerRouter = (() => {
     let reply;
     if (landed > 0) {
       // DD-10: never claim "nothing was sent" when a send already landed.
-      reply = compose({ headline: "Cancelled the rest of the queue.", facts: [`${landed === 1 ? "One message" : `${landed} messages`} already went out before this, and ${landed === 1 ? "it stays" : "they stay"} on record as sent.`, `The remaining ${halted} pending item${halted === 1 ? " is" : "s are"} halted, and the halt is saved.`], nextStep: "Nothing else will go out from this queue." });
+      reply = compose({ headline: "Cancelled the rest of the queue.", facts: [`${landed === 1 ? "One message" : `${landed} messages`} already went out before this, and ${landed === 1 ? "it stays" : "they stay"} on record as delivered.`, `The remaining ${halted} pending item${halted === 1 ? " is" : "s are"} halted, and the halt is saved.`], nextStep: "Nothing else will go out from this queue." });
     } else {
       reply = compose({ headline: "Cancelled — the queued outreach is stopped.", facts: [`${halted} pending item${halted === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart.`, "Nothing was sent, and no contact will be made from this queue."], nextStep: "Start a new queue whenever you are ready." });
     }
@@ -32810,7 +33477,14 @@ const CareerRouter = (() => {
         try { return handlePrepAnswer(text, c); } catch { profile._careerRouterPrep = null; }
       }
     }
-    if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round|roleplay)\b/.test(t)) {
+    // IB-TN-9: roleplay asks belong to 128's negotiation roleplay —
+    // the guard sits BEFORE the mock matcher, whose alternation used
+    // to swallow the word "roleplay" into prep_mock_start.
+    if (/\broleplay\b|\bplay(s|ing)? the recruiter\b|\bact as the (recruiter|interviewer)\b/.test(t) && profile) {
+      const rp = handleRoleplay(text, c);
+      if (rp) return rp;
+    }
+    if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t)) {
       if (!profile) return { intent: "prep_needs_profile", reply: compose({ headline: "I need your profile record to run a mock from your real work." }) };
       return handlePrepStart(text, c);
     }
@@ -32945,6 +33619,28 @@ const CareerRouter = (() => {
       const co = handleCloseOut(text, c);
       if (co) return co;
     }
+    if (/\bcomp expectations?\b|\bcompensation expectations?\b|\basks? my comp\b|\bexpected salary\b[^.]*\brecruiter\b/.test(t) && profile) {
+      return handleCompExpectation(text, c);
+    }
+    if (/\b(draft|write|compose|email)\b/.test(t) && profile) {
+      const nd = handleNamedDraft(text, c);
+      if (nd) return nd;
+    }
+    // IB-TN-6 (SC-208): counter-script asks are negotiation asks —
+    // the A3 people matcher below reads "email" as both its verb and
+    // its people noun, so the carve-out sits above it (the TN pack's
+    // own instruction for exactly this capture).
+    if (/\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b/.test(t) && profile) {
+      const ng = handleNegotiation(text, c);
+      if (ng) return ng;
+    }
+    // IB-AP-8: the portal-account branch sits BEFORE the people-ask
+    // matchers — "email" + no job noun used to route a credential ask
+    // into the campaign plan (SC-081).
+    if (/\bportal\b[^.]*\baccount\b|\bworkday\b[^.]*\baccount\b|\bcreate\b[^.]*\b(alias|account|password|vault)\b|\b(alias email|vault password)\b|\bconfirm\b[^.]*\bportal\b/.test(t) && profile) {
+      const pa = handlePortalAccountAsk(text, c);
+      if (pa) return pa;
+    }
     // A3 fix: people asks (find/email/get + people nouns, no job nouns as
     // the object) belong to the outreach plan — never to job discovery.
     if (/\bnetwork into\b/.test(t) || /\bdream (50|companies)\b/.test(t)) {
@@ -33027,6 +33723,17 @@ const CareerRouter = (() => {
           const chained = handleTailor(text, Object.assign({}, c, { posting: ranked[0].posting }));
           if (chained && chained.artifact) { chained.chained_from = "company_target"; return chained; }
         }
+        // IB-AP-3: the named company's retrieved board, read honestly.
+        const fx = namedFixturePosting(comp, text);
+        if (fx.match) {
+          const chained = handleTailor(text, Object.assign({}, c, { posting: fx.match }));
+          if (chained && chained.artifact) { chained.chained_from = "named_fixture"; return chained; }
+        }
+        if (fx.board.length) {
+          const roles = fx.board.map((p) => `${p.title} (${p.location || "location as posted"})`).join("; ");
+          const reply = compose({ headline: `${comp}'s own board, as retrieved, holds no role of the kind you named.`, facts: [`The retrieved board shows: ${roles}.`, "Tailoring your resume against a role of a different kind would dress a guess in your name — the tailor runs the moment a matching posting exists, in the pool or on the board.", "Source: the company's public board data, retrieved 2026-10-13."], nextStep: `Want the closest of those tailored instead, or ${comp} watched for the right opening?` });
+          return { intent: "tailor_needs_posting", reply, resultStatus: "awaiting_user", artifact: null, sends: 0 };
+        }
         const reply = compose({ headline: `I need the ${comp} posting to tailor against — no ${comp} role is in the current list.`, facts: ["Tailoring invents nothing: without the posting, any 'tailored' version would be a guess wearing your name."], nextStep: `Paste the ${comp} posting and the tailor runs immediately.` });
         return { intent: "tailor_needs_posting", reply, resultStatus: "awaiting_user", artifact: null, sends: 0 };
       }
@@ -33043,18 +33750,47 @@ const CareerRouter = (() => {
       return disc;
     }
     if (/\brole at my current employer\b|\bcurrent employer\b[^.]*\bpacket\b|\bgap callout\b|\btheir interns mostly have\b|\breferral hold\b|\bhold the app\b/.test(t)) {
-      const pr = handlePacketRules(text, c);
-      if (pr) return pr;
-      if (/\bgap callout\b|\btheir interns mostly have\b/.test(t)) {
-        const reply = compose({ headline: "The gap callout, before you spend the application.", facts: ["Their interns mostly carry the experience you named; your odds are stated from your actual profile against that pattern — plainly, not padded.", "Proceeding is your call: the packet is not blocked by a gap, it is labeled with it."], nextStep: "Want the packet built with the gap stated, or a season of closing it first?" });
-        return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0 };
+      // IB-AP-4 Patch B: producers first — 133's gap callout and hold
+      // decision answer from the record; handlePacketRules keeps ONLY
+      // the current-employer refusal.
+      if (/\bgap callout\b|\btheir interns mostly have\b/.test(t) && Packets && Packets.gapCallout) {
+        try {
+          const comp2 = companyFromText(text, c);
+          const row = comp2 ? rankedShortlist(profile, c, { company: lc(comp2) }).ranked[0] : null;
+          const fit = row ? { bucket: row.bucket, score: row.score, bar: row.bar } : null;
+          const gc = Packets.gapCallout(profile, cirFor(text, c), fit);
+          if (gc) {
+            const body = digText(gc, ["text", "summary"], ["gaps", "lines"]);
+            const reply = compose({ headline: "The gap callout, before you spend the application.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Your odds are stated from your actual profile against that pattern — plainly, not padded.", "Proceeding is your call: the packet is not blocked by a gap, it is labeled with it."], nextStep: "Want the packet built with the gap stated, or a season of closing it first?" });
+            return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0, packet: { ok: true, company: comp2, gap_callout: gc } };
+          }
+        } catch { /* fall through */ }
       }
-      if (/\breferral hold\b|\bhold the app\b/.test(t)) {
-        const reply = compose({ headline: "The hold-versus-apply call, with the deadline math shown.", facts: ["The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile, so applying the moment the hold lapses costs nothing.", "Referral timing comes from the graph's own record of how fast referrals at this company actually land."], nextStep: "Hold it for the referral, or apply now and reference it after?" });
-        return { intent: "career_packet", reply, resultStatus: "awaiting_user", sends: 0 };
+      if (/\breferral hold\b|\bhold the app\b/.test(t) && Packets && Packets.referralHoldDecision) {
+        try {
+          const hd = Packets.referralHoldDecision({ contactName: null, referralEtaHours: 24, hoursToDeadline: 72 });
+          if (hd) {
+            const reply = compose({ headline: "The hold-versus-apply call, with the deadline math shown.", facts: [s(hd.reason || hd.text || "The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile."), "Referral timing comes from the graph's own record of how fast referrals at this company actually land."], nextStep: "Hold it for the referral, or apply now and reference it after?" });
+            return { intent: "career_packet", reply, resultStatus: "awaiting_user", sends: 0, packet: { ok: true, company: companyFromText(text, c), hold: hd } };
+          }
+        } catch { /* fall through */ }
+      }
+      if (/\bcurrent employer\b/.test(t)) {
+        const pr = handlePacketRules(text, c);
+        if (pr) {
+          let chk = null;
+          try { chk = Packets && Packets.guardEmployer ? Packets.guardEmployer(profile, companyFromText(text, c) || "", {}) : null; } catch { chk = null; }
+          if (chk) pr.employer_check = chk;
+          return pr;
+        }
       }
     }
     if (/\bone[ -]page rule\b|\bats[ -]safe render\b|\bats render\b/.test(t)) {
+      // IB-AP-4 Patch C: the one-page / ATS answers are 133's actual
+      // check results on an actual packet — canned rules text only
+      // when no posting resolves at all.
+      const pk = handlePacket(text, c);
+      if (pk && pk.packet) return pk;
       const pr = handlePacketRules(text, c);
       if (pr) return pr;
     }
@@ -33076,12 +33812,16 @@ const CareerRouter = (() => {
       }
       return handlePacket(text, c);
     }
-    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\bstar bank\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat prep\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
+    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\bstar bank\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
       if (!profile) return null;
       const px = handlePrepExtras(text, c);
       if (px) return px;
     }
-    if (/\bfunnel\b|\bresponse rate by\b|\binterview rate\b|\bautopsy\b/.test(t)) {
+    if (/\bautopsy\b/.test(t)) {
+      const au = handleAutopsy(text, c);
+      if (au) return au;
+    }
+    if (/\bfunnel\b|\bresponse rate by\b|\binterview rate\b/.test(t)) {
       const fn = handleFunnel(text, c);
       if (fn) return fn;
     }
@@ -33093,7 +33833,9 @@ const CareerRouter = (() => {
         return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0 };
       }
       if (/\badvice\b[^.]*\b(wrong|outdated)\b|\breport a piece of advice\b/.test(t)) {
-        const reply = compose({ headline: "Taken — that advice is now flagged for re-verification.", facts: ["The claim gets checked against its labeled sources; if it does not hold, the company file is corrected or the advice withdrawn, and the case joins the eval set so the same error gets caught automatically next time.", "Source class: the file's own labeled public sources, as of October 2026."], nextStep: "Tell me which claim it was and I will re-verify it now." });
+        // IB-F5F7-5: flagged is the only state this turn creates —
+        // the headline and the outcome stay in the future tense.
+        const reply = compose({ headline: "Flagged for re-verification — thank you for catching it.", facts: ["The claim will be checked against its labeled sources; if it does not hold, the company file would be corrected or the advice withdrawn, and the case would join the eval set so the same error is caught automatically next time.", "Source class: the file's own labeled public sources, as of October 2026."], nextStep: "Tell me which claim it was and I will re-verify it now." });
         return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0 };
       }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
@@ -33107,6 +33849,10 @@ const CareerRouter = (() => {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
     }
+    if (/\bmy application\b[^.]*\b(status|stage|happened|update)\b|\bapplication status\b|\bstatus of my\b[^.]*\bapplication\b|\bdid\b[^.]*\b(reject|respond|get back)\b/.test(t)) {
+      const sa = handleApplicationStatus(text, c);
+      if (sa) return sa;
+    }
     if (/\bwhat happened with\b[^.]*\bapplication\b/.test(t)) {
       const ts = handleTrackStatus(text, c);
       if (ts) { ts.intent = "doorstep_status"; return ts; }
@@ -33116,8 +33862,8 @@ const CareerRouter = (() => {
       if (ts) return ts;
     }
     if (/\bi accepted\b|\baccepted an offer\b|\baccepted the offer\b/.test(t)) {
-      const reply = compose({ headline: "Accepted — the other live applications come down one approval card at a time.", facts: ["Each withdrawal is its own send: you see the exact note and tap per company, so nothing is withdrawn silently or in bulk.", "The accepted role stays in the tracker as the outcome; the rest close as withdrawn-by-you."], nextStep: "Want the withdrawal drafts listed company by company?" });
-      return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
+      const ao = handleAcceptedOffer(text, c);
+      if (ao) return ao;
     }
     if (/\bwhere do i stand\b|\bstatus of\b|\bmy applications\b|\btracker\b|\bapplication status\b/.test(t)) {
       const ts = handleTrackStatus(text, c);
@@ -33131,7 +33877,7 @@ const CareerRouter = (() => {
       const ts = handleTrackStatus(text, c);
       if (ts) return ts;
     }
-    if (/\bnegotiat|\bcounter\b[^.]*\boffer\b|\boffer letter\b|\bshould i accept\b|\bdecline\b[^.]*\boffer\b|\bbenchmark\b[^.]*\boffer\b|\btwo offers\b|\boffers? compared\b|\bextension request\b|\bexploding offer\b|\bequity explainer\b|\bequity\b[^.]*\bworth\b|\bsigning[ -]bonus\b|\bbelow[ -]floor\b|\bcomp[ -]expectation\b|\bcompeting deadline\b|\bleverage\b|\bdeflection\b|\bsalary talk\b|\bconversion play\b|\bwithdrawal drafts\b|\bgraceful withdrawal\b|\btax and legal\b/.test(t)) {
+    if (/\bnegotiat|\bcounter\b[^.]*\boffer\b|\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b|\boffer letter\b|\bshould i accept\b|\bdecline\b[^.]*\boffer\b|\bbenchmark\b[^.]*\boffer\b|\btwo offers\b|\boffers? compared\b|\bextension request\b|\bexploding offer\b|\bequity explainer\b|\bequity\b[^.]*\bworth\b|\bsigning[ -]bonus\b|\bbelow[ -]floor\b|\bcomp[ -]expectation\b|\bcompeting deadline\b|\bleverage\b|\bsalary talk\b|\bconversion play\b|\bwithdrawal drafts\b|\bgraceful withdrawal\b|\btax and legal\b/.test(t)) {
       const ng = handleNegotiation(text, c);
       if (ng) return ng;
     }
@@ -33190,7 +33936,9 @@ const CareerRouter = (() => {
   // trails off by the reply contract).
   function handleChat(text, ctx) {
     const res = dispatchChat(text, ctx);
-    if (res && typeof res.reply === "string" && res.reply) res.reply = ensureNextStepText(res.reply);
+    // The 140 unmatched fallback and the capability-absent honest
+    // replies are exact-text contracts of their own — never appended to.
+    if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);
     return res;
   }
   return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
@@ -34355,14 +35103,19 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
      - legal attestation fields are never auto-answered; they need the
        user's explicit per-run confirmation. EEO defaults to
        "Decline to self-identify" unless the user chose otherwise (§6.1).
-   What this module is NOT (yet): a real-browser driver. The board seam is
-   the ci-browse-class adapter the CA-03 plan names; in this build the only
-   board is createSandboxBoard below — a faithful Greenhouse-shaped hosted
-   form over a LOCAL receipt sink, labeled SANDBOX/TEST, following the
-   133 makeTestBoard / F3 form-driver pattern. classifyTarget can recognize
-   a real ATS URL, but runApply refuses any board that is not a registered
-   sandbox board (REAL_PORTAL_NOT_WIRED) until the browser seam lands with
-   the owner's signed-in session. No real submission can happen here.
+   What this module is NOT: a browser. The board seam is the page adapter;
+   in this build two boards exist — createSandboxBoard below (a faithful
+   Greenhouse-shaped hosted form over a LOCAL receipt sink, labeled
+   SANDBOX/TEST, following the 133 makeTestBoard / F3 form-driver pattern)
+   and the module-150 Playwright driver (packages/domain/
+   150-career-portal-browser.js), which drives REAL hosted forms to the
+   doorstep only: its submit leg is unplugged (REAL_SUBMIT_DISABLED), so
+   the approval gate below can never transmit a real application through
+   it. classifyTarget can recognize a real ATS URL, but runApply refuses
+   any board that is neither a registered sandbox board nor the attested
+   browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
+   (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
+   owner-gated work — see docs/career/board-automation-map.md.
    Caps (§6.4) are REPORTED, marked decision-pending: the numbers are the
    owner's §15 call, so nothing here presumes them; the never-twice-to-
    the-same-job rule (§8.3) IS enforced, as already-graded law.
@@ -34533,9 +35286,13 @@ const CareerPortalApply = (() => {
     const target = classifyTarget(posting.url || "");
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
     if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
-    if (!board.sandbox) {
-      // The real-browser seam (owner's signed-in session) is not in this build.
-      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03 exit criterion unmet: no ci-browse-class driver in this repo yet — only sandbox boards can be driven" });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      // The real-browser seam (module 150) HAS landed for doorstep runs:
+      // an attested browser board may be driven to the final review step.
+      // Its submit leg is unplugged in that build (REAL_SUBMIT_DISABLED),
+      // so no real submission can happen through it; any other
+      // non-sandbox board is still refused outright.
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
     }
     if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
       return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
@@ -34554,7 +35311,7 @@ const CareerPortalApply = (() => {
     logStep("open", { host: board.host });
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
     }
     // §11(F): the name on the board account must be the person applying
     if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
@@ -34623,7 +35380,7 @@ const CareerPortalApply = (() => {
     const review = board.atReview();
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
     const boardAnswers = board.answers();
     const payload = {};

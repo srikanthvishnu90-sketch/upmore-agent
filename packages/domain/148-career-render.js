@@ -520,6 +520,7 @@ const CareerRender = (() => {
   // is not a content difference. Word-internal spaces are preserved.
   const normLine = (s) => String(s || "").replace(/\u2022/g, " ").replace(/\s+/g, " ").trim().toLowerCase().replace(/\s*([^\p{L}\p{N}\s])\s*/gu, "$1");
   const normSeq = (lines) => (lines || []).map(normLine).filter(Boolean);
+  const yearOfStr = (v) => { const m = String(v == null ? "" : v).match(/\d{4}/); return m ? m[0] : null; };
   const PLACEHOLDER_PATTERNS = [
     { re: /\bfirst last\b/i, label: '"First Last"' }, { re: /\bcompany\s*\d+\b/i, label: '"Company N"' },
     { re: /\bany company\b/i, label: '"Any Company"' }, { re: /\byour name\b/i, label: '"Your Name"' },
@@ -554,6 +555,40 @@ const CareerRender = (() => {
     const checks = {};
     const formats = {};
     const add = (check, level, detail) => reasons.push({ check, level, detail });
+
+    // BUG-2026-10-14-NDER (brief B6): two source-level FAILs.
+    // (1) duplicate_line — a content line belongs in exactly one section;
+    //     the same normalized line twice in the source document fails.
+    // (2) missing_dates — an entry whose cited fact carries start/end
+    //     dates must render them. Fact-aware: runs only when the caller
+    //     threads the profile in (123's render path does); skipped
+    //     otherwise, so profile-free callers see no behavior change.
+    if (expected) {
+      const seenLine = new Set();
+      for (const l of expected) {
+        if (l.kind === "heading") continue;
+        const k = normLine(l.text);
+        if (!k) continue;
+        if (seenLine.has(k)) add("duplicate_line", "fail", `the same line appears more than once in the document: "${String(l.text).slice(0, 80)}" — a line belongs in exactly one section`);
+        else seenLine.add(k);
+      }
+    }
+    const profIn = inp.profile || o.profile || null;
+    if (profIn && resume) {
+      const factsById = new Map((profIn.facts || []).map((f) => [f.id, f]));
+      const docLines = (resume.sections || []).length ? (resume.sections || []).flatMap((s) => s.lines || []) : (resume.lines || []);
+      for (const l of docLines) {
+        if (!l || l.type !== "entry") continue;
+        const fact = (l.factIds || []).map((id) => factsById.get(id)).find((f) => f && (f.start || f.end));
+        if (!fact) continue;
+        const sy = yearOfStr(fact.start), ey = yearOfStr(fact.end);
+        const missing = [];
+        if (sy && !String(l.text).includes(sy)) missing.push(sy);
+        if (/^present$/i.test(String(fact.end || "").trim())) { if (!/present/i.test(String(l.text))) missing.push("Present"); }
+        else if (ey && ey !== sy && !String(l.text).includes(ey)) missing.push(ey);
+        if (missing.length) add("missing_dates", "fail", `entry "${String(l.text).slice(0, 60)}" drops the date(s) ${missing.join(", ")} held by its fact (${fact.id}) — a dated entry renders its range`);
+      }
+    }
 
     const checkFormat = (fmt, buf, extractA, extractB, struct, expectedForFmt) => {
       if (!buf) return;

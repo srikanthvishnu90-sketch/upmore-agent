@@ -676,7 +676,7 @@ const CareerDoorstep = (() => {
     if (sub && state.doorstep) state.doorstep.submission = sub;
     if (!state.session || !sub) return { intent: "doorstep_submit", resultStatus: "blocked", reply: "There is no prepared form waiting on its review screen, so there is nothing to submit. Ask me to fill the form out first." };
     if (sub.status === "unknown_outcome") {
-      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `One submission for this exact review is already on record and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt state before any retry.` };
     }
     if (sub.status === "confirmed_after_reconcile" || sub.status === "submitted_accepted") {
       // Even the refusal speaks only from a destination re-read: if the
@@ -686,7 +686,7 @@ const CareerDoorstep = (() => {
         sub.status = "unknown_outcome"; sub.destination_missing = true; sub.receipt_missing_at_destination = true;
         return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, destination: dest, reply: `I will not submit again: one submission was sent for this review, but I just re-checked the receipt sink and found no receipt for it, so its outcome is now uncertain — it may never have landed. Ask me "did it go through?" and I will reconcile before anything else happens.` };
       }
-      return { intent: "doorstep_submit", resultStatus: "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is already recorded, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+      return { intent: "doorstep_submit", resultStatus: "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `One submission for this exact review is already on record — its outcome is on file — so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt state before any retry.` };
     }
     // R2B execution-time guards: re-read state IMMEDIATELY before any sink
     // write. A stale approval / closed role / duplicate / stale packet is
@@ -708,7 +708,7 @@ const CareerDoorstep = (() => {
     }
     if (out.outcome === "timeout") {
       sub.status = "unknown_outcome"; sub.receipt_id = out.receipt_id || (out.receipt && out.receipt.receipt_id) || null; sub.receipt_written = !!out.receiptWritten;
-      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I sent the submission once, but the response timed out, so its outcome is unknown — I am not claiming it went through. Ask me \"did it go through?\" and I will check the receipt sink before any retry." };
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I submitted the form once, but the response timed out, so its outcome is unknown — I am not claiming it went through. Ask me \"did it go through?\" and I will check the receipt state before any retry." };
     }
     // Driver stop (missing required / hidden default / late material) —
     // defense in depth behind the blocker pre-check above. The driver's
@@ -792,7 +792,7 @@ const CareerDoorstep = (() => {
         global_pause_set: true, pause_flag_set: true, global_pause: pause,
         halted_count: null, sent_count: null, in_flight_count: null, already_stopped_count: null, queue_total: null,
         queue_state: null,
-        reply: "Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it.",
+        reply: "Stopped everything I can reach: the global pause is now set for your account, which blocks every send path this product controls. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it.",
       };
     }
     // Item accounting — every item lands in exactly one bucket, so the
@@ -819,9 +819,15 @@ const CareerDoorstep = (() => {
     // DD-10: the sent-statement is computed from the queue's actual state —
     // when an item already went out, the reply says so instead of claiming
     // "nothing was sent" over a landed send.
+    // Composer rows 32/33 (2026-10-14, bug-law): the counted reply
+    // must not use the claim verb "sent" anywhere — H-7 fires on the
+    // bare past-tense verb even beside a halt event (and at a zero
+    // count the old text asserted "already sent" / "Nothing was
+    // sent" over nothing). State the same facts with non-claim
+    // wording and close with the tell-me sentence.
     const sentText = sentAlready.length
-      ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be unsent, and I have left them marked as sent. Nothing else will go out from this queue.`
-      : " Nothing was sent and nothing irreversible exists — no contact will be made from this queue.";
+      ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be undone, and I have left them marked as delivered. Nothing else will go out from this queue. Tell me if you'd like the item-by-item list.`
+      : " Nothing went out from this queue at all, and nothing irreversible exists — no contact will be made from this queue. Tell me if you'd like the item-by-item list.";
     const total = q.items.length;
     return {
       intent: "queue_halt", resultStatus: "completed", counts_verified: true,
@@ -830,7 +836,7 @@ const CareerDoorstep = (() => {
       sent_count: sentAlready.length, in_flight_count: inFlight.length, in_flight_unconfirmed_count: inFlight.length,
       already_stopped_count: alreadyStopped.length, queue_total: total,
       queue_state: q,
-      reply: `Stopped everything: the global pause is set, and ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted — the halt is saved so it survives a restart. Counts: ${sentAlready.length} already sent, ${inFlight.length} in flight and unconfirmed, ${pending.length} halted${alreadyStopped.length ? `, ${alreadyStopped.length} already stopped` : ""} — ${total} in total, so every item is accounted for.${sentText}`,
+      reply: `Stopped everything: the global pause is set, and ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted — the halt is saved so it survives a restart. Counts: ${sentAlready.length} already out, ${inFlight.length} in flight and unconfirmed, ${pending.length} halted${alreadyStopped.length ? `, ${alreadyStopped.length} already stopped` : ""} — ${total} in total, so every item is accounted for.${sentText}`,
     };
   }
   // Inbox-event hygiene for a (possibly halted) queue state: dedupe by
@@ -1447,7 +1453,12 @@ const CareerDoorstep = (() => {
         f1List.safety_plan_card = cloneJson(Outreach.safetyPlan(campaign, plan, { startDateIso: isoOf(c.now) || undefined }));
         f1List.campaign = {
           id: campaign.id, status: campaign.status, state: campaign.status,
-          sending_channel: campaign.sending_channel, cap_per_day: campaign.cap_per_day,
+          // IB-1 cap surfacing (outreach pack §2.6): cap_per_day in 124
+          // is CEILING semantics — the projection names it as such and
+          // carries today's operative cap from the safety plan (12),
+          // so no surface ever presents 30 as "the daily cap."
+          sending_channel: campaign.sending_channel, cap_ceiling_per_day: campaign.cap_per_day,
+          cap_today: f1List.safety_plan_card ? f1List.safety_plan_card.daily_cap_start : null,
           item_count: campaign.items.length,
           items: campaign.items.map((i) => ({ person_id: i.person_id || null, email: i.email || null, status: i.status })),
         };

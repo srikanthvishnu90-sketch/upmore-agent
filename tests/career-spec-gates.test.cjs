@@ -82,16 +82,20 @@ test("S2 no unapproved send / S3-H4: an unapproved campaign sends nothing", asyn
 // ---------- Spec 2 §11 / §8.3: no duplicate submit, 100% ----------
 
 test("S2 no duplicate submit: a crash-retry replay sends each draft once (124 idempotency)", async () => {
+  // RE-POINTED 2026-10-14 (audit §9 item 5): under SEND_DISABLED a
+  // crash-retry replay cannot create a duplicate submit because it
+  // cannot create a submit at all — both runs refuse at the sink
+  // and the transport records zero sends.
   const c = Outreach.createCampaign({ id: "camp-1", userId: "u1", approved: true });
   const entries = [0, 1, 2].map((i) => ({ candidate: cand({ person_id: "p" + i, work_email: `person${i}@firm${i}.com` }), draft: { subject: "s" + i, body: "b" + i, tier: "B" } }));
   Outreach.enqueue(c, entries);
   const t = mockTransport();
   const r1 = await Outreach.sendPending(c, { transport: t });
-  assert.equal(r1.sent, 3); assert.equal(t.sent.size, 3);
+  assert.equal(r1.sent, 0); assert.equal(r1.refused, true); assert.match(String(r1.error), /SEND_DISABLED/); assert.equal(t.sent.size, 0);
   for (const i of c.items) i.status = "queued"; // simulated crash replay of the whole queue
   const r2 = await Outreach.sendPending(c, { transport: t });
-  assert.equal(t.sent.size, 3, "replay must not create duplicate sends");
-  assert.equal(r2.sent || 0, 0);
+  assert.equal(t.sent.size, 0, "replay must not create duplicate sends");
+  assert.equal(r2.sent || 0, 0); assert.equal(r2.refused, true);
 });
 
 test("S2 no duplicate submit: the apply log flags a second application to the same posting (132)", () => {

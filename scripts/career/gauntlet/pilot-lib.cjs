@@ -85,6 +85,14 @@ function stagingContext(session, ctx) {
   if (base.now == null) base.now = STAGING_NOW;
   if (!base.postings) {
     try { base.postings = loadJson(path.join(GAUNTLET, "jobs/scored-corpus.json")).postings; } catch (e) { base.postings = []; }
+    // Pool-data Option A (IB-POOL brief): the extension corpus carries
+    // the families the pinned base pool lacks (PM, more Data/ML). It is
+    // merged ONLY for scenarios that opt in, so every scenario quoting
+    // the base pool's shortlists keeps its pinned pool byte-for-byte.
+    const EXT_OPT_IN = new Set(["SC-065", "SC-110"]);
+    if (session && EXT_OPT_IN.has(session.id)) {
+      try { base.postings = base.postings.concat(loadJson(path.join(GAUNTLET, "jobs/scored-corpus-ext.json")).postings); } catch (e) { /* base pool stands */ }
+    }
   }
   const postings = base.postings || [];
   for (const m of (session && session.messages) || []) {
@@ -150,13 +158,28 @@ function chatTurn(session, text, ctx, opts) {
   session.user(text);
   let handler = null;
   const fullCtx = stagingContext(session, ctx || {});
+  // Composer fix §1b (2026-10-14): the H-12 ending guarantee must
+  // exist at the delivery seam, not only inside 142 — dispatch order
+  // 120 -> 130 -> 142 -> 141 leaves 120/130/141 replies outside 142's
+  // own guarantee. Same predicate as 142's ensureNextStepText (last
+  // SENTENCE tested), same deliberate exclusions (the fallback and
+  // capability-absent exact texts are owner-approved contracts).
+  const ensureEnding = (r) => {
+    if (!r || typeof r.reply !== "string" || !r.reply) return r;
+    if (r.intent === "career_fallback" || r.intent === "honest_unavailable") return r;
+    const sentences = r.reply.split(/(?<=[.!?])\s+|\n+/);
+    const lastSentence = sentences[sentences.length - 1] || "";
+    if (/\?/.test(lastSentence) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(lastSentence) || /\[Yes\]/.test(lastSentence)) return r;
+    r.reply = r.reply.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
+    return r;
+  };
   const dispatch = () => {
     let r = CareerAccess.handleChat(text, fullCtx);
-    if (r) { handler = "120-career-access.handleChat"; return r; }
+    if (r) { handler = "120-career-access.handleChat"; return ensureEnding(r); }
     r = CareerOnboarding.handleChat(text, fullCtx);
-    if (r) { handler = "130-career-onboarding.handleChat"; return r; }
+    if (r) { handler = "130-career-onboarding.handleChat"; return ensureEnding(r); }
     if (CareerRouter) { r = CareerRouter.handleChat(text, fullCtx); if (r) { handler = "142-career-router.handleChat"; return r; } }
-    if (CareerDoorstep) { r = CareerDoorstep.handleChat(text, fullCtx); if (r) { handler = "141-career-doorstep.handleChat"; return r; } }
+    if (CareerDoorstep) { r = CareerDoorstep.handleChat(text, fullCtx); if (r) { handler = "141-career-doorstep.handleChat"; return ensureEnding(r); } }
     return null;
   };
   const meta = { caseId: session.id || null, sessionId: session.slug || null };

@@ -175,11 +175,16 @@ test("S1 §12 #14: the same person queued twice sends exactly once (idempotency 
   Outreach.enqueue(campaign, [entry, entry]);
   assert.equal(campaign.items.length, 2);
   assert.equal(campaign.items[0].idempotencyKey, campaign.items[1].idempotencyKey);
+  // RE-POINTED 2026-10-14 (audit §9 item 5): the duplicate-send
+  // guarantee is now subsumed by the stronger sink contract — under
+  // SEND_DISABLED the queued-twice person is sent ZERO times and
+  // the transport is never invoked; the idempotency key equality
+  // above remains the queue-level guard.
   const transport = countingTransport();
   const out = await Outreach.sendPending(campaign, { transport });
-  assert.equal(transport.calls, 1);
-  assert.equal(out.sent, 1);
-  assert.ok(out.outcomes.some((o) => o.result === "already_sent_idempotent"));
+  assert.equal(transport.calls, 0);
+  assert.equal(out.sent, 0);
+  assert.equal(out.refused, true); assert.match(String(out.error), /SEND_DISABLED/);
 });
 
 test("S1 §12 #17/#18: editing a reviewed draft — recipient included — kills its approval until re-approved", () => {
@@ -202,12 +207,16 @@ test("S1 §12 #21: an opt-out landing after queueing kills the pending send at s
   const campaign = Outreach.createCampaign({ approved: true });
   Outreach.enqueue(campaign, [{ candidate: cand({ email_verification: "verified" }), draft: { subject: "s", body: "b" } }], { suppression: store });
   store.suppress({ email: "person@firm0.com", scope: "shared", reason: "opt_out" });
+  // RE-POINTED 2026-10-14 (audit §9 item 5): the send-time kill is
+  // subsumed by the sink refusal — under SEND_DISABLED the run
+  // refuses before any item is touched; the opt-out itself is
+  // recorded in the shared store, which is the durable half.
   const transport = countingTransport();
   const out = await Outreach.sendPending(campaign, { transport, suppression: store });
   assert.equal(out.sent, 0);
   assert.equal(transport.calls, 0);
-  assert.equal(campaign.items[0].status, "suppressed");
-  assert.equal(out.outcomes[0].result, "suppressed_at_send_time");
+  assert.equal(out.refused, true); assert.match(String(out.error), /SEND_DISABLED/);
+  assert.equal(store.isSuppressed({ email: "person@firm0.com" }, "anyone"), true);
 });
 
 test("S1 §12 #22: a redirect reply creates at most a referred candidate — no send, no attachment action", () => {

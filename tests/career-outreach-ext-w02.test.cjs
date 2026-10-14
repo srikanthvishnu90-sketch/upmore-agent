@@ -31,15 +31,18 @@ test("W02 reconcileBounceDomains names the dominant pattern; monitorHealth trips
   const d = M.reconcileBounceDomains(c); assert.equal(d.dominant_pattern, "firstlast"); assert.equal(d.dominant_pattern_share_pct, 100);
 });
 test("W02 runFollowUps: tap required, responders excluded, final closes forever", async () => {
+  // RE-POINTED 2026-10-14 (audit §9 item 5): this scenario's premise
+  // was a sent campaign. Under SEND_DISABLED the send refuses at the
+  // sink, so no follow-up can ever be earned — the tap gate still
+  // refuses without a tap, and with a tap the run honestly produces
+  // no follow-ups (nothing was sent to follow up on).
   const { c, supp } = sentCampaign(3);
-  await M.sendPending(c, { suppression: supp, transport: { send: async () => ({ messageId: "m" }) } });
+  const sr = await M.sendPending(c, { suppression: supp, transport: { send: async () => ({ messageId: "m" }) } });
+  assert.equal(sr.refused, true); assert.match(String(sr.error), /SEND_DISABLED/);
   assert.equal(M.runFollowUps(c, { touch: 1 }).ok, false);
   const r1 = M.runFollowUps(c, { touch: 1, continueTap: true, responders: ["T-0"], suppression: supp });
-  assert.equal(r1.followups.length, 2); assert.ok(r1.followups.every((f) => f.draft.threaded));
-  await M.sendPending(c, { suppression: supp, transport: { send: async () => ({ messageId: "m" }) } });
-  const fin = M.runFollowUps(c, { touch: 2, continueTap: true, final: true, suppression: supp });
-  assert.equal(fin.followups.length, 2); assert.equal(c.followups_closed, true);
-  assert.equal(M.runFollowUps(c, { touch: 3, continueTap: true }).ok, false);
+  assert.ok(!r1.followups || r1.followups.length === 0, "no follow-ups exist when nothing was ever sent");
+  assert.ok(!c.followups_closed, "the campaign never closes: no final follow-up can run");
 });
 test("W02 seed test gate: blocks missing/spam, passes all-inbox", async () => {
   const st = M.createSeedTest(); assert.equal(M.seedGate(st).ok, false);

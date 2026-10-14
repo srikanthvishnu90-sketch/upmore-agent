@@ -162,7 +162,7 @@
       return {
         companies: rows.map(r => ({ company: r.company, alias_email: r.alias_email, password_vault_ref: r.password_vault_ref, created_at: r.created_at || null })),
         count: rows.length,
-        text: rows.length ? rows.map(r => `${r.company}: portal account as ${r.alias_email} (password in your vault)`).join("\n") : "No company portal accounts yet. One is created, with your OK, the first time an application needs it.",
+        text: rows.length ? rows.map(r => `${r.company}: portal account as ${r.alias_email} (password in your vault)`).join("\n") : "No company portal accounts yet. One is created, with your OK, the first time an application needs it. Tell me if you'd like one set up for a specific company now.",
       };
     }
 
@@ -208,7 +208,7 @@
       const rows = (entries || []).map(e => e && e.entry ? e.entry : e).filter(e => e && e.source && e.what)
         .map(e => ({ source: String(e.source).toLowerCase(), at: e.at || null, what: String(e.what), outcome: e.outcome || null }))
         .sort((a, b) => String(a.at).localeCompare(String(b.at)));
-      return { entries: rows, count: rows.length, text: rows.length ? rows.map(e => `${e.at} — ${label(e.source)}: ${e.what}${e.outcome ? ` (${e.outcome})` : ""}`).join("\n") : "No login-requiring actions yet." };
+      return { entries: rows, count: rows.length, text: rows.length ? rows.map(e => `${e.at} — ${label(e.source)}: ${e.what}${e.outcome ? ` (${e.outcome})` : ""}`).join("\n") : "No access events have been recorded yet (0 events). When sources connect, disconnect, or ask for re-authentication, each shows here — tell me if you want the current connected-accounts list instead." };
     }
 
     // ---------- ACCS-004: browser-source connect plan (records/plans only — the live window is the host's) --
@@ -246,7 +246,7 @@
         self_test: { test_email: "one test email to your own inbox", test_event: "one test calendar event", runs_after: "the consent tap lands" },
       };
       return {
-        intent: "connect_google", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
+        intent: "connect_google", family: "access", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
         resultStatus: "awaiting_user", artifact: doorstepPayload, payload: doorstepPayload, sends: 0,
         reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy plus events). One consent click on Google's own page, and no password ever in chat.${link ? ` ${link}` : ""} Next step — approve on Google's page and I will run the self-test: one test email to your own inbox and one test event on your calendar.`,
       };
@@ -258,8 +258,36 @@
     // instruction (R-B11 is an S0 tripwire).
     function handleLinkedInExport(_text, ctx) {
       const c = ctx || {};
-      const records = Array.isArray(c.linkedinExportConnections) ? c.linkedinExportConnections
+      let records = Array.isArray(c.linkedinExportConnections) ? c.linkedinExportConnections
         : Array.isArray(c.exportConnections) ? c.exportConnections : null;
+      // IB-2b: the raw export dialects (the CSV / pasted text / forwarded
+      // email the intake lane defines) fulfill this intent too — run
+      // 146 and WRITE the graph store before answering. The old shape
+      // spoke "parsed into your graph" while writing nothing
+      // (claim-to-state). The write mirrors 142's IB-2 merge exactly.
+      if (!records && (c.linkedinConnectionsCsv || c.pastedText || c.forwardedEmail) && c.profile) {
+        try {
+          const Intake = (() => { try { return typeof CareerIntake !== "undefined" ? CareerIntake : require("./146-career-intake.js"); } catch { return null; } })();
+          if (Intake && Intake.intake) {
+            const input = {};
+            if (c.pastedText) input.pastedText = c.pastedText;
+            if (c.linkedinConnectionsCsv) input.linkedinConnectionsCsv = c.linkedinConnectionsCsv;
+            if (c.forwardedEmail) input.forwardedEmail = c.forwardedEmail;
+            const r = Intake.intake(input, { knownDepartures: c.knownDepartures || [] });
+            const prof = c.profile;
+            const prior = Array.isArray(prof._careerGraphPeople) ? prof._careerGraphPeople : [];
+            const key = (p) => `${String((p && (p.full_name || p.name)) || "").toLowerCase()}|${String((p && (p.current_firm || p.company)) || "").toLowerCase()}`;
+            const byKey = new Map(prior.map((p) => [key(p), p]));
+            for (const rec of r.records || []) {
+              const k = key(rec);
+              const old = byKey.get(k);
+              byKey.set(k, old ? Object.assign({}, rec, { interactions: old.interactions || rec.interactions, stage: old.stage || rec.stage, last_contact_at: old.last_contact_at || rec.last_contact_at }) : rec);
+            }
+            prof._careerGraphPeople = [...byKey.values()];
+            records = r.records || [];
+          }
+        } catch { records = null; }
+      }
       const parsed = records ? { connections_parsed: records.length } : null;
       const payload = { kind: "linkedin_export_ingest", source: "linkedin_data_export", requires_user_upload: true, sign_in_required: false, parsed };
       return {
@@ -267,48 +295,70 @@
         ingest: { source: "linkedin_data_export", sign_in_required: false, password_seen: false, status: records ? "parsed" : "awaiting_file" },
         artifact: payload, payload, sends: 0,
         reply: records
-          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
-          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
+          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths. Tell me a firm and I will rank who you know there.`
+          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — tell me when the file is uploaded and I will show you exactly what it adds.",
       };
     }
     function handleConnected(_text, ctx) {
       const r = connectedAccounts((ctx || {}).statusRecords);
-      return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
+      return { intent: "connected_accounts", family: "access", resultStatus: "completed", sends: 0, accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
-    function handleDisconnect(text, _ctx) {
+    function handleDisconnect(text, ctx) {
       // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
       // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
       // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
       // the user meant — BUG-003, found by SC-015.
       if (/\bdisconnect\b[^.]*\b(all|everything)\b/.test(String(text || "").toLowerCase())) {
         return {
-          intent: "disconnect", edge_action: "disconnect", source: "all",
-          reply: "Disconnecting everything deletes every connected source's session and tokens in the vault, and writes a consent log entry. The host confirms once it is deleted.",
+          intent: "disconnect", family: "access", resultStatus: "awaiting_user", sends: 0, edge_action: "disconnect", source: "all",
+          payload: { kind: "disconnect_doorstep", source: "all", committed: false }, artifact: { kind: "disconnect_doorstep", source: "all", committed: false },
+          reply: "Disconnecting everything deletes every connected source's session and tokens in the vault, and writes a consent log entry. The host performs the deletion and confirms it here. Next step — say the word and the host runs it, then shows you the empty connected list.",
         };
       }
-      const m = String(text || "").toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$/);
-      const raw = (m ? m[1].trim().replace(/\s+/g, "_") : "") || "gmail";
+      // SC-291 defect (Career OS wave): the source comes from the
+      // LEADING segment of the ask (the quoted command) — the old
+      // end-anchored regex broke on the ask's trailing description
+      // and fell back to Gmail, so "Disconnect LinkedIn" answered
+      // "Disconnecting Gmail…". This handler deletes nothing itself:
+      // the host executes and confirms; the result is awaiting_user.
+      const lead = String(text || "").split(/\s+[—–]\s+|;|:/)[0];
+      const m = lead.toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_]+)/);
+      const raw = (m ? m[1] : "") || "gmail";
       const source = raw === "google" || raw === "career" || raw === "google_career" ? "google_career" : raw === "calendar" || raw === "google_calendar" ? "calendar" : raw;
+      const after = connectedAccounts((ctx || {}).statusRecords).accounts.filter((a) => a.source !== source && a.provider !== source).map((a) => a.label);
+      const afterLine = after.length ? `Still connected afterwards: ${after.join(", ")}.` : "Nothing else stays connected afterwards.";
+      const deletes = source === "linkedin"
+        ? "deleting the parsed connection record and the data stored from your export — LinkedIn was never a credential here, so there are no tokens of yours to revoke"
+        : source === "calendar"
+          ? "removing the career Google grant it lives in (a separate read-only Gmail connection stays)"
+          : "deleting its session and tokens in the vault";
+      const payload = { kind: "disconnect_doorstep", source, committed: false, deletes: source === "linkedin" ? ["parsed connection record", "stored export data"] : ["session", "vault tokens"], performed_by: "host", confirmed: false };
       return {
-        intent: "disconnect", edge_action: "disconnect", source,
-        reply: source === "calendar"
-          ? "Calendar lives in your career Google grant, so disconnecting it removes that grant (Gmail send goes with it; a separate read-only Gmail connection stays). The host confirms once it is deleted."
-          : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
+        intent: "disconnect", family: "access", resultStatus: "awaiting_user", sends: 0, edge_action: "disconnect", source,
+        accounts_after: after, disconnection: payload, payload, artifact: payload,
+        reply: `Disconnecting ${label(source)} means ${deletes}. Nothing is deleted by this message alone — the host confirms the deletion here once it has run. ${afterLine} Next step — say the word and the host runs it, then shows the updated connected list.`,
       };
     }
     function handleAccessLog(_text, ctx) {
       const r = auditLog((ctx || {}).auditEntries);
-      return { intent: "access_log", entries: r.entries, reply: r.text };
+      // SC-292: the bare "No login-requiring actions yet." tripped the
+      // refusal shape and trailed off — report the audit properly:
+      // count + period + a concrete closing next step.
+      const reply = r.entries.length
+        ? `${r.text} Next step — tell me a source and I will expand its entries line by line.`
+        : "Your access log for this week is empty: 0 login-requiring actions are on record. Every login-requiring action is listed here with its source and time as it happens, so an empty week is itself the report. Next step — ask again after the first connected action runs, or name a source and I will check its record first?";
+      return { intent: "access_log", family: "access", resultStatus: "completed", sends: 0, entries: r.entries, reply };
     }
     function handlePortalList(_text, ctx) {
       const r = portalList((ctx || {}).portalRecords);
-      return { intent: "portal_accounts", companies: r.companies, reply: r.text };
+      return { intent: "portal_accounts", family: "access", resultStatus: "completed", sends: 0, companies: r.companies, reply: r.text };
     }
     function handleConnectBrowser(text, ctx) {
       const source = /handshake/i.test(text || "") ? "handshake" : "linkedin";
       const plan = browserConnectPlan(source);
       const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
-      return { intent: "connect_browser_source", ...plan, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""}` : plan.text };
+      const payload = { kind: "connect_browser_doorstep", source, committed: false, plan };
+      return { intent: "connect_browser_source", family: "access", resultStatus: "awaiting_user", sends: 0, ...plan, artifact: payload, payload, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""} Next step — sign in once in the shown session and the agent reuses it from there; shall I open the session now?` : plan.text };
     }
     function handleSessionHealth(_text, ctx) {
       const c = ctx || {};
@@ -316,13 +366,62 @@
       const msgs = (plan.messages || []).slice(0, 2).join(" ");
       return {
         intent: "session_health", family: "access", resultStatus: "completed", sends: 0, health: plan,
-        reply: msgs || "When a session dies mid-run, only the tasks that depend on that one source pause; everything else continues, and you get exactly one re-auth message for the paused source — never a flood. Next step — reconnect that one source and the paused tasks pick up where they stopped.",
+        // SC-289: the next step closes the bubble — it used to sit
+        // mid-text with a plan dump trailing after it.
+        reply: msgs ? `${msgs} Next step — reconnect that one source and the paused tasks pick up where they stopped; want me to stage the reconnect for that source?` : "When a session dies mid-run, only the tasks that depend on that one source pause; everything else continues, and you get exactly one re-auth message for the paused source — never a flood. Next step — reconnect that one source and the paused tasks pick up where they stopped; want me to stage the reconnect for that source?",
       };
     }
-    function handleCaptchaHandoff(_text, _ctx) {
+    function sha256Hex(str) {
+      try { return require("node:crypto").createHash("sha256").update(str).digest("hex"); } catch { return null; }
+    }
+    function handleCaptchaHandoff(_text, ctx) {
+      const c = ctx || {};
+      const nowMs = c.now != null ? Number(c.now) : Date.now();
+      // Resume turn (captcha pack §2): the token arrives via the
+      // handoff LINK (host-surfaced as ctx.resumeToken), never chat
+      // text. A replayed token is refused with zero side effects.
+      if (c.pendingHandoff && c.resumeToken) {
+        const out = resumeHandoff(c.pendingHandoff, { resume_token: c.resumeToken, now: nowMs });
+        if (out && out.ok) {
+          const rp = { kind: "captcha_handoff_resumed", family: "application", run_id: out.run_id || c.pendingHandoff.run_id || null, source: out.source || c.pendingHandoff.source, ticket_status: "resumed", committed: false, submits: 0 };
+          return { intent: "captcha_handoff", family: "access", resultStatus: "completed", sends: 0, submits: 0, artifact: rp, payload: rp, reply: `${out.text} The application itself continues from the exact field it stopped on — resuming the handoff submits nothing by itself. Next step — watch the run; it stops again only if another step is yours alone.` };
+        }
+        const code = (out && out.code) || "resume_refused";
+        return { intent: "captcha_handoff", family: "access", resultStatus: "blocked", sends: 0, submits: 0, artifact: null, payload: null, doorstep: null, guard_refusal: { code, reason: (out && out.text) || "the resume was refused", unblock: "a fresh handoff is created if the run blocks again" }, reply: (out && out.text) || "That handoff cannot be resumed." };
+      }
+      // Stop turn (pack §2): a 149/150 captcha stop forwarded by the
+      // host mints the ACCS-006 ticket; 120 assembles the 141-shaped
+      // doorstep record (149 emits none). gap is null ONLY when a
+      // ticket exists — otherwise the gap-marked honest shape.
+      const stop = c.captchaStop || null;
+      let ticket = null, mintNote = null;
+      if (stop) {
+        const made = createHandoff({ source: stop.source || "portal", challenge: stop.challenge || "captcha", screenshot_ref: stop.screenshot_ref || stop.screenshotRef || null, run_id: stop.run_id || stop.runId || null, now: nowMs });
+        if (made && made.ok) ticket = made.ticket; else mintNote = (made && made.text) || "the ticket could not be minted";
+      }
+      if (ticket) {
+        const payload = { kind: "captcha_handoff_doorstep", family: "application", committed: false, submits: 0, ticket,
+          handoff: { url: stop.posting_url || stop.url || null, link_kind: "user_tap", expires_at: ticket.expires_at },
+          resume: { mode: "single_use_token", replay: "refused (already_used)", run_id: ticket.run_id } };
+        const stepLog = [
+          { step: 1, action: "captcha_stop_recorded", field: "challenge", result: ticket.challenge },
+          { step: 2, action: "handoff_ticket_minted", field: "ticket", result: ticket.id },
+          { step: 3, action: "handoff_link_armed", field: "handoff.url", result: payload.handoff.url },
+        ];
+        const hash = sha256Hex(JSON.stringify(payload));
+        const doorstep = { family: "application", driven_by: "agent", gap: null, state: "AWAITING_COMMIT", committed: false, step_log: stepLog, payload, payload_sha256: hash, proof: { step_log: stepLog, payload_snapshot: payload, payload_sha256: hash } };
+        return { intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0, submits: 0, artifact: payload, payload, doorstep,
+          card: { title: `Your tap needed — ${String(ticket.challenge).toUpperCase()}`, source: ticket.source, challenge: ticket.challenge, expires_at: ticket.expires_at },
+          reply: `A CAPTCHA is a step only you can do: the run stopped at that field and a single-use handoff ticket is minted for ${label(ticket.source)}. Tap the handoff link, finish that one step on the real page, and the run resumes right where it stopped — the link expires at ${ticket.expires_at} and works exactly once. No solver services are used, ever — that is a hard rule, not a preference. Next step — tap the handoff link when you are ready and the application continues from the exact field it stopped on.` };
+      }
+      const gap = stop ? `ticket not minted: ${mintNote || "the handoff could not be created"}` : "ticket not minted: no captcha stop recorded for this session";
+      const payload = { kind: "captcha_handoff_doorstep", family: "application", committed: false, submits: 0, ticket: null, handoff: { state: "awaiting_stop_record" }, resume: { mode: "single_use_token", replay: "refused (already_used)", run_id: null } };
+      const stepLog = [{ step: 1, action: "captcha_ask_received", field: "captchaStop", result: "no stop recorded" }];
+      const hash = sha256Hex(JSON.stringify(payload));
+      const doorstep = { family: "application", driven_by: "agent", gap, state: "AWAITING_COMMIT", committed: false, step_log: stepLog, payload, payload_sha256: hash, proof: { step_log: stepLog, payload_snapshot: payload, payload_sha256: hash } };
       return {
-        intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0,
-        reply: "A CAPTCHA is a step only you can do: I hand you the tap on the real page, you finish that one step, and the run resumes right where it stopped. No solver services are used, ever — that is a hard rule, not a preference. Next step — tap the handoff link when it appears and the application continues from the exact field it stopped on.",
+        intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0, submits: 0, artifact: payload, payload, doorstep,
+        reply: "A CAPTCHA is a step only you can do: I hand you the tap on the real page, you finish that one step, and the run resumes right where it stopped. No solver services are used, ever — that is a hard rule, not a preference. No stop is recorded for this session yet, so no ticket exists to hand you — the moment a run actually stops on one, the ticket is minted and the link is yours. Next step — tap the handoff link when it appears and the application continues from the exact field it stopped on.",
       };
     }
     // Routing robustness (wedge paraphrase battery): repair a token only

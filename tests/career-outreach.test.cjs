@@ -183,22 +183,35 @@ test("OUTE-007 wave 1: top 40 over days, daily + per-domain caps and 2-8 min gap
   const day0 = plan.schedule.filter((s) => s.day_index === 0); const risky0 = day0.filter((s) => c.items.find((i) => i.id === s.item_id).verification === "risky").length;
   assert.ok(risky0 <= Math.floor(M.dailyCapForDay(0) * 0.10), `risky day0 ${risky0}`);
 });
-test("OUTE-007 send requires approval; mock transport sends once — retry NEVER double-sends", async () => {
+test("OUTE-007 send requires approval; under SEND_DISABLED every send refuses at the sink — retry NEVER sends at all", async () => {
+  // RE-POINTED 2026-10-14 (bug-law audit §9 item 5): email sending is
+  // HARD-DISABLED by owner ruling (2026-10-13) — the pre-ruling legs
+  // asserted mock-transport sends. The contract now: approval is
+  // still required first, and past the gate the sink refuses every
+  // send with SEND_DISABLED; the transport is never invoked, so a
+  // crash-retry replay can never double-send — it can never send.
   const draftCamp = M.createCampaign({ id: "cx", userId: "u1" }); M.enqueue(draftCamp, [{ candidate: cand({}), draft: { subject: "s", body: "b" } }]);
   assert.equal((await M.sendPending(draftCamp, { transport: mockTransport() })).error, "campaign_not_approved");
   const c = campaignWith(5); const t = mockTransport();
-  const r1 = await M.sendPending(c, { transport: t }); assert.equal(r1.sent, 5); assert.equal(t.sent.size, 5);
+  const r1 = await M.sendPending(c, { transport: t });
+  assert.equal(r1.sent, 0); assert.equal(r1.refused, true); assert.match(String(r1.error), /SEND_DISABLED/); assert.equal(t.calls, 0); assert.equal(t.sent.size, 0);
   for (const i of c.items) i.status = "queued"; // simulated retry after a crash replays the whole queue
   const r2 = await M.sendPending(c, { transport: t });
-  assert.equal(t.calls, 5); assert.equal(t.sent.size, 5); assert.ok(r2.outcomes.every((o) => o.result === "already_sent_idempotent"));
+  assert.equal(r2.sent, 0); assert.equal(r2.refused, true); assert.equal(t.calls, 0); assert.equal(t.sent.size, 0);
 });
 test("OUTE-008 T5-style forced opt-out MID-QUEUE: 0 further sends to that person (severity-1)", async () => {
+  // RE-POINTED 2026-10-14 (audit §9 item 5): the opt-out lands while
+  // the campaign sits queued; under SEND_DISABLED the send run then
+  // refuses at the sink — the opted-out person gets 0 sends, and so
+  // does everyone else; the suppression itself is recorded and held.
   const supp = M.createSuppressionStore(); const c = campaignWith(10, { suppression: supp });
   const target = c.items[5];
-  const t = mockTransport(async (msg, already) => { if (already === 2) supp.suppress({ email: target.email, person_id: target.person_id, scope: "both", reason: "stop" }); });
+  supp.suppress({ email: target.email, person_id: target.person_id, scope: "both", reason: "stop" });
+  const t = mockTransport();
   const r = await M.sendPending(c, { transport: t, suppression: supp });
-  assert.equal(target.status, "suppressed"); assert.ok(![...t.sent.keys()].some((k) => k.includes(target.person_id)));
-  assert.equal(r.sent, 9); // everyone else still sent; only the opted-out person got 0 further sends
+  assert.equal(r.sent, 0); assert.equal(r.refused, true); assert.match(String(r.error), /SEND_DISABLED/);
+  assert.equal(t.calls, 0); assert.ok(![...t.sent.keys()].some((k) => k.includes(target.person_id)));
+  assert.equal(supp.isSuppressed({ email: target.email, person_id: target.person_id }, c.userId), true);
 });
 test("OUTE-008 shared cross-user suppression: a stop anywhere suppresses for every user; only the opt-out fact is shared", () => {
   const supp = M.createSuppressionStore();
@@ -216,21 +229,34 @@ test("OUTE-009 circuit breaker: bounce spike, 2 hostile signals, provider warnin
   const c3 = M.createCampaign({ id: "cb3", userId: "u1", approved: true }); M.recordOutcome(c3, { type: "provider_warning" }); assert.equal(c3.breaker.tripped, true);
 });
 test("OUTE-008 hard bounce suppresses and never retries; crash-safe export/import keeps sent state", async () => {
+  // RE-POINTED 2026-10-14 (audit §9 item 5): the bounce/suppression
+  // legs are unchanged; the send legs now assert the SEND_DISABLED
+  // refusal — nothing is sent, so the restored state holds zero sent
+  // items, and a 'sending'-stranded item is never recovered into a
+  // send: the sink refuses first.
   const supp = M.createSuppressionStore(); const c = campaignWith(3, { suppression: supp });
   const item = c.items[0]; M.recordOutcome(c, { type: "hard_bounce", item, suppression: supp });
   assert.equal(item.status, "bounced"); assert.equal(item.never_retry, true); assert.equal(supp.isSuppressed({ email: item.email }, "u1"), true);
-  const t = mockTransport(); await M.sendPending(c, { transport: t, suppression: supp });
+  const t = mockTransport(); const rr0 = await M.sendPending(c, { transport: t, suppression: supp });
+  assert.equal(rr0.refused, true); assert.match(String(rr0.error), /SEND_DISABLED/); assert.equal(t.calls, 0);
   const restored = M.importState(M.exportState(c));
-  assert.deepEqual(restored.sentKeys, c.sentKeys); assert.equal(restored.items.filter((i) => i.status === "sent").length, 2);
-  // crash mid-send recovery: an item left in 'sending' whose key the transport already has is recovered, not resent
+  assert.deepEqual(restored.sentKeys, c.sentKeys); assert.equal(restored.items.filter((i) => i.status === "sent").length, 0);
   const c2 = campaignWith(1); c2.items[0].status = "sending"; const t2 = mockTransport(); t2.sent.set(c2.items[0].idempotencyKey, "mock-pre");
-  const rr = await M.sendPending(c2, { transport: t2 }); assert.equal(rr.outcomes[0].result, "recovered_after_crash"); assert.equal(t2.calls, 0);
+  const rr = await M.sendPending(c2, { transport: t2 }); assert.equal(rr.refused, true); assert.match(String(rr.error), /SEND_DISABLED/); assert.equal(t2.calls, 0); assert.notEqual(c2.items[0].status, "sent");
 });
 test("OUTE-007 follow-ups: continue tap gates the wave; plan caps at 2 and stops on reply/bounce/opt-out", () => {
-  const c = campaignWith(2); return M.sendPending(c, { transport: mockTransport() }).then(() => {
+  // The scheduleFollowUps legs are send-independent and unchanged.
+  // The send that used to precede them now refuses SEND_DISABLED
+  // (re-pointed 2026-10-14, audit §9 item 5) — asserted inline.
+  const c = campaignWith(2); return M.sendPending(c, { transport: mockTransport() }).then((sr) => {
+    assert.equal(sr.refused, true); assert.match(String(sr.error), /SEND_DISABLED/);
     assert.equal(M.scheduleFollowUps(c, {}).needs_continue_tap, true);
     const ok = M.scheduleFollowUps(c, { continueTap: true }); assert.equal(ok.ok, true);
-    assert.equal(ok.plan[0].max_followups, 2); assert.ok(ok.plan[0].stop_on.includes("opt_out"));
+    // The plan is honestly EMPTY: its entries are built from sent
+    // items, and under SEND_DISABLED nothing is ever sent. (The
+    // max-2 / stop-on plan semantics apply to sent items and are
+    // unreachable while sending is disabled — by design.)
+    assert.equal(ok.plan.length, 0);
   });
 });
 
@@ -302,11 +328,14 @@ test("OUTE-013 metrics: yield, verified, bounce, reply, positive, meetings, refe
 });
 test("OUTR-004 Gmail transport shape rides an injected Gmail API client; absent client is NOT_WIRED (mock API, tests only)", async () => {
   assert.equal((await M.createGmailTransport(null).send({ to: "a@b.com", subject: "s", body: "b" })).error.startsWith("NOT_WIRED"), true);
+  // RE-POINTED 2026-10-14 (audit §9 item 5): with a client injected,
+  // the transport is constructed DISABLED — its send refuses with
+  // SEND_DISABLED and the Gmail client is never invoked.
   let seen = null; const mockGmail = { users: { messages: { send: async (req) => { seen = req; return { id: "gmail-mock-1" }; } } } }; // mock Gmail API, tests only
   const t = M.createGmailTransport(mockGmail); const r = await t.send({ to: "a@firm.com", subject: "Hi", body: "Body text" });
-  assert.equal(r.messageId, "gmail-mock-1"); assert.equal(seen.userId, "me");
-  const raw = Buffer.from(seen.requestBody.raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-  assert.match(raw, /To: a@firm\.com/); assert.match(raw, /Body text/); assert.equal(M.CAPS.channel, "gmail_oauth_only");
+  assert.equal(t.disabled, true); assert.equal(r.refused, true); assert.match(String(r.error), /SEND_DISABLED/);
+  assert.equal(seen, null, "the Gmail client is never invoked while sending is disabled");
+  assert.equal(M.CAPS.channel, "gmail_oauth_only");
 });
 
 // ---------- W3 replays (gauntlet correction program, 2026-10-13) ----------
@@ -480,14 +509,18 @@ test("W3 (i) replay: opt-out line gone from all paths; structures vary; shared_s
   const same2 = M.draftFor(mkCand(1), USER, { structureIndex: 0 });
   const g2 = M.qualityGate(same2, mkCand(1), { batchDrafts: [same1, same2] });
   assert.ok(g2.failures.some((f) => f.startsWith("shared_skeleton")), g2.failures.join(","));
-  // follow-up drafts carry no opt-out line either
+  // follow-up drafts carry no opt-out line either — under
+  // SEND_DISABLED (re-pointed 2026-10-14, audit §9 item 5) no send
+  // can happen, so no follow-up can be earned: the run refuses at
+  // the sink and runFollowUps honestly produces none. (Follow-up
+  // DRAFT shape is guarded by the W3 (i) follow-up-path replay.)
   const camp = M.createCampaign({ id: "w3-i", userId: "u1", approved: true });
   const entries = [0, 1].map((i) => ({ candidate: mkCand(i), draft: drafts[i] }));
   M.enqueue(camp, entries);
-  await M.sendPending(camp, { transport: mockTransport() });
+  const sr = await M.sendPending(camp, { transport: mockTransport() });
+  assert.equal(sr.refused, true); assert.match(String(sr.error), /SEND_DISABLED/);
   const fu = M.runFollowUps(camp, { touch: 1, continueTap: true });
-  assert.equal(fu.ok, true); assert.ok(fu.followups.length >= 1);
-  for (const f of fu.followups) assert.ok(!f.draft.body.includes(M.OPT_OUT_LINE), f.draft.body);
+  assert.ok(!fu.followups || fu.followups.length === 0, "no follow-ups exist when nothing was ever sent");
 });
 // W3 (j) replay (owner order 2026-10-13: Tier C is HELD by default — this
 // supersedes any earlier expectation that a Tier C draft sits at

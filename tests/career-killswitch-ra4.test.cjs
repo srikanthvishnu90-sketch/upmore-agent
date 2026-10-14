@@ -151,8 +151,14 @@ test("R-A4 seam in 124: sendPending/enqueue honor a global pause with a typed re
   assert.equal(sends, 0, "transport is never called while paused");
   assert.match(String(refused.error || refused.reason || ""), /global_pause/);
 
-  // Sanity: without a pause, the same campaign shape still sends (no regression).
+  // Sanity leg RE-POINTED 2026-10-14 (audit §9 item 5): without a
+  // pause, the same campaign shape now refuses SEND_DISABLED at the
+  // sink (owner ruling 2026-10-13: email is drafts-only, hard off) —
+  // the transport is still never called; the refusal names the
+  // ruling instead of the pause.
   const ok = await Outreach.sendPending(camp2, { transport });
-  assert.equal(ok.sent, 1);
-  assert.equal(sends, 1);
+  assert.equal(ok.sent, 0);
+  assert.equal(ok.refused, true);
+  assert.match(String(ok.error || ""), /SEND_DISABLED/);
+  assert.equal(sends, 0);
 });

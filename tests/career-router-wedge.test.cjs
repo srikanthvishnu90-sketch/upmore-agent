@@ -113,7 +113,13 @@ test("A3: 'find' people asks never land in job discovery", () => {
 test("A6 SC-065: PM ask gets an honest family answer, never the SWE shortlist", () => {
   const exp = BY_ID.get("SC-065");
   const { turn, text } = drive("SC-065", exp.ask);
-  assert.equal(turn.result && turn.result.intent, "career_discovery");
+  // Contract updated 2026-10-14 (pool-data Option A, owner-approved):
+  // the opt-in extension pool carries real PM postings for SC-065, so
+  // the chain may now run discovery -> tailor and land on the tailor
+  // intent with an artifact. What may NEVER happen — the original
+  // defect — is the SWE fixture shortlist served to a PM ask.
+  assert.ok(["career_discovery", "career_tailor"].includes(turn.result && turn.result.intent),
+    `PM ask lands on a PM-family intent, got ${turn.result && turn.result.intent}`);
   assert.ok(!/Northwind Ledger|Lakefront Cloud|Eastbank Systems|Copperline Infra|Fieldnote Software/.test(text),
     "cross-family roles must not be served for a PM ask");
   assert.match(text, /product|PM/i, "the reply addresses the asked family");

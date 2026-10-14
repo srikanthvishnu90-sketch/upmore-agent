@@ -113,10 +113,12 @@ const CareerReply = (() => {
   }
 
   const FALLBACKS = {
-    error: "Something went wrong on my end. Nothing was changed — try again in a moment and I will pick it back up.",
-    empty: "I do not have anything solid to show you on that yet. Give me a job, company, or person to work on and I will dig in.",
+    // Composer rows 55/56/58 (2026-10-14): every fallback ends with
+    // a real exit (a tell-me / choice sentence), never a bare stop.
+    error: "Something went wrong on my end — nothing changed on your side. Tell me the job, company, or person to work on and I will pick it back up from there.",
+    empty: "I do not have anything solid to show you on that yet. Tell me a job, company, or person to work on and I will dig in.",
     unmatched: "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
-    timeout: "That took too long, so I stopped it. Try again, or narrow it down to one job or company and I will move faster.",
+    timeout: "That took too long, so I stopped it. Tell me one job or one company and I will move faster on it.",
   };
   function fallback(kind, ctx) {
     const base = FALLBACKS[kind] || FALLBACKS.error;

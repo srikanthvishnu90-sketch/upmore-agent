@@ -746,6 +746,11 @@ const CareerJobs = (() => {
       const n = normLoc(seg); if (n) candidates.add(n);
       for (const part of seg.split(",")) { const p = normLoc(part); if (p) candidates.add(p); }
     }
+    // A bare state-abbreviation fragment ("co" from "Denver, CO") is not a
+    // place: substring matching would let it "match" any want containing
+    // those letters ("chicago" contains "co") and wave a Denver posting
+    // through for a Chicago user (caught by DISC-005 the same day).
+    for (const cand of [...candidates]) if (/^[a-z]{2}$/.test(cand) && _STATE_BY_ABBR.has(cand.toUpperCase())) candidates.delete(cand);
     const cityOf = (w) => { const words = w.split(" "); return words.length > 1 && /^[a-z]{2}$/.test(words[words.length - 1]) ? words.slice(0, -1).join(" ") : w; };
     for (const w of wants) {
       const city = cityOf(w);

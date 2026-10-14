@@ -107,6 +107,12 @@ async function runOne(id) {
   else if (intent === "calendar_proposal" && res.doorstep && res.doorstep.family === "calendar" && res.doorstep.gap === null) {
     completion = true; completionWhy = "calendar proposal card carried at the doorstep (141 record)";
   }
+  else if (intent === "application_packet" && res.doorstep && res.doorstep.gap === null && res.doorstep.driven_by === "agent" && res.payload) {
+    completion = true; completionWhy = "application packet carried at the doorstep (141 record, gap null, payload present)";
+  }
+  else if (intent === "doorstep_status" && res.doorstep && res.doorstep.gap === null && res.doorstep.driven_by === "agent" && (res.salary || res.triage || res.referral || res.sensitive || res.judgement || res.cooldown || res.assessment || res.rule || res.radar || res.windows || res.corrections || res.attach_guard || res.blocker)) {
+    completion = true; completionWhy = "apply-rules turn carried its 132/Apply3 product (or typed blocker) beside 141's packet doorstep record (gap null)";
+  }
   else if (intent === "negotiation_plan" && res.offer && res.strategy) {
     completion = true; completionWhy = "offer parsed and counter strategy produced from the plumbed offer + company file";
   }

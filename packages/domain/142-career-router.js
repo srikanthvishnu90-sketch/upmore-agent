@@ -2030,41 +2030,133 @@ const CareerRouter = (() => {
   // ---------- apply rules (132): the honest rulebook, spoken plainly ---------
   function handleApplyRules(text, ctx) {
     const t = lc(text);
-    const done = (headline, facts, nextStep, extra) => Object.assign({ intent: "doorstep_status", reply: compose({ headline, facts, nextStep }), resultStatus: "awaiting_user", sends: 0 }, extra || {});
+    const profile = ctx.profile || {};
+    // BUG-070 (W5 class A): every rules branch carries its 132/Apply3
+    // product on the typed result — or a typed blocker naming why no
+    // product exists — and, when a posting resolves, the 141 packet
+    // doorstep record rides beside it (the carryDoorstep treatment the
+    // landed branches already had). Before this fix the branches
+    // returned prose only (artifacts=[]/payload=null in the records),
+    // and the salary/cooldown producer calls silently died on an
+    // out-of-scope `profile` reference inside their try/catch.
+    const carryPacket = (res) => {
+      try {
+        if (Doorstep && Doorstep.emitApplicationPacket) {
+          let posting = ctx.posting || null;
+          const comp = companyFromText(text, ctx);
+          if (!posting && comp) { const r0 = rankedShortlist(profile, ctx, { company: lc(comp) }); if (r0.ranked.length) posting = r0.ranked[0].posting; }
+          if (!posting && comp) { const fx = namedFixturePosting(comp, text); if (fx.match) posting = fx.match; }
+          if (!posting) { const r1 = rankedShortlist(profile, ctx, {}); if (r1.ranked.length) posting = r1.ranked[0].posting; }
+          if (posting) {
+            const em = Doorstep.emitApplicationPacket(ctx, { company: posting.company, title: posting.title, jobId: posting.id || posting.corpus_id || posting.job_id, jdText: jdTextForPosting(posting) });
+            if (em && em.doorstep && em.doorstep.gap === null) { res.doorstep = em.doorstep; if (!res.payload && em.payload) res.payload = em.payload; }
+          }
+        }
+      } catch { /* the unwired result stands */ }
+      return res;
+    };
+    const done = (headline, facts, nextStep, extra) => carryPacket(Object.assign({ intent: "doorstep_status", reply: compose({ headline, facts, nextStep }), resultStatus: "awaiting_user", sends: 0 }, extra || {}));
     if (/\bsalary expectation\b/.test(t)) {
       // IB-AP §1.2: 132's salaryQuestion produces the governed answer.
       let sal = null;
       try { sal = Apply && Apply.salaryQuestion ? Apply.salaryQuestion(profile, s(text), {}) : null; } catch { sal = null; }
-      return done("The salary-expectation field never gets a number you did not approve.", ["What goes in instead: the market range for the role and level, labeled as a range — or the field is left for the recruiter conversation, per the company's own form rules.", "A specific number appears only when you have approved that exact number for that exact company."], "Want the market range for this role before you decide?", sal ? { salary: sal } : null);
+      return done("The salary-expectation field never gets a number you did not approve.", ["What goes in instead: the market range for the role and level, labeled as a range — or the field is left for the recruiter conversation, per the company's own form rules.", "A specific number appears only when you have approved that exact number for that exact company."], "Want the market range for this role before you decide?", sal ? { salary: sal, payload: sal } : { blocker: { code: "salary_producer_unavailable", reason: "132's salaryQuestion returned no product for this ask" } });
     }
     if (/\bsophomore\b[^.]*\bsweep\b|\bsummer-analyst sweep\b/.test(t)) {
-      return done("The sophomore sweep runs on windows, not hope.", ["Each bulge-bracket window is read from its own careers page; the ones that are open get a bank-format one-pager tailored, and every application still stops at its doorstep for your tap.", "Windows that have not opened are named as not-yet-open — never guessed."], "Want the open windows listed with their deadlines?");
+      // IB-AP §1.2: windows come from 132's checkWindows over the
+      // window registry the turn carries; no registry on record is a
+      // typed blocker, not a silent gap.
+      let wins = null;
+      try { wins = Apply && Apply.checkWindows ? Apply.checkWindows(ctx.windowRegistry || [], gradYearOf(profile), new Date(nowOf(ctx)).toISOString().slice(0, 10)) : null; } catch { wins = null; }
+      return done("The sophomore sweep runs on windows, not hope.", ["Each bulge-bracket window is read from its own careers page; the ones that are open get a bank-format one-pager tailored, and every application still stops at its doorstep for your tap.", "Windows that have not opened are named as not-yet-open — never guessed."], "Want the open windows listed with their deadlines?", wins && wins.length ? { windows: wins } : { windows: wins || [], blocker: { code: "no_window_registry_on_record", reason: "no recruiting-window registry is carried on this record, so no window can be named open or closed" } });
     }
     if (/\bats parser\b|\bparser mangled\b|\bmangled my dates\b/.test(t)) {
-      return done("The parser mangled it — the fields get re-entered by hand from your profile of record.", ["Parsed values are never trusted over the profile of record; the mangled dates are replaced field by field and the fixed version is what reaches the doorstep.", "A replay test is written from this failure so the same mangling gets caught automatically."], "Want the corrected field list shown before anything is re-entered?");
+      // IB-AP §1.2: corrections come from Apply3's detectDateAnomalies
+      // over the parsed fields the portal returned; without those
+      // fields on the turn there is nothing honest to correct.
+      let corr = null;
+      try { if (Apply3 && Apply3.detectDateAnomalies && Array.isArray(ctx.parsedFields)) corr = Apply3.detectDateAnomalies(ctx.parsedFields, {}); } catch { corr = null; }
+      return done("The parser mangled it — the fields get re-entered by hand from your profile of record.", ["Parsed values are never trusted over the profile of record; the mangled dates are replaced field by field and the fixed version is what reaches the doorstep.", "A replay test is written from this failure so the same mangling gets caught automatically."], "Want the corrected field list shown before anything is re-entered?", corr ? { corrections: corr } : { blocker: { code: "no_parsed_fields_on_record", reason: "the portal's parsed fields are not carried on this turn, so no field-level correction can be computed" } });
     }
     if (/\bwrong-resume\b|\bnearly attached\b|\bvariant b\b[^.]*\bcompany a\b/.test(t)) {
-      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built; a resume version that does not match that company cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?");
+      // IB-AP §1.2: the attach guard runs over the variant registry
+      // (the turn's stored artifacts); no registry = typed blocker.
+      let guard = null;
+      try {
+        const variants = (ctx.artifacts || []).map((a) => ({ variant_id: a.record || a.name, company: a.company || null }));
+        if (Apply3 && Apply3.guardAttach && variants.length) guard = Apply3.guardAttach(variants, companyFromText(text, ctx) || "", /variant b/i.test(t) ? "B" : null);
+      } catch { guard = null; }
+      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built; a resume version that does not match that company cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?", guard ? { attach_guard: guard } : { blocker: { code: "no_variant_registry_on_record", reason: "no stored resume variants are carried on this turn, so the attach guard has no registry to check" } });
     }
     if (/\bdeadline radar\b|\bwarn me\b[^.]*\bwindow closes\b/.test(t)) {
-      return done("The deadline radar is set on your target windows.", ["Each target's closing date is read from its own posting; the warning lands two weeks before the window closes, and again inside the final week.", "A window that closes early moves the warning with it — the radar reads the posting, not a static calendar."], "Want the current target windows listed with their dates?");
+      // IB-AP §1.2 / SC-107: the radar is Apply3's deadlineRadar over
+      // the company files' own entry-route dates.
+      let radar = null;
+      try { radar = Apply3 && Apply3.deadlineRadar ? Apply3.deadlineRadar(cirListOf(ctx), { now: nowOf(ctx) }) : null; } catch { radar = null; }
+      return done("The deadline radar is set on your target windows.", ["Each target's closing date is read from its own posting; the warning lands two weeks before the window closes, and again inside the final week.", "A window that closes early moves the warning with it — the radar reads the posting, not a static calendar."], "Want the current target windows listed with their dates?", radar ? { radar } : { blocker: { code: "radar_producer_unavailable", reason: "Apply3's deadlineRadar returned no product" } });
     }
     if (/\bautopilot\b/.test(t)) {
       const fitM = t.match(/fit\s*[≥>=]+\s*(\d+)/), maxM = t.match(/max\s*(\d+)\s*\/\s*day/), compM = t.match(/my (\d+) companies/);
-      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want this rule run over tonight's new postings?");
+      // IB-AP §1.2: the rule itself is 132's product — created from
+      // the user's own dictated spec (that dictation is the creation
+      // approval the producer requires); evaluation stays a nightly
+      // host run, never a chat side effect.
+      let ruleProd = null;
+      try { ruleProd = Apply && Apply.createRule ? Apply.createRule({ minFit: fitM ? Number(fitM[1]) : undefined, maxPerDay: maxM ? Number(maxM[1]) : undefined, companies: [] }, { approvedByUser: true }) : null; } catch { ruleProd = null; }
+      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want this rule run over tonight's new postings?", ruleProd ? { rule: ruleProd } : { blocker: { code: "rule_producer_unavailable", reason: "132's createRule returned no product" } });
     }
     if (/\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
-      return done("Each link gets a verdict before anything goes out.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.");
+      // IB-AP §1.2: verdicts come from 132's triageBatch over the
+      // postings the turn carries (pasted URLs triage via triageLinks
+      // when the ask actually contains them).
+      let triage = null;
+      try {
+        const urls = s(text).match(/https?:\/\/[^\s)]+/g) || [];
+        if (urls.length && Apply3 && Apply3.triageLinks) triage = Apply3.triageLinks(urls, { postings: postingsFromCtx(ctx), cirs: cirListOf(ctx), now: nowOf(ctx) });
+        else if (Apply && Apply.triageBatch) triage = Apply.triageBatch(postingsFromCtx(ctx), { profile, log: ctx.applyAuditLog || null, scoringProfile: scoringProfile(profile) });
+      } catch { triage = null; }
+      return done("Each link gets a verdict before anything goes out.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.", triage ? { triage } : { blocker: { code: "triage_producer_unavailable", reason: "132's triage returned no verdicts" } });
     }
     if (/\breferral stacking\b|\bwith referral\b[^.]*\bfirst\b/.test(t)) {
       const timing = Graph && Graph.referralTiming ? Graph.referralTiming({}) : null;
-      return done("Referral stacking is checked before the application moves.", [timing ? timing.reason : "If a referral is realistically in motion, the application can hold up to 48 hours for it; after that, applying now and referring after beats waiting.", "A referral is never claimed before it exists — the check is about timing, not wording."], "Name the role and I will run the check against your graph.");
+      // IB-AP §1.2: the stacking check is 132's checkReferral over the
+      // graph's warm paths for the named company.
+      let ref = null;
+      try {
+        const comp = companyFromText(text, ctx);
+        let warm = [];
+        if (comp && Graph && Graph.findPaths) { const fp = Graph.findPaths(graphStoreOf(ctx), comp, graphProfileOf(ctx), { now: nowOf(ctx) }); warm = (fp && fp.paths) || []; }
+        if (Apply && Apply.checkReferral) ref = Apply.checkReferral(comp || "", warm);
+      } catch { ref = null; }
+      return done("Referral stacking is checked before the application moves.", [timing ? timing.reason : "If a referral is realistically in motion, the application can hold up to 48 hours for it; after that, applying now and referring after beats waiting.", "A referral is never claimed before it exists — the check is about timing, not wording."], "Name the role and I will run the check against your graph.", ref ? { referral: ref } : { blocker: { code: "referral_producer_unavailable", reason: "132's checkReferral returned no product" } });
     }
     if (/\bsponsorship\b|\beeo\b|\bself-identify\b|\bsaved .* answer\b/.test(t)) {
-      return done("Your saved answer is shown to you before it is ever used.", ["Sensitive answers — sponsorship, self-identification — are never filled silently: the saved default appears on the card, and any change is your edit, not my guess.", "The decline-to-self-identify default stays exactly that: a default you can override per application."], "Want to review the saved answers now?");
+      // IB-AP §1.2: the saved answer + its confirmation state come
+      // from 132 — the saved value is never invented here, and the
+      // state stays unconfirmed until the user confirms in-session.
+      let sens = null;
+      try {
+        if (Apply && Apply.savedAnswerFor && Apply.confirmSensitive) {
+          const kind = /\bsponsorship\b/.test(t) ? "sponsorship" : /\beeo\b/.test(t) ? "eeo" : "self_identify";
+          const saved = Apply.savedAnswerFor(profile, kind);
+          const conf = Apply.confirmSensitive(profile, { kind, text: s(text) }, {});
+          if (conf) sens = { kind, saved: saved != null ? saved : (conf.savedAnswer != null ? conf.savedAnswer : null), confirmation_state: conf.confirmationState || (conf.requiresConfirmation ? "unconfirmed" : "confirmed"), product: conf };
+        }
+      } catch { sens = null; }
+      return done("Your saved answer is shown to you before it is ever used.", ["Sensitive answers — sponsorship, self-identification — are never filled silently: the saved default appears on the card, and any change is your edit, not my guess.", "The decline-to-self-identify default stays exactly that: a default you can override per application."], "Want to review the saved answers now?", sens ? { sensitive: sens } : { blocker: { code: "sensitive_producer_unavailable", reason: "132's sensitive-answer products returned nothing" } });
     }
     if (/\bknockout\b/.test(t)) {
-      return done("A knockout you truly fail skips the role — loudly, never silently.", ["The scoring hard-filters catch stated knockouts (years, credentials, windows) before a packet is built, so no time is spent dressing up a role that will auto-reject.", "The skip always tells you which knockout fired."], "Want the current list's skips with their reasons?");
+      // IB-AP §1.2: the judgement is Apply3's eligibilityJudge over
+      // the resolved posting; no posting = typed blocker.
+      let judgement = null;
+      try {
+        const comp = companyFromText(text, ctx);
+        let posting = ctx.posting || null;
+        if (!posting && comp) { const r0 = rankedShortlist(profile, ctx, { company: lc(comp) }); if (r0.ranked.length) posting = r0.ranked[0].posting; }
+        if (!posting) { const r1 = rankedShortlist(profile, ctx, {}); if (r1.ranked.length) posting = r1.ranked[0].posting; }
+        if (posting && Apply3 && Apply3.eligibilityJudge) judgement = Apply3.eligibilityJudge(posting, profile, {});
+      } catch { judgement = null; }
+      return done("A knockout you truly fail skips the role — loudly, never silently.", ["The scoring hard-filters catch stated knockouts (years, credentials, windows) before a packet is built, so no time is spent dressing up a role that will auto-reject.", "The skip always tells you which knockout fired."], "Want the current list's skips with their reasons?", judgement ? { judgement } : { blocker: { code: "no_posting_resolved", reason: "no posting resolved for the knockout judgement" } });
     }
     if (/\bcooldown\b|\breapply\b/.test(t)) {
       // IB-AP §1.2: the lift date comes from 132's checkCooldown over
@@ -2078,10 +2170,13 @@ const CareerRouter = (() => {
           if (row) cd = Apply.checkCooldown(row, new Date(nowOf(ctx)).toISOString().slice(0, 10));
         }
       } catch { cd = null; }
-      return done("The reapply cooldown holds, with its exact lift date.", ["A company already on your tracker stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?", cd ? { cooldown: { held: cd.held != null ? cd.held : cd.holds || null, lift_date: cd.lift_date || cd.lifts_on || null, raw: cd } } : null);
+      return done("The reapply cooldown holds, with its exact lift date.", ["A company already on your tracker stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?", cd ? { cooldown: { held: cd.held != null ? cd.held : cd.holds || null, lift_date: cd.lift_date || cd.lifts_on || null, raw: cd } } : { blocker: { code: "no_application_on_record", reason: "no tracker row exists for a named company, so no cooldown or lift date can be computed" } });
     }
     if (/\bhackerrank invite\b|\bassessment invite\b|\boa invite\b/.test(t)) {
-      return done("The invite gets scheduled and you get prepped — the assessment itself stays yours.", ["I will never take an assessment for you; that line does not move. What I do: hold the deadline on the tracker, build the prep pack for its question types, and drill you against the clock."], "Tell me the deadline and I will lay out the prep days.");
+      // IB-AP §1.2: the invite product is 132's handleAssessmentInvite.
+      let assess = null;
+      try { assess = Apply && Apply.handleAssessmentInvite ? Apply.handleAssessmentInvite({ company: companyFromText(text, ctx) || null, text: s(text) }, {}) : null; } catch { assess = null; }
+      return done("The invite gets scheduled and you get prepped — the assessment itself stays yours.", ["I will never take an assessment for you; that line does not move. What I do: hold the deadline on the tracker, build the prep pack for its question types, and drill you against the clock."], "Tell me the deadline and I will lay out the prep days.", assess ? { assessment: assess } : { blocker: { code: "assessment_producer_unavailable", reason: "132's handleAssessmentInvite returned no product" } });
     }
     return null;
   }

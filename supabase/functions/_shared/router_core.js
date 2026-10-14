@@ -21864,12 +21864,35 @@ const CareerTailor = (() => {
     return { text: base, factIds: [fact.id] };
   }
 
+  // ---- entry dates (BUG-2026-10-14-NDER) ----
+  // An entry line prints its fact's date range, in the one-pager's proven
+  // shape ("Title, Org, 2025–2029" / "…, 2025–Present" / single year when
+  // start === end or only one end is known). Years only: the fact bank
+  // carries years for dated entries, and a year is the granularity the
+  // owner's source states. Dates come ONLY from the fact's own start/end
+  // fields — the truth audit's support corpus includes those fields, so an
+  // invented year is still refused.
+  const yearOf = (v) => { const m = String(v == null ? "" : v).match(/\d{4}/); return m ? m[0] : null; };
+  function dateRangeFor(fact) {
+    if (!fact) return null;
+    const s = yearOf(fact.start);
+    const e = /^present$/i.test(String(fact.end || "").trim()) ? "Present" : yearOf(fact.end);
+    if (s && e && s !== e) return `${s}–${e}`;
+    return s || e || null;
+  }
+  function entryTextFor(fact) {
+    const title = (fact && fact.title) || "";
+    const range = dateRangeFor(fact);
+    if (!range || !title || title.includes(range)) return title;
+    return `${title}, ${range}`;
+  }
+
   function assemble(profile, jd, opts) {
     const o = opts || {};
     const family = o.family || jd.family || "swe";
     const fam = FAMILIES[family] || FAMILIES.swe;
     const selected = selectFacts(profile, jd, o);
-    const byKind = { experience: [], project: [], education: [], leadership: [] };
+    const byKind = { experience: [], project: [], education: [], leadership: [], certification: [] };
     for (const { fact } of selected) if (byKind[fact.kind]) byKind[fact.kind].push(fact);
     const sections = [];
     const skillsProven = provenSkills(profile, jd).filter((s) => s.proven);
@@ -21881,24 +21904,51 @@ const CareerTailor = (() => {
         skillsLine.lines.push({ text: skillsProven.map((s) => s.name).join(", "), factIds: skillsProven.map((s) => s.factId), type: "skills" });
       }
     }
-    const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => [{ text: f.title, factIds: [f.id], type: "entry" }, ...((f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" }))]) } : null;
+    const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...((f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" }))]) } : null;
     // consulting: one structured bullet per fact replaces the raw bullets
     const mkSection = (heading, facts) => {
       if (!facts.length) return null;
-      if (family === "consulting") return { heading, lines: facts.flatMap((f) => [{ text: f.title, factIds: [f.id], type: "entry" }, bulletFor(f, family)]) };
+      if (family === "consulting") return { heading, lines: facts.flatMap((f) => [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, bulletFor(f, family)]) };
       return mk(heading, facts);
     };
+    // Certifications (BUG-2026-10-14-NDER / FV-6): selected certification
+    // facts were silently dropped — byKind had no bucket for them. They
+    // render as ONE title line per fact, the one-pager's proven shape; a
+    // cert fact's own bullet typically restates its title ("Licenses &
+    // Certifications: <title>") and would duplicate it.
+    const certSection = byKind.certification.length ? { heading: "Certifications", lines: byKind.certification.map((f) => ({ text: f.title || f.text, factIds: [f.id], type: "bullet" })) } : null;
     const sectionByHeading = {
       Skills: skillsLine,
       Experience: mkSection("Experience", byKind.experience),
       Projects: mkSection("Projects", byKind.project),
       Education: mkSection("Education", byKind.education),
       Leadership: mkSection("Leadership", byKind.leadership),
+      Certifications: certSection,
     };
     for (const h of fam.sectionOrder) if (sectionByHeading[h]) sections.push(sectionByHeading[h]);
     for (const h of Object.keys(sectionByHeading)) if (sectionByHeading[h] && !sections.includes(sectionByHeading[h])) sections.push(sectionByHeading[h]);
+    // Dedupe (BUG-2026-10-14-NDER): a line belongs in exactly one section.
+    // Two facts can carry the same line (the owner's education fact and
+    // clubs fact both carry his "Involvement/Courses:" bullet); emitting
+    // every selected fact's bullets printed it twice. First occurrence in
+    // section order wins; every drop is recorded on the resume so the
+    // packet ledger can show it. Skills lines are exempt (single line).
+    const deduped = [];
+    const seenLine = new Map();
+    const lineKey = (t) => String(t || "").replace(/\s+/g, " ").trim().toLowerCase().replace(/\.+$/, "");
+    for (const s of sections) {
+      s.lines = s.lines.filter((l) => {
+        if (!l || l.type === "skills") return true;
+        const k = lineKey(l.text);
+        if (!k) return true;
+        if (seenLine.has(k)) { deduped.push({ text: l.text, keptIn: seenLine.get(k), droppedFrom: s.heading, factIds: l.factIds || [] }); return false; }
+        seenLine.set(k, s.heading);
+        return true;
+      });
+    }
+    for (let i = sections.length - 1; i >= 0; i--) if (!sections[i].lines.length) sections.splice(i, 1);
     const lines = sections.flatMap((s) => s.lines.map((l) => ({ ...l, section: s.heading })));
-    return { family, familyLabel: fam.label, conventions: fam.conventions, pageLimit: fam.pageLimit, header: { name: profile.basics.name, email: profile.basics.email, location: profile.basics.location, links: profile.basics.links || {} }, sections, lines, selectedFactIds: selected.map((x) => x.fact.id) };
+    return { family, familyLabel: fam.label, conventions: fam.conventions, pageLimit: fam.pageLimit, header: { name: profile.basics.name, email: profile.basics.email, location: profile.basics.location, links: profile.basics.links || {} }, sections, lines, deduped, selectedFactIds: selected.map((x) => x.fact.id) };
   }
 
   // ---- TRUTH AUDIT — hard gate (APPE-002) ----
@@ -21913,7 +21963,11 @@ const CareerTailor = (() => {
       const facts = factIds.map((id) => Profile.getFact(profile, id));
       if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((_id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
       if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
-      const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")}`).join(" ").toLowerCase();
+      // The fact's start/end fields are part of its support corpus: entry
+      // lines print the date range from exactly those fields
+      // (assemble/entryTextFor), so the years must trace here — and ONLY
+      // here; a year appearing in no field of the cited fact still refuses.
+      const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")} ${f.start || ""} ${f.end || ""}`).join(" ").toLowerCase();
       // Keyword rule: any lexicon skill named in the line must be evidenced.
       for (const skill of skillsInText(text)) {
         const ev = Profile.skillEvidence(profile, skill);
@@ -21958,8 +22012,16 @@ const CareerTailor = (() => {
     const baseSet = new Map(base.map((t, i) => [t, i]));
     const outSet = new Map(out.map((t, i) => [t, i]));
     const added = [], moved = [], removed = [];
+    const baseObjs = (baseLines || []).map((l) => (typeof l === "string" ? { text: l } : l));
+    const consumedBase = new Set();
+    const DATE_SUFFIX = /^\d{4}(–(\d{4}|Present))?$/;
     ((tailored && tailored.lines) || []).forEach((l, i) => {
       if (!baseSet.has(l.text)) {
+        // A base entry re-issued with its fact's date range appended is the
+        // SAME content moved, not an add + a remove (BUG-2026-10-14-NDER).
+        const ids = l.factIds || [];
+        const twin = ids.length === 1 ? baseObjs.find((b) => b && b.type === l.type && (b.factIds || [])[0] === ids[0] && typeof b.text === "string" && l.text.startsWith(`${b.text}, `) && DATE_SUFFIX.test(l.text.slice(b.text.length + 2))) : null;
+        if (twin) { consumedBase.add(twin.text); moved.push({ text: l.text, from: baseSet.get(twin.text), to: i, reason: "entry re-issued with the date range from its fact's start/end fields — content unchanged" }); return; }
         // Reason cites the EVIDENCE behind the line, not just its own fact:
         // for a skills line that is the project/experience fact that proves
         // the skill (Doc 2 §3.1 step 8: "added Kubernetes — you deployed on
@@ -21971,7 +22033,7 @@ const CareerTailor = (() => {
         added.push({ text: l.text, factIds: l.factIds || [], evidenceFactIds: facts, reason: skillNames.length ? `added ${skillNames.join(", ")} — evidenced by fact ${facts.join(", ")}` : `added — supported by fact ${facts.join(", ") || "none"}` });
       } else if (baseSet.get(l.text) !== i) moved.push({ text: l.text, from: baseSet.get(l.text), to: i, reason: "moved — section order follows the role-family variant" });
     });
-    base.forEach((t) => { if (!outSet.has(t)) removed.push({ text: t, reason: "removed — not selected for this role (relevance/recency/impact ranking)" }); });
+    base.forEach((t) => { if (!outSet.has(t) && !consumedBase.has(t)) removed.push({ text: t, reason: "removed — not selected for this role (relevance/recency/impact ranking)" }); });
     const changed = added.length + removed.length;
     return { added, moved, removed, summary: `${added.length} added, ${removed.length} removed, ${moved.length} moved (${changed} content changes)` };
   }
@@ -21995,7 +22057,7 @@ const CareerTailor = (() => {
     const docxRes = o.format !== "pdf" ? R.renderDocx(resume) : null;
     const pdf = pdfRes && pdfRes.ok ? R.artifact("pdf", pdfRes) : null;
     const docx = docxRes && docxRes.ok ? R.artifact("docx", docxRes) : null;
-    const parseCheck = (pdf || docx) ? R.parseCheck({ resume, pdf: pdf ? pdfRes.buffer : null, docx: docx ? docxRes.buffer : null }) : null;
+    const parseCheck = (pdf || docx) ? R.parseCheck({ resume, pdf: pdf ? pdfRes.buffer : null, docx: docx ? docxRes.buffer : null, profile: o.profile || null }) : null;
     return { ...base, ok: true, pdf, docx, filename: (pdf && pdf.filename) || (docx && docx.filename) || null, parseCheck, pdfNote: "PDF + DOCX rendered from the same resume JSON by 148-career-render.js (text pipeline, Spec 3 §10.4); parse-check verdict in parseCheck (§2.5)." };
   }
 
@@ -22085,7 +22147,7 @@ const CareerTailor = (() => {
     if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null, rendered: null };
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
-    const rendered = render(assembled);
+    const rendered = render(assembled, { profile });
     const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null };
     // §10.5: the approval snapshot records the exact rendered artifacts
     // (filename + sha256 + size) so a submitted resume can be reproduced.
@@ -31488,6 +31550,28 @@ const CareerRouter = (() => {
   }
 
   // ---------- outreach campaign family (124) -------------------------------
+  // The campaign plan's commitment point: a real 124 campaign in
+  // draft state + its wave plan + safety-plan card, carried as the
+  // turn's artifact. A bulk ask with no people yet cannot honestly
+  // produce drafts — the plan at the gate IS the doorstep (the same
+  // pieces 141 assembles for a single-recipient draft, minus the
+  // recipient). committed:false, sends:0, always.
+  function campaignPlanArtifact(ctx, q, y) {
+    if (!Outreach || !Outreach.createCampaign || !Outreach.safetyPlan) return null;
+    try {
+      const campaign = Outreach.createCampaign({ id: "campaign-plan", userId: ctx.userId || "user-1" });
+      const plan = Outreach.planWave ? Outreach.planWave(campaign, { waveNumber: 1, startDayIndex: 0 }) : null;
+      const card = Outreach.safetyPlan(campaign, plan, { startDateIso: new Date(nowOf(ctx)).toISOString() });
+      return {
+        kind: "campaign_plan", family: "outreach-send",
+        campaign: { id: campaign.id, status: campaign.status, sending_channel: campaign.sending_channel, cap_ceiling_per_day: campaign.cap_per_day, cap_today: card ? card.daily_cap_start : null, item_count: Array.isArray(campaign.items) ? campaign.items.length : 0 },
+        safety_plan_card: card || null,
+        target: q || null,
+        yield: y || { found: 0, trusted_emails: 0, sendable: 0, selected: 0, reserve: 0, review_bucket: 0 },
+        sends: 0, committed: false,
+      };
+    } catch { return null; }
+  }
   function handleCampaignPlan(text, ctx) {
     const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null;
     const count = (q && q.count) || Number((lc(text).match(/\b(\d+)\b/) || [])[1]) || 40;
@@ -31496,13 +31580,15 @@ const CareerRouter = (() => {
       const built = Outreach.buildList(pool, q || {}, { profile: ctx.profile, nowMs: nowOf(ctx) });
       const y = built.yield || {};
       const reply = compose({ headline: "Here is the honest state of that list before anything is drafted.", facts: [`Found ${y.found || 0}; trusted emails ${y.trusted_emails || 0}; sendable ${y.sendable || 0}; selected ${y.selected || 0}; reserve ${y.reserve || 0}; ${y.review_bucket || 0} ambiguous in review, never queued.`, "Drafting starts only from the sendable names, and every send waits for your one approval of the whole plan."], nextStep: "Say go and I will draft from the selected names first." });
-      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y };
+      const artifact = campaignPlanArtifact(ctx, q, y);
+      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y, ...(artifact ? { artifact, payload: artifact } : {}) };
     }
     const scope = [];
     if (q && q.firms && q.firms.length) scope.push(`at ${q.firms.slice(0, 4).join(", ")}`);
     if (q && q.geography) scope.push(`in ${q.geography}`);
     const reply = compose({ headline: `Here is the plan for ${count} people${scope.length ? " " + scope.join(" ") : ""} — shortlist first, drafts second.`, facts: ["Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.", `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`], nextStep: "Say go and I build the list from those sources first — you see the found, trustworthy, and sendable counts before a single draft exists." });
-    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q };
+    const artifact = campaignPlanArtifact(ctx, q, null);
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, ...(artifact ? { artifact, payload: artifact } : {}) };
   }
 
   function handleIntake(text, ctx) {
@@ -34978,6 +35064,7 @@ const CareerRender = (() => {
   // is not a content difference. Word-internal spaces are preserved.
   const normLine = (s) => String(s || "").replace(/\u2022/g, " ").replace(/\s+/g, " ").trim().toLowerCase().replace(/\s*([^\p{L}\p{N}\s])\s*/gu, "$1");
   const normSeq = (lines) => (lines || []).map(normLine).filter(Boolean);
+  const yearOfStr = (v) => { const m = String(v == null ? "" : v).match(/\d{4}/); return m ? m[0] : null; };
   const PLACEHOLDER_PATTERNS = [
     { re: /\bfirst last\b/i, label: '"First Last"' }, { re: /\bcompany\s*\d+\b/i, label: '"Company N"' },
     { re: /\bany company\b/i, label: '"Any Company"' }, { re: /\byour name\b/i, label: '"Your Name"' },
@@ -35012,6 +35099,40 @@ const CareerRender = (() => {
     const checks = {};
     const formats = {};
     const add = (check, level, detail) => reasons.push({ check, level, detail });
+
+    // BUG-2026-10-14-NDER (brief B6): two source-level FAILs.
+    // (1) duplicate_line — a content line belongs in exactly one section;
+    //     the same normalized line twice in the source document fails.
+    // (2) missing_dates — an entry whose cited fact carries start/end
+    //     dates must render them. Fact-aware: runs only when the caller
+    //     threads the profile in (123's render path does); skipped
+    //     otherwise, so profile-free callers see no behavior change.
+    if (expected) {
+      const seenLine = new Set();
+      for (const l of expected) {
+        if (l.kind === "heading") continue;
+        const k = normLine(l.text);
+        if (!k) continue;
+        if (seenLine.has(k)) add("duplicate_line", "fail", `the same line appears more than once in the document: "${String(l.text).slice(0, 80)}" — a line belongs in exactly one section`);
+        else seenLine.add(k);
+      }
+    }
+    const profIn = inp.profile || o.profile || null;
+    if (profIn && resume) {
+      const factsById = new Map((profIn.facts || []).map((f) => [f.id, f]));
+      const docLines = (resume.sections || []).length ? (resume.sections || []).flatMap((s) => s.lines || []) : (resume.lines || []);
+      for (const l of docLines) {
+        if (!l || l.type !== "entry") continue;
+        const fact = (l.factIds || []).map((id) => factsById.get(id)).find((f) => f && (f.start || f.end));
+        if (!fact) continue;
+        const sy = yearOfStr(fact.start), ey = yearOfStr(fact.end);
+        const missing = [];
+        if (sy && !String(l.text).includes(sy)) missing.push(sy);
+        if (/^present$/i.test(String(fact.end || "").trim())) { if (!/present/i.test(String(l.text))) missing.push("Present"); }
+        else if (ey && ey !== sy && !String(l.text).includes(ey)) missing.push(ey);
+        if (missing.length) add("missing_dates", "fail", `entry "${String(l.text).slice(0, 60)}" drops the date(s) ${missing.join(", ")} held by its fact (${fact.id}) — a dated entry renders its range`);
+      }
+    }
 
     const checkFormat = (fmt, buf, extractA, extractB, struct, expectedForFmt) => {
       if (!buf) return;
@@ -35425,13 +35546,15 @@ const CareerPortalApply = (() => {
     const board = session.board;
     const out = board.submit();
     if (out.outcome === "accepted") {
-      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind };
+      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind,
+        confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
     session.needsReconcile = true;
-    session.submission = { status: "unknown_outcome", needsHuman: true, receiptBoard: board.kind };
+    session.submission = { status: "unknown_outcome", needsHuman: true, receiptBoard: board.kind,
+      confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
     return { resultStatus: "unknown_outcome", submission: session.submission,
       reason: "the board did not answer — the application may or may not have landed; check before any retry" };
   }
@@ -35441,8 +35564,18 @@ const CareerPortalApply = (() => {
     const st = session.board.submissionState();
     if (st.submitted) {
       session.needsReconcile = false;
-      session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true };
+      session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true,
+        confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null };
       return { resultStatus: "completed", submission: Object.assign({ onBoard: true }, session.submission) };
+    }
+    if (st.unverifiable === true) {
+      // The board cannot prove a negative (a real portal without account
+      // access): the outcome STAYS unknown and the reconcile lock stays
+      // on — a human reads the captured evidence; no retry is cleared.
+      return { resultStatus: "unknown_outcome",
+        submission: { status: "unknown_outcome", onBoard: null, needsHuman: true, receiptBoard: session.board.kind,
+          confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null },
+        reason: "the board's state cannot be read back — the captured confirmation evidence is attached; a human verifies before any retry" };
     }
     session.needsReconcile = false; // state is now KNOWN: nothing landed; a fresh approval may retry
     return { resultStatus: "unknown_outcome",

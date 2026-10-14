@@ -1,0 +1,23 @@
+✔ [S01] currency-only correction changes the exact amount (299.851199ms)
+✔ [S02] currency-only correction retains recipient and memo (70.716196ms)
+✔ [S03] an amount correction needs a fresh approval (28.940534ms)
+✔ [S04] split correction recalculates every share (16.691828ms)
+✔ [S05] split correction retains names and memo (3.28455ms)
+✔ [S06] a number in a split question does not change the proposal (1.94806ms)
+✔ [S07] blocked cancellation retains its merchant referent (10.65103ms)
+✔ [S08] a newer identified merchant replaces the referent (2.680042ms)
+✔ [S09] an ambiguous category does not replace a known referent (3.824858ms)
+✔ [S10] status distinguishes staged from sent (2.795101ms)
+✔ [S11] posted status requires stored transaction evidence (2.936128ms)
+✔ [S12] an unrelated balance question does not become payment status (1.901722ms)
+✔ [S13] three repeated approvals retain the settlement and never repeat the action (2.780053ms)
+✔ [S14] repeats do not refresh the five-minute acknowledgement window (2.227746ms)
+✔ [S15] a newer settled request replaces the old summary (4.701333ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 841.044114

@@ -1,0 +1,1 @@
+{"passed":39,"total":79,"evaluated":50,"offline_percent":78,"evaluation_coverage_percent":63.29113924050633,"statuses":{"PASS":39,"DIVERGES":2,"LIMITED":9,"NEEDS_MODEL":29},"variants":{"passed":75,"total":103,"statuses":{"PASS":75,"FAIL":5,"LIMITED":23}}}

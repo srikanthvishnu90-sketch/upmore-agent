@@ -7,7 +7,7 @@ import corpus from '../../corpus/corpus.json' with {type:'json'};
 const output=Deno.args[0]||'/workspace/upmore-audit/capability-score.json';
 const commit=new TextDecoder().decode(new Deno.Command('git',{args:['rev-parse','HEAD']}).outputSync().stdout).trim();
 const router_bundle_sha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await Deno.readFile(new URL('../../supabase/functions/_shared/router_core.js',import.meta.url))))).map(x=>x.toString(16).padStart(2,'0')).join('');
-const trials=[];
+const trials:Array<{trial:number;results:any[];variants:any[]}>=[];
 for(let trial=1;trial<=3;trial++){
  const results=await offline();const variants=[];
  for(const seed of (corpus as any).examples){

@@ -320,7 +320,9 @@
         }
         const p = pending;
         if (!p) return { outcome: "nothing_pending", text: "There is no split waiting on you." };
-        const cls = Voice ? Voice.classify(text, { pending_confirmation: true }) : { type: /^y/i.test(text) ? "confirmation" : "question", approved: /^y/i.test(text) };
+        // Amount edits are anchored to the whole reply; numbers in questions never change a split.
+        const amountEdit = typeof AgentSend !== "undefined" && AgentSend.isAmountCorrection(text);
+        const cls = amountEdit ? { type: "correction" } : Voice ? Voice.classify(text, { pending_confirmation: true }) : { type: /^y/i.test(text) ? "confirmation" : "question", approved: /^y/i.test(text) };
         if (cls.type === "correction") {
           const fix = parse(/\bsplit\b/i.test(text) ? text : `split ${text}`), merged = Object.assign({}, p.parsed, { amount_cents: fix.amount_cents || p.parsed.amount_cents, names: fix.names.length ? fix.names : p.parsed.names, text });
           await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;

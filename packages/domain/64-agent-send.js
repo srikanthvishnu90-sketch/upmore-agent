@@ -405,6 +405,6 @@
         get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.send.amount_cents, recipient: pending.send.recipient.name } : null; },
         get awaiting_input() { return !!identity || !!saveOffer || !!pendingAmountCheck || !!pendingFunds; } };
     }
-    return { create, parse, parseAmount, lookalike, fundsCheck, editDistance: (a, b) => AgentRecipients.editDistance(a, b), CAPABILITY };
+    return { create, parse, parseAmount, isAmountCorrection: text => AMOUNT_CHANGE.test(String(text)), lookalike, fundsCheck, editDistance: (a, b) => AgentRecipients.editDistance(a, b), CAPABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentSend;

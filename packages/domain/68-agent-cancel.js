@@ -121,6 +121,9 @@
       const undoText = t => t.resubscribe_until ? `Reply "undo" before ${t.resubscribe_until} and I'll resubscribe you at the same rate; after that it is a new signup at the current price.` : "Cancelling cannot be undone from here; a new signup would be at the current price.";
 
       async function stage(sub, ctx) {
+        // A known subscription remains the referent even when its account terms are unavailable.
+        // Set this only after resolution; an ambiguous category never becomes a merchant.
+        last_mentioned = sub.merchant;
         const r = route(sub), t = await terms(sub);
         if (t.missing.length === 1 && t.missing[0] === "account read") {
           const d = directory[keyOf(sub.merchant)] || directory[keyOf(sub.merchant).split(" ")[0]];

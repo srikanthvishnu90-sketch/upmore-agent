@@ -1,0 +1,203 @@
+{
+ "capability": "CORE-MEMORY",
+ "run_at": "2026-10-14T02:18:30.389Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 15,
+ "proven": 15,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Exact currency correction",
+   "defect": "Break exact currency correction in a parseable production module",
+   "test": "Exact currency correction",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S02",
+    "S03"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Retained correction facts",
+   "defect": "Break retained correction facts in a parseable production module",
+   "test": "Retained correction facts",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S03"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "Fresh approval after correction",
+   "defect": "Break fresh approval after correction in a parseable production module",
+   "test": "Fresh approval after correction",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S02"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "Recalculated split shares",
+   "defect": "Break recalculated split shares in a parseable production module",
+   "test": "Recalculated split shares",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S05"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Retained split context",
+   "defect": "Break retained split context in a parseable production module",
+   "test": "Retained split context",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S04"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "Numbers in questions are not corrections",
+   "defect": "Break numbers in questions are not corrections in a parseable production module",
+   "test": "Numbers in questions are not corrections",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "Blocked cancellation referent",
+   "defect": "Break blocked cancellation referent in a parseable production module",
+   "test": "Blocked cancellation referent",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S08",
+    "S09"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "Newest merchant referent",
+   "defect": "Break newest merchant referent in a parseable production module",
+   "test": "Newest merchant referent",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S07",
+    "S09"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "Ambiguous category cannot invent referent",
+   "defect": "Break ambiguous category cannot invent referent in a parseable production module",
+   "test": "Ambiguous category cannot invent referent",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S07",
+    "S08"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "Honest staged status",
+   "defect": "Break honest staged status in a parseable production module",
+   "test": "Honest staged status",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S11"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "Transaction-evidenced posting",
+   "defect": "Break transaction-evidenced posting in a parseable production module",
+   "test": "Transaction-evidenced posting",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Unrelated questions retain ownership",
+   "defect": "Break unrelated questions retain ownership in a parseable production module",
+   "test": "Unrelated questions retain ownership",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S13",
+    "S14",
+    "S15"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "Repeated approval settlement memory",
+   "defect": "Break repeated approval settlement memory in a parseable production module",
+   "test": "Repeated approval settlement memory",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "Original repeat time window",
+   "defect": "Break original repeat time window in a parseable production module",
+   "test": "Original repeat time window",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "Latest settled goal",
+   "defect": "Break latest settled goal in a parseable production module",
+   "test": "Latest settled goal",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

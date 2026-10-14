@@ -16,7 +16,8 @@ const mutations = require(mutFile);
 const domainDir = path.join(root, "packages/domain");
 
 function runTests(dir) {
-  const r = spawnSync(process.execPath, ["--test", testFile], { cwd: root, encoding: "utf8", env: Object.assign({}, process.env, { UPMORE_DOMAIN_DIR: dir }) });
+  // Parsing below is a TAP contract. Node versions can otherwise choose a human reporter.
+  const r = spawnSync(process.execPath, ["--test", "--test-reporter=tap", testFile], { cwd: root, encoding: "utf8", env: Object.assign({}, process.env, { UPMORE_DOMAIN_DIR: dir }) });
   const out = r.stdout + r.stderr, results = {};
   for (const m of out.matchAll(/^(not ok|ok) \d+ - \[(S\d\d|ADV)\]/gm)) results[m[2]] = m[1] === "ok";
   return { results, raw: out, status: r.status };
@@ -26,6 +27,7 @@ function sameOneTag(results, tag) { return Object.entries(results).filter(([k, o
 const baseline = runTests(domainDir);
 const tags = Object.keys(baseline.results).filter(k => k !== "ADV").sort();
 const rows = [], problems = [];
+if (baseline.status !== 0) problems.push(`baseline command exited ${baseline.status}`);
 if (tags.length < 15) problems.push(`only ${tags.length} tagged sub-capability tests found; the protocol needs 15`);
 for (const [tag, ok] of Object.entries(baseline.results)) if (!ok) problems.push(`baseline: ${tag} fails before any defect is planted`);
 
@@ -42,7 +44,7 @@ for (const m of mutations) {
   for (const p of m.patches) { const file = path.join(dir, p.file); const src = fs.readFileSync(file, "utf8"); const n = src.split(p.find).length - 1; if (n !== 1) { applied = false; note = `patch for ${p.file} matches ${n} times`; break; } fs.writeFileSync(file, src.replace(p.find, () => p.replace)); }
   if (applied) for (const f of new Set(m.patches.map((p) => p.file))) if (/\.c?js$/.test(f) && !parses(path.join(dir, f))) { applied = false; note = `the patched ${f} does not parse`; break; }
   let bites = false, collateral = [];
-  if (applied) { const r = runTests(dir); bites = r.results[m.sub] === false; collateral = sameOneTag(r.results, m.sub).filter(t => t !== "ADV"); if (bites && !m.also_breaks) { /* ok */ } }
+  if (applied) { const r = runTests(dir); bites = r.status === 1 && r.results[m.sub] === false; collateral = sameOneTag(r.results, m.sub).filter(t => t !== "ADV"); if (bites && !m.also_breaks) { /* ok */ } }
   const status = !applied ? "patch did not apply" : bites ? "proven" : "NOT PROVEN: test passed with the defect in place";
   if (!applied || !bites) problems.push(`${m.sub} (${m.id}): ${status}${note ? " (" + note + ")" : ""}`);
   rows.push({ sub: m.sub, id: m.id, title: m.title, defect: m.defect, test: m.test, bites, applied, collateral, status });
@@ -50,7 +52,7 @@ for (const m of mutations) {
 fs.rmSync(tmp, { recursive: true, force: true });
 
 const table = ["| # | Sub-capability | What it does | Its test | The break I proved | Status |", "| --- | --- | --- | --- | --- | --- |"].concat(rows.sort((a, b) => a.sub.localeCompare(b.sub)).map(r => `| ${r.sub} | ${r.title} | ${r.test} | \`${r.sub}\` in tests/depth-${id}.test.cjs | ${r.defect} | ${r.status}${r.collateral.length ? ` (also fails ${r.collateral.join(", ")})` : ""} |`)).join("\n");
-const summary = { capability: id, run_at: new Date().toISOString(), baseline_all_green: Object.values(baseline.results).every(Boolean), sub_capabilities: tags.length, proven: rows.filter(r => r.bites).length, problems, rows };
+const summary = { capability: id, run_at: new Date().toISOString(), baseline_all_green: baseline.status === 0 && tags.length >= 15 && Object.values(baseline.results).every(Boolean), sub_capabilities: tags.length, proven: rows.filter(r => r.bites).length, problems, rows };
 fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
 // A re-run that proves exactly what the last one proved keeps the last file (and its run_at), so a check that passes
 // leaves the tree clean; any change in the rows, the baseline or the problems is written with the new time.

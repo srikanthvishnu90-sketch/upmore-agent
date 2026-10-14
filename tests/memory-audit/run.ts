@@ -3,6 +3,7 @@ import {scenarios,type Step} from './scenarios.ts';
 const trials=3;
 const output=Deno.args[0]||'/workspace/upmore-audit/memory-score.json';
 const commit=new TextDecoder().decode(new Deno.Command('git',{args:['rev-parse','HEAD']}).outputSync().stdout).trim();
+const router_bundle_sha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await Deno.readFile(new URL('../../supabase/functions/_shared/router_core.js',import.meta.url))))).map(x=>x.toString(16).padStart(2,'0')).join('');
 const read=(w:any,path:string)=>path.split('.').reduce((value:any,key:string)=>key==='state'?w.state():value?.[key],w);
 const runs:any[]=[];
 for(const scenario of scenarios){
@@ -28,7 +29,7 @@ for(const scenario of scenarios){
 }
 const passed=runs.filter(r=>r.pass).length;
 const categories=Object.fromEntries([...new Set(runs.map(r=>r.category))].map(category=>{const rows=runs.filter(r=>r.category===category);return [category,{passed:rows.filter(r=>r.pass).length,total:rows.length}]}));
-const result={schema_version:1,commit,scope:'Production deterministic flow-memory layer, local JSON persistence between every turn, synthetic recipients and transactions, no model, no actual transport or live financial rails. This is not a semantic career-memory or full live product score.',trial_count:trials,passed,total:runs.length,percent:100*passed/runs.length,categories,results:runs};
+const result={schema_version:1,commit,router_bundle_sha256,scope:'Production deterministic flow-memory layer, local JSON persistence between every turn, synthetic recipients and transactions, no model, no actual transport or live financial rails. This is not a semantic career-memory or full live product score.',trial_count:trials,passed,total:runs.length,percent:100*passed/runs.length,categories,results:runs};
 await Deno.writeTextFile(output,JSON.stringify(result,null,2)+'\n');
 console.log(`workflow memory: ${passed}/${runs.length} (${result.percent.toFixed(1)}%), each case must pass all ${trials} trials`);
 for(const r of runs.filter(r=>!r.pass))console.log(`${r.id}: ${r.title} — ${JSON.stringify(r.trials[0].failures[0])}`);

@@ -6,6 +6,7 @@ import graderModule from '../../evals/corpus/graders.cjs';
 import corpus from '../../corpus/corpus.json' with {type:'json'};
 const output=Deno.args[0]||'/workspace/upmore-audit/capability-score.json';
 const commit=new TextDecoder().decode(new Deno.Command('git',{args:['rev-parse','HEAD']}).outputSync().stdout).trim();
+const router_bundle_sha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await Deno.readFile(new URL('../../supabase/functions/_shared/router_core.js',import.meta.url))))).map(x=>x.toString(16).padStart(2,'0')).join('');
 const trials=[];
 for(let trial=1;trial<=3;trial++){
  const results=await offline();const variants=[];
@@ -25,5 +26,5 @@ const evaluated=seeds.filter(r=>r.status!=='NEEDS_MODEL');
 const passed=seeds.filter(r=>r.pass).length;
 const variantResults=trials[0].variants.map((v,i)=>({...v,pass:trials.every(t=>t.variants[i]?.status==='PASS')}));
 const summary={passed,total:seeds.length,evaluated:evaluated.length,offline_percent:passed*100/evaluated.length,evaluation_coverage_percent:evaluated.length*100/seeds.length,statuses:Object.fromEntries([...new Set(seeds.map(r=>r.status))].map(s=>[s,count(s)])),variants:{passed:variantResults.filter(r=>r.pass).length,total:variantResults.length,statuses:Object.fromEntries([...new Set(variantResults.map(r=>r.status))].map(s=>[s,variantResults.filter(r=>r.status===s).length]))}};
-await Deno.writeTextFile(output,JSON.stringify({schema_version:1,commit,scope:'Existing 79-example conversation corpus through production local flows and deterministic extraction fixtures. Synthetic broker only in tests. No live model, deployed handler or actual transport tested. Strict PASS-only score; limitations and divergences count as unmet completion, model-only cases remain unrun.',trial_count:3,summary,seeds,trials},null,2)+'\n');
+await Deno.writeTextFile(output,JSON.stringify({schema_version:1,commit,router_bundle_sha256,scope:'Existing 79-example conversation corpus through production local flows and deterministic extraction fixtures. Synthetic broker only in tests. No live model, deployed handler or actual transport tested. Strict PASS-only score; limitations and divergences count as unmet completion, model-only cases remain unrun.',trial_count:3,summary,seeds,trials},null,2)+'\n');
 console.log(JSON.stringify(summary));

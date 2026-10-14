@@ -1,0 +1,42 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const domain=process.env.UPMORE_DOMAIN_DIR||path.join(root,'packages/domain');
+const ctx=vm.createContext({setTimeout,clearTimeout});
+const modules=['33-agent-monitors.js','35-agent-intents.js','41-agent-recovery.js','42-agent-recipients.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','49-agent-save.js','50-agent-invest.js','53-compliance.js','54-agent-money.js','64-agent-send.js','65-agent-realworld.js','66-agent-trade.js','67-agent-cards.js','68-agent-cancel.js','69-agent-router.js','70-agent-split.js','81-standing-rent.js'];
+vm.runInContext(modules.map(f=>fs.readFileSync(path.join(domain,f),'utf8')).join('\n')+'\nthis.api={R:AgentRouter,T:AgentTrade,C:AgentCancel,S:AgentSend,X:AgentSplit,Rec:AgentRecipients,Compliance};',ctx);
+const {R,T,C,S,X,Rec,Compliance}=ctx.api;
+const Registry=require('../packages/capabilities/registry.js');
+const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),()=>true);
+const copy=x=>JSON.parse(JSON.stringify(x));
+const MIN=60000,T0=Date.UTC(2026,9,12,14);
+function world(){
+ const w={now:T0,state:{},memo:{},writes:[],tx:[],recipients:[{id:'sam',handle:'@samk',display_name:'Sam Kim',source:'completed_send',rail:'venmo',channel:'in-app'},{id:'maya',handle:'@mayar',display_name:'Maya Rao',source:'completed_send',rail:'venmo',channel:'in-app'}]};
+ const recurring=[];for(const [merchant,amount] of [['NETFLIX.COM',-17.99],['HULU',-9.99]])for(const posted_at of ['2026-07-03','2026-08-03','2026-09-03','2026-10-03'])recurring.push({id:merchant+posted_at,amount,posted_at,merchant_raw:merchant,is_pending:false,is_transfer:false});
+ const conn={read:async()=>{throw Error('no live rail')},write:async(...args)=>{w.writes.push(args);throw Error('no live rail')},verify:async()=>{throw Error('no live rail')}};
+ w.turn=async raw=>{
+  const book=Rec.book({rows:copy(w.recipients),clock:()=>w.now});
+  const opts={registry,connectors:conn,clock:()=>w.now,recipients:book,partners:{},compliance:Compliance};
+  const ss={trade:T.create({...opts,state:w.state.trade,instruments:[]}),cancel:C.create({...opts,state:w.state.cancel,transactions:recurring,directory:{netflix:{kind:'portal',url:'netflix.com/YourAccount',display_name:'Netflix'},hulu:{kind:'portal',url:'hulu.com/account',display_name:'Hulu'}}}),send:S.create({...opts,state:w.state.send}),split:X.create({...opts,state:w.state.split})};
+  ss.send.landed(w.tx);
+  const result=await R.handle(raw,{sessions:ss,memo:copy(w.memo),now:()=>w.now,parsers:{trade:t=>T.parse(t),cancel:t=>C.parse(t),send:t=>S.parse(t),split:t=>X.parse(t)}});
+  w.state=copy(Object.fromEntries(Object.entries(ss).map(([k,s])=>[k,s.snapshot()])));w.memo=copy(result.memo||w.memo);return result;
+ };
+ return w;
+}
+test('[S01] currency-only correction changes the exact amount',async()=>{const w=world();await w.turn('send sam 20');const r=await w.turn('$12.50 instead');assert.equal(r.result.outcome,'confirm');assert.match(r.result.text,/\$12\.50/);});
+test('[S02] currency-only correction retains recipient and memo',async()=>{const w=world();await w.turn('send sam 20 for dinner');const r=await w.turn('$35 instead');assert.equal(r.result.outcome,'confirm');assert.match(r.result.text,/Sam Kim/);assert.equal(w.state.send.pending.prep.parsed.memo,'dinner');});
+test('[S03] an amount correction needs a fresh approval',async()=>{const w=world();await w.turn('send sam 20');const r=await w.turn('$35 instead');assert.equal(r.result.outcome,'confirm');assert.equal(w.state.send.sends.length,0);assert.equal(w.writes.length,0);await w.turn('yes');assert.equal(w.state.send.sends.length,1);assert.equal(w.state.send.sends[0].amount_cents,3500);});
+test('[S04] split correction recalculates every share',async()=>{const w=world();await w.turn('split 60 with sam and maya');const r=await w.turn('make it 90');assert.equal(r.result.outcome,'confirm');assert.match(r.result.text,/\$30\.00 each.*\$90\.00/);assert.equal(w.state.split.staged.length,0);});
+test('[S05] split correction retains names and memo',async()=>{const w=world();await w.turn('split 60 with sam and maya for dinner');const r=await w.turn('make it 90');assert.equal(r.result.outcome,'confirm');assert.match(r.result.text,/\$30\.00 each.*Sam Kim.*Maya Rao/);assert.equal(w.state.split.pending.parsed.memo,'dinner');});
+test('[S06] a number in a split question does not change the proposal',async()=>{const w=world();await w.turn('split 60 with sam and maya');await w.turn('actually, can we ask them in 3 minutes?');assert.equal(w.state.split.pending.parsed.amount_cents,6000);assert.equal(w.state.split.staged.length,0);});
+test('[S07] blocked cancellation retains its merchant referent',async()=>{const w=world();await w.turn('cancel netflix');const r=await w.turn('cancel that');assert.equal(r.result.outcome,'needs_terms');assert.match(r.result.text,/Netflix/);assert.equal(w.writes.length,0);});
+test('[S08] a newer identified merchant replaces the referent',async()=>{const w=world();await w.turn('cancel netflix');await w.turn('cancel hulu');const r=await w.turn('cancel that');assert.equal(r.result.outcome,'needs_terms');assert.match(r.result.text,/Hulu/);assert.doesNotMatch(r.result.text,/Netflix/);});
+test('[S09] an ambiguous category does not replace a known referent',async()=>{const w=world();await w.turn('cancel netflix');const ask=await w.turn('cancel streaming');assert.equal(ask.result.outcome,'ask');const r=await w.turn('cancel that');assert.equal(r.result.outcome,'needs_terms');assert.match(r.result.text,/Netflix/);});
+test('[S10] status distinguishes staged from sent',async()=>{const w=world();await w.turn('send sam 20');await w.turn('yes');const r=await w.turn('did it go through');assert.equal(r.result.outcome,'staged');assert.match(r.result.text,/not confirmed sent.*\$20\.00 to Sam Kim/);assert.equal(w.state.send.sends.length,1);});
+test('[S11] posted status requires stored transaction evidence',async()=>{const w=world();await w.turn('send sam 20');await w.turn('yes');w.tx=[{id:'posted-test',posted_at:'2026-10-12',amount:-20,merchant_raw:'VENMO TO SAM KIM'}];const r=await w.turn('did it go through');assert.equal(r.result.outcome,'landed');assert.match(r.result.text,/posted 2026-10-12.*linked account's transactions/);assert.equal(w.writes.length,0);});
+test('[S12] an unrelated balance question does not become payment status',async()=>{const w=world();await w.turn('send sam 20');await w.turn('yes');const r=await w.turn("what's my balance");assert.equal(r.route,'fallthrough');assert.equal(r.result,undefined);});
+test('[S13] three repeated approvals retain the settlement and never repeat the action',async()=>{const w=world();await w.turn('send sam 20');await w.turn('yes');for(let n=0;n<3;n++){const r=await w.turn('yes');assert.equal(r.result.outcome,'already_done');assert.match(r.result.text,/already staged.*\$20\.00 to Sam Kim/);}assert.equal(w.state.send.sends.length,1);});
+test('[S14] repeats do not refresh the five-minute acknowledgement window',async()=>{const w=world();await w.turn('send sam 20');await w.turn('yes');w.now+=4*MIN;assert.equal((await w.turn('yes')).result.outcome,'already_done');w.now+=2*MIN;const r=await w.turn('yes');assert.notEqual(r.result?.outcome,'already_done');assert.equal(w.state.send.sends.length,1);});
+test('[S15] a newer settled request replaces the old summary',async()=>{const w=world();await w.turn('send sam 20');await w.turn('yes');await w.turn('send maya 30');await w.turn('yes');const r=await w.turn('yes');assert.match(r.result.text,/already staged.*\$30\.00 to Maya Rao/);assert.equal(w.state.send.sends.length,2);});

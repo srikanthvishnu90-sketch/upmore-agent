@@ -37,6 +37,14 @@ const CareerIntake = (() => {
     return { full_name: clean(o.full_name || ""), current_firm: clean(o.current_firm || "") || null,
       title: clean(o.title || "") || null, office: clean(o.office || "") || null,
       email: clean(o.email || "") || null, email_status: o.email_status || null,
+      // Graph/outreach projection (wave fix 2026-10-14, D2): the engines
+      // downstream (135 graph, 124 outreach) read work_email / source_list /
+      // at_company / employment_status. intake() syncs these from the
+      // canonical email / sources / flags at the end of the pipeline —
+      // without them the handoff silently lost the address, the sources,
+      // and the departed status (a departed person came back as a live
+      // warm path). Defaults here keep the record shape stable.
+      work_email: null, source_list: [], at_company: true, employment_status: null,
       currency_status: o.currency_status || null, currency_note: o.currency_note || null,
       relationship_to_user: clean(o.relationship_to_user || "") || null,
       sources: [], flags: [],
@@ -231,6 +239,11 @@ const CareerIntake = (() => {
       if (!r.email && !r.email_status) r.email_status = "not_found";
       if (r.currency_status === "stale" && !r.flags.includes("currency_stale")) r.flags.push("currency_stale");
       if (r.currency_status === "uncertain" && !r.flags.includes("currency_unverified")) r.flags.push("currency_unverified");
+      // Graph/outreach projection (D2): sync the fields the downstream
+      // engines actually read, from the canonical fields resolved above.
+      r.work_email = r.email || null;
+      r.source_list = [...(r.sources || [])];
+      if (r.flags.includes("departed")) { r.at_company = false; r.employment_status = "departed"; }
     }
 
     const notCurrent = (r) => r.flags.includes("departed") || r.flags.includes("currency_stale") || r.flags.includes("currency_unverified");

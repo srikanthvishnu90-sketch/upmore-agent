@@ -37,6 +37,16 @@ const CareerPlatformDrafts = (() => {
     const sameSchool = school && user.school && String(user.school).trim().toLowerCase() === school.toLowerCase();
     const userBlurb = user.blurb ? String(user.blurb).trim() : "I'm exploring investment banking and learning how people broke in.";
 
+    // Date law (owner rule, same family as 124's quality gate): relative
+    // dates in outreach copy are a QA defect — dates must be absolute or
+    // verified true at send time. A user-supplied fact is echoed verbatim
+    // (fact fidelity is this lane's contract), so the defect is FLAGGED in
+    // notes for the user to reword before they send, never silently kept
+    // and never silently rewritten.
+    if (fact && /since last (january|february|march|april|may|june|july|august|september|october|november|december|month|year|fall|spring|summer|winter)/i.test(String(fact.fact))) {
+      notes.push("Relative date in the supplied fact — outreach dates must be absolute or verified; reword it with the exact month and year before sending.");
+    }
+
     let tier, factUsed = null;
     const lines = [`Hi ${first} —`];
     if (fact) {

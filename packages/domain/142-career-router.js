@@ -1549,8 +1549,8 @@ const CareerRouter = (() => {
     // own clock), so the R-C5 line is real product data, not a bare
     // template stamp.
     const benchSentence = bench && bench.text
-      ? (bench.as_of ? s(bench.text).split(/(?<=[.!?])\s/)[0] : `${s(bench.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`)
-      : `No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`;
+      ? (bench.as_of ? s(bench.text).split(/(?<=[.!?])\s/)[0] : `${s(bench.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`)
+      : `No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`;
     if (offerText && Negotiation && Negotiation.parseOffer) {
       try {
         const offer = Negotiation.parseOffer(offerText, {});
@@ -1599,8 +1599,8 @@ const CareerRouter = (() => {
     // IB-TN-9 Patch 2: the sourcing line comes from 128's benchmark
     // product, never a hard-coded as-of. BUG-074: the no-file case
     // names the source class + the check date from the turn's clock.
-    let benchSentence = `Grounded in the negotiation method; no company file is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`;
-    try { const b = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cirFor(text, ctx) || null, {}) : null; if (b && b.text) benchSentence = b.as_of ? s(b.text).split(/(?<=[.!?])\s/)[0] : `${s(b.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${asOfMonthYear(ctx)}.`; } catch { /* keep the no-file sentence */ }
+    let benchSentence = `Grounded in the negotiation method; no company file is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`;
+    try { const b = Negotiation && Negotiation.benchmark ? Negotiation.benchmark(cirFor(text, ctx) || null, {}) : null; if (b && b.text) benchSentence = b.as_of ? s(b.text).split(/(?<=[.!?])\s/)[0] : `${s(b.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`; } catch { /* keep the no-file sentence */ }
     // BUG-080 ordering: the sourced line precedes the roleplay
     // instruction, whose closing sentence is this reply's specific
     // ending — the generic closer must never stamp over it.

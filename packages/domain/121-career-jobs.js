@@ -830,10 +830,21 @@ const CareerJobs = (() => {
   // The master profile holds facts with IDs (Doc 2 section 1); this adapts that fact shape
   // (packages/career-data/fixtures/test-persona.json, a synthetic TEST persona) into the profile
   // shape scoreFit consumes, citing fact IDs so a score can be traced back to profile facts.
+  // BUG-097 (alert-speed gap G5): a skill FACT's text can carry an annotation in
+  // parentheses ("SQL (listed in the resume's Skills line; ...)"). The annotation is
+  // provenance, not part of the skill's name — baked into the name it can never match
+  // a JD token, so scoreFit's honest unproven-skill gap line silently never fired.
+  // Split it out: name is the bare skill, the annotation rides along as name_note.
+  function skillNameParts(text) {
+    const t = s(text).replace(/^Skill:\s*/i, "").trim();
+    const m = t.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+    if (m && m[1].trim()) return { name: m[1].trim(), name_note: m[2].trim() };
+    return { name: t, name_note: "" };
+  }
   function profileFromPersona(persona) {
     const facts = (persona && persona.facts) || [];
     const byKind = (k) => facts.filter((f) => f.kind === k);
-    const skills = byKind("skill").map((f) => ({ name: f.text, proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.fact_id }));
+    const skills = byKind("skill").map((f) => { const p = skillNameParts(f.text); return Object.assign({ name: p.name, proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.fact_id }, p.name_note ? { name_note: p.name_note } : {}); });
     const constraintText = byKind("constraint").map((f) => f.text).join(" ");
     const prefText = byKind("preference").map((f) => f.text).join(" ");
     const grad = constraintText.match(/graduat\w*[^0-9]*(20\d\d)/i) || byKind("education").map((f) => f.text).join(" ").match(/class of (20\d\d)/i);
@@ -842,7 +853,7 @@ const CareerJobs = (() => {
     // Canonical master-profile schema (122-career-profile): structured basics/constraints/preferences
     // win over prose parsing when present. Added at integration 2026-10-12 so ONE persona fixture
     // serves both the profile store and fit scoring.
-    const canonSkills = byKind("skill").map((f) => ({ name: String(f.text || "").replace(/^Skill:\s*/i, ""), proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.id || f.fact_id }));
+    const canonSkills = byKind("skill").map((f) => { const p = skillNameParts(f.text); return Object.assign({ name: p.name, proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.id || f.fact_id }, p.name_note ? { name_note: p.name_note } : {}); });
     const canonGradYear = persona && persona.constraints && persona.constraints.graduationDate ? Number(String(persona.constraints.graduationDate).slice(0, 4)) : null;
     const canonStarred = persona && persona.preferences && Array.isArray(persona.preferences.targetCompanies) ? persona.preferences.targetCompanies : null;
     const canonLocations = persona && persona.preferences && Array.isArray(persona.preferences.locations) ? persona.preferences.locations : null;

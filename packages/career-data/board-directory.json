@@ -1,0 +1,883 @@
+{
+ "meta": {
+  "generated_at": "2026-10-14T17:31:12.656Z",
+  "generator": "scripts/career/board-discovery.py + build-board-directory.mjs",
+  "doctrine": "an entry is live only if a real fetch in the discovery run returned the board's postings JSON; calibration probes (one gibberish token per provider) were run first and their signatures recorded here",
+  "calibration": {
+   "greenhouse": {
+    "http": 0,
+    "verdict": "error"
+   },
+   "lever": {
+    "http": 404,
+    "verdict": "dead"
+   },
+   "ashby": {
+    "http": 404,
+    "verdict": "dead"
+   },
+   "smartrecruiters": {
+    "http": 200,
+    "verdict": "unverifiable"
+   },
+   "workable": {
+    "http": 404,
+    "verdict": "dead"
+   },
+   "breezy": {
+    "http": 404,
+    "verdict": "dead"
+   },
+   "recruitee": {
+    "http": 404,
+    "verdict": "dead"
+   }
+  },
+  "probes": 953,
+  "probe_stats": {
+   "greenhouse:live": 66,
+   "greenhouse:dead": 211,
+   "lever:live": 7,
+   "lever:dead": 93,
+   "ashby:dead": 76,
+   "ashby:live": 15,
+   "smartrecruiters:live": 1,
+   "smartrecruiters:error": 75,
+   "ashby:error": 72,
+   "workable:error": 37,
+   "recruitee:dead": 36,
+   "recruitee:error": 19,
+   "breezy:dead": 31,
+   "breezy:live": 5,
+   "smartrecruiters:unverifiable": 26,
+   "breezy:error": 19,
+   "greenhouse:error": 90,
+   "lever:error": 56,
+   "workable:dead": 18
+  },
+  "live_supported": 89,
+  "live_unsupported": 2,
+  "total_postings_seen": 19297
+ },
+ "boards": [
+  {
+   "company": "BoschGroup",
+   "provider": "smartrecruiters",
+   "board_token": "BoschGroup",
+   "status": "live",
+   "postings_seen": 5032,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "spacex",
+   "provider": "greenhouse",
+   "board_token": "spacex",
+   "status": "live",
+   "postings_seen": 2742,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "databricks",
+   "provider": "greenhouse",
+   "board_token": "databricks",
+   "status": "live",
+   "postings_seen": 894,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "openai",
+   "provider": "ashby",
+   "board_token": "openai",
+   "status": "live",
+   "postings_seen": 806,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "stripe",
+   "provider": "greenhouse",
+   "board_token": "stripe",
+   "status": "live",
+   "postings_seen": 724,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "rocketlab",
+   "provider": "greenhouse",
+   "board_token": "rocketlab",
+   "status": "live",
+   "postings_seen": 585,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "cloudflare",
+   "provider": "greenhouse",
+   "board_token": "cloudflare",
+   "status": "live",
+   "postings_seen": 446,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "datadog",
+   "provider": "greenhouse",
+   "board_token": "datadog",
+   "status": "live",
+   "postings_seen": 438,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "mongodb",
+   "provider": "greenhouse",
+   "board_token": "mongodb",
+   "status": "live",
+   "postings_seen": 405,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "relativity",
+   "provider": "greenhouse",
+   "board_token": "relativity",
+   "status": "live",
+   "postings_seen": 362,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "braze",
+   "provider": "greenhouse",
+   "board_token": "braze",
+   "status": "live",
+   "postings_seen": 322,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "palantir",
+   "provider": "lever",
+   "board_token": "palantir",
+   "status": "live",
+   "postings_seen": 314,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "brex",
+   "provider": "greenhouse",
+   "board_token": "brex",
+   "status": "live",
+   "postings_seen": 264,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "roblox",
+   "provider": "greenhouse",
+   "board_token": "roblox",
+   "status": "live",
+   "postings_seen": 259,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "samsara",
+   "provider": "greenhouse",
+   "board_token": "samsara",
+   "status": "live",
+   "postings_seen": 248,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "janestreet",
+   "provider": "greenhouse",
+   "board_token": "janestreet",
+   "status": "live",
+   "postings_seen": 228,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "coinbase",
+   "provider": "greenhouse",
+   "board_token": "coinbase",
+   "status": "live",
+   "postings_seen": 224,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "gitlab",
+   "provider": "greenhouse",
+   "board_token": "gitlab",
+   "status": "live",
+   "postings_seen": 216,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "affirm",
+   "provider": "greenhouse",
+   "board_token": "affirm",
+   "status": "live",
+   "postings_seen": 206,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "flexport",
+   "provider": "greenhouse",
+   "board_token": "flexport",
+   "status": "live",
+   "postings_seen": 206,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "fivetran",
+   "provider": "greenhouse",
+   "board_token": "fivetran",
+   "status": "live",
+   "postings_seen": 186,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "vast",
+   "provider": "greenhouse",
+   "board_token": "vast",
+   "status": "live",
+   "postings_seen": 186,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "scaleai",
+   "provider": "greenhouse",
+   "board_token": "scaleai",
+   "status": "live",
+   "postings_seen": 183,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "lyft",
+   "provider": "greenhouse",
+   "board_token": "lyft",
+   "status": "live",
+   "postings_seen": 177,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "airbnb",
+   "provider": "greenhouse",
+   "board_token": "airbnb",
+   "status": "live",
+   "postings_seen": 165,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "ramp",
+   "provider": "ashby",
+   "board_token": "ramp",
+   "status": "live",
+   "postings_seen": 162,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "pinterest",
+   "provider": "greenhouse",
+   "board_token": "pinterest",
+   "status": "live",
+   "postings_seen": 154,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "robinhood",
+   "provider": "greenhouse",
+   "board_token": "robinhood",
+   "status": "live",
+   "postings_seen": 153,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "figma",
+   "provider": "greenhouse",
+   "board_token": "figma",
+   "status": "live",
+   "postings_seen": 146,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "klaviyo",
+   "provider": "greenhouse",
+   "board_token": "klaviyo",
+   "status": "live",
+   "postings_seen": 146,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "reddit",
+   "provider": "greenhouse",
+   "board_token": "reddit",
+   "status": "live",
+   "postings_seen": 145,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "twilio",
+   "provider": "greenhouse",
+   "board_token": "twilio",
+   "status": "live",
+   "postings_seen": 143,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "notion",
+   "provider": "ashby",
+   "board_token": "notion",
+   "status": "live",
+   "postings_seen": 130,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "instacart",
+   "provider": "greenhouse",
+   "board_token": "instacart",
+   "status": "live",
+   "postings_seen": 121,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "intercom",
+   "provider": "greenhouse",
+   "board_token": "intercom",
+   "status": "live",
+   "postings_seen": 111,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "zoominfo",
+   "provider": "greenhouse",
+   "board_token": "zoominfo",
+   "status": "live",
+   "postings_seen": 107,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "asana",
+   "provider": "greenhouse",
+   "board_token": "asana",
+   "status": "live",
+   "postings_seen": 104,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "langchain",
+   "provider": "ashby",
+   "board_token": "langchain",
+   "status": "live",
+   "postings_seen": 102,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "gusto",
+   "provider": "greenhouse",
+   "board_token": "gusto",
+   "status": "live",
+   "postings_seen": 101,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "gongio",
+   "provider": "greenhouse",
+   "board_token": "gongio",
+   "status": "live",
+   "postings_seen": 99,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "smartsheet",
+   "provider": "greenhouse",
+   "board_token": "smartsheet",
+   "status": "live",
+   "postings_seen": 98,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "vercel",
+   "provider": "greenhouse",
+   "board_token": "vercel",
+   "status": "live",
+   "postings_seen": 90,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "spotify",
+   "provider": "lever",
+   "board_token": "spotify",
+   "status": "live",
+   "postings_seen": 80,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "carta",
+   "provider": "greenhouse",
+   "board_token": "carta",
+   "status": "live",
+   "postings_seen": 73,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "chime",
+   "provider": "greenhouse",
+   "board_token": "chime",
+   "status": "live",
+   "postings_seen": 70,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "workato",
+   "provider": "greenhouse",
+   "board_token": "workato",
+   "status": "live",
+   "postings_seen": 64,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "ashby",
+   "provider": "ashby",
+   "board_token": "ashby",
+   "status": "live",
+   "postings_seen": 63,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "duolingo",
+   "provider": "greenhouse",
+   "board_token": "duolingo",
+   "status": "live",
+   "postings_seen": 59,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "zocdoc",
+   "provider": "greenhouse",
+   "board_token": "zocdoc",
+   "status": "live",
+   "postings_seen": 58,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "pagerduty",
+   "provider": "greenhouse",
+   "board_token": "pagerduty",
+   "status": "live",
+   "postings_seen": 56,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "apolloio",
+   "provider": "greenhouse",
+   "board_token": "apolloio",
+   "status": "live",
+   "postings_seen": 53,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "mixpanel",
+   "provider": "greenhouse",
+   "board_token": "mixpanel",
+   "status": "live",
+   "postings_seen": 52,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "sofi",
+   "provider": "greenhouse",
+   "board_token": "sofi",
+   "status": "live",
+   "postings_seen": 50,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "discord",
+   "provider": "greenhouse",
+   "board_token": "discord",
+   "status": "live",
+   "postings_seen": 48,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "virtu",
+   "provider": "greenhouse",
+   "board_token": "virtu",
+   "status": "live",
+   "postings_seen": 48,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "wing",
+   "provider": "greenhouse",
+   "board_token": "wing",
+   "status": "live",
+   "postings_seen": 45,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "oldmissioncapital",
+   "provider": "greenhouse",
+   "board_token": "oldmissioncapital",
+   "status": "live",
+   "postings_seen": 41,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "constructor",
+   "provider": "ashby",
+   "board_token": "constructor",
+   "status": "live",
+   "postings_seen": 40,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "squarespace",
+   "provider": "greenhouse",
+   "board_token": "squarespace",
+   "status": "live",
+   "postings_seen": 34,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "binance",
+   "provider": "lever",
+   "board_token": "binance",
+   "status": "live",
+   "postings_seen": 33,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "dropbox",
+   "provider": "greenhouse",
+   "board_token": "dropbox",
+   "status": "live",
+   "postings_seen": 32,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "gemini",
+   "provider": "greenhouse",
+   "board_token": "gemini",
+   "status": "live",
+   "postings_seen": 32,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "certik",
+   "provider": "lever",
+   "board_token": "certik",
+   "status": "live",
+   "postings_seen": 31,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "linear",
+   "provider": "ashby",
+   "board_token": "linear",
+   "status": "live",
+   "postings_seen": 30,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "komodohealth",
+   "provider": "greenhouse",
+   "board_token": "komodohealth",
+   "status": "live",
+   "postings_seen": 28,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "talkspace",
+   "provider": "greenhouse",
+   "board_token": "talkspace",
+   "status": "live",
+   "postings_seen": 25,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "veracyte",
+   "provider": "greenhouse",
+   "board_token": "veracyte",
+   "status": "live",
+   "postings_seen": 25,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "webflow",
+   "provider": "greenhouse",
+   "board_token": "webflow",
+   "status": "live",
+   "postings_seen": 23,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "flatironhealth",
+   "provider": "greenhouse",
+   "board_token": "flatironhealth",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "anchorage",
+   "provider": "lever",
+   "board_token": "anchorage",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "formationbio",
+   "provider": "greenhouse",
+   "board_token": "formationbio",
+   "status": "live",
+   "postings_seen": 21,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "homebase",
+   "provider": "ashby",
+   "board_token": "homebase",
+   "status": "live",
+   "postings_seen": 21,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "greenhouse",
+   "provider": "greenhouse",
+   "board_token": "greenhouse",
+   "status": "live",
+   "postings_seen": 17,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "shiftkey",
+   "provider": "ashby",
+   "board_token": "shiftkey",
+   "status": "live",
+   "postings_seen": 12,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "titan",
+   "provider": "ashby",
+   "board_token": "titan",
+   "status": "live",
+   "postings_seen": 11,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "leverdemo",
+   "provider": "lever",
+   "board_token": "leverdemo",
+   "status": "live",
+   "postings_seen": 10,
+   "last_verified": "2026-10-14",
+   "source": "registry-121"
+  },
+  {
+   "company": "amwell",
+   "provider": "greenhouse",
+   "board_token": "amwell",
+   "status": "live",
+   "postings_seen": 9,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "llamaindex",
+   "provider": "ashby",
+   "board_token": "llamaindex",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "pinecone",
+   "provider": "ashby",
+   "board_token": "pinecone",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "airtable",
+   "provider": "greenhouse",
+   "board_token": "airtable",
+   "status": "live",
+   "postings_seen": 4,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "weaviate",
+   "provider": "ashby",
+   "board_token": "weaviate",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "Charles Schwab",
+   "provider": "greenhouse",
+   "board_token": "charles",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "mastra",
+   "provider": "ashby",
+   "board_token": "mastra",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "glide",
+   "provider": "greenhouse",
+   "board_token": "glide",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "Amazon",
+   "provider": "breezy",
+   "board_token": "amazon",
+   "status": "discovered_unsupported",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "AT&T",
+   "provider": "breezy",
+   "board_token": "at-t",
+   "status": "discovered_unsupported",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "General Motors",
+   "provider": "greenhouse",
+   "board_token": "general",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "crisp",
+   "provider": "greenhouse",
+   "board_token": "crisp",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "rocketreach",
+   "provider": "greenhouse",
+   "board_token": "rocketreach",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "kraken",
+   "provider": "lever",
+   "board_token": "kraken",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  },
+  {
+   "company": "mercury",
+   "provider": "ashby",
+   "board_token": "mercury",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "corpus-list"
+  }
+ ]
+}

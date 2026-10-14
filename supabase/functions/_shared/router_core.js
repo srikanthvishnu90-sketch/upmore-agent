@@ -29069,6 +29069,13 @@ const CareerReply = (() => {
     "router core", "rail", "rails", "cir", "cirs",
   ];
   const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+  // BUG-048: a bare content digest (md5/sha1/sha256 class — 32+ hex chars
+  // carrying at least one digit) and the "sha256" label itself are machine
+  // payload, never prose. A hash belongs in the typed artifact/doorstep
+  // record (proof), never in a bubble. URLs are masked before this scan:
+  // an action link's path is the step itself, not a payload token.
+  const HASH_WORD_RE = /\bsha-?256\b/i;
+  const HASH_RE = /\b(?=[0-9a-f]*\d)[0-9a-f]{32,}\b/i;
   const FACT_ID_RE = /\bF-\d{3,}\b/;
   const FACT_ID_WORD_RE = /fact_?ids?/i;
   const TOOL_MARKER_RE = /\b\d{3}\.[a-z][a-zA-Z]+\s*\(/;
@@ -29142,6 +29149,7 @@ const CareerReply = (() => {
     if (t.includes("```")) violations.push("code fence");
     if (JSON_BRACE_RE.test(t) || /(^|\s)\{/.test(t) || t.includes("}")) violations.push("JSON braces");
     if (UUID_RE.test(t)) violations.push("raw UUID");
+    if (HASH_RE.test(t.replace(/https?:\/\/\S+/g, " ")) || HASH_WORD_RE.test(t)) violations.push("raw content hash");
     if (FACT_ID_RE.test(t)) violations.push("fact ID");
     if (FACT_ID_WORD_RE.test(t)) violations.push("fact-id wording");
     if (TOOL_MARKER_RE.test(t) || TOOL_BRACKET_RE.test(t)) violations.push("tool marker");
@@ -29227,6 +29235,14 @@ const CareerReply = (() => {
   function cleanInline(line) {
     let s = String(line || "");
     s = s.replace(/\(\s*source:[^)]*\)/gi, " "); // citation parentheticals belong in docs, not bubbles
+    // BUG-048: strip bare content digests and the sha256 label. URLs are
+    // swapped out first and restored after — an action link is the step
+    // itself (SC-286 contract), its path is not a digest token.
+    const urls = [];
+    s = s.replace(/https?:\/\/\S+/g, (u) => { urls.push(u); return `\u0001${urls.length - 1}\u0001`; });
+    s = s.replace(HASH_WORD_RE, " ");
+    s = s.replace(HASH_RE, " ");
+    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     // Bare https links SURVIVE: an action link (the connect tap, a step's
     // destination) is the step itself, and the owner's standing rule is
     // that every step carries its exact raw URL (SC-286 contract). Only
@@ -29258,6 +29274,7 @@ const CareerReply = (() => {
     // A bare URL is an opaque token, not prose: its underscores/slashes
     // must not trip the snake_case rule (SC-286's connect link carries one).
     if (SNAKE_RE.test(cleaned.replace(/https?:\/\/\S+/g, " "))) return false;
+    if (HASH_WORD_RE.test(cleaned) || HASH_RE.test(cleaned.replace(/https?:\/\/\S+/g, " "))) return false; // BUG-048: a digest that survived cleaning still kills the sentence
     if (/\(source:/i.test(cleaned)) return false;
     if (cleaned.includes("|")) return false;
     return lint(cleaned).ok;
@@ -31306,10 +31323,36 @@ const CareerRouter = (() => {
     const matched = [...(jd.mustHaveSkills || [])].filter((sk) => proven.includes(lc(sk)));
     const titleLine = posting ? `${posting.title} at ${posting.company}` : "that role";
     const parseVerdict = rendered.parseCheck ? (typeof rendered.parseCheck === "string" ? rendered.parseCheck : rendered.parseCheck.verdict || rendered.parseCheck.status || null) : null;
+    // BUG-049: when the ask names its own lead — "lead with X" or an
+    // "X, Y forward" tail — the reply names THAT lead. The generic
+    // proven-skills line is only for asks that name none; substituting
+    // it for the user's words drops their exact constraint (D1).
+    let leadPhrase = null;
+    {
+      const askT = String(_text || "");
+      let leadRaw = null;
+      const leadM = askT.match(/lead with\s+(.+?)(?:[.!?]|$)/i);
+      if (leadM) leadRaw = leadM[1];
+      else {
+        const fwdM = askT.match(/[—–:-]\s*(.+?)\s+forward\b/i);
+        if (fwdM && (fwdM[1].includes(",") || fwdM[1].trim().split(/\s+/).length >= 3)) leadRaw = fwdM[1];
+      }
+      if (leadRaw) {
+        const clean = leadRaw.replace(/\s+/g, " ").replace(/[,;.\s]+$/, "").trim();
+        if (clean && clean.length <= 90) {
+          const parts = clean.split(/\s*,\s*/).filter(Boolean);
+          const joined = parts.length > 1 ? `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}` : clean;
+          leadPhrase = /^(your|the|my)\b/i.test(joined) ? joined : `your ${joined}`;
+        }
+      }
+    }
     const facts = [
-      `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
+      leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
       gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
-      rendered.pdf != null ? `Saved as a rendered artifact with real PDF and DOCX files attached${parseVerdict ? `, parse check ${parseVerdict}` : ""}; the text version carries sha256 ${artifact.sha256}.` : `Saved as a rendered text artifact, sha256 ${artifact.sha256}.`,
+      // BUG-048: the artifact's sha256 stays in the typed artifact record
+      // (the proof) — it is never spoken. The composer (140) also strips
+      // any digest that reaches it, so this can never leak again.
+      rendered.pdf != null ? `Saved as PDF and DOCX files, attached for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.` : "Saved as a rendered text artifact.",
       "Grounded in your own profile record and the posting's own text, as of October 2026.",
     ];
     const reply = compose({ headline: `Your resume is tailored for ${titleLine}.`, facts, nextStep: "Review the artifact, and I can prepare the full application packet next." });
@@ -31384,7 +31427,7 @@ const CareerRouter = (() => {
     // status) rides the typed packet — dropping it was the defect.
     const packet = { ok: true, company: posting.company, jobId: posting.id || posting.corpus_id || null, title: posting.title, submitted: false, onePage: pkt.onePage || null, ats: pkt.ats ? { ok: pkt.ats.ok } : null, document: pkt.document || null, artifactBinding: selected ? { file: selected.name, record: selected.record, sha256: selected.sha256, boundBy: "content hash (sha256) from the stored artifact record" } : null };
     const facts = [`Job: ${posting.title} at ${posting.company}.`];
-    if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound by its content hash sha256 ${selected.sha256}.`);
+    if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound to this company when the packet was built.`);
     else facts.push("Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.");
     facts.push("Nothing is submitted — this packet is a review copy only.");
     const reply = compose({ headline: `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
@@ -32889,7 +32932,7 @@ const CareerRouter = (() => {
       return done("The parser mangled it — the fields get re-entered by hand from your profile of record.", ["Parsed values are never trusted over the profile of record; the mangled dates are replaced field by field and the fixed version is what reaches the doorstep.", "A replay test is written from this failure so the same mangling gets caught automatically."], "Want the corrected field list shown before anything is re-entered?");
     }
     if (/\bwrong-resume\b|\bnearly attached\b|\bvariant b\b[^.]*\bcompany a\b/.test(t)) {
-      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is bound to its company by content hash at build time; a variant that does not match the target company cannot be attached, and the mismatch stops the flow cold.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?");
+      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built; a resume version that does not match that company cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?");
     }
     if (/\bdeadline radar\b|\bwarn me\b[^.]*\bwindow closes\b/.test(t)) {
       return done("The deadline radar is set on your target windows.", ["Each target's closing date is read from its own posting; the warning lands two weeks before the window closes, and again inside the final week.", "A window that closes early moves the warning with it — the radar reads the posting, not a static calendar."], "Want the current target windows listed with their dates?");

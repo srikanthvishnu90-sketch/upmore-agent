@@ -21,6 +21,13 @@ const CareerReply = (() => {
     "router core", "rail", "rails", "cir", "cirs",
   ];
   const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+  // BUG-048: a bare content digest (md5/sha1/sha256 class — 32+ hex chars
+  // carrying at least one digit) and the "sha256" label itself are machine
+  // payload, never prose. A hash belongs in the typed artifact/doorstep
+  // record (proof), never in a bubble. URLs are masked before this scan:
+  // an action link's path is the step itself, not a payload token.
+  const HASH_WORD_RE = /\bsha-?256\b/i;
+  const HASH_RE = /\b(?=[0-9a-f]*\d)[0-9a-f]{32,}\b/i;
   const FACT_ID_RE = /\bF-\d{3,}\b/;
   const FACT_ID_WORD_RE = /fact_?ids?/i;
   const TOOL_MARKER_RE = /\b\d{3}\.[a-z][a-zA-Z]+\s*\(/;
@@ -94,6 +101,7 @@ const CareerReply = (() => {
     if (t.includes("```")) violations.push("code fence");
     if (JSON_BRACE_RE.test(t) || /(^|\s)\{/.test(t) || t.includes("}")) violations.push("JSON braces");
     if (UUID_RE.test(t)) violations.push("raw UUID");
+    if (HASH_RE.test(t.replace(/https?:\/\/\S+/g, " ")) || HASH_WORD_RE.test(t)) violations.push("raw content hash");
     if (FACT_ID_RE.test(t)) violations.push("fact ID");
     if (FACT_ID_WORD_RE.test(t)) violations.push("fact-id wording");
     if (TOOL_MARKER_RE.test(t) || TOOL_BRACKET_RE.test(t)) violations.push("tool marker");
@@ -179,6 +187,14 @@ const CareerReply = (() => {
   function cleanInline(line) {
     let s = String(line || "");
     s = s.replace(/\(\s*source:[^)]*\)/gi, " "); // citation parentheticals belong in docs, not bubbles
+    // BUG-048: strip bare content digests and the sha256 label. URLs are
+    // swapped out first and restored after — an action link is the step
+    // itself (SC-286 contract), its path is not a digest token.
+    const urls = [];
+    s = s.replace(/https?:\/\/\S+/g, (u) => { urls.push(u); return `\u0001${urls.length - 1}\u0001`; });
+    s = s.replace(HASH_WORD_RE, " ");
+    s = s.replace(HASH_RE, " ");
+    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     // Bare https links SURVIVE: an action link (the connect tap, a step's
     // destination) is the step itself, and the owner's standing rule is
     // that every step carries its exact raw URL (SC-286 contract). Only
@@ -210,6 +226,7 @@ const CareerReply = (() => {
     // A bare URL is an opaque token, not prose: its underscores/slashes
     // must not trip the snake_case rule (SC-286's connect link carries one).
     if (SNAKE_RE.test(cleaned.replace(/https?:\/\/\S+/g, " "))) return false;
+    if (HASH_WORD_RE.test(cleaned) || HASH_RE.test(cleaned.replace(/https?:\/\/\S+/g, " "))) return false; // BUG-048: a digest that survived cleaning still kills the sentence
     if (/\(source:/i.test(cleaned)) return false;
     if (cleaned.includes("|")) return false;
     return lint(cleaned).ok;

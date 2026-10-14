@@ -1816,7 +1816,14 @@ const CareerRouter = (() => {
       if (g) {
         try {
           const rec = Guidance.answerGuidance(Object.assign({}, ctx, { intent: g, text: s(text), cir: cir || undefined, profile }));
-          if (rec && rec.ok !== false && rec.text) {
+          // BUG-073 (SC-242): some 144 records are ok:false BY DESIGN
+          // — the honest answer itself (trend_scope with no sourced
+          // snapshot: sources + as-of + a 3-step plan + the unknown
+          // stated plainly; the record validates F7). Gating on ok
+          // alone dropped those into the bare ladder template; the
+          // gate now accepts a record that carries the full cited
+          // shape, and still declines shapeless ok:false records.
+          if (rec && rec.text && (rec.ok !== false || (Array.isArray(rec.sources) && rec.sources.length && Array.isArray(rec.plan) && rec.plan.length >= 3))) {
             const src = Array.isArray(rec.sources) && rec.sources.length ? rec.sources[0] : null;
             const srcLine = src ? `Source: ${src.label || src.type || "sourced record"}${src.as_of ? `, as of ${src.as_of}` : ""}.` : sourceLine;
             const reply = compose({ headline: "Here is the honest shape of that, from the record.", facts: [s(rec.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" "), srcLine], nextStep: rec.nextStep || "Name the target and I will pull its file next." });

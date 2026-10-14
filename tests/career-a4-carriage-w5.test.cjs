@@ -118,3 +118,10 @@ test("BUG-075 contract reads the validator's actual verdict field (valid)", () =
   const src = fs.readFileSync(path.join(__dirname, "../scripts/career/gauntlet/run-grand.cjs"), "utf8");
   assert.ok(/v\.valid === true/.test(src), "run-grand's validates() reads v.valid (BUG-075)");
 });
+
+test("BUG-073 SC-242 trend ask carries 144's cited record (the ok:false honest record is the answer)", () => {
+  const r = turn("SC-242"); const res = r.result || {};
+  assert.ok(res.payload, "SC-242: the guidance record rides under payload");
+  const v = DC.validate("F7", res.payload);
+  assert.ok(v.valid, `SC-242: payload validates F7 (missing: ${v.missing.join(",")})`);
+});

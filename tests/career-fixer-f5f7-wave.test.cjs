@@ -95,6 +95,20 @@ test("F5 day-of checklist: (profile, opts) router shape keeps opts and exposes f
   assert.ok(proper.missing.includes("link"), "missing link still flagged, never invented");
 });
 
+test("F5 day-of checklist: empty inputs never leak the raw NOT SUPPLIED token into flat items (SC-198 regression)", () => {
+  // Grader finding (F5/F7 wave, fresh SC-198): with nothing supplied, the
+  // router-rendered checklist surfaced the internal placeholder verbatim —
+  // "When: NOT SUPPLIED Company: NOT SUPPLIED Location/joining: NOT SUPPLIED".
+  // Missing fields stay flagged, in the module's own prose convention
+  // ("NO LINK SUPPLIED — flagged, not invented"), never as a bare token.
+  const ck = Prep.dayOfChecklist(p1, {});
+  const items = ck.items || ck.checklist || [];
+  assert.ok(items.length >= 6, "flat items still produced");
+  assert.ok(!items.some((i) => /NOT SUPPLIED/.test(i)), "no raw NOT SUPPLIED token in any flat item: " + items.filter((i) => /NOT SUPPLIED/.test(i)).join(" | "));
+  assert.ok(ck.missing.includes("when") && ck.missing.includes("link") && ck.missing.includes("company"), "missing[] still lists the gaps");
+  assert.ok(items.some((i) => /not supplied/i.test(i)), "the gaps are still flagged in prose on the checklist itself");
+});
+
 // ---------------------------------------------------------- 127 / interviewer research overload
 test("F5 interviewer research: (peopleArray, profile) router overload works and each person carries a whois_line", () => {
   const people = [{ name: "Sam Reyes (TEST)", role: "Engineer", company: "Stripe", publicFacts: [{ text: "Sam Reyes works on the payments team at Stripe", source: "public page (TEST)" }] }];

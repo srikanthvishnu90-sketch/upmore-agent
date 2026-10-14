@@ -881,7 +881,7 @@ const CareerPrep = (() => {
     opts = opts || {}; const n = normalizeCir(opts.cir); const missing = [];
     if (!opts.when) missing.push("when"); if (!opts.link) missing.push("link"); if (!opts.company && !n) missing.push("company");
     const groups = {
-      logistics: [`When: ${s(opts.when || "NOT SUPPLIED")}`, `Company: ${n ? n.company_name : s(opts.company || "NOT SUPPLIED")}${n && n.stages.length ? " — stage on record: " + n.stages[n.stages.length - 1].name : ""}`, `Location/joining: ${s(opts.location || opts.link || "NOT SUPPLIED")}`, "Arrive / join 10 minutes early; ID and a quiet room if in person (TEST plan)"],
+      logistics: [`When: ${opts.when ? s(opts.when) : "not supplied yet — flagged, not invented"}`, `Company: ${n ? n.company_name : opts.company ? s(opts.company) : "not supplied yet — flagged, not invented"}${n && n.stages.length ? " — stage on record: " + n.stages[n.stages.length - 1].name : ""}`, `Location/joining: ${opts.location || opts.link ? s(opts.location || opts.link) : "not supplied yet — flagged, not invented"}`, "Arrive / join 10 minutes early; ID and a quiet room if in person (TEST plan)"],
       links: opts.link ? [`Interview link (supplied, TEST-labeled where marked): ${opts.link}`, "Open the link once now to confirm it loads; keep it pinned, not buried in email"] : ["NO LINK SUPPLIED — flagged, not invented"],
       tech_check: ["Camera, mic and speaker test in the actual app", "Charger plugged in; notifications off; backup: phone hotspot ready", "Close heavy tabs; water within reach"],
       materials: [...(opts.materials || ["Resume (one page)", "Your two primary STAR stories, one line each", "Your questions-to-ask list", "Pen + paper for names and follow-ups"])] };

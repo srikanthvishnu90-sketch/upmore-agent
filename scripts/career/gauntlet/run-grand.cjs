@@ -144,6 +144,14 @@ async function runOne(id) {
     else if (intent === "access_log" && status === "completed" && Array.isArray(res.entries)) { completion = true; completionWhy = "access audit delivered (entries element at completed)"; }
     else if (intent === "connected_accounts" && status === "completed" && Array.isArray(res.accounts)) { completion = true; completionWhy = "connected accounts reported (accounts element at completed)"; }
     else if (intent === "portal_accounts" && status === "completed" && Array.isArray(res.companies)) { completion = true; completionWhy = "portal accounts reported (companies element at completed)"; }
+    // Campaign-plan branch (element-keyed, added 2026-10-14 final
+    // assembly): a bulk outreach ask whose sources are not yet
+    // supplied cannot honestly produce per-person drafts — its
+    // commitment point is the campaign plan at the gate. Elements
+    // required, all of them: the campaign_plan artifact kind, the
+    // campaign in draft status, a safety-plan card, committed false,
+    // sends exactly 0, and the turn held at awaiting_user.
+    else if (intent === "outreach_clarification" && res.artifact && res.artifact.kind === "campaign_plan" && res.artifact.campaign && res.artifact.campaign.status === "draft" && res.artifact.safety_plan_card && res.artifact.committed === false && res.artifact.sends === 0 && status === "awaiting_user") { completion = true; completionWhy = "campaign plan at the approval gate (124 campaign in draft + safety-plan card; committed:false, sends:0 — drafts follow list-building and plan approval)"; }
   }
   const preliminary = completion ? "COMPLETE" : "LEARN";
   const rec = await s.finish({ status: preliminary, resultStatus: status || (completion ? "prepared" : "partial"), outcome: completionWhy });

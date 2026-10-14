@@ -1,14 +1,14 @@
 {
-  "label": "Upmore Career Gauntlet \u2014 live public listings (FIXTURE LANE F2). Public read-only GETs only; no auth, no forms, no submissions.",
-  "source_registry": "packages/domain/121-career-jobs.js BOARD_REGISTRY (commit a699051, merged in b8de356/f45be15) \u2014 live boards only; dead boards appear under blocked_coverage.",
+  "label": "Upmore Career Gauntlet — live public listings (FIXTURE LANE F2). Public read-only GETs only; no auth, no forms, no submissions.",
+  "source_registry": "packages/domain/121-career-jobs.js BOARD_REGISTRY (commit a699051, merged in b8de356/f45be15) — live boards only; dead boards appear under blocked_coverage.",
   "families_covered": [
     "ashby",
     "greenhouse",
     "lever",
     "smartrecruiters"
   ],
-  "listings_count": 29,
-  "lever_note": "Lever IS represented, but only by leverdemo, the sole live Lever board in the registry (a demo board \u2014 flagged per-listing). No real-employer Lever board is in the registry; Netflix/Ramp Lever are dead (see blocked_coverage). The 3-family minimum is met without Lever via greenhouse + ashby + smartrecruiters.",
+  "listings_count": 35,
+  "lever_note": "Lever IS represented, but only by leverdemo, the sole live Lever board in the registry (a demo board — flagged per-listing). No real-employer Lever board is in the registry; Netflix/Ramp Lever are dead (see blocked_coverage). The 3-family minimum is met without Lever via greenhouse + ashby + smartrecruiters.",
   "listings": [
     {
       "ats_family": "greenhouse",
@@ -218,7 +218,7 @@
       "timezone": "America/Chicago",
       "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
       "snapshot_file": "public-snapshots/lever-leverdemo-ad208490-4052-4f91-a57e-433f2d1e484b.json",
-      "snapshot_note": "Verbatim response body of the single-posting Lever endpoint. NOTE: leverdemo is Lever's public demo board \u2014 it is the only live Lever board in the repo BOARD_REGISTRY; postings are demo postings, recorded honestly as such."
+      "snapshot_note": "Verbatim response body of the single-posting Lever endpoint. NOTE: leverdemo is Lever's public demo board — it is the only live Lever board in the repo BOARD_REGISTRY; postings are demo postings, recorded honestly as such."
     },
     {
       "ats_family": "lever",
@@ -232,7 +232,7 @@
       "timezone": "America/Chicago",
       "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
       "snapshot_file": "public-snapshots/lever-leverdemo-120b5976-ee4e-4dc5-b31b-2b1ca124460c.json",
-      "snapshot_note": "Verbatim response body of the single-posting Lever endpoint. NOTE: leverdemo is Lever's public demo board \u2014 it is the only live Lever board in the repo BOARD_REGISTRY; postings are demo postings, recorded honestly as such."
+      "snapshot_note": "Verbatim response body of the single-posting Lever endpoint. NOTE: leverdemo is Lever's public demo board — it is the only live Lever board in the repo BOARD_REGISTRY; postings are demo postings, recorded honestly as such."
     },
     {
       "ats_family": "smartrecruiters",
@@ -415,6 +415,90 @@
       "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
       "snapshot_file": "public-snapshots/ashby-harvey-ec074cbf-8d48-4661-b26c-1fdfb01df783.json",
       "snapshot_note": "Ashby has no single-posting endpoint in this public API; file is the verbatim job object extracted unchanged from the board response (board URL given). Four-vertical battery fetch, 2026-10-13."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Capco",
+      "board": "capco",
+      "posting_id": "8152961",
+      "title": "Capco Summer Internship Program - Dallas Summer 2027",
+      "location": "US - Dallas",
+      "url": "https://boards-api.greenhouse.io/v1/boards/capco/jobs/8152961?content=true",
+      "retrieved_at": "2026-10-13T23:09:08-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-capco-8152961.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth). Six-sector gap-close (consulting) fetch, 2026-10-13."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Capco",
+      "board": "capco",
+      "posting_id": "8275106",
+      "title": "Business Analyst ",
+      "location": "Canada - Toronto",
+      "url": "https://boards-api.greenhouse.io/v1/boards/capco/jobs/8275106?content=true",
+      "retrieved_at": "2026-10-13T23:09:08-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-capco-8275106.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth). Six-sector gap-close (consulting) fetch, 2026-10-13."
+    },
+    {
+      "ats_family": "ashby",
+      "company": "Pariveda",
+      "board": "pariveda",
+      "posting_id": "a7757a29-e7ee-452f-95f4-7576b8f6ee87",
+      "title": "Associate Consultant, Technology Strategy & Business Transformation",
+      "location": "Dallas",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/pariveda",
+      "retrieved_at": "2026-10-13T23:09:08-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/ashby-pariveda-a7757a29-e7ee-452f-95f4-7576b8f6ee87.json",
+      "snapshot_note": "Ashby has no single-posting endpoint in this public API; file is the verbatim job object extracted unchanged from the board response (board URL given). Six-sector gap-close (consulting) fetch, 2026-10-13."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Northmarq",
+      "board": "northmarq",
+      "posting_id": "5431885008",
+      "title": "Investment Analyst - Commercial Real Estate Finance",
+      "location": "Chicago, Illinois, United States",
+      "url": "https://boards-api.greenhouse.io/v1/boards/northmarq/jobs/5431885008?content=true",
+      "retrieved_at": "2026-10-13T23:10:29-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-northmarq-5431885008.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth). Six-sector real-estate battery fetch, 2026-10-13."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Northmarq",
+      "board": "northmarq",
+      "posting_id": "5414561008",
+      "title": "Portfolio and Asset Management Intern, Summer 2027",
+      "location": "Minneapolis, Minnesota, United States",
+      "url": "https://boards-api.greenhouse.io/v1/boards/northmarq/jobs/5414561008?content=true",
+      "retrieved_at": "2026-10-13T23:10:29-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-northmarq-5414561008.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth). Six-sector real-estate battery fetch, 2026-10-13."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Orchard",
+      "board": "orchard",
+      "posting_id": "7018933002",
+      "title": "Licensed Real Estate Agent  - Fully Vetted Leads Provided",
+      "location": "Dallas, Texas, United States",
+      "url": "https://boards-api.greenhouse.io/v1/boards/orchard/jobs/7018933002?content=true",
+      "retrieved_at": "2026-10-13T23:10:29-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-orchard-7018933002.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth). Six-sector real-estate battery fetch, 2026-10-13. License-required knockout probe: JD requires an active Texas real estate license; TEST persona holds none."
     }
   ],
   "blocked_coverage": [
@@ -424,7 +508,7 @@
       "retrieved_at": "2026-10-13T09:48:04.116501-05:00",
       "timezone": "America/Chicago",
       "http_status": 404,
-      "result": "unavailable \u2014 no postings retrieved",
+      "result": "unavailable — no postings retrieved",
       "evidence": "{\"status\":404,\"error\":\"Job not found\"}",
       "snapshot_file": "public-snapshots/BLOCKED-goldmansachs-404.json",
       "note": "Matches the BOARD_REGISTRY dead-board record (checked 2026-10-13, commit a699051): expected 404. Recorded as blocked coverage, NOT a listing."
@@ -435,7 +519,7 @@
       "retrieved_at": "2026-10-13T09:48:05.393539-05:00",
       "timezone": "America/Chicago",
       "http_status": 404,
-      "result": "unavailable \u2014 no postings retrieved",
+      "result": "unavailable — no postings retrieved",
       "evidence": "{\"ok\":false,\"error\":\"Document not found\"}",
       "snapshot_file": "public-snapshots/BLOCKED-netflix-404.json",
       "note": "Matches the BOARD_REGISTRY dead-board record (checked 2026-10-13, commit a699051): expected 404. Recorded as blocked coverage, NOT a listing."
@@ -446,7 +530,7 @@
       "retrieved_at": "2026-10-13T09:48:06.756186-05:00",
       "timezone": "America/Chicago",
       "http_status": 200,
-      "result": "unavailable \u2014 no postings retrieved",
+      "result": "unavailable — no postings retrieved",
       "evidence": "{\"offset\":0,\"limit\":100,\"totalFound\":0,\"content\":[]}",
       "snapshot_file": "public-snapshots/BLOCKED-square-200.json",
       "note": "Matches the BOARD_REGISTRY dead-board record (checked 2026-10-13, commit a699051): expected 200 with totalFound 0. Recorded as blocked coverage, NOT a listing."

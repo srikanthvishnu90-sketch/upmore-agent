@@ -161,16 +161,21 @@ function chatTurn(session, text, ctx, opts) {
   // Composer fix §1b (2026-10-14): the H-12 ending guarantee must
   // exist at the delivery seam, not only inside 142 — dispatch order
   // 120 -> 130 -> 142 -> 141 leaves 120/130/141 replies outside 142's
-  // own guarantee. Same predicate as 142's ensureNextStepText (last
-  // SENTENCE tested), same deliberate exclusions (the fallback and
+  // own guarantee. Same deliberate exclusions (the fallback and
   // capability-absent exact texts are owner-approved contracts).
+  // BUG-080 (2026-10-14): the seam's predicate is now 140's ONE ending
+  // rule (CareerReply.ensureNextStep) — a handler's specific next step
+  // (typed result nextStep, a closing question, or a task-specific
+  // imperative) is never stamped over with the generic closer, and a
+  // generic closer 142 already stamped over a specific ending is
+  // stripped here. That is why 142 results now pass through the seam
+  // too: without it, SC-209's in-character imperative ending kept the
+  // generic stamp 142 put on it.
   const ensureEnding = (r) => {
     if (!r || typeof r.reply !== "string" || !r.reply) return r;
     if (r.intent === "career_fallback" || r.intent === "honest_unavailable") return r;
-    const sentences = r.reply.split(/(?<=[.!?])\s+|\n+/);
-    const lastSentence = sentences[sentences.length - 1] || "";
-    if (/\?/.test(lastSentence) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(lastSentence) || /\[Yes\]/.test(lastSentence)) return r;
-    r.reply = r.reply.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
+    const specific = typeof r.nextStep === "string" ? r.nextStep : (typeof r.next_step === "string" ? r.next_step : null);
+    r.reply = CareerReply.ensureNextStep(r.reply, specific ? { nextStep: specific } : undefined);
     return r;
   };
   const dispatch = () => {
@@ -178,7 +183,7 @@ function chatTurn(session, text, ctx, opts) {
     if (r) { handler = "120-career-access.handleChat"; return ensureEnding(r); }
     r = CareerOnboarding.handleChat(text, fullCtx);
     if (r) { handler = "130-career-onboarding.handleChat"; return ensureEnding(r); }
-    if (CareerRouter) { r = CareerRouter.handleChat(text, fullCtx); if (r) { handler = "142-career-router.handleChat"; return r; } }
+    if (CareerRouter) { r = CareerRouter.handleChat(text, fullCtx); if (r) { handler = "142-career-router.handleChat"; return ensureEnding(r); } }
     if (CareerDoorstep) { r = CareerDoorstep.handleChat(text, fullCtx); if (r) { handler = "141-career-doorstep.handleChat"; return ensureEnding(r); } }
     return null;
   };

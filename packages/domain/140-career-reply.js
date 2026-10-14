@@ -314,6 +314,79 @@ const CareerReply = (() => {
     return { bubbles: safe.length ? safe : [fallback("empty")], doc };
   }
 
-  return { MAX_SENTENCES_PER_BUBBLE, composeText, composeResult, fallback, lint, splitBubbles };
+  // ---- BUG-080: the ending rule (H-12 guarantee without template disease) ----
+  // The §1a/§1b seams appended the generic closer whenever the last
+  // sentence carried no H-12 token — even over a reply that already ended
+  // with a SPECIFIC next step (a question, or a task-specific imperative
+  // like SC-209's "answer as you would on the real call"). The re-pass
+  // found the generic line in 143/278 replies, rowed in 39 places.
+  // The rule now: a reply ends with the handler's specific next step when
+  // one exists; the generic closer may be appended ONLY when the reply
+  // carries no next step at all; it is never appended after a question or
+  // a task-specific imperative; and a generic closer already stamped over
+  // a specific ending is removed. Both delivery seams (142's local
+  // ensureNextStepText — see the coordinator hand-off — and the harness /
+  // host seam in pilot-lib.cjs) are to call THIS function so the rule
+  // exists exactly once.
+  const GENERIC_CLOSER = "Tell me what you'd like to do next.";
+  const NEXT_STEP_TOKEN_RE = /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i;
+  // Verbs that, at the head of the last sentence or of a clause set off
+  // inside it (em dash / semicolon / colon), make that sentence a
+  // directive to the user — a specific imperative, not a bare ending.
+  const IMPERATIVE_VERBS = new Set([
+    "answer", "say", "tell", "open", "review", "check", "send", "give", "name", "pick", "choose", "select",
+    "upload", "forward", "confirm", "approve", "tap", "reply", "ask", "share", "paste", "connect", "reconnect",
+    "try", "start", "book", "schedule", "watch", "track", "log", "import", "decide", "sign", "list", "show",
+    "add", "set", "fill", "prepare", "create", "take", "bring", "keep", "note", "look", "read", "download",
+    "request", "stop", "wait", "write", "draft", "run", "submit", "apply", "search", "find", "build", "let",
+    "state", "describe", "verify", "accept", "decline", "hold", "release", "resume", "restart", "retry",
+    "close", "cancel", "finish", "complete", "follow", "click", "enter", "provide", "specify", "go", "meet",
+  ]);
+  function lastSentenceOf(text) {
+    const sentences = splitSentences(String(text || ""));
+    return sentences.length ? sentences[sentences.length - 1] : "";
+  }
+  function isSpecificImperative(sentence) {
+    const s = String(sentence || "");
+    if (!s) return false;
+    if (/\bplease\b/i.test(s)) return true;
+    for (const clause of s.split(/—|;|:/)) {
+      const words = clause.replace(/^[\s"“”'‘’(\[]+/, "").split(/\s+/).filter(Boolean);
+      if (words.length < 3) continue; // a fragment or a label ("Roleplay") is not a directive
+      const head = words[0].replace(/[^a-z'-]/gi, "").toLowerCase();
+      if (IMPERATIVE_VERBS.has(head)) return true;
+    }
+    return false;
+  }
+  function endsWithNextStep(text) {
+    const last = lastSentenceOf(text);
+    if (!last) return false;
+    if (last === GENERIC_CLOSER) return true; // the guarantee, already satisfied generically
+    if (/\?/.test(last) || /\[Yes\]/.test(last)) return true;
+    if (NEXT_STEP_TOKEN_RE.test(last)) return true;
+    return isSpecificImperative(last);
+  }
+  function ensureNextStep(text, opts) {
+    const raw = String(text == null ? "" : text);
+    if (!raw.trim()) return raw;
+    const trimmed = raw.replace(/\s+$/, "");
+    let specific = "";
+    const supplied = opts && typeof opts.nextStep === "string" ? cleanInline(opts.nextStep) : "";
+    if (supplied && supplied !== GENERIC_CLOSER) specific = /[.!?]$/.test(supplied) ? supplied : `${supplied}.`;
+    // A generic closer already stamped on: keep it only when nothing
+    // specific stands before it and no handler step was supplied.
+    if (trimmed.endsWith(GENERIC_CLOSER)) {
+      const before = trimmed.slice(0, trimmed.length - GENERIC_CLOSER.length).replace(/\s+$/, "");
+      if (before && endsWithNextStep(before)) return before; // SC-209: strip the stamp, keep the specific ending
+      if (specific && before && !endsWithNextStep(before)) return `${before} ${specific}`;
+      if (specific && !before) return specific;
+      return trimmed;
+    }
+    if (endsWithNextStep(trimmed)) return raw;
+    if (specific) return `${trimmed} ${specific}`;
+    return `${trimmed} ${GENERIC_CLOSER}`;
+  }
+
+  return { MAX_SENTENCES_PER_BUBBLE, composeText, composeResult, fallback, lint, splitBubbles, GENERIC_CLOSER, endsWithNextStep, ensureNextStep };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerReply;

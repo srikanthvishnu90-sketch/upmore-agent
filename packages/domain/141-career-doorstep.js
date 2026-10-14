@@ -321,7 +321,7 @@ const CareerDoorstep = (() => {
       intent: "doorstep_submit", resultStatus: "awaiting_user", refused: true, blockers,
       stop_code: blockerStopCode(blockers),
       doorstep, submission,
-      reply: `I stopped the submit — nothing was submitted. I still need your own answer for: ${names || "the open questions on this form"}. Answer those and I will prepare it again for your approval.`,
+      reply: `I stopped the submit — nothing was submitted. I still need your own answer for: ${names || "the open questions on this form"}. Answer those and I will prepare it again — approve the new review when it is ready.`,
     };
   }
 
@@ -496,23 +496,23 @@ const CareerDoorstep = (() => {
     if (st.approval_invalidated === true || sub.status === "invalidated" || ri.invalidated) {
       const why = st.invalidated_reason || sub.invalidated_reason || (ri.reason ? "invalidated by a later update (" + ri.reason + ")" : null) || "the prepared packet was invalidated";
       return { code: "approval_invalidated", reason: String(why), unblock: "re-prepare the packet on the current facts and re-confirm the new review",
-        reply: `I did not submit this application: the prepared packet was invalidated (${why}), so its approval no longer stands. Nothing was submitted. I need to re-prepare it on the current facts and have you re-confirm the new review first.` };
+        reply: `I did not submit this application: the prepared packet was invalidated (${why}), so its approval no longer stands. Nothing was submitted. Tell me to re-prepare it on the current facts and I will bring you the new review to confirm.` };
     }
     const closed = jobClosedReason(ctx, st);
     if (closed) {
       return { code: "job_closed", reason: closed, unblock: "the employer reopens the job, or pick another role and I will prepare a fresh application",
-        reply: `I did not submit this application: ${closed}, so this submission is stopped. Nothing was submitted. If the employer reopens it — or you pick another role — I will prepare a fresh application for your review.` };
+        reply: `I did not submit this application: ${closed}, so this submission is stopped. Nothing was submitted. If the employer reopens it — or you pick another role — tell me and I will prepare a fresh application for your review.` };
     }
     const prior = priorApplicationFor(ctx, st, st.spec);
     if (prior) {
       return { code: "duplicate_application", reason: `an application for this job is already on record (${describePrior(prior)})`, unblock: "track or check the status of the existing application instead of applying again", prior,
-        reply: `I did not submit: there is already an application on record for ${jobLabelOf(st)} (${describePrior(prior)}), so a second submission would be a duplicate application. Nothing was submitted. I can track the existing application and check its status instead — say "track it" and I will.` };
+        reply: `I did not submit: there is already an application on record for ${jobLabelOf(st)} (${describePrior(prior)}), so a second submission would be a duplicate application. Nothing was submitted. I can track the existing application and check its status instead — tell me to track it and I will.` };
     }
     const stale = staleFactCheck(ctx, st);
     if (stale) {
       const change = stale.kind === "version" ? `fact version ${stale.bound} → ${stale.current}` : "the facts on file no longer match the ones this packet was prepared from";
       return { code: "stale_packet_facts", reason: `profile facts changed after this packet was prepared (${change})`, unblock: "re-confirm the current answers, let me re-prepare the packet, then approve the new review",
-        reply: `I did not submit: your profile facts changed after this packet was prepared (${change}), so the prepared answers are stale and this packet is invalidated. Nothing was submitted with the old answers. The current answers have to be re-confirmed and the packet re-prepared before anything submits.` };
+        reply: `I did not submit: your profile facts changed after this packet was prepared (${change}), so the prepared answers are stale and this packet is invalidated. Nothing was submitted with the old answers. You have to confirm the current answers again and the packet must be re-prepared before anything submits — tell me when you are ready and I will re-prepare it.` };
     }
     return null;
   }
@@ -569,7 +569,7 @@ const CareerDoorstep = (() => {
     if (prior) {
       const job = jobIdentity(state, spec);
       const label = [job.company, job.role].filter(Boolean).join(" — ") || "this job";
-      return { ok: false, code: "duplicate_application", prior, reply: `I stopped before filling anything out: there is already an application on record for ${label} (${describePrior(prior)}), so preparing a second one would duplicate it. Nothing was filled or submitted. I can track the existing application and check its status instead — say "track it" and I will.` };
+      return { ok: false, code: "duplicate_application", prior, reply: `I stopped before filling anything out: there is already an application on record for ${label} (${describePrior(prior)}), so preparing a second one would duplicate it. Nothing was filled or submitted. I can track the existing application and check its status instead — tell me to track it and I will.` };
     }
     const session = Driver.createSession(spec, sinkDir ? { sinkDir } : {});
     const stepLog = [], asks = [];
@@ -660,7 +660,7 @@ const CareerDoorstep = (() => {
     if (doorstep.state === "STOPPED") {
       const hiddenNames = blockerNames((doorstep.blockers || []).filter((b) => b.kinds.includes("hidden_default")));
       const hiddenText = hiddenNames ? ` The preselected answer I will not use is for: ${hiddenNames}.` : "";
-      return `I filled what your profile establishes, then stopped: a sensitive answer on this form is preselected in secret and you have not chosen it yourself.${hiddenText}${askText} Nothing was submitted.`;
+      return `I filled what your profile establishes, then stopped: a sensitive answer on this form is preselected in secret and you have not chosen it yourself.${hiddenText}${askText} Nothing was submitted. Tell me how you want that answer set and I will take the form to its review screen.`;
     }
     if (doorstep.state !== "REVIEW" || (doorstep.blockers || []).length) {
       const names = blockerNames(doorstep.blockers || []);
@@ -674,7 +674,7 @@ const CareerDoorstep = (() => {
     const state = ctx.doorstepState || {};
     const sub = state.submission;
     if (sub && state.doorstep) state.doorstep.submission = sub;
-    if (!state.session || !sub) return { intent: "doorstep_submit", resultStatus: "blocked", reply: "There is no prepared form waiting on its review screen, so there is nothing to submit. Ask me to fill the form out first." };
+    if (!state.session || !sub) return { intent: "doorstep_submit", resultStatus: "blocked", reply: "There is no prepared form waiting on its review screen, so there is nothing to submit. Want me to fill the form out first?" };
     if (sub.status === "unknown_outcome") {
       return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `One submission for this exact review is already on record and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt state before any retry.` };
     }
@@ -700,11 +700,11 @@ const CareerDoorstep = (() => {
     // words — the structured stop code stays on the result, not the reply.
     const open = openBlockers(state);
     if (open.length) { sub.status = "not_submitted"; return blockerRefusal(open, state.doorstep, sub); }
-    if (state.doorstep.state !== "REVIEW") return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: state.doorstep.stop_code || null, reply: `I stopped the submit — nothing was submitted. This form is not on its final review screen, so there is nothing ready to submit. Answer the open asks and I will prepare it again for your approval.` };
+    if (state.doorstep.state !== "REVIEW") return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: state.doorstep.stop_code || null, reply: `I stopped the submit — nothing was submitted. This form is not on its final review screen, so there is nothing ready to submit. Answer the open asks and I will prepare it again — approve the new review when it is ready.` };
     const out = state.session.submit();
     if (out.outcome === "accepted") {
       sub.status = "submitted_accepted"; sub.receipt_id = out.receipt && out.receipt.receipt_id;
-      return { intent: "doorstep_submit", resultStatus: "completed", doorstep: state.doorstep, submission: sub, reply: `Submitted once to the local test sink and confirmed with receipt ${sub.receipt_id}. That was the one approved submission for this review.` };
+      return { intent: "doorstep_submit", resultStatus: "completed", doorstep: state.doorstep, submission: sub, reply: `Submitted once to the local test sink and confirmed with receipt ${sub.receipt_id}. That was the one approved submission for this review. Want me to watch this one for status changes?` };
     }
     if (out.outcome === "timeout") {
       sub.status = "unknown_outcome"; sub.receipt_id = out.receipt_id || (out.receipt && out.receipt.receipt_id) || null; sub.receipt_written = !!out.receiptWritten;
@@ -717,15 +717,15 @@ const CareerDoorstep = (() => {
     sub.status = "not_submitted";
     const stoppedFields = [...(out.fields || []), ...(out.missing || [])];
     const stoppedNames = stoppedFields.map((f) => humanField(f)).join(", ");
-    return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: out.code || null, reply: `The form stopped the submit — nothing was submitted. I still need your own answer for: ${stoppedNames || "the open questions on this form"}. Answer those and I will prepare it again for your approval.` };
+    return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: out.code || null, reply: `The form stopped the submit — nothing was submitted. I still need your own answer for: ${stoppedNames || "the open questions on this form"}. Answer those and I will prepare it again — approve the new review when it is ready.` };
   }
   function reconcileDoorstep(ctx) {
     const state = ctx.doorstepState || {};
     const sub = state.submission;
     if (sub && state.doorstep) state.doorstep.submission = sub;
-    if (!sub || sub.status === "not_submitted") return { intent: "doorstep_status", resultStatus: "prepared", doorstep: state.doorstep || null, submission: sub || null, reply: "Nothing has been submitted for this form yet, so there is no outcome to check. It is still waiting on its review screen for your approval." };
-    if (sub.status === "cancelled") return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the submission was cancelled, so there is no outcome to check, and nothing will be sent unless you ask me to prepare it fresh." };
-    if (sub.status === "invalidated" || state.approval_invalidated === true) return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the prepared packet was invalidated, so there is no outcome to check. It has to be re-prepared on the current facts and re-approved first." };
+    if (!sub || sub.status === "not_submitted") return { intent: "doorstep_status", resultStatus: "prepared", doorstep: state.doorstep || null, submission: sub || null, reply: "Nothing has been submitted for this form yet, so there is no outcome to check. It is still waiting on its review screen — approve it there and it goes." };
+    if (sub.status === "cancelled") return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the submission was cancelled, so there is no outcome to check, and nothing will be sent unless you ask me to prepare it fresh — tell me and I will." };
+    if (sub.status === "invalidated" || state.approval_invalidated === true) return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the prepared packet was invalidated, so there is no outcome to check. It has to be re-prepared on the current facts first — tell me and I will re-prepare it for a fresh approval." };
     // THE one truth path (R2B / AP22): whatever the in-memory state claims —
     // accepted, confirmed, or unknown — the status is spoken ONLY from a
     // fresh re-read of the destination, taken now. This is the same read the
@@ -738,10 +738,10 @@ const CareerDoorstep = (() => {
       sub.destination_missing = false;
       const exactlyOne = dest.job_receipt_count == null || dest.job_receipt_count === 1;
       return { intent: "doorstep_status", resultStatus: "completed", doorstep: state.doorstep, submission: sub, destination: dest, reply: wasUnknown
-        ? `Yes — I checked the receipt sink before any retry and found exactly one submission for this application (receipt ${sub.receipt_id}). No second submission was made, so there are no duplicates.`
+        ? `Yes — I checked the receipt sink before any retry and found exactly one submission for this application (receipt ${sub.receipt_id}). No second submission was made, so there are no duplicates. Want the full timeline for this application?`
         : exactlyOne
-          ? `Yes — I re-checked the receipt sink just now: exactly one submission is on record for this application (receipt ${sub.receipt_id}). No second submission was made.`
-          : `I re-checked the receipt sink just now: ${dest.job_receipt_count} submissions are on record for this application (this one: receipt ${sub.receipt_id}). I made no further submission.` };
+          ? `Yes — I re-checked the receipt sink just now: exactly one submission is on record for this application (receipt ${sub.receipt_id}). No second submission was made. Want the full timeline for this application?`
+          : `I re-checked the receipt sink just now: ${dest.job_receipt_count} submissions are on record for this application (this one: receipt ${sub.receipt_id}). I made no further submission. Tell me if you want the full timeline for this application.` };
     }
     // Receipt absent at the destination (or the destination unreadable):
     // the outcome is UNCERTAIN, in plain words — never a confirmation — and
@@ -752,7 +752,7 @@ const CareerDoorstep = (() => {
     if (dest.checked) { sub.receipt_missing_at_destination = true; if (wasUnknown) sub.reconciled_before_retry = sub.retries === 0; }
     return { intent: "doorstep_status", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, destination: dest, reply: dest.checked
       ? "I checked the receipt sink just now and found no receipt for that submission, so I cannot confirm it went through — its outcome is uncertain. I have not resubmitted anything, and I will not resubmit blindly, since that could double-apply; tell me if you want me to prepare it again for your review."
-      : "I could not re-read the receipt sink just now, so I cannot confirm that submission went through — its outcome is uncertain. I have not resubmitted anything; ask me again and I will reconcile the sink before any retry." };
+      : "I could not re-read the receipt sink just now, so I cannot confirm that submission went through — its outcome is uncertain. I have not resubmitted anything — tell me to try again and I will reconcile the sink before any retry." };
   }
 
   // ---------- 3. queue control (C37 + R-A4 kill switch) ----------
@@ -878,11 +878,11 @@ const CareerDoorstep = (() => {
     if (fb) { binding.fact_version = fb.fact_version; binding.fact_hash = fb.fact_hash; }
     const pin = (ctx && ctx.packet) || {};
     const packet = Packets.assemblePacket({ profile: ctx.profile, company: pin.company, jdText: pin.jdText, jobId: pin.jobId || null, family: pin.family, cir: pin.cir || null, portalAsksCoverLetter: !!pin.portalAsksCoverLetter, companyKind: pin.companyKind, voice: pin.voice });
-    if (!packet.ok) return { intent: "packet_prep", resultStatus: "blocked", binding, packet, reply: `I bound the ${binding.version} version by its content hash, but the packet itself was refused (${packet.code || "truth audit"}), so nothing is prepared. Fix that first and I will rebuild it.` };
+    if (!packet.ok) return { intent: "packet_prep", resultStatus: "blocked", binding, packet, reply: `I bound the ${binding.version} version by its content hash, but the packet itself was refused (${packet.code || "truth audit"}), so nothing is prepared. Fix that first — tell me when it is fixed and I will rebuild it.` };
     const review = { company: packet.company, jobId: packet.jobId, portal: packet.portal || null, bound_name: binding.name, bound_version: binding.version, bound_sha256: binding.sha256, one_page_ok: packet.onePage ? packet.onePage.ok : null, ats_ok: packet.ats ? packet.ats.ok : null, fact_version: binding.fact_version != null ? binding.fact_version : null, fact_hash: binding.fact_hash || null };
     return {
       intent: "packet_prep", resultStatus: "prepared", packet, binding, review,
-      reply: `Prepared the ${binding.version} application packet for ${packet.company}, bound to the ${binding.version} version of your resume (matched by content hash, not by file name). It is ready for your review — nothing has been submitted.`,
+      reply: `Prepared the ${binding.version} application packet for ${packet.company}, bound to the ${binding.version} version of your resume (matched by content hash, not by file name). It is ready for your review — nothing has been submitted, and nothing goes anywhere until you approve it.`,
     };
   }
 

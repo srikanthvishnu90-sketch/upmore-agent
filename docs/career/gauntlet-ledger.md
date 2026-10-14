@@ -2460,3 +2460,9 @@ The owner authorized the version bump during the routing-fix run. `docs/quality-
 - **CA-01 CORRECTED** — scenario ID SC-174 → **SC-179** (SC-179 is the voice-mock ask). SC-179 grades NI only via this corrected listing, and only when the delivered reply is the entry's honest R-C7 reply.
 - Loader approval-gate semantics unchanged (status carries the affirmative owner approval; NI stays scoped to listed entries only). Counted concrete scenario IDs: 23 → 21. Entries: 9 → 8.
 - Same ruling batch: the locked two-touch follow-up cadence (~day 6 + ~day 15, then closed) is CONFIRMED — Spec 1's single-follow-up proposal is rejected and will not be implemented. Spec 2 §15 / Spec 3 §16 batches run on pack defaults; anything that sends, spends, or touches real accounts stays NOT approved; §6.4 application caps remain proposals (reported, not enforced) beyond the already-locked caps.
+
+## Fresh 300 re-run — routing-fix build (2026-10-13 evening CDT)
+
+- Records: `~/workspace/your_files/upmore-career-gauntlet-fresh-300` (fresh runner, baseline dir untouched). Rescore: grader-v2 + capability-absent **v2**. **Official count: PASS 13 / FAIL 286 / NI 1 / BLOCKED 0** (report: `docs/stability/runs/2026-10-14-c72a3cc.md`, script-generated; classification companion alongside it).
+- The `c637458` baseline report (0/300) is **superseded** by this run — preserved unedited, per the owner's documentation discipline.
+- Routing axis (separate from the verdict axis): 266/300 correct-tool, didn't-catch 0, wedge 150/150. The remaining verdict gap is concentrated in STATE_doorstep_gap (170), the A4 completion conditions (262 scenarios), and H-12 (179) — the conversation/doorstep waves, sequenced by the owner for tonight.

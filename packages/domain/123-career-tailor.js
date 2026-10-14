@@ -201,21 +201,51 @@ const CareerTailor = (() => {
     const family = detectFamily(raw);
     return { mustHaveSkills: mustSkills, niceToHaveSkills: niceSkills, level, keywords, family, knockouts: extractKnockouts(raw), rawText: raw };
   }
+  // BUG-055 (FV-4/FV-9/SS-2/SS-7): detectFamily scored each family with ONE
+  // binary regex and silently fell back to "swe": a Finance & Strategy
+  // title went to consulting ("strategy"), an accounting JD to swe/data_ml,
+  // clinical JDs to swe (the medicine pattern required literal med-school
+  // phrases), a legal-operations JD to ib_finance (the bare word "analyst"),
+  // every real-estate JD to ib_finance (no RE family existed), and Capco's
+  // consulting JDs to swe/ib_finance (sample-project stack tokens and a
+  // bare "analyst" outvoted the firm). Detection is now a weighted count of
+  // DISTINCT signals over the JD's signal segments (example/boilerplate
+  // segments excluded, per BUG-057), with a head bonus, a firm-identity
+  // bonus for named consultancies, no bare-"analyst" finance trigger, and
+  // an explicit "general" fallback — an unmatched JD never quietly gets
+  // SWE conventions again.
+  const FAMILY_PATTERNS = {
+    medicine: [/\bmedical assistant/, /\bnurse/, /\bnursing/, /\brn\b/, /\bpatient/, /\bclinical/, /\bhealthcare/, /\bmedical\b/, /\butilization review/, /\bcase management/, /\bphlebotom/, /\bcna\b/, /\bhospital/],
+    law: [/\blegal\b/, /\bparalegal/, /\blaw firm/, /\battorney/, /\bcounsel\b/, /\blitigation/, /\blegal operations/, /\bjuris doctor/, /\blaw clerk/, /\blegal assistant/, /\bwestlaw/, /\blexisnexis/, /\bsummer associate/, /\blaw review/, /\bmoot court/],
+    real_estate: [/\breal estate/, /\bcommercial real estate/, /\bunderwriting/, /\bargus/, /\bnoi\b/, /\basset management/, /\bescrow/, /\bleasing/, /\bmultifamily/, /\brent roll/, /\bcap rate/, /\bproperty management/, /\bacquisitions/],
+    consulting: [/\bconsultancy/, /\bconsulting/, /\bconsultant/, /\bcase study/, /\bclient engagement/, /\bmanagement consulting/],
+    ib_finance: [/\binvestment banking/, /\bm&a\b/, /\bdcf\b/, /\bvaluation/, /\bbanking/, /\bfinance\b/, /\bfinancial/, /\baccounting/, /\bcapital markets/, /\bdeal team/, /\bprivate equity/],
+    quant: [/\bquant/, /\btrader/, /\bprobability/, /\bstochastic/, /\blow[- ]latency/, /\bmarket making/],
+    pm: [/\bproduct manager/, /\bproduct management/, /\broadmap/, /\buser research/],
+    data_ml: [/\bdata scientist/, /\bmachine learning/, /\bml engineer/, /\bdata analyst/, /\banalytics/, /\bdata science/],
+    design: [/\bproduct designer/, /\bux\b/, /\bui designer/, /\bfigma/, /\bportfolio/],
+    swe: [/\bsoftware engineer/, /\bback[- ]?end/, /\bfront[- ]?end/, /\bfull[- ]?stack/, /\bapi\b/, /\bdeployment/, /\bkubernetes/, /\breact\b/, /\bangular\b/, /\bjava\b/, /\btypescript/, /\bnode\.?js/, /\bsoftware development/],
+  };
+  const FAMILY_PRIORITY = ["medicine", "law", "real_estate", "consulting", "ib_finance", "quant", "pm", "data_ml", "design", "swe"];
+  const CONSULTING_FIRMS = /\b(capco|pariveda|mckinsey|bain & company|bain\b|boston consulting|bcg\b|accenture|deloitte|kpmg|pwc\b|oliver wyman|kearney|roland berger|strategy&)\b/;
   function detectFamily(text) {
-    const t = String(text || "").toLowerCase();
-    const score = {
-      swe: /\b(software engineer|backend|front[- ]?end|full[- ]?stack|api|deployment|kubernetes|react)\b/.test(t) ? 2 : 0,
-      quant: /\b(quant|trader|probability|stochastic|low[- ]latency|market making)\b/.test(t) ? 2 : 0,
-      ib_finance: /\b(investment banking|analyst|m&a|dcf|valuation|deal|banking)\b/.test(t) ? 2 : 0,
-      consulting: /\b(consulting|consultant|case study|client engagement|strategy)\b/.test(t) ? 2 : 0,
-      pm: /\b(product manager|product management|roadmap|user research)\b/.test(t) ? 2 : 0,
-      data_ml: /\b(data scientist|machine learning|ml engineer|data analyst|analytics)\b/.test(t) ? 2 : 0,
-      design: /\b(product designer|ux|ui designer|figma|portfolio)\b/.test(t) ? 2 : 0,
-      law: /\b(summer associate|law firm|legal intern|moot court|law review|juris doctor)\b/.test(t) ? 2 : 0,
-      medicine: /\b(medical school|pre-?med|clinical|mcat|shadowing|patient care)\b/.test(t) ? 2 : 0,
-    };
-    const best = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
-    return best && best[1] > 0 ? best[0] : "swe";
+    const raw = String(text || "");
+    const signal = jdSegments(raw).filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate").map((sg) => sg.text).join(" ");
+    const t = (signal || raw).toLowerCase();
+    const head = t.slice(0, 500);
+    const scores = {};
+    for (const [fam, patterns] of Object.entries(FAMILY_PATTERNS)) {
+      let sc = 0;
+      for (const re of patterns) { if (re.test(t)) sc += 1; if (re.test(head)) sc += 1; }
+      scores[fam] = sc;
+    }
+    // Firm identity: a named consultancy + any consulting signal is the
+    // firm's own declaration — it outvotes practice-area tokens (a Capco
+    // BA's "wealth & asset management practice" is a practice, not the job).
+    if (scores.consulting > 0 && CONSULTING_FIRMS.test(t)) scores.consulting += 3;
+    let best = "general", bestScore = 0;
+    for (const fam of FAMILY_PRIORITY) if (scores[fam] > bestScore) { best = fam; bestScore = scores[fam]; }
+    return bestScore > 0 ? best : "general";
   }
 
   // ---- role-family variants (Doc 2 §3.3) — SWE + IB/finance most fully realised ----
@@ -228,7 +258,17 @@ const CareerTailor = (() => {
     data_ml: { label: "Data/ML", sectionOrder: ["Skills", "Projects", "Experience", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Models shipped, evaluation metrics and tooling lead; papers where present."], pageLimit: 1 },
     design: { label: "Design", sectionOrder: ["Projects", "Experience", "Skills", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Portfolio-first: projects lead and the portfolio link sits in the header."], pageLimit: 1 },
     law: { label: "Law (Big Law summer associate)", sectionOrder: ["Education", "Experience", "Leadership", "Projects", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["CV conventions: education first with school and journal signals, then legal experience and leadership; conservative formatting, one page."], pageLimit: 1 },
-    medicine: { label: "Medicine (med-school application)", sectionOrder: ["Education", "Experience", "Projects", "Leadership", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Clinical and research experience forward, each activity cited to a real experience fact; service and leadership shown with sustained commitment."], pageLimit: 1 },
+    // BUG-055 (FV-9): the only medicine variant was a med-school ADMISSION
+    // variant — a nursing student applying for a CNA/RN job was tailored
+    // under admissions conventions. This is the healthcare-EMPLOYMENT
+    // variant (Spec 3 §8B.4): credentials block first and verbatim,
+    // clinical settings and hours as context, no PHI.
+    medicine: { label: "Medicine (healthcare employment)", sectionOrder: ["Certifications", "Education", "Experience", "Projects", "Leadership", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Credentials block first, copied verbatim (exact license/certification names, issuers and status — credentials dominate in healthcare); clinical experience forward with setting and hours as context; no patient-identifying information (PHI) in any line; service and leadership shown with sustained commitment."], pageLimit: 1 },
+    // BUG-055 (SS-2): every real-estate JD was tailored as ib_finance.
+    real_estate: { label: "Real Estate", sectionOrder: ["Education", "Experience", "Leadership", "Projects", "Certifications", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Education first for students; experience bullets carry property and deal specifics (property types, unit counts, portfolio size, NOI/cap-rate figures only where evidenced); the skills line names Excel/Argus/CoStar only where evidenced; a license line is copied exactly where held and never implied where not held; one page."], pageLimit: 1 },
+    // BUG-055 (FV-4): the silent "swe" fallback is gone — an unmatched JD
+    // gets neutral conventions, surfaced as its own family.
+    general: { label: "General", sectionOrder: ["Experience", "Projects", "Education", "Leadership", "Certifications", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Neutral conventions: strongest evidenced experience first, education and credentials in their own sections; no family-specific framing is applied to an unmatched role."], pageLimit: 1 },
   };
 
   // ---- fact selection: relevance, then recency, then impact (Doc 2 §3.1 step 3) ----

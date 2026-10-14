@@ -102,3 +102,19 @@ test("BUG-074 SC-269 stale-file turn carries a typed record or blocker", () => {
   const r = turn("SC-269"); const res = r.result || {};
   assert.ok(res.payload || res.blocker || res.refresh, `record missing: keys=${Object.keys(res)}`);
 });
+
+// ------------------------------------------------------------------
+// BUG-075 — the A4 element-validation seam read the wrong property:
+// run-grand's validates() tested `v.ok`, but doorstep-contracts'
+// validate() returns { valid: ... } — v.ok is always undefined, so
+// every element-validated branch (F3/F4/F5/F6/F7/F8) was dead code
+// and genuinely-carried records could never complete a turn.
+// ------------------------------------------------------------------
+test("BUG-075 contract reads the validator's actual verdict field (valid)", () => {
+  const DC = require("../scripts/career/gauntlet/doorstep-contracts.cjs");
+  const v = DC.validate("F8", { record_id: "x-2026-10-13", date: "2026-10-13", text: "a stored record" });
+  assert.equal(v.valid, true, "the validator itself passes a genuine F8 record");
+  assert.equal(v.ok, undefined, "the validator exposes no .ok — the seam must read .valid");
+  const src = fs.readFileSync(path.join(__dirname, "../scripts/career/gauntlet/run-grand.cjs"), "utf8");
+  assert.ok(/v\.valid === true/.test(src), "run-grand's validates() reads v.valid (BUG-075)");
+});

@@ -135,7 +135,16 @@ async function runOne(id) {
   if (!completion) {
     let DC = null; try { DC = require("./doorstep-contracts.cjs"); } catch { DC = null; }
     const carriedRecs = [res.payload, res.doorstep && res.doorstep.payload, res.brief, res.guidance, res.watch, res.review_packet, res.record, res.plan, res.path, res.snapshot, res.diff, res.retro, res.upkeep, res.checklist, res.story_bank, res.bank, res.dashboard].filter((x) => x && typeof x === "object");
-    const validates = (fam) => { if (!DC) return false; for (const rec of carriedRecs) { try { const v = DC.validate(fam, rec); if (v && v.ok) return true; } catch { /* try the next record */ } } return false; };
+    const validates = (fam) => { if (!DC) return false; for (const rec of carriedRecs) { try { const v = DC.validate(fam, rec); if (v && (v.valid === true || v.ok === true)) return true; } catch { /* try the next record */ } } return false; };
+    // BUG-075 (W5, CONTRACT FIX — flagged): the line above read
+    // `v.ok`, but doorstep-contracts' validate() returns
+    // { family, valid, missing, invalid, present } — there is no
+    // `.ok`, so validates() was always false and EVERY element-
+    // validated branch below (F3/F4/F5/F6/F7/F8) was dead code: a
+    // genuinely carried, contract-valid record could never complete
+    // a turn. The fix reads the verdict field the validator actually
+    // returns; validate() itself and every element check are
+    // unchanged — no assertion weakened.
     if ((intent === "prep_brief" || intent === "prep_mock_checklist") && validates("F5")) { completion = true; completionWhy = "prep record delivered (doorstep-contract F5 validated on the carried record)"; }
     else if ((intent === "company_intel" || intent === "path_plan" || intent === "path_answer") && validates("F7")) { completion = true; completionWhy = "cited response delivered (doorstep-contract F7 validated on the carried record)"; }
     else if (intent && intent.indexOf("career_os") === 0 && validates("F8")) { completion = true; completionWhy = "career OS record delivered (doorstep-contract F8 validated on the carried record)"; }

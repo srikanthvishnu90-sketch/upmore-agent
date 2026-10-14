@@ -35,7 +35,8 @@ import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker,
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
-import { StyleCorpus, STYLE_CORPUS_JSON, ScamCheck } from "../_shared/router_core.js";
+import { StyleCorpus, STYLE_CORPUS_JSON, ScamCheck, CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../_shared/router_core.js";
+import { CareerHost } from "../_shared/career_host.js";
 import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, adviceReply, travelReply, optionsReply, notYetReply, copyReply, momentReply, termsReply, accreditedReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { bureauReply } from "./_shared/bureau_answer.ts";
@@ -234,6 +235,38 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       throw error;
     }
     flowCtx.user = user.id; flowCtx.thread = tid;
+
+    // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
+    // final switch" — the money version is gone from live). Career is the
+    // product served here. The finance pipeline below stays in the codebase
+    // shelved behind PRODUCT_MODE (pivot mechanics: shelved, not deleted —
+    // tag finance-final) and runs again only if this flag is flipped back.
+    // Career turns run the bundled chain in harness order (120 access →
+    // 130 onboarding → 142 router → 141 doorstep) inside 143 containment,
+    // through _shared/career_host.js — the same dispatch the gauntlet
+    // grades (tests/career-http-host.test.cjs). Per-thread career state
+    // rides agent_flow_state.state under the "career" key, mirroring the
+    // flow router's own use of that table.
+    const PRODUCT_MODE: "career" | "finance" = "career";
+    if (PRODUCT_MODE === "career") {
+      const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
+      await supabase.from("agent_messages").insert({ thread_id: tid, role: "user", content: userContent });
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      let flowState: Record<string, unknown> = {};
+      const { data: fsRow, error: fsErr } = await admin.from("agent_flow_state").select("state").eq("thread_id", tid).eq("user_id", user.id).maybeSingle();
+      if (fsErr) console.error("career state load failed:", fsErr.message);
+      if (fsRow && fsRow.state && typeof fsRow.state === "object") flowState = fsRow.state as Record<string, unknown>;
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), snapshot: (flowState.career as any) ?? null });
+      const out = host.runTurn(message, ctx);
+      for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
+      const { error: saveErr } = await admin.from("agent_flow_state").upsert(
+        { thread_id: tid, user_id: user.id, state: { ...flowState, career: host.extractSnapshot(ctx) }, updated_at: new Date().toISOString() },
+        { onConflict: "thread_id" },
+      );
+      if (saveErr) console.error("career state save failed:", saveErr.message);
+      await supabase.from("agent_messages").insert({ thread_id: tid, role: "assistant", content: out.reply, meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } });
+      return json(cors, { thread_id: tid, reply: out.reply, action: null });
+    }
 
     // Catalog-independent safety guards run BEFORE the heavy parallel fetches
     // (1500-route catalog in 5 pages). They need no DB data, so a gambling,

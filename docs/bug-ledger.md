@@ -487,3 +487,41 @@ completes through the F7 intel branch. SC-270's sentence now speaks
 without a claim verb. CONTRACT (flagged, run-grand.cjs): element-
 keyed branches for both records. Guard:
 tests/career-intel-completion.test.cjs. Rule: FR-292.
+
+## Residual deterministic lane — Prep + Access (2026-10-14)
+
+BUG-117 — Prep-set/question-bank turns composed the generic
+behavioral bank for every ask: the 142 handlers passed only a
+company name into 127's questionBank — never the ask's track
+(roleFamily), never the company file, never the profile's mined
+stories — and 127 itself held no SWE coding set and only two
+finance prompts (a technicals ask naming three statements, DCF,
+comps and LBO got "Tell me about yourself"). The payload was also
+shadowed by composeBrief's NO_CIR wrapper (the BUG-115 shape), and
+the interviewer-research record rode an unread key while the
+payload was a question bank for a different product. Fix: the
+handlers build the bank from the ask (bankArgs: track from the
+ask's words, cirFor, buildStoryBank stories) and carry the bank as
+payload whenever no company file grounds a full brief; 127's bank
+gains the canonical finance technicals (three statements, trading
+comps, LBO) and a SWE coding set (coding/system-design/
+fundamentals), and its record states the story-mapping state
+(stories_on_file + the no-story reason — P1's prose facts carry no
+action/result fields, so unmapped is the honest state, never an
+invented match). The research branch carries its record as payload
++ artifact and ends on a question (its H-12). CONTRACT (flagged,
+run-grand.cjs): the F5 contract is definitionally company-grounded,
+so no-company prep turns complete on their own records' elements —
+bank (≥3 source-typed questions + grounding state), checklist
+(≥3 groups), research (people array). Guard:
+tests/career-prep-completion.test.cjs (2/6 → 6/6). Rule: FR-293.
+
+BUG-118 — The LinkedIn export turn (SC-287) already carried its
+typed ingest record ({kind:"linkedin_export_ingest",
+requires_user_upload:true, sign_in_required:false, parsed:null})
+— CA-05's sanctioned zero-risk path — but no completion branch
+read the profile_export intent, so the turn could not complete.
+CONTRACT only (flagged, run-grand.cjs): the branch keys on the
+record's own elements. Guard: tests/career-prep-completion.test.cjs
+SC-287 test (record half); the branch is proven by the family
+re-run. Rule: FR-294.

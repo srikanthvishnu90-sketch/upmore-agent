@@ -245,10 +245,31 @@ const CareerPrep = (() => {
     }
     for (const g of GENERIC_BEHAVIORAL) push(g, "behavioral", { type: "generic_behavioral_bank", company_id: null });
     if (/quant|trading|finance/i.test(s(opts.roleFamily) + " " + s(opts.role))) {
+      // BUG-117: the finance drill set covers the canonical technicals
+      // the asks name — three statements, DCF, comps, LBO basics —
+      // not just the DCF prompt.
+      push("Walk me through the three financial statements and how they link.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
       push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+      push("How do you build a set of trading comps, and which multiples do you reach for first?", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+      push("Walk me through an LBO: sources and uses, and what actually drives the returns.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
       push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
     }
-    return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, questions: qs };
+    if (/swe|software|coding|engineering/i.test(s(opts.roleFamily) + " " + s(opts.role))) {
+      // BUG-117: the SWE coding set — before this, a coding ask was
+      // served the generic behavioral bank because no coding set
+      // existed in the product at all.
+      push("Given an array of integers and a target, return the two numbers that sum to it — then optimize your solution.", "coding", { type: "swe_coding_bank", company_id: n && n.company_id || null });
+      push("Reverse a linked list, talking through your approach before you code it.", "coding", { type: "swe_coding_bank", company_id: n && n.company_id || null });
+      push("Design a URL shortener: the data model, the API, and how it scales.", "system_design", { type: "swe_coding_bank", company_id: n && n.company_id || null });
+      push("How does a hash map handle collisions, and what are the trade-offs?", "fundamentals", { type: "swe_coding_bank", company_id: n && n.company_id || null });
+    }
+    // BUG-117: the story-mapping state rides the record itself — how
+    // many mineable stories the profile holds, and when there are
+    // none, the reason questions ship unmapped (never an invented
+    // match).
+    return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, questions: qs,
+      stories_on_file: stories.length,
+      stories_note: stories.length ? null : "No mineable story on the profile yet — stories mine only from facts carrying an action and a result, so the questions ship unmapped rather than inventing a match." };
   }
 
   // ---------- G3 (MID-1..8): ground truth, judgment, variants, disclosure ----------

@@ -1641,6 +1641,21 @@ const CareerRouter = (() => {
     // sources with as-of, bar/stages, story mapping), while the bank
     // itself rides under its own key.
     const briefPayload = () => { try { return Prep.composeBrief ? Prep.composeBrief(profile, { company: company || null }, cirFor(text, ctx)) : null; } catch { return null; } };
+    // BUG-117: bank turns build the bank from the ASK — its track
+    // (finance technicals / SWE coding), the company file, and the
+    // profile's mined stories all go in (the handlers used to pass
+    // only a company name, so every ask got the generic behavioral
+    // bank, unmapped). And the payload is the bank itself whenever
+    // no company file grounds a full brief: the NO_CIR brief wrapper
+    // shadowed the bank's own record (the BUG-115 shape).
+    const bankArgs = () => {
+      const roleFamily = /\btechnicals?\b|\bdcf\b|\blbo\b|\bcomps\b|three statements/.test(t) ? "finance"
+        : /\bswe\b|\bcoding\b|\bsoftware\b/.test(t) ? "swe" : null;
+      let stories = [];
+      try { stories = (Prep.buildStoryBank ? Prep.buildStoryBank(profile).stories : []) || []; } catch { stories = []; }
+      return { args: { company: company || null, role: null, roleFamily, cir: cirFor(text, ctx), stories }, roleFamily };
+    };
+    const payloadFor = (bank) => { const bp = briefPayload(); return (bp && bp.status === "OK") ? bp : bank; };
     try {
       // IB-F5F7-3: the case plan and the structure drill are their own
       // products — they must win before the generic prep-set regex.
@@ -1677,8 +1692,12 @@ const CareerRouter = (() => {
         let res = null;
         try { res = Prep.interviewerResearch([], profile, {}); } catch { res = null; }
         const lines = res && Array.isArray(res.people) ? res.people.map((p2) => s(p2.whois_line || p2.line || "")).filter(Boolean) : [];
-        const reply = compose({ headline: "Interviewer research: each person on the invite, from public sources only.", facts: lines.length ? lines.slice(0, 3) : ["For each interviewer: their path, their team, and the shared ground with you — every line sourced, nothing from private data.", "Where a person has no public footprint, the brief says so instead of inventing one."], nextStep: "Paste the invite names and I will build each brief." });
-        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, research: res || undefined, payload: briefPayload() || res || undefined };
+        const reply = compose({ headline: "Interviewer research: each person on the invite, from public sources only.", facts: lines.length ? lines.slice(0, 3) : ["For each interviewer: their path, their team, and the shared ground with you — every line sourced, nothing from private data.", "Where a person has no public footprint, the brief says so instead of inventing one."], nextStep: "Will you paste the invite names? Each brief is built from public sources only." });
+        // BUG-117: the research record is this ask's product — it
+        // rides as payload AND artifact (the NO_CIR brief wrapper
+        // used to shadow it, so the turn validated the wrong record
+        // and the calendar doorstep never saw a product).
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, research: res || undefined, payload: res || briefPayload() || undefined, artifact: res || undefined };
       }
       if (/\bday[ -]of checklist\b/.test(t) && Prep.dayOfChecklist) {
         const ck = Prep.dayOfChecklist(profile, {});
@@ -1687,19 +1706,26 @@ const CareerRouter = (() => {
         return { intent: "prep_mock_checklist", reply, resultStatus: "prepared", sends: 0, checklist: ck, payload: ck };
       }
       if (/\bprep set\b|\bprep plan\b|\bdrill\b|\btechnicals\b/.test(t) && Prep.questionBank) {
-        const bank = Prep.questionBank({ company: company || null, role: null });
+        // BUG-117: the bank is built from the ask (track, company
+        // file, mined stories); for a track ask the delivered set
+        // leads with the track's questions, not the behavioral five.
+        const { args, roleFamily } = bankArgs();
+        const bank = Prep.questionBank(args);
         const qs = (bank && (bank.questions || bank)) || [];
-        const list = (Array.isArray(qs) ? qs : []).slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
+        const rows = Array.isArray(qs) ? qs : [];
+        const ordered = roleFamily ? [...rows.filter((q) => q && q.round !== "behavioral"), ...rows.filter((q) => q && q.round === "behavioral")] : rows;
+        const list = ordered.slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         const reply = compose({ headline: `Your prep set${company ? ` for ${company}` : ""}, matched to how this round actually runs.`, facts: list.length ? list : ["The set is built from the question bank for this track, in the order the gaps on your profile demand."], nextStep: "Start the first one as a timed drill?" });
-        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: briefPayload() || bank };
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: payloadFor(bank) };
       }
       if (/\bquestion bank\b/.test(t) && Prep.questionBank) {
-        const bank = Prep.questionBank({ company: company || null, role: null });
+        const { args } = bankArgs();
+        const bank = Prep.questionBank(args);
         const qs = (bank && (bank.questions || bank)) || [];
         const list = (Array.isArray(qs) ? qs : []).slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         if (list.length) {
           const reply = compose({ headline: `The question bank${company ? ` for ${company}` : " for this round"}, with your best story matched to each.`, facts: list.map((q) => `${q}`), nextStep: "Pick one and we drill it." });
-          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: briefPayload() || bank };
+          return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: payloadFor(bank) };
         }
       }
       if (/\bstar bank\b|\breusable stories\b/.test(t) && Prep.buildStoryBank) {

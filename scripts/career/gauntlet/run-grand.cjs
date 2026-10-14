@@ -250,6 +250,20 @@ async function runOne(id) {
     // still completes through the F7 intel branch above).
     else if (intent === "company_intel" && res.payload && res.payload.kind === "file_refresh" && typeof res.payload.status === "string" && res.payload.stale_after_days === 90) { completion = true; completionWhy = "stale-file policy delivered (90-day rule: re-verify against current public postings or label stale, on the record)"; }
     else if (intent === "company_intel" && res.payload && res.payload.kind === "advice_report" && res.payload.status === "flagged_for_reverification") { completion = true; completionWhy = "advice flag delivered (the claim is flagged for re-verification and joins the eval set — the only state this turn creates)"; }
+    // BUG-117 (residual lane, CONTRACT — flagged): the no-company
+    // prep products. The F5 contract is definitionally company-
+    // grounded (it demands the company file's bar/stages/sources),
+    // so a bank/checklist/research turn with no company named
+    // completes on its own record's elements instead.
+    else if (intent === "prep_brief" && res.payload && Array.isArray(res.payload.questions) && res.payload.questions.length >= 3 && res.payload.questions.every((q) => q && q.source && q.source.type) && typeof res.payload.cir_grounded === "boolean") { completion = true; completionWhy = "question bank delivered (every question source-typed; story-mapping state on the record — unmapped states the no-story reason, never an invented match)"; }
+    else if (intent === "prep_mock_checklist" && res.payload && res.payload.groups && typeof res.payload.groups === "object" && Object.keys(res.payload.groups).length >= 3) { completion = true; completionWhy = "day-of checklist delivered (logistics/links/tech-check/materials groups on the record; unknowns flagged, not invented)"; }
+    else if (intent === "prep_brief" && res.payload && res.payload.kind === "interviewer_research" && Array.isArray(res.payload.people)) { completion = true; completionWhy = "interviewer research delivered (people on the record — none supplied yet is the stated state; the names are the ask's next step)"; }
+    // BUG-118 (residual lane, CONTRACT — flagged): the LinkedIn
+    // export turn. CA-05 makes the user's own data export the only
+    // sanctioned LinkedIn path; the turn's product is the typed
+    // ingest record (upload required, no sign-in, nothing parsed
+    // until the file exists).
+    else if (intent === "profile_export" && res.payload && res.payload.kind === "linkedin_export_ingest" && res.payload.requires_user_upload === true) { completion = true; completionWhy = "LinkedIn export plan delivered (CA-05 path: the user uploads their own data export — no credentials, no scraping)"; }
     else if (intent === "intent_opt_out" && res.suppression && res.suppression.recorded === true && status === "completed") { completion = true; completionWhy = "opt-out recorded in the suppression store (typed suppression.recorded element)"; }
     else if (intent === "safety_support" && res.support && (res.support.warmth_first === true || res.support.plan_shrunk_to_one_step === true) && status === "completed") { completion = true; completionWhy = "support answer carried 139's distress product (warmth_first / plan_shrunk_to_one_step elements)"; }
     else if (intent === "ai_use_answer" && res.draft && status === "awaiting_user") { completion = true; completionWhy = "AI-use answer drafted and held for approval (draft element at awaiting_user)"; }

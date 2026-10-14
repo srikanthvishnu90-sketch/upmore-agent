@@ -1832,9 +1832,21 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-intel-completion.test.cjs SC-269/SC-270 tests + run-grand.cjs BUG-116 branches.
 - **STATUS:** ENFORCED
 
+### FR-293 — A prep bank is built from the ask, and the bank is the payload when no company file exists (BUG-117)
+- **FORBIDDEN:** Serving the generic behavioral bank for a track ask (technicals/coding) because the handler dropped the ask's track, the company file, or the mined stories on the way into the question bank; shadowing the bank or the research record under a NO_CIR brief wrapper; and mapping a story the profile does not hold (the record states the mapping state — unmapped with its reason beats an invented match).
+- **FROM:** Residual lane 2026-10-14 — SC-177/181/183/187 failed A4 (+doorstep/H-12 on SC-181) with the products one argument away.
+- **ENFORCEMENT:** tests/career-prep-completion.test.cjs (6 tests) + run-grand.cjs BUG-117 branches.
+- **STATUS:** ENFORCED
+
+### FR-294 — The sanctioned LinkedIn path completes on its ingest record (BUG-118)
+- **FORBIDDEN:** Leaving the CA-05 export turn (the only sanctioned LinkedIn route) without a completion branch keyed on its typed ingest record; the path never asks for credentials and never scrapes — the record states upload-required and parses nothing until the user's own export exists.
+- **FROM:** Residual lane 2026-10-14 — SC-287 failed A4 with the record already carried.
+- **ENFORCEMENT:** tests/career-prep-completion.test.cjs SC-287 test + run-grand.cjs BUG-118 branch + prep/access re-run.
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 199 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 292
+Counts: ENFORCED 201 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 294
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2130,5 +2142,7 @@ Counts: ENFORCED 199 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-284 (BUG-114) | ENFORCED | tests/career-apply-completion.test.cjs + tests/career-intel-completion.test.cjs (SC-247) |
 | FR-291 (BUG-115) | ENFORCED | tests/career-intel-completion.test.cjs (R-C5 predicates, 20 asks) |
 | FR-292 (BUG-116) | ENFORCED | tests/career-intel-completion.test.cjs SC-269/SC-270 tests |
+| FR-293 (BUG-117) | ENFORCED | tests/career-prep-completion.test.cjs (6 tests) + run-grand BUG-117 branches |
+| FR-294 (BUG-118) | ENFORCED | tests/career-prep-completion.test.cjs SC-287 test + run-grand BUG-118 branch |
 
-<!-- totals: total=292 enforced=199 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=294 enforced=201 guarded_red=1 hard_shut=1 unenforced=91 -->

@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generated_at": "2026-10-14T17:31:12.656Z",
+  "generated_at": "2026-10-14T19:22:58.007Z",
   "generator": "scripts/career/board-discovery.py + build-board-directory.mjs",
   "doctrine": "an entry is live only if a real fetch in the discovery run returned the board's postings JSON; calibration probes (one gibberish token per provider) were run first and their signatures recorded here",
   "calibration": {
@@ -33,31 +33,26 @@
     "verdict": "dead"
    }
   },
-  "probes": 953,
+  "probes": 1399,
   "probe_stats": {
-   "greenhouse:live": 66,
-   "greenhouse:dead": 211,
-   "lever:live": 7,
-   "lever:dead": 93,
-   "ashby:dead": 76,
-   "ashby:live": 15,
-   "smartrecruiters:live": 1,
-   "smartrecruiters:error": 75,
-   "ashby:error": 72,
-   "workable:error": 37,
-   "recruitee:dead": 36,
-   "recruitee:error": 19,
-   "breezy:dead": 31,
-   "breezy:live": 5,
-   "smartrecruiters:unverifiable": 26,
-   "breezy:error": 19,
-   "greenhouse:error": 90,
-   "lever:error": 56,
-   "workable:dead": 18
+   "smartrecruiters:live": 7,
+   "greenhouse:live": 72,
+   "ashby:live": 17,
+   "lever:live": 11,
+   "breezy:live": 2,
+   "ashby:dead": 147,
+   "smartrecruiters:unverifiable": 145,
+   "greenhouse:dead": 187,
+   "lever:dead": 149,
+   "smartrecruiters:error": 140,
+   "ashby:error": 140,
+   "lever:error": 137,
+   "greenhouse:error": 245
   },
-  "live_supported": 89,
+  "live_supported": 107,
   "live_unsupported": 2,
-  "total_postings_seen": 19297
+  "total_postings_seen": 22442,
+  "discovery_accounting": "Two tranches, both 2026-10-14. Tranche 1 (corpus lists + registry + first slug pass): 953 probe outcomes (465 dead, 94 live, 26 unverifiable, 368 transport errors) -> directory v1, 91 entries / 89 watchable. Tranche 2 (the completed employer-slug sweep for the four supported providers, 1,310 candidates): an initial pass over 1,055 of them found 25 live boards but its records were lost when the sandbox /tmp was wiped; the sweep was therefore re-probed in full into durable storage (1,310 outcomes: 483 dead, 145 unverifiable, 662 transport errors, 20 live) and merged live-beats-non-live over v1. Directory v2: 109 entries, 107 watchable. The probe_stats block counts only the merged v2 record file (v1 entries carried as verified-live records + tranche-2 outcomes); tranche-1's non-live outcomes survive in the day's reports, not in this file. The Phase-3 watch proof ran over v1's 89 boards; the 18 net-new v2 boards are verified live by discovery fetches (the directory standard) but were not in that watch window."
  },
  "boards": [
   {
@@ -106,6 +101,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "ServiceNow",
+   "provider": "smartrecruiters",
+   "board_token": "servicenow",
+   "status": "live",
+   "postings_seen": 674,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "Anthropic",
+   "provider": "greenhouse",
+   "board_token": "anthropic",
+   "status": "live",
+   "postings_seen": 652,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
    "company": "rocketlab",
    "provider": "greenhouse",
    "board_token": "rocketlab",
@@ -142,6 +155,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "Elastic",
+   "provider": "greenhouse",
+   "board_token": "elastic",
+   "status": "live",
+   "postings_seen": 375,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "Okta",
+   "provider": "greenhouse",
+   "board_token": "okta",
+   "status": "live",
+   "postings_seen": 374,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
    "company": "relativity",
    "provider": "greenhouse",
    "board_token": "relativity",
@@ -149,6 +180,24 @@
    "postings_seen": 362,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Zscaler",
+   "provider": "greenhouse",
+   "board_token": "zscaler",
+   "status": "live",
+   "postings_seen": 362,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "Snowflake",
+   "provider": "ashby",
+   "board_token": "snowflake",
+   "status": "live",
+   "postings_seen": 355,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
   },
   {
    "company": "braze",
@@ -194,6 +243,15 @@
    "postings_seen": 248,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Block",
+   "provider": "greenhouse",
+   "board_token": "block",
+   "status": "live",
+   "postings_seen": 229,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
   },
   {
    "company": "janestreet",
@@ -538,6 +596,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "Capital One",
+   "provider": "lever",
+   "board_token": "capital",
+   "status": "live",
+   "postings_seen": 49,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
    "company": "discord",
    "provider": "greenhouse",
    "board_token": "discord",
@@ -581,6 +648,15 @@
    "postings_seen": 40,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "MetLife",
+   "provider": "lever",
+   "board_token": "metlife",
+   "status": "live",
+   "postings_seen": 39,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
   },
   {
    "company": "squarespace",
@@ -718,6 +794,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "CACI",
+   "provider": "smartrecruiters",
+   "board_token": "caci",
+   "status": "live",
+   "postings_seen": 14,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
    "company": "shiftkey",
    "provider": "ashby",
    "board_token": "shiftkey",
@@ -745,6 +830,15 @@
    "source": "registry-121"
   },
   {
+   "company": "Palantir",
+   "provider": "smartrecruiters",
+   "board_token": "palantir",
+   "status": "live",
+   "postings_seen": 10,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
    "company": "amwell",
    "provider": "greenhouse",
    "board_token": "amwell",
@@ -752,6 +846,15 @@
    "postings_seen": 9,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Blue Origin",
+   "provider": "lever",
+   "board_token": "blue",
+   "status": "live",
+   "postings_seen": 9,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
   },
   {
    "company": "llamaindex",
@@ -844,6 +947,33 @@
    "source": "employer-slug"
   },
   {
+   "company": "Southwest Airlines",
+   "provider": "smartrecruiters",
+   "board_token": "southwest",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "Uber",
+   "provider": "smartrecruiters",
+   "board_token": "uber",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "Wayfair",
+   "provider": "smartrecruiters",
+   "board_token": "wayfair",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
    "company": "crisp",
    "provider": "greenhouse",
    "board_token": "crisp",
@@ -878,6 +1008,33 @@
    "postings_seen": 0,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Lowe's",
+   "provider": "greenhouse",
+   "board_token": "lowe",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "Union Pacific",
+   "provider": "ashby",
+   "board_token": "union",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
+  },
+  {
+   "company": "DocuSign",
+   "provider": "lever",
+   "board_token": "docusign",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-14",
+   "source": "employer-slug"
   }
  ]
 }

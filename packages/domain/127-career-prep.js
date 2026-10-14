@@ -127,14 +127,27 @@ const CareerPrep = (() => {
     }
     return { story_map: map, stories_mapped: map, no_fit_statement: false, stories_note: null };
   }
-  function composeBrief(opts) {
+  function composeBrief(opts, postingArg) {
+    // Chat-path shape (142 handlePrepExtras, the entry the router actually
+    // calls): composeBrief(profile, { title, company }, null) — the first
+    // argument is a 122 profile, the second the posting stub. Normalize it
+    // here so the brief keeps the company/role the router resolved instead
+    // of silently dropping them (company came back "" on the chat path).
+    if (postingArg && typeof postingArg === "object" && opts && typeof opts === "object"
+      && !opts.cir && !opts.jdText && opts.company == null && (opts.facts || opts.basics || opts.id)) {
+      opts = { profile: opts, facts: opts.facts, company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "" };
+    }
     opts = opts || {};
+    if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: opts.profile.facts };
     const company = s(opts.company || (opts.cir && opts.cir.company_name) || "");
     const n = normalizeCir(opts.cir);
     const jdKw = jdKeywords(opts.jdText);
     if (!n) {
+      const bankStories = opts.stories || (opts.facts ? mineStories(opts.facts) : []);
+      const bank = questionBank({ role: opts.role, roleFamily: opts.roleFamily, round: opts.round, stories: bankStories });
       return { status: "NO_CIR", company, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
         bar: null, stages: [], emphasis: jdKw.map((k) => ({ point: `JD mentions: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
+        questions: bank.questions, likely_questions: bank.questions.map((q) => q.q),
         gaps: [`No company file on file for ${company || "this company"} — process stages, hiring bar and comp are not claimed.`, "Supply the JD text or add a company file for this company to ground a full brief."],
         sources: [], ...storyMapping(opts) };
     }
@@ -142,9 +155,12 @@ const CareerPrep = (() => {
       ...n.signals.slice(0, 4).map((x) => ({ point: x.text, source: { type: "CIR screening_signals", source_type: x.source && x.source.source_type, source_url: x.source && x.source.source_url } })),
       ...jdKw.slice(0, 4).map((k) => ({ point: `JD emphasis: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
     ];
+    const bankStories = opts.stories || (opts.facts ? mineStories(opts.facts) : []);
+    const bank = questionBank({ cir: opts.cir, role: opts.role, roleFamily: opts.roleFamily, round: opts.round, stories: bankStories });
     return { status: "OK", company: n.company_name, company_id: n.company_id, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
       bar: n.bar || null, stages: n.stages, emphasis, styles: n.styles, values: n.values.slice(0, 3),
       compNotes: n.compNotes, redFlags: n.redFlags.slice(0, 3),
+      questions: bank.questions, likely_questions: bank.questions.map((q) => q.q),
       gaps: n.bar ? [] : ["The company file has no hiring-bar summary; bar not claimed."],
       sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }], ...storyMapping(opts) };
   }
@@ -181,6 +197,22 @@ const CareerPrep = (() => {
       confidential, shareable: confidential ? false : story.shareable !== false,
       source: story.source || "user_capture", captured_at: new Date().toISOString() };
     store.stories.push(row); return row;
+  }
+  // STAR bank (SC-180): the chat router's STAR-bank branch is guarded on
+  // Prep.buildStoryBank(profile) — this is that entry. Stories are mined
+  // ONLY from profile facts that carry an action and a result (mineStories);
+  // a fact without both never becomes a story, and an empty bank says so.
+  function buildStoryBank(input) {
+    let facts = null, existing = null;
+    if (Array.isArray(input)) facts = input;
+    else if (input && Array.isArray(input.stories)) existing = input.stories;
+    else if (input && Array.isArray(input.facts)) facts = input.facts;
+    else if (input && input.profile && Array.isArray(input.profile.facts)) facts = input.profile.facts;
+    const stories = existing || (facts ? mineStories(facts) : []);
+    return { kind: "star_bank", stories, count: stories.length,
+      note: stories.length
+        ? "Mined only from profile facts that carry an action and a result — no story is invented or padded."
+        : "No story yet: no profile fact on file carries both an action and a result, so the bank is honestly empty. Capture one real experience with what you did and what changed, and it mines from that." };
   }
   function findStories(store, query) {
     const q = lc(query); const rows = (store && store.stories) || [];
@@ -663,10 +695,14 @@ const CareerPrep = (() => {
     for (const sk of profile.skills || []) check("shared skill: " + sk, sk);
     return out;
   }
-  function interviewerResearch(opts) {
+  function interviewerResearch(opts, profileArg) {
+    // Chat-path overload (142): interviewerResearch(peopleArray, profile, {})
+    if (Array.isArray(opts)) opts = { people: opts, profile: profileArg };
     opts = opts || {};
     const people = (opts.people || []).map((p) => { const b = interviewerBrief(p);
-      return { name: b.name, role: b.role, company: b.company, team: s(p.team || "") || null, path: p.path || [], status: b.status,
+      const whois_line = [b.name, b.role, b.company].filter(Boolean).length
+        ? `${b.name}${b.role ? ` — ${b.role}` : ""}${b.company ? ` at ${b.company}` : ""}` : null;
+      return { name: b.name, role: b.role, company: b.company, whois_line, team: s(p.team || "") || null, path: p.path || [], status: b.status,
         brief: b.brief, unknown: b.unknown, shared_ground: b.status === "OK" ? sharedGround(p, opts.profile) : [], note: b.note }; });
     return { kind: "interviewer_research", people, grounded: people.filter((p) => p.status === "OK").length,
       note: "Paths, teams and shared ground come only from the public professional facts supplied per person (TEST fixtures in scenario runs); a person with no supplied facts stays UNKNOWN — no bio is invented." };
@@ -707,8 +743,10 @@ const CareerPrep = (() => {
     return { kind: "case_prep_plan", company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
       practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
         note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files do not quantify it. It is a planning target, not a requirement." },
+      sources: n ? [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] : [{ type: "generic_case_framework", label: "No company file on file — generic case framework only; the practice norm is community-reported, not sourced from any firm", as_of: null }],
+      text: `Case prep plan${n ? ` for ${n.company_name}` : ""}: ${total} full practice cases over ${weeks} weeks. Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official).`,
       schedule: { weeks, sessions_per_week: perWeek, total_cases: total, inside_norm: total >= 30 && total <= 50,
-        plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each scored with scoreCaseResponse and the gaps re-drilled next session`) } };
+        plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each answer scored against the case rubric and the gaps re-drilled next session`) } };
   }
   const MM_DRILL = [
     { id: "mm-1", topic: "market_making", q: "A stock's fair value you estimate at $10.00. How do you quote, and what moves your spread?", key: ["bid", "ask", "fair value", "spread", "inventory", "informed"], expect: "Bid below / ask above your fair-value estimate; widen with inventory risk, volatility, or informed (adverse-selection) flow." },
@@ -813,16 +851,33 @@ const CareerPrep = (() => {
     return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? "No team fact was supplied for this interviewer, so no team is invented — questions are CIR-grounded; ask the team question once you learn the team." : "Team-tailored question is first; the rest are grounded in the company CIR." };
   }
   function failureStoryFromFacts(opts) {
-    opts = opts || {}; const facts = opts.facts || [];
+    opts = opts || {};
+    // Facts arrive as opts.facts, opts.profile.facts, a bare facts array, or
+    // a whole 122 profile (the chat router passes the profile itself).
+    const facts = opts.facts || (opts.profile && opts.profile.facts) || (Array.isArray(opts) ? opts : []);
     const hit = facts.find((f) => /\b(fail|failure|setback|missed|broke|broken|rejected|rejection|lost|delay|delayed|dropped|mistake|wrong)\b/i.test([f.title, f.text, f.action, f.result].join(" ")));
-    if (!hit) return { status: "NO_SETBACK_FACT", story: null, ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
-    return { status: "OK", story: { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") }, ask: [] };
+    if (!hit) return { status: "NO_SETBACK_FACT", ok: false, story: null, beats: [], ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
+    const story = { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") };
+    // ok + beats are the shape the chat router reads (st.ok, st.beats): the
+    // story's own lines, copied from the fact — never added to.
+    const beats = [story.situation, story.action, story.result].filter(Boolean);
+    return { status: "OK", ok: true, story, beats, ask: [] };
   }
   function structureDrill(opts) {
     opts = opts || {}; const g = scoreAnswer(opts.answer || "");
-    return { fix_first: "structure", before_scores: g.scores, scaffold: ["First, the situation: <one line — where, what was at stake>", "My task was: <your specific job, not the team's>", "So I: <2-3 actions, named tools, specifically …>", "In the end, the result was: <a number, measured how, over what period>"], drill: "Re-answer the same question using exactly those four signposts, in order, with no new facts — structure only. Then re-mock and compare the structure score.", note: "The drill changes ordering and signposting only; it never adds facts to a story." };
+    // SC-197: the drill turn ENTERS the drill — a typed start with the exact
+    // fix scaffold and the re-mock question issued now, not a description
+    // of a drill the user could take later.
+    return { kind: "structure_drill", status: "DRILL_STARTED", drill_started: true,
+      fix_first: "structure", before_scores: g.scores, scaffold: ["First, the situation: <one line — where, what was at stake>", "My task was: <your specific job, not the team's>", "So I: <2-3 actions, named tools, specifically …>", "In the end, the result was: <a number, measured how, over what period>"], drill: "Re-answer the same question using exactly those four signposts, in order, with no new facts — structure only. Then re-mock and compare the structure score.",
+      re_mock: { question: GENERIC_BEHAVIORAL[1], instruction: "Answer this question now using exactly the four scaffold signposts, in order, with no new facts. The re-mock scores structure against the before scores above." },
+      note: "The drill changes ordering and signposting only; it never adds facts to a story." };
   }
-  function dayOfChecklist(opts) {
+  function dayOfChecklist(opts, legacyOpts) {
+    // Chat-path shape (142): dayOfChecklist(profile, opts) — first argument
+    // is a 122 profile, the checklist inputs ride in the second argument.
+    if (opts && typeof opts === "object" && legacyOpts && typeof legacyOpts === "object"
+      && !opts.when && !opts.link && !opts.company && !opts.cir && (opts.basics || opts.facts || opts.id)) opts = legacyOpts;
     opts = opts || {}; const n = normalizeCir(opts.cir); const missing = [];
     if (!opts.when) missing.push("when"); if (!opts.link) missing.push("link"); if (!opts.company && !n) missing.push("company");
     const groups = {
@@ -830,7 +885,8 @@ const CareerPrep = (() => {
       links: opts.link ? [`Interview link (supplied, TEST-labeled where marked): ${opts.link}`, "Open the link once now to confirm it loads; keep it pinned, not buried in email"] : ["NO LINK SUPPLIED — flagged, not invented"],
       tech_check: ["Camera, mic and speaker test in the actual app", "Charger plugged in; notifications off; backup: phone hotspot ready", "Close heavy tabs; water within reach"],
       materials: [...(opts.materials || ["Resume (one page)", "Your two primary STAR stories, one line each", "Your questions-to-ask list", "Pen + paper for names and follow-ups"])] };
-    return { company: n ? n.company_name : s(opts.company || ""), when: s(opts.when || "") || null, groups, missing, note: "Checklist built from the supplied logistics/link/materials and the CIR stage on record; nothing about the employer's systems is claimed beyond that." };
+    const items = [...groups.logistics, ...groups.links, ...groups.tech_check, ...groups.materials];
+    return { company: n ? n.company_name : s(opts.company || ""), when: s(opts.when || "") || null, groups, items, checklist: items, missing, note: "Checklist built from the supplied logistics/link/materials and the CIR stage on record; nothing about the employer's systems is claimed beyond that." };
   }
   function debriefRetro(storeOrOpts) {
     const debriefs = (storeOrOpts && storeOrOpts.debriefs) || (storeOrOpts && storeOrOpts.debriefs === undefined && storeOrOpts.all) || [];
@@ -855,7 +911,7 @@ const CareerPrep = (() => {
   }
 
   return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
-    makePrepStore, mineStories, captureStory, findStories, storyTags,
+    makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,
     isConfidentialText, makeShareableExample, accessibilityMode, recordingConsent, handlePrepTurn,

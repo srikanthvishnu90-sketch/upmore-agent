@@ -270,6 +270,137 @@ const CareerJobs = (() => {
     }
     return { restrictions, excluded: restrictions.some((r) => r.disposition === "excluded"), exclusion_reasons, needs_user_input, unresolved: needs_user_input.length > 0 };
   }
+  // ---------- hard knockouts (BUG-050; FV-7 / SS-4 / SS-5) ----------
+  // Eligibility never read the JD's own knockout lines: a license, a named
+  // certification, a conferred degree, or a stated minimum of years. An
+  // unlicensed nursing student was judged "submit" for RN-licensed roles, a
+  // pre-law undergraduate for a JD-required role, an unlicensed persona for a
+  // Texas real-estate-license role, and a zero-experience student for a
+  // "Minimum 5 years" role. detectKnockouts extracts those requirements from
+  // the posting's own sentences as structured data (carried on the posting,
+  // like APD-2 restrictions); evaluateKnockouts compares them against the
+  // candidate's CONFIRMED facts only — an in-progress credential never
+  // satisfies a completed-credential requirement, and target roles the user
+  // merely wants (preferences.roles) are not credentials.
+  const KNOCKOUT_FILLER = new Set(["active", "unrestricted", "current", "valid", "compact", "multistate", "state", "additional", "the", "a", "an", "in", "of", "or", "and", "required", "unexpired"]);
+  function knockoutSentences(text) {
+    return s(text).split(/(?<=[.;])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
+  }
+  function credentialTokens(phraseWords) {
+    return phraseWords.filter((w) => w && !KNOCKOUT_FILLER.has(w));
+  }
+  function detectKnockouts(posting) {
+    const out = [];
+    const seen = new Set();
+    const push = (ko) => { const k = `${ko.type}|${ko.credential || ko.level || ko.min_years}`; if (!seen.has(k)) { seen.add(k); out.push(ko); } };
+    for (const rawSent of knockoutSentences(posting && posting.jd_text)) {
+      const sent = lc(rawSent);
+      // license / licensure
+      const lic = sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
+      if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sent)) {
+        const words = lic[1].replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).slice(-4);
+        const tokens = credentialTokens(words);
+        if (tokens.length) push({ type: "license", credential: `${tokens.join(" ")} license`, tokens, requirement: `a ${tokens.join(" ")} license`, evidence: rawSent.slice(0, 220) });
+      }
+      // named certification (e.g. "Medical Assistant Certification" under a Requirements heading)
+      const cert = sent.match(/([a-z][a-z&' -]{0,44}?)\s(certification|certificate)\b/);
+      if (cert && /(requirements?\s*:|required|must (hold|have|possess|maintain|be)|certification\s*$|certification\s+\d)/.test(sent) && !/degree|bachelor|master/.test(sent)) {
+        const words = cert[1].replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).slice(-3);
+        const tokens = credentialTokens(words);
+        if (tokens.length >= 2) push({ type: "certification", credential: `${tokens.join(" ")} certification`, tokens, requirement: `a ${tokens.join(" ")} certification`, evidence: rawSent.slice(0, 220) });
+      }
+      // degree knockouts: a named professional degree, or a degree line that says required.
+      if (/\bjd\b/.test(sent) && /(law school|juris|from a|degree)/.test(sent)) push({ type: "degree", level: "jd", requirement: "a JD (Juris Doctor) degree", evidence: rawSent.slice(0, 220) });
+      else if (/\bdegree\b/.test(sent) && /(required|must (hold|have|possess)|is required)/.test(sent) && !/(graduating|pursuing|currently enrolled|rising (senior|junior|sophomore)|students? (currently|pursuing|enrolled))/.test(sent)) {
+        // A degree the same sentence says the candidate is still pursuing /
+        // graduating into (intern postings: "Bachelor's degree … Must be
+        // graduating in 2028") is an enrollment requirement, NOT a
+        // conferred-degree knockout.
+        const level = /master/.test(sent) ? "master" : /associate/.test(sent) ? "associate" : "bachelor";
+        push({ type: "degree", level, requirement: level === "bachelor" ? "a conferred bachelor's (four-year) degree" : `a conferred ${level}'s degree`, evidence: rawSent.slice(0, 220) });
+      }
+      // minimum years of experience (explicit requirement phrasings only)
+      const ym = sent.match(/(?:minimum|min\.?|at least)\s*(?:of\s*)?(\d+)(?:\s*[-–]\s*\d+)?\s*\+?\s*years?\b[^.;]{0,40}?experience/)
+        || sent.match(/(\d+)\s*\+\s*years?\s+of\s+[^.;]{0,90}?experience/)
+        || sent.match(/(\d+)\s*[-–]\s*\d+\s*years?\s+of\s+[^.;]{0,60}?experience/);
+      if (ym) push({ type: "min_experience", min_years: Number(ym[1]), requirement: `at least ${ym[1]} years of experience`, evidence: rawSent.slice(0, 220) });
+    }
+    return out;
+  }
+  function factCorpusText(f) { return lc(`${(f && f.title) || ""} ${(f && f.text) || ""} ${((f && f.bullets) || []).join(" ")}`); }
+  function factInProgress(f) { return /in progress|in-progress|pursuing|expected|graduating|enrolled|rising/i.test(factCorpusText(f)); }
+  function evidencedFullTimeYears(profile) {
+    if (profile && typeof profile.experience_years === "number") return profile.experience_years;
+    const facts = (profile && profile.facts) || null;
+    if (!Array.isArray(facts)) return null; // unknown: a minimum-years knockout cannot be decided, so it does not fire
+    let months = 0;
+    const now = new Date();
+    const nowMonths = now.getFullYear() * 12 + now.getMonth();
+    for (const f of facts) {
+      if (!f || f.kind !== "experience" || f.needs_confirmation) continue;
+      if (/\b(intern|internship|extern|volunteer)\b/i.test(s(f.title))) continue; // knockouts ask FULL-TIME professional years
+      const sm = s(f.start).match(/(\d{4})-(\d{2})/), em = s(f.end).match(/(\d{4})-(\d{2})/);
+      if (!sm) continue;
+      const startM = Number(sm[1]) * 12 + Number(sm[2]);
+      const endM = em ? Number(em[1]) * 12 + Number(em[2]) : (/present/i.test(s(f.end)) ? nowMonths : startM);
+      if (endM > startM) months += endM - startM;
+    }
+    return Math.round((months / 12) * 10) / 10;
+  }
+  function credentialSatisfied(ko, profile) {
+    const facts = ((profile && profile.facts) || []).filter((f) => f && !f.needs_confirmation);
+    const certFacts = facts.filter((f) => f.kind === "certification" && !factInProgress(f));
+    const hasAll = (text) => ko.tokens.every((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text));
+    for (const f of certFacts) if (hasAll(factCorpusText(f))) return true;
+    const phrase = ko.tokens.join(" ");
+    for (const f of facts) {
+      if (factInProgress(f)) continue;
+      const text = factCorpusText(f);
+      if (ko.tokens.length >= 2 && text.includes(phrase)) return true;
+      if (ko.tokens.length === 1 && new RegExp(`\\b${ko.tokens[0]}\\b`).test(text) && /licen[cs]e|licensed|registered|certified/.test(text)) return true;
+    }
+    // 121-shape profiles: proven skill names + degree string can evidence a credential.
+    const skillNames = profileSkills(profile).filter((x) => x.proven).map((x) => lc(x.name));
+    if (skillNames.some((n) => hasAll(` ${n} `))) return true;
+    return false;
+  }
+  function degreeSatisfied(ko, profile) {
+    const facts = ((profile && profile.facts) || []).filter((f) => f && !f.needs_confirmation);
+    const markers = { jd: /juris doctor|\bjd\b/, bachelor: /bachelor|b\.?s\.?\b|b\.?a\.?\b|four-year|undergraduate degree/, master: /master|m\.?s\.?\b|m\.?a\.?\b|ph\.?d/, associate: /associate/ };
+    const marker = markers[ko.level] || markers.bachelor;
+    const nowYM = (() => { const d = new Date(); return d.getFullYear() * 100 + (d.getMonth() + 1); })();
+    for (const f of facts) {
+      if (f.kind !== "education" && f.kind !== "certification") continue;
+      if (!marker.test(factCorpusText(f))) continue;
+      if (factInProgress(f)) continue; // an in-progress degree is not a conferred degree
+      const em = s(f.end).match(/(\d{4})-(\d{2})/);
+      if (em && Number(em[1]) * 100 + Number(em[2]) > nowYM) continue; // confers in the future
+      return true;
+    }
+    // 121-shape profiles: profile.degree + a KNOWN graduation year decide conferral.
+    const c = (profile && profile.constraints) || {};
+    const degText = lc(profile && (profile.degree || c.degree || ""));
+    if (degText && marker.test(degText)) {
+      const gy = c.graduation_year || (c.graduation_date ? Number(s(c.graduation_date).slice(0, 4)) : null);
+      if (!gy || gy <= new Date().getFullYear()) return true;
+    }
+    return false;
+  }
+  function evaluateKnockouts(posting, profile) {
+    const knockouts = (posting && posting.knockouts) || detectKnockouts(posting || {});
+    const unmet = [];
+    for (const ko of knockouts) {
+      if (ko.type === "license" || ko.type === "certification") {
+        if (!credentialSatisfied(ko, profile || {})) unmet.push({ knockout: ko, reason: `credential knockout: posting requires ${ko.requirement}; no confirmed fact on your profile evidences that ${ko.type} (an in-progress or different credential does not satisfy it)` });
+      } else if (ko.type === "degree") {
+        if (!degreeSatisfied(ko, profile || {})) unmet.push({ knockout: ko, reason: `degree knockout: posting requires ${ko.requirement}; your confirmed education facts do not evidence a conferred degree at that level` });
+      } else if (ko.type === "min_experience") {
+        const years = evidencedFullTimeYears(profile || {});
+        if (years != null && years < ko.min_years) unmet.push({ knockout: ko, reason: `experience knockout: posting requires ${ko.requirement}; your confirmed facts evidence about ${years} years of full-time experience` });
+      }
+    }
+    return { knockouts, unmet, excluded: unmet.length > 0 };
+  }
   // Application-prep constraint carried in data whenever the employer's ban flags:
   // downstream prep can read this instead of proceeding as if the ban were absent.
   function applicationPrepFor(posting) {
@@ -306,6 +437,8 @@ const CareerJobs = (() => {
     // APD-2/APD-5: restrictions + employer AI-authorship ban ride on the posting record.
     posting.restrictions = detectRestrictions(posting);
     posting.ai_authorship_ban = detectAiAuthorshipBan(posting);
+    // BUG-050: hard knockouts (license / certification / degree / minimum years) ride on the record too.
+    posting.knockouts = detectKnockouts(posting);
     return posting;
   }
 
@@ -552,6 +685,10 @@ const CareerJobs = (() => {
     // when the profile's known facts decide them; when the deciding fact is unknown the
     // restriction does NOT fail here — scoreFit surfaces it as a needs_user_input flag.
     for (const reason of evaluateRestrictions(posting, profile).exclusion_reasons) fails.push(reason);
+    // hard knockouts (BUG-050): license / certification / degree / minimum-years
+    // requirements stated in the posting, checked against confirmed facts. An
+    // unmet knockout is a hard fail with the gap named — never a bare pass.
+    for (const u of evaluateKnockouts(posting, profile).unmet) fails.push(u.reason);
     // degree
     const deg = lc(profile.degree || c.degree || "");
     if (/\bph\.?d\.?\b/.test(jd.slice(0, 1200)) && /\brequired\b/.test(jd.slice(0, 1200)) && !/ph/.test(deg)) fails.push(`degree: posting requires a PhD; your profile degree is ${deg || "not listed"}`);
@@ -753,6 +890,7 @@ const CareerJobs = (() => {
     normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
+    detectKnockouts, evaluateKnockouts, evidencedFullTimeYears,
     roleFamily, seniorityBand, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;

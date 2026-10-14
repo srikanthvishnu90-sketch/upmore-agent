@@ -1058,10 +1058,15 @@ const CareerRouter = (() => {
     if (!OS || !OS.returnOfferPlaybook) return null;
     const r = OS.returnOfferPlaybook({ cir: ctx.cir || cirFor(text, ctx) || null, offer: ctx.offer || null });
     const firstSentence = (x) => s(x).split(/(?<=[.!?])\s/)[0];
-    const facts = (r.steps || []).slice(0, 3).map((st) => firstSentence(`${st.action} — ${st.why}`));
+    // 129's steps are plain strings (an {action, why} object shape was
+    // read here before — every fact rendered "undefined — undefined").
+    const facts = (r.steps || []).slice(0, 3).map((st) => firstSentence(typeof st === "string" ? st : `${st.action || ""}${st.why ? ` — ${st.why}` : ""}`)).filter(Boolean);
     facts.push(`Grounded in your own internship log and the company file's sourced notes, as of ${asOfMonthYear(ctx)}.`);
     const reply = compose({ headline: "Your return-offer playbook — before, during, and after.", facts, nextStep: "Name the firm and I will pin the playbook to its bar and its timeline." });
-    return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0, playbook: r };
+    // BUG-072: the playbook rides as an F8 record under payload.
+    const date = new Date(nowOf(ctx)).toISOString().slice(0, 10);
+    const payload = Object.assign({}, r, { record_id: `return-offer-playbook-${date}`, date, text: facts[0] || undefined });
+    return { intent: "career_os_playbook", reply, resultStatus: "prepared", sends: 0, playbook: r, payload };
   }
 
   // ---------- warm-path graph family (135) ---------------------------------
@@ -1594,11 +1599,19 @@ const CareerRouter = (() => {
     let store = ctx.osStore || null;
     if (!store && OS.createStore) { try { store = OS.createStore((profile.basics && profile.basics.name) || "you"); ctx.osStore = store; } catch { store = null; } }
     const sourceLine = `Grounded in your own log and record, as of ${asOfMonthYear(ctx)}.`;
+    // BUG-072: OS turns from this catch-all carry the same F8 record
+    // envelope as 130's front door — career_os_* intent + payload —
+    // instead of sinking into a bare capability_status result.
+    const osRec = (product, kind, textFallback) => {
+      if (!product || typeof product !== "object" || Array.isArray(product)) return undefined;
+      const date = product.as_of || product.created_at || product.date || new Date(nowOf(ctx)).toISOString().slice(0, 10);
+      return Object.assign({}, product, { record_id: product.watch_id || product.win_id || product.plan_id || product.record_id || product.id || `${kind}-${String(date).slice(0, 10)}`, date: product.date || String(date).slice(0, 10), text: product.text || product.statement || textFallback || undefined });
+    };
     try {
       if (/\bwins? log\b|\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && OS.logWin && store) {
-        OS.logWin(store, { text: s(text).replace(/.*(log a win|wins? log)[:\s]*/i, "") || "a win you named", at: new Date(nowOf(ctx)).toISOString() });
+        const win = OS.logWin(store, { text: s(text).replace(/.*(log a win|wins? log)[:\s]*/i, "") || "a win you named", at: new Date(nowOf(ctx)).toISOString() });
         const reply = compose({ headline: "Win added to your packet.", facts: ["Wins land in the achievements packet in your own words, dated.", sourceLine], nextStep: "Keep them coming — the packet is what your next applications draw from." });
-        return { intent: "capability_status", reply, resultStatus: "completed", sends: 0 };
+        return { intent: "career_os_wins_log", reply, resultStatus: "completed", sends: 0, payload: osRec(win, "win") };
       }
       if (/\bnetwork upkeep\b|\bgoing cold\b|\bwarmest contacts\b/.test(t) && OS.networkUpkeep && store) {
         const up = OS.networkUpkeep(store, { now: nowOf(ctx) });
@@ -1606,24 +1619,24 @@ const CareerRouter = (() => {
         const facts = Array.isArray(due) && due.length ? due.slice(0, 3).map((x) => s(typeof x === "string" ? x : x.text || x.name || "").split(/(?<=[.!?])\s/)[0]).filter(Boolean) : ["Nobody crosses the going-cold line this week — the warm set is holding."];
         facts.push(sourceLine);
         const reply = compose({ headline: "Network upkeep, from your relationship record.", facts, nextStep: "Want a keep-warm touch drafted for the coldest one?" });
-        return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0, upkeep: up };
+        return { intent: "career_os_upkeep", reply, resultStatus: "prepared", sends: 0, upkeep: up, payload: osRec(up, "network-upkeep", up.restart_draft || undefined) };
       }
       if (/\bpassive watch\b|\bperfect-fit role posts\b|\bwatch:/.test(t) && OS.createWatch && store) {
-        OS.createWatch(store, { text: s(text) }, {});
+        const watch = OS.createWatch(store, { text: s(text) }, {});
         const reply = compose({ headline: "The watch is set.", facts: ["It reads the same boards as discovery, and a fitting role pings you when it posts — while you are employed, the watch works so you don't have to.", sourceLine], nextStep: "Want the watch widened to neighbouring titles?" });
-        return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0 };
+        return { intent: "career_os_watch", reply, resultStatus: "prepared", sends: 0, watch, payload: watch };
       }
       if (/\breview packet\b|\bpromotion case\b/.test(t) && OS.reviewPacket && store) {
         const rp = OS.reviewPacket(store, {});
         const body = digText(rp, ["text", "summary"], ["sections", "lines", "wins"]);
         const reply = compose({ headline: "Your review packet, built from the wins log.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "It assembles the semester's wins, dated, in your own words — the promotion case writes itself from the log, not from memory.", sourceLine], nextStep: "Want the packet exported for your review meeting?" });
-        return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0, review_packet: rp };
+        return { intent: "career_os_review_packet", reply, resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp };
       }
       if (/\bfirst[ -]?90\b/.test(t)) {
         const r = OS.returnOfferPlaybook({ cir: ctx.cir || cirFor(text, ctx) || null, offer: ctx.offer || null });
         const days = (r && r.first_90_days) || [];
         const reply = compose({ headline: "Your first-90-days plan at the new job.", facts: [...days.slice(0, 3).map((x) => s(x)), sourceLine].filter(Boolean), nextStep: "Want week one pinned to your actual start date?" });
-        return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0 };
+        return { intent: "career_os_first90", reply, resultStatus: "prepared", sends: 0, playbook: r, payload: osRec(r, "return-offer-playbook", days[0]) };
       }
       if (/\btimeline\b/.test(t) && OS.careerTimeline && store) {
         const tl = OS.careerTimeline(store, profile);
@@ -1631,7 +1644,7 @@ const CareerRouter = (() => {
         const facts = phases.slice(0, 3).map((p) => `${p.name || p.phase}: ${p.window || p.when || ""}`.trim());
         facts.push(sourceLine);
         const reply = compose({ headline: "Your career timeline, from the record.", facts: facts.filter(Boolean), nextStep: "Want the next milestone pinned to a date?" });
-        return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0, timeline: tl };
+        return { intent: "career_os_timeline", reply, resultStatus: "prepared", sends: 0, timeline: tl, payload: osRec(tl, "career-timeline", tl.statement) };
       }
       if (/\bgoals?\b/.test(t) && OS.goalsCheckin && store) {
         const g = OS.goalsCheckin(store, { now: nowOf(ctx) });
@@ -1639,11 +1652,11 @@ const CareerRouter = (() => {
         if (g && g.text) facts.push(s(g.text).split(/(?<=[.!?])\s/)[0]);
         facts.push(sourceLine);
         const reply = compose({ headline: "Your goals check-in, against your own targets.", facts, nextStep: "Want to adjust a target, or hold the line?" });
-        return { intent: "capability_status", reply, resultStatus: "prepared", sends: 0, goals: g };
+        return { intent: "career_os_goals", reply, resultStatus: "prepared", sends: 0, goals: g, payload: osRec(g, "goals-checkin", g.adjustment_prompt) };
       }
     } catch { /* fall through to the status answer */ }
     const reply = compose({ headline: "That lives in your career OS — here is the honest state of it.", facts: ["The OS keeps your timeline, goals, watch list, and wins in one record, and it reports from that record only.", sourceLine], nextStep: "Ask for the timeline or the goals check-in and I will show it in full." });
-    return { intent: "capability_status", reply, resultStatus: "awaiting_user", sends: 0 };
+    return { intent: "career_os_status", reply, resultStatus: "awaiting_user", sends: 0 };
   }
 
   // ======================================================================

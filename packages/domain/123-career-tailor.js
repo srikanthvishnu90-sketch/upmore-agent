@@ -65,7 +65,17 @@ const CareerTailor = (() => {
 
   // Skill lexicon for JD parsing + audit keyword checks. Deliberately finite:
   // a word not in this list is ordinary prose, not a claimed skill.
-  const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Tableau", "Figma", "Photoshop", "A/B Testing", "Statistics", "Probability", "Data Structures", "Algorithms", "System Design", "CI/CD", "GraphQL", "REST", "Spark", "Hadoop", "R"];
+  // BUG-056 (FV-10/SS-3/SS-9): the lexicon was SWE/finance/data/design only —
+  // parseJD extracted ZERO requirements from every real medicine, law,
+  // real-estate and consulting JD (no Epic/CNA/BLS, no Westlaw/LexisNexis,
+  // no Argus/NOI/IRR/underwriting, no user stories/Agile), so relevance,
+  // must-have gating and coverage all ran on keywords alone exactly where
+  // credentials matter most. Extended per market, same finite discipline.
+  const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Tableau", "Figma", "Photoshop", "A/B Testing", "Statistics", "Probability", "Data Structures", "Algorithms", "System Design", "CI/CD", "GraphQL", "REST", "Spark", "Hadoop", "R",
+    "Patient Care", "Vital Signs", "Phlebotomy", "Epic", "EHR", "EMR", "BLS", "CNA", "Medical Assistant", "Medical Assistant Certification", "Utilization Review", "Case Management", "Clinical Documentation", "Nursing License", "RN License", "Registered Nurse",
+    "Legal Research", "Legal Writing", "Westlaw", "LexisNexis", "E-Filing", "Legal Calendaring", "Contract Review", "Legal Operations",
+    "Argus", "NOI", "DSC", "DSCR", "IRR", "Cap Rate", "Underwriting", "Rent Roll", "CoStar", "Asset Management", "Escrow", "Pro Forma", "Salesforce", "Real Estate License", "Real Estate",
+    "User Stories", "Agile", "Jira", "Confluence", "Requirements Analysis", "Stakeholder Management", "Business Analysis", "Consulting", "Change Management", "Project Management"];
   const _lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
   function skillsInText(text) {
     const t = ` ${String(text || "").toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
@@ -360,11 +370,26 @@ const CareerTailor = (() => {
       // here; a year appearing in no field of the cited fact still refuses.
       const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")} ${f.start || ""} ${f.end || ""}`).join(" ").toLowerCase();
       // Keyword rule: any lexicon skill named in the line must be evidenced.
+      // BUG-056: the evidence lookup must read the fact's BULLETS as well as
+      // its text — a fact's own bullet is where the work is stated (the RE
+      // persona's F-002 text summarizes, its bullets name NOI and rent-roll
+      // work). 122's skillEvidence reads text+skills only, so with the
+      // extended lexicon the audit refused TRUE lines from the candidate's
+      // own facts (SS-G1/SS-G2 regression). Token-matched, confirmed facts
+      // only — the gate's strength is unchanged for unevidenced skills.
+      const factEvidencesSkill = (f, nm) => {
+        if (!f || f.needs_confirmation || f.kind === "skill") return false;
+        if ((f.skills || []).some((x) => String(x).toLowerCase() === nm)) return true;
+        const corpus = ` ${`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`.toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
+        return corpus.includes(` ${nm} `);
+      };
       for (const skill of skillsInText(text)) {
         const ev = Profile.skillEvidence(profile, skill);
-        const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill);
-        const inSupport = supportText.includes(skill.toLowerCase()) && ev.proven;
-        if (!ev.proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
+        const nm = skill.toLowerCase();
+        const proven = ev.proven || (profile.facts || []).some((f) => factEvidencesSkill(f, nm));
+        const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill || factEvidencesSkill(Profile.getFact(profile, id), nm));
+        const inSupport = supportText.includes(nm) && proven;
+        if (!proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
       }
       // Number rule: any number in the line must appear in a supporting fact.
       for (const n of numbersIn(text)) {

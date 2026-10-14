@@ -655,7 +655,16 @@ const CareerJobs = (() => {
 
   // ---------- fit scoring (DISC-005) ----------
   function profileSkills(profile) {
-    const raw = (profile && (profile.skills || (profile.facts && profile.facts.skills))) || [];
+    let raw = (profile && (profile.skills || (profile.facts && profile.facts.skills))) || [];
+    // BUG-054 (SS-10): the fit verdict depended on the CALLER's input shape —
+    // a canonical profileFromData profile carries its skills as kind:"skill"
+    // FACTS, and a caller who did not pre-attach profile.skills in the
+    // 132-judge shape silently got score 0 / matched [] for a user who does
+    // match. Derive the skills from the profile's own facts when no skills
+    // array is attached, so every caller gets the same verdict.
+    if ((!raw || !raw.length) && profile && Array.isArray(profile.facts)) {
+      raw = profile.facts.filter((f) => f && f.kind === "skill").map((f) => ({ name: f.name || String(f.text || "").replace(/^Skill:\s*/i, ""), proven: !f.unproven }));
+    }
     return raw.map((x) => typeof x === "string" ? { name: x, proven: true } : { name: s(x.name || x.skill), proven: x.proven !== false && !x.unproven }).filter((x) => x.name);
   }
   function hardFilters(posting, profile) {
@@ -669,8 +678,7 @@ const CareerJobs = (() => {
     // location
     const wantLocs = (c.locations || prefs.locations || []).map(normLoc).filter(Boolean);
     if (wantLocs.length && posting.remote !== "remote") {
-      const pl = normLoc(posting.location);
-      if (!wantLocs.some((w) => pl.includes(w) || w.includes(pl.split(" ")[0]))) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
+      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
     }
     if (prefs.remote_only && posting.remote === "onsite") fails.push(`location: posting is on-site in ${posting.location}; you want remote`);
     // work authorization (Doc 2 section 2 example: "requires US citizenship; you said you need sponsorship")
@@ -711,6 +719,33 @@ const CareerJobs = (() => {
     return fails;
   }
 
+  // BUG-052 (FV-3): the location filter treated a multi-office location
+  // string as ONE place (normLoc kept only its first 3 words), so a posting
+  // listing the user's own city among several offices — or behind a
+  // "Hybrid - " prefix — was hard-excluded at pipeline step 1. Matching now
+  // splits the posting location into candidate places (on ; • | and on
+  // commas), strips work-mode prefixes per candidate, and matches if ANY
+  // candidate matches ANY wanted location (city-level match included, so
+  // "New York City" satisfies a "New York, NY" want).
+  function locationMatches(postingLoc, wantsRaw) {
+    const wants = (wantsRaw || []).map(normLoc).filter(Boolean);
+    if (!wants.length) return true;
+    const segments = s(postingLoc).split(/[;•|]/).map((x) => x.replace(/^\s*(hybrid|remote|on-site|onsite|in-office)\s*[-–—:]\s*/i, "").trim()).filter(Boolean);
+    const candidates = new Set();
+    for (const seg of segments) {
+      const n = normLoc(seg); if (n) candidates.add(n);
+      for (const part of seg.split(",")) { const p = normLoc(part); if (p) candidates.add(p); }
+    }
+    const cityOf = (w) => { const words = w.split(" "); return words.length > 1 && /^[a-z]{2}$/.test(words[words.length - 1]) ? words.slice(0, -1).join(" ") : w; };
+    for (const w of wants) {
+      const city = cityOf(w);
+      for (const cand of candidates) {
+        if (cand.includes(w) || w.includes(cand) || cand === city || cand.startsWith(`${city} `) || city.startsWith(`${cand} `)) return true;
+      }
+    }
+    return false;
+  }
+
   function scoreFit(posting, profile, cir, opts) {
     const fails = hardFilters(posting, profile || {});
     // SC-065 domain leg (opt-in): when the caller carries the ASK's families,
@@ -730,10 +765,17 @@ const CareerJobs = (() => {
     // Proven-only matching (SC-037, BUG-002): a skill with no evidence link on the profile must NOT
     // earn score or appear as a match — it is named as a gap instead. Before this fix an unproven
     // skill (e.g. Rust on the TEST persona) counted toward skillScore exactly like an evidenced one.
-    const matchedAll = skills.filter((x) => jd.includes(lc(x.name)));
+    // BUG-053 (FV-8/SS-13): skill matching was raw substring — "Go" matched
+    // inside "going"/"governance" and was reported as a real match on an
+    // accounting JD and a wealth-management BA JD containing zero standalone
+    // "Go". Match on TOKENS (word boundaries), keeping symbol-bearing skills
+    // ("C++", "Node.js") intact.
+    const jdTokens = ` ${jd.split(/[^a-z0-9+#.]+/).map((t) => t.replace(/\.+$/, "")).filter(Boolean).join(" ")} `;
+    const mentioned = (name) => jdTokens.includes(` ${lc(name)} `);
+    const matchedAll = skills.filter((x) => mentioned(x.name));
     const matched = matchedAll.filter((x) => x.proven);
     const unprovenMatched = matchedAll.filter((x) => !x.proven);
-    const missing = skills.filter((x) => !jd.includes(lc(x.name)));
+    const missing = skills.filter((x) => !mentioned(x.name));
     const reasons = [], gaps = [];
     // skills overlap: 0-50
     let skillScore = 0;

@@ -38,18 +38,22 @@ const CareerNegotiation = (() => {
     opts = opts || {};
     const t = s(text);
     const grab = (re) => { const m = t.match(re); return m ? m[1] : null; };
-    const baseM = line(t, /base salary[:\s]*\$([\d,]+)/i) || line(t, /base pay[^$\n]*\$([\d,]+)/i);
-    const signM = line(t, /signing bonus[:\s]*\$([\d,]+)/i) || line(t, /sign-on bonus[:\s]*\$([\d,]+)/i);
+    // Amounts accept the $k shorthand letters actually use ("$128k") — the
+    // captures carry the optional k through to parseMoney, which scales it;
+    // without it "$128k" parsed as $128 (SC-206 replay, fixer wave).
+    const AMT = "([\\d,]+(?:\\.\\d+)?\\s*k?)";
+    const baseM = line(t, new RegExp("base salary[:\\s]*\\$" + AMT, "i")) || line(t, new RegExp("base pay[^$\\n]*\\$" + AMT, "i")) || line(t, new RegExp("(?:^|\\n)[-\\s]*salary[:\\s]*\\$" + AMT, "im"));
+    const signM = line(t, new RegExp("signing bonus[:\\s]*\\$" + AMT, "i")) || line(t, new RegExp("sign-on bonus[:\\s]*\\$" + AMT, "i"));
     const bonusPct = grab(/target (?:annual )?bonus[:\s]*([\d.]+)%/i);
-    const bonusAmt = grab(/(?:^|\n)[-\s]*annual bonus[:\s]*\$([\d,]+)/im);
-    const grantVal = grab(/grant value of \$([\d,]+)/i) || grab(/equity[^$\n]*\$([\d,]+)/i);
+    const bonusAmt = grab(new RegExp("(?:^|\\n)[-\\s]*annual bonus[:\\s]*\\$" + AMT, "im"));
+    const grantVal = grab(new RegExp("grant value of \\$" + AMT, "i")) || grab(new RegExp("equity[^$\\n]*\\$" + AMT, "i"));
     const shares = grab(/([\d,]+)\s+(?:stock options|shares|RSUs?)/i);
     const vest = grab(/vesting over (\d+(?:\.\d+)?) years/i) || grab(/vest\w* over (\d+(?:\.\d+)?) years/i);
     const cliff = (() => { const m = t.match(/(\d+)-(year|month) cliff/i); return m ? { n: m[1], unit: m[2].toLowerCase() } : null; })();
     const pto = grab(/(\d+) days of PTO/i);
     const startLine = grab(/start date[:\s]*([^\n]+)/i);
-    const expiryLine = grab(/(?:respond by|expires(?: at[^.]*)? on|offer expires[^A-Za-z]*)([A-Za-z]+ \d{1,2}, 20\d\d|20\d\d-\d{2}-\d{2})/i)
-      || grab(/(?:respond by|expires on)[:\s]*([^\n.]+)/i);
+    const expiryLine = grab(/(?:respond by|respond no later than|deadline to respond|decision deadline|accept by|expires(?: at[^.]*)? on|offer expires[^A-Za-z]*)([A-Za-z]+ \d{1,2}, 20\d\d|20\d\d-\d{2}-\d{2})/i)
+      || grab(/(?:respond by|respond no later than|deadline to respond|decision deadline|accept by|expires on)[:\s]*([^\n.]+)/i);
     const benefits = [];
     if (/health/i.test(t)) benefits.push("health insurance (as stated in letter)");
     if (/dental/i.test(t)) benefits.push("dental (as stated in letter)");
@@ -97,7 +101,11 @@ const CareerNegotiation = (() => {
       const fact = note.fact || note;
       const claim = s(fact.claim || fact.text || note.note || "");
       const srcType = fact.source_type || note.source_type || "unknown";
-      const anecdotal = /anecdotal|reported|aggregator/i.test(srcType);
+      // R-C5: community-reported items are labeled reported, not measured —
+      // the label follows what the note's own text says ("reported by a
+      // secondary aggregator"), not only the source_type field, which CIR
+      // files sometimes carry as "official" for a reported figure.
+      const anecdotal = /anecdotal|reported|aggregator/i.test(srcType) || /\breported by\b|user-reported|community-reported|aggregator/i.test(claim);
       const ranges = [...claim.replace(/,/g, "").matchAll(/\$(\d{4,7})\s*-\s*\$(\d{4,7})/g)];
       const singles = [...claim.replace(/,/g, "").matchAll(/\$(\d{4,7})(?!\s*-)/g)];
       if (/no .*figure|none is claimed|not (?:treated|used)|do not quote|no official/i.test(claim) && !ranges.length) {
@@ -116,13 +124,25 @@ const CareerNegotiation = (() => {
   function benchmark(cir, opts) {
     opts = opts || {};
     const { figures, noFigure, excludedPeriod } = extractFigures(cir);
+    const asOf = cir ? cir.as_of : null;
+    // R-C5 (SC-208/209 replay): the chat layer speaks bench.text's FIRST
+    // sentence, so that sentence itself must name the source class
+    // (company file) and the as-of date — "carries its source and date"
+    // without the date does not meet the standard. When no CIR is on
+    // record, no date is invented: the text says the file is missing.
+    const text = !cir
+      ? "No company file (CIR compensation notes) is on record for this company yet, so no benchmark figure is claimed. Name the company and its file can be pulled before any range is quoted."
+      : figures.length
+        ? `Benchmark figures come from the company file (this company's CIR compensation notes)${asOf ? `, as of ${asOf}` : ""}. ${figures.length} sourced figure(s) follow, each with its source URL, source type, and as-of date; any figure the notes mark as reported is labeled reported, not measured.`
+        : `No benchmark figure is claimed from the company file (this company's CIR compensation notes)${asOf ? `, as of ${asOf}` : ""}. The notes publish no compensation figure, and no third-party salary-site number is substituted as a fact.`;
     return {
       company: cir ? cir.company_name : null, company_id: cir ? cir.company_id : null,
-      role: opts.role || null, as_of: cir ? cir.as_of : null,
+      role: opts.role || null, as_of: asOf,
       figures, no_figure_notes: noFigure, excluded_period_figures: excludedPeriod || [],
       has_sourced_figure: figures.length > 0,
-      statement: figures.length ? `${figures.length} sourced figure(s) from this company's CIR comp notes — each figure below carries its source and date.`
-        : "No sourced compensation figure exists in this company's CIR comp notes. No benchmark number is claimed — do not substitute third-party salary-site figures as facts.",
+      text,
+      statement: figures.length ? `${figures.length} sourced figure(s) from this company's CIR comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}) — each figure below carries its source and date.`
+        : `No sourced compensation figure exists in this company's CIR comp notes (source class: company file${asOf ? `, as of ${asOf}` : ""}). No benchmark number is claimed — do not substitute third-party salary-site figures as facts.`,
       disclaimer: DISCLAIMER,
     };
   }
@@ -173,7 +193,14 @@ const CareerNegotiation = (() => {
     const target = fig ? `$${fig.high.toLocaleString()}` : "the top of your stated range";
     const email = `Subject: ${offer.role || "Offer"} — ${offer.company || "your company"}\n\nHi [Recruiter name],\n\nThank you — I'm genuinely excited about the ${offer.role || "role"} and the team. I've reviewed the offer (base $${(offer.base_salary || 0).toLocaleString()}${offer.signing_bonus ? `, $${offer.signing_bonus.toLocaleString()} signing` : ""}).\n\nBased on the sourced range for this role${fig ? ` (${fig.figure_text}; source: ${fig.source_url}, as of ${fig.as_of})` : ""}, I was hoping we could get base closer to ${target}. If base is fixed, a signing-bonus adjustment or a written 6-month review would help close the gap.\n\nI'm ready to sign promptly once we land — this is my first choice.\n\nThanks for working with me on this,\n[Your name]`;
     const call = `OPEN: "Thanks for the offer — I'm excited, and I want to find a version I can say yes to today."\nANCHOR: "Looking at the sourced range for this role${fig ? ` — ${fig.figure_text} (${fig.source_url})` : ""} — I was hoping base could land closer to ${target}."\nIF PUSHED BACK: "I understand bands are real. If base can't move, could we look at the signing bonus, or a written 6-month review?"\nCLOSE: "If we can get there, I'm ready to accept and stop my other processes."\n(Stay warm, don't bluff a competing offer you don't have, and let silences sit.)`;
-    return { asks, floor: opts.floor || null, scripts: { email, call }, card: approvalCard("counter_email", { title: `Counter for ${offer.company || "offer"} — review before anything sends`, body: email, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
+    // The chat layer speaks strat.text's first sentence (it was undefined,
+    // so the prepared path spoke nothing from the strategy). First sentence
+    // is a claim-verb-free summary; the sourced range carries its source
+    // class + as-of inline (R-C5) when a figure exists.
+    const text = fig
+      ? `Counter plan for ${offer.company || "this offer"}: ask base toward $${fig.high.toLocaleString()} — the top of the sourced range from the company file${fig.as_of ? `, as of ${fig.as_of}` : ""} — and trade a signing-bonus increase or a written 6-month review if base cannot move. Nothing goes out without your yes on the card.`
+      : `Counter plan for ${offer.company || "this offer"}: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number. Nothing goes out without your yes on the card.`;
+    return { asks, floor: opts.floor || null, text, sends: false, scripts: { email, call }, card: approvalCard("counter_email", { title: `Counter for ${offer.company || "offer"} — review before anything sends`, body: email, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
   }
 
   // ---------- roleplay (NEGO-004) ----------

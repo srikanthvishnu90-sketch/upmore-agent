@@ -124,6 +124,17 @@ const CareerTrack = (() => {
     ["recruiter_other", /\b(recruiter|talent team|hiring team|careers team)\b/i],
   ];
   const NOISE_RULES = [/\b(newsletter|webinar|job alert|jobs you might like|unsubscribe|marketing|% off|sale ends|upcoming event|blog post|digest@|no-?reply@.*(alert|news))\b/i, /^(.*?(job alert|newsletter).*?)$/i];
+  // Precedence (fixer wave, SC-122..127 replay): a REAL signal must not be
+  // swallowed by a marketing footer — production inbox mail almost always
+  // carries "unsubscribe" / promo boilerplate, so noise patterns running
+  // over the whole text BEFORE the signal rules misclassify rejections,
+  // interview invites and offers as noise and the stage never moves.
+  // Order now: (1) a structurally marketing SUBJECT/sender (newsletter,
+  // job alert, webinar, digest) is noise even if its body borrows signal
+  // words; (2) the strong signal classes (offer/rejection/OA/interview/
+  // confirmation) beat footer boilerplate; (3) remaining noise patterns;
+  // (4) recruiter_other, the weakest signal; (5) unknown.
+  const MARKETING_SUBJECT = /\b(newsletter|job alert|webinar|digest)\b/i;
   function classifyMessage(msg, knownCompanies) {
     const text = `${s(msg.subject)}\n${s(msg.body)}`;
     const fromLc = lc(msg.from);
@@ -132,10 +143,16 @@ const CareerTrack = (() => {
       company = (knownCompanies || []).find((c) => { const n = normCo(c); return n && (lc(text).includes(lc(c)) || fromLc.includes(n.split(" ")[0])); }) || null;
     }
     if (!company && msg.company_domain) company = msg.company_domain;
-    for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return { message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] };
-    for (const [cls, re] of SIGNAL_RULES) if (re.test(text) || (cls === "recruiter_other" && /\b(recruiter|talent team|hiring team|careers team)\b/.test(fromLc))) {
-      const decision = ["rejection", "offer"].includes(cls);
-      return { message_id: msg.id || null, class: cls, is_signal: true, decision, company, reasons: [`matched ${cls} pattern${re.test(text) ? "" : " (sender is a recruiter/hiring address)"}`] };
+    const noise = () => ({ message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] });
+    if (MARKETING_SUBJECT.test(s(msg.subject)) || /(digest@|job-?alerts?@|newsletter@)/i.test(fromLc)) return noise();
+    for (const [cls, re] of SIGNAL_RULES) {
+      if (cls === "recruiter_other") continue; // weakest signal: checked after the noise patterns
+      if (re.test(text)) return { message_id: msg.id || null, class: cls, is_signal: true, decision: ["rejection", "offer"].includes(cls), company, reasons: [`matched ${cls} pattern`] };
+    }
+    for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return noise();
+    const roRe = SIGNAL_RULES.find(([cls]) => cls === "recruiter_other")[1];
+    if (roRe.test(text) || /\b(recruiter|talent team|hiring team|careers team)\b/.test(fromLc)) {
+      return { message_id: msg.id || null, class: "recruiter_other", is_signal: true, decision: false, company, reasons: [`matched recruiter_other pattern${roRe.test(text) ? "" : " (sender is a recruiter/hiring address)"}`] };
     }
     return { message_id: msg.id || null, class: "unknown", is_signal: false, decision: false, company, reasons: ["no signal pattern matched — treated as no-signal"] };
   }
@@ -155,6 +172,9 @@ const CareerTrack = (() => {
       out.moved = true; out.stage_after = stage;
     } else { out.stage_after = app.stage; }
     out.alert = { kind: cls.class, company: app.company, stage_after: out.stage_after, at: new Date(now).toISOString(), text: alertText(cls.class, app) };
+    if (cls.class === "recruiter_other") { // SC-125: a real recruiter signal with no decision — recorded on the log row (it is the last signal, and it resets the quiet clock honestly) but it NEVER moves a stage.
+      app.events.push({ type: "recruiter_other", at: new Date(now).toISOString(), source: "inbox", detail: `recruiter message classified recruiter_other (no decision stated) in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null });
+    }
     if (cls.class === "interview_invite") { // SC-064: calendar record attached + F09 prep seam noted
       out.calendar_event = { title: `Interview — ${app.company} (${app.role})`, company: app.company, app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
       app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: "inbox", detail: out.calendar_event.title, evidence: msg.id || null });
@@ -268,8 +288,15 @@ const CareerTrack = (() => {
       if (evs.some((e) => ["confirmation", "rejection", "oa_invite", "interview_invite", "offer", "manual_update"].includes(e.type))) responses24++;
       if (evs.some((e) => e.type === "rejection")) rejections24++;
     }
-    for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
-    for (const d of deadlineRadar(store, [], { now, withinDays: 7 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    // FIN-E-013 parity with weeklyDigest (fixer wave, SC-131 replay): the
+    // radar's dated follow-up line replaces the duplicate quiet-report nudge
+    // line for the same company, and radar lines render as label + date —
+    // never a raw kind code (follow_up_due / assessment_deadline) in a
+    // user-facing digest.
+    const radar = deadlineRadar(store, [], { now, withinDays: 7 });
+    const radarFollowUps = new Set(radar.filter((d) => d.kind === "follow_up_due").map((d) => normCo(d.company)));
+    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const d of radar) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_24h: sent24, responses_last_24h: responses24, rejections_last_24h: rejections24, active_interviews: rows.filter((r) => ["Interview rounds", "Final"].includes(r.stage)).length, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
     return { window_hours: 24, counts, next_actions: next, text: `Daily digest: ${sent24} sent in the last 24h, ${responses24} responses, ${counts.active_interviews} in interview stages, ${rejections24} rejections. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`, generated_at: new Date(now).toISOString() };
   }

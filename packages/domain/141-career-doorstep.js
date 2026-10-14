@@ -935,29 +935,84 @@ const CareerDoorstep = (() => {
   }
   function emitTrackingLog(ctx, entrySpec) {
     const c = ctx || {}, spec = entrySpec || {};
-    const company = spec.company || spec.companyName || null;
-    if (!company) {
+    // Generalized spec shapes (fixer wave, SC-121..145 replay): besides the
+    // original { company, stage, note, event_type } log-write spec, the
+    // emitter accepts the exact objects 126 itself produces —
+    //   { application: <126 row>, event: <126 event> }   (manualUpdate /
+    //     ingestMessage output: a stage move already shaped by 126)
+    //   { draft: <126 draft> }    draftThankYou / draftNudge /
+    //     draftRecruiterReply — the work product is the draft AT THE GATE,
+    //     not a log write, and it must not be blocked for lacking one
+    //   { verdict } / { analytics } / { summary }   the log-wide 126
+    //     products (resumeVersionVerdict / funnelAnalytics / statusSummary)
+    //     — these belong to the whole log, so no company may be demanded.
+    const appRow = spec.application && typeof spec.application === "object" ? spec.application
+      : (spec.row && typeof spec.row === "object" ? spec.row : null);
+    const specEvent = spec.event && typeof spec.event === "object" && (spec.event.type || spec.event.detail) ? spec.event : null;
+    const draft = spec.draft && typeof spec.draft === "object" && spec.draft.kind ? spec.draft : null;
+    const verdict = spec.verdict && typeof spec.verdict === "object" ? spec.verdict : null;
+    const analytics = spec.analytics && typeof spec.analytics === "object" ? spec.analytics : null;
+    const summary = spec.summary && typeof spec.summary === "object" ? spec.summary : null;
+    const company = spec.company || spec.companyName || (appRow && appRow.company) || (draft && draft.company) || null;
+    if (!company && !draft && !verdict && !analytics && !summary) {
       return emitterBlocked("tracking_log", "tracking-write", "missing_company",
         "no company was named for this tracker log write",
         "name the company the log entry belongs to",
         "I did not prepare a tracker update: no company was named, so there is nothing safe to log. Name the company and I will prepare the exact log entry for your approval.");
     }
     const stages = (Track && Track.STAGES) || TRACK_STAGES_FALLBACK;
-    const stage = spec.stage || spec.status || null;
+    const stage = spec.stage || spec.status || spec.stage_after || (specEvent && specEvent.stage_after) || (appRow && specEvent ? appRow.stage : null) || null;
     if (stage && !stages.includes(stage)) {
       return emitterBlocked("tracking_log", "tracking-write", "unknown_stage",
         `the stage "${stage}" is not one of the tracker stages`,
         "use one of the tracker's real stages",
         `I did not prepare that tracker update: "${stage}" is not a stage the tracker uses, so logging it would corrupt the record. Pick a real stage and I will prepare the entry again.`);
     }
-    if (!stage && !spec.note && !spec.event_type && !spec.eventType) {
+    // Work-product branch: a 126 draft / verdict / analytics / summary IS
+    // the commitment artifact for its scenario — it rides in the payload
+    // verbatim, armed at the gate, with no log write demanded or fired.
+    if ((draft || verdict || analytics || summary) && !stage && !specEvent && !spec.event_type && !spec.eventType) {
+      const wpKind = draft ? "tracker_draft_at_gate" : verdict ? "tracker_funnel_verdict" : analytics ? "tracker_funnel_analytics" : "tracker_status_summary";
+      const wpOperation = draft ? "draft_at_gate" : verdict ? "funnel_verdict" : analytics ? "funnel_analytics" : "status_summary";
+      const rowsWp = trackerRowsOf(c);
+      const normWp = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      const existingWp = company ? rowsWp.find((r) => r && normWp(r.company) === normWp(company)) || null : null;
+      const payload = {
+        kind: wpKind, family: "tracking-write", operation: wpOperation,
+        app_id: existingWp ? existingWp.app_id : null, company: company || null,
+        role: (draft && draft.role) || (existingWp && existingWp.role) || "",
+        draft: draft ? cloneJson(draft) : null,
+        verdict: verdict ? cloneJson(verdict) : null,
+        analytics: analytics ? cloneJson(analytics) : null,
+        summary: summary ? cloneJson(summary) : null,
+        status: existingWp ? existingWp.stage : null, stage: existingWp ? existingWp.stage : null,
+        note: spec.note || null, event: null,
+        triggered_followups: [], triggered_followups_note: "no log write is armed by this product — the work product above is the artifact at the gate",
+        would_write: null, target: "tracker", committed: false,
+      };
+      const stepLog = [
+        { step: 1, action: "resolve", field: "work_product", result: draft ? `the 126 ${draft.kind} draft for ${company} is the work product` : verdict ? "the 126 resume-version verdict over the whole log is the work product" : analytics ? "the 126 funnel analytics over the whole log are the work product" : "the 126 status summary over the whole log is the work product" },
+        { step: 2, action: "build", field: "payload", result: "the product rides in the payload verbatim, computed by 126 from the log's own rows; nothing was written" },
+        { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the product is armed for approval, not fired" },
+      ];
+      const art = doorstepArtifact("tracking-write", payload, stepLog);
+      const reply = draft
+        ? `Prepared the ${draft.kind === "thank_you" ? "thank-you" : draft.kind === "follow_up_nudge" ? "follow-up nudge" : "recruiter reply"} draft for ${company} from the tracker record — it sits at the approval gate with sends off, exactly as 126 drafted it. Nothing goes out until you approve it.`
+        : verdict
+          ? `Prepared the resume-version verdict from your own log rows only${verdict.killed ? ` — ${verdict.killed} is the version the math names as the loser` : " — no version is named as a loser on this data"}. It is waiting at the doorstep for your review before anything changes.`
+          : analytics
+            ? `Prepared the funnel analytics from your own log rows only (${analytics.total != null ? analytics.total : "the log's"} applications) — every claim in it is limited to what the log supports. It is waiting at the doorstep for your review.`
+            : `Prepared the status summary from the tracker log (${summary.total} applications, ${summary.open} open) — every stage in it comes from the rows. It is waiting at the doorstep for your review.`;
+      return { intent: "tracking_log", family: "tracking-write", resultStatus: "awaiting_user", ...art, reply };
+    }
+    if (!stage && !spec.note && !spec.event_type && !spec.eventType && !specEvent) {
       return emitterBlocked("tracking_log", "tracking-write", "missing_log_content",
         "the log write carries no stage, note, or event",
         "say what changed (a stage, an event, or a note)",
         "I did not prepare a tracker update: nothing was said about what changed. Tell me the new stage or the event and I will prepare the exact log entry.");
     }
-    const at = isoOf(spec.at || c.now) || isoOf(Date.now());
-    const eventType = spec.event_type || spec.eventType || (stage ? "manual_update" : "note");
+    const at = isoOf(spec.at || (specEvent && specEvent.at) || c.now) || isoOf(Date.now());
+    const eventType = spec.event_type || spec.eventType || (specEvent && specEvent.type) || (stage ? "manual_update" : "note");
     // GATE-3 vocabulary alignment (03 F3): the log_write.source on a
     // DOORSTEP RECORD uses the spec enum inbox | user_reported | portal.
     // 126's tracker-store vocabulary is hyphenated ("user-reported") and
@@ -971,13 +1026,14 @@ const CareerDoorstep = (() => {
     const event = {
       type: eventType,
       at,
-      source: specLogSource(spec.source || (eventType === "manual_update" ? "user-reported" : "system")),
-      detail: spec.detail || spec.note || `stage set to ${stage}`,
-      evidence: spec.evidence || spec.url || null,
+      source: specLogSource(spec.source || (specEvent && specEvent.source) || (eventType === "manual_update" ? "user-reported" : "system")),
+      detail: spec.detail || spec.note || (specEvent && specEvent.detail) || `stage set to ${stage}`,
+      evidence: spec.evidence || spec.url || (specEvent && specEvent.evidence) || null,
     };
     const rows = trackerRowsOf(c);
     const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-    const existing = rows.find((r) => r && (spec.app_id && r.app_id === spec.app_id || norm(r.company) === norm(company))) || null;
+    const specAppId = spec.app_id || spec.appId || (appRow && appRow.app_id) || null;
+    const existing = rows.find((r) => r && (specAppId && r.app_id === specAppId || norm(r.company) === norm(company))) || null;
     let operation, row;
     if (existing) {
       operation = stage ? "move_stage" : "append_event";
@@ -992,10 +1048,10 @@ const CareerDoorstep = (() => {
       const appliedAt = isoOf(spec.applied_at || spec.appliedAt || at);
       const firstEvent = eventType === "applied"
         ? event
-        : { type: "applied", at: appliedAt, source: spec.event_source || "system", detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
+        : { type: "applied", at: appliedAt, source: specLogSource(spec.event_source || "system"), detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
       row = {
-        app_id: spec.app_id || spec.appId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || "")).slice(0, 6)}`,
-        company: String(company), role: String(spec.role || ""), role_family: String(spec.role_family || spec.roleFamily || ""),
+        app_id: specAppId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || (appRow && appRow.role) || "")).slice(0, 6)}`,
+        company: String(company), role: String(spec.role || (appRow && appRow.role) || ""), role_family: String(spec.role_family || spec.roleFamily || (appRow && appRow.role_family) || ""),
         url: String(spec.url || ""), applied_at: appliedAt,
         resume_version: String(spec.resume_version || spec.resumeVersion || (c.resumeArtifact && c.resumeArtifact.version) || ""),
         source: spec.source === "referred" || spec.application_source === "referred" ? "referred" : "cold",

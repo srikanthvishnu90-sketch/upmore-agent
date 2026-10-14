@@ -170,3 +170,14 @@ for (const [id, variants] of Object.entries({
     }
   });
 }
+
+test("named-target tailor: a role the user names resolves even when fit-gating drops it from recommendations", async () => {
+  // GJ-H04 (Backend Software Engineer, Ironstack Payments) is not a
+  // new-grad recommendation for P1, so rankedShortlist gates it out;
+  // the user's NAMED target must still tailor, with gaps disclosed.
+  const profile = L.gauntletProfile("p1-early-career-swe");
+  const session = L.H.session("NAMED-TAILOR", "wedge-replay");
+  const r = await L.chatTurn(session, "Tailor my resume for the Backend Software Engineer role at Ironstack Payments and give me the PDF.", { profile });
+  assert.equal(r.result.intent, "career_tailor");
+  assert.ok(r.result.artifact && r.result.artifact.pdf && r.result.artifact.pdf.base64, "the named target produced a real PDF artifact");
+});

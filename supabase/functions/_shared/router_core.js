@@ -30736,7 +30736,7 @@ const CareerRouter = (() => {
     const gaps = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].filter((sk, i, a) => a.indexOf(sk) === i && !proven.includes(lc(sk)));
     const matched = [...(jd.mustHaveSkills || [])].filter((sk) => proven.includes(lc(sk)));
     const titleLine = posting ? `${posting.title} at ${posting.company}` : "that role";
-    const parseVerdict = rendered.parseCheck && rendered.parseCheck.verdict ? rendered.parseCheck.verdict : null;
+    const parseVerdict = rendered.parseCheck ? (typeof rendered.parseCheck === "string" ? rendered.parseCheck : rendered.parseCheck.verdict || rendered.parseCheck.status || null) : null;
     const facts = [
       `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
       gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
@@ -31563,6 +31563,24 @@ const CareerRouter = (() => {
     if (first.length >= 4 && !/^(the|a|an)$/.test(first) && new RegExp(`\\b${first}\\b`).test(t)) return true;
     const slug = lc(s(cir.company_id)).replace(/-/g, " ").replace(/\s+ibd$/, "");
     return slug.length >= 4 && t.includes(slug);
+  }
+  // A NAMED target (company, optionally + title words from the ask)
+  // resolves directly from the corpus — the fit gate that shapes
+  // recommendations must not silently veto the exact role the user
+  // named; the tailor itself discloses the gaps.
+  function postingByCompanyTitle(ctx, company, text) {
+    if (!company) return null;
+    const want = lc(company);
+    const pool = postingsFromCtx(ctx).filter((p) => p.company && (lc(p.company).includes(want) || want.includes(lc(p.company).replace(/\s*\(fictional\)\s*/g, "").trim())));
+    if (!pool.length) return null;
+    if (pool.length === 1) return pool[0];
+    const words = new Set(lc(text).split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+    let best = pool[0], bestScore = -1;
+    for (const p of pool) {
+      const overlap = lc(p.title).split(/[^a-z0-9]+/).filter((w) => words.has(w)).length;
+      if (overlap > bestScore) { bestScore = overlap; best = p; }
+    }
+    return best;
   }
   function cirFor(text, ctx) {
     if (!Intel) return null;
@@ -32576,6 +32594,11 @@ const CareerRouter = (() => {
       // A company-targeted tailor: resolve that company's posting first.
       const comp = companyFromText(text, c);
       if (comp) {
+        const named = postingByCompanyTitle(c, comp, text);
+        if (named) {
+          const chained = handleTailor(text, Object.assign({}, c, { posting: named }));
+          if (chained && chained.artifact) { chained.chained_from = "company_target"; return chained; }
+        }
         const { ranked } = rankedShortlist(profile, c, { company: lc(comp) });
         if (ranked.length) {
           const chained = handleTailor(text, Object.assign({}, c, { posting: ranked[0].posting }));

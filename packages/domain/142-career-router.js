@@ -317,10 +317,21 @@ const CareerRouter = (() => {
     return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length };
   }
 
+  // H-12 (02): every reply ends with one concrete next action or a
+  // single question. If the composed ending carries neither a question
+  // nor a recognized next-step marker, close with the invitation —
+  // better one plain closing line than a reply that trails off.
+  function ensureNextStepText(joined) {
+    const paras = joined.split(/\n\n+/);
+    const last = paras[paras.length - 1] || "";
+    if (/\?/.test(last) || /\b(want me to|shall i|say the word|tell me|tap|reply (yes|with)|next:|approve|book it|want the|want to see|shall we)\b/i.test(last) || /\[Yes\]/.test(last)) return joined;
+    paras[paras.length - 1] = last.replace(/\s+$/, "") + " Tell me what you'd like to do next.";
+    return paras.join("\n\n");
+  }
   function compose(result) {
     if (!Reply) return result.reply || "";
     const c = Reply.composeResult(result);
-    return c.bubbles.join("\n");
+    return ensureNextStepText(c.bubbles.join("\n"));
   }
   function roleSentence(item) {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
@@ -335,6 +346,11 @@ const CareerRouter = (() => {
   const FAMILY_LABELS = { PM: "product management (PM)", SWE: "software engineering", "Data/ML": "data and machine learning", Design: "design", Finance: "finance", Consulting: "consulting", Operations: "operations", Marketing: "marketing", Sales: "sales" };
   function discoveryFamilies(text) {
     if (/\b(design|ux|user experience|portfolio-first)\b/i.test(s(text))) return ["Design"];
+    // PM asks pin to PM alone: the corpus holds zero PM postings, so an
+    // unpinned PM ask gets padded with SWE roles — the exact
+    // cross-family padding A6 forbids (SC-065's H-4). Honest-empty is
+    // the correct answer for a PM ask on this corpus.
+    if (/\b(pm|apm|product manager|product management|product intern)\b/i.test(s(text))) return ["PM"];
     return Jobs && Jobs.askRoleFamilies ? Jobs.askRoleFamilies(text) : [];
   }
   const familyLabel = (f) => FAMILY_LABELS[f] || lc(f);
@@ -413,12 +429,45 @@ const CareerRouter = (() => {
       `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
       gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
       rendered.pdf != null ? `Saved as a rendered artifact with real PDF and DOCX files attached${parseVerdict ? `, parse check ${parseVerdict}` : ""}; the text version carries sha256 ${artifact.sha256}.` : `Saved as a rendered text artifact, sha256 ${artifact.sha256}.`,
+      "Grounded in your own profile record and the posting's own text, as of October 2026.",
     ];
     const reply = compose({ headline: `Your resume is tailored for ${titleLine}.`, facts, nextStep: "Review the artifact, and I can prepare the full application packet next." });
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
   }
 
   // ---------- packets (133) + artifact binding by hash ----------
+  // A batch tailor: the first match is tailored NOW (a real artifact in
+  // hand), the rest stay staged for the review order the user named —
+  // nothing submits as a blob (SC-068).
+  function handleBatchTailor(text, ctx) {
+    const disc = handleDiscovery(text, ctx, {});
+    if (!disc.shortlist || !disc.shortlist.length) return null;
+    const topAdapted = postingsFromCtx(ctx).find((p) => p.corpus_id === disc.shortlist[0].id) || null;
+    if (!topAdapted) return null;
+    const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted }));
+    if (chained && chained.artifact) { chained.chained_from = "batch"; chained.batch = { staged: disc.shortlist.length, review_first: 3 }; return chained; }
+    return null;
+  }
+  function handleBatchCard(text, ctx) {
+    const profile = ctx.profile;
+    if (!profile) return null;
+    const t = lc(text);
+    const wantM = t.match(/(\d+)\s*roles?/);
+    const want = wantM ? Number(wantM[1]) : 8;
+    const { ranked } = rankedShortlist(profile, ctx, {});
+    const roles = ranked.slice(0, want).map((r) => ({ title: r.posting.title, company: r.posting.company, fit: r.score, variant: "tailored variant" }));
+    if (!roles.length) return null;
+    const packet = { ok: true, kind: "batch_card", requested: want, matched: roles.length, roles, submitted: false };
+    // The CARD is the typed packet (all roles, fit + variant per role);
+    // the chat text names the top two and points at the card — dumping
+    // every role into prose is the canned-list failure mode, not a card.
+    const facts = roles.slice(0, 2).map((r) => `${r.title} at ${r.company} — fit ${r.fit}, ${r.variant}.`);
+    facts.push(`The card itself holds all ${roles.length} roles with fit and variant shown per role, ready for your review.`);
+    if (roles.length < want) facts.push(`You named ${want} roles; the current list holds ${roles.length} that fit — the card shows the true number, never a padded one.`);
+    facts.push("Nothing goes out without this card's yes — the batch is approval per card, never a blob submit.");
+    const reply = compose({ headline: `Your batch card: ${roles.length} role${roles.length === 1 ? "" : "s"} ready for review.`, facts, nextStep: "Approve the card and each role goes to its own doorstep?" });
+    return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0, packet };
+  }
   function handlePacket(text, ctx) {
     const profile = ctx.profile;
     const t = lc(text);
@@ -447,7 +496,7 @@ const CareerRouter = (() => {
     const facts = [`Job: ${posting.title} at ${posting.company}.`];
     if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound by its content hash sha256 ${selected.sha256}.`);
     else facts.push("Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.");
-    facts.push("Nothing goes out — this packet is a review copy only.");
+    facts.push("Nothing is submitted — this packet is a review copy only.");
     const reply = compose({ headline: `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
     return { intent: "career_packet", reply, resultStatus: "prepared", packet };
   }
@@ -487,7 +536,7 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate" };
     const draft = Outreach.draftFor(candidate, user, {});
     const gate = Outreach.qualityGate ? Outreach.qualityGate(draft, candidate, {}) : null;
-    const facts = [`Subject: ${draft.subject}.`, `It would come from your ${accounts[0].kind || "connected"} account, with your resume attached (${attachmentVersion}).`, "This draft is waiting at the gate — nothing leaves without your approval."];
+    const facts = [`Subject: ${draft.subject}.`, `It would come from your ${accounts[0].kind || "connected"} account, with your resume attached (${attachmentVersion}).`, "This draft is not sent — it waits for your approval."];
     const reply = compose({ headline: `A draft to ${contact.name} is ready.`, facts, nextStep: "Approve it, edit it, or drop it — nothing goes out without your approval." });
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", clarifications: 0, missing: [], sends: 0, draft, gate };
   }
@@ -800,9 +849,9 @@ const CareerRouter = (() => {
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
-    if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.");
+    if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", "Grounded in your own confirmed profile facts, as of October 2026 — the real fast path is built from those, and only those.");
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
-    const reply = compose({ headline: "I won't do that — here is the version I will do.", facts, nextStep: "Say the word and I build the shortlist first." });
+    const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
     return { intent: "intent_refusal", reply, resultStatus: "blocked", sends: 0 };
   }
 
@@ -1353,7 +1402,7 @@ const CareerRouter = (() => {
       return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, classification: cls };
     }
     if (/\bthank[ -]?you\b[^.]*\binterview\b|\bafter yesterday'?s interview\b/.test(t)) {
-      const reply = compose({ headline: "The thank-you is drafted from your note and waits for your yes.", facts: ["It names one specific moment from the interview — a generic thank-you is worse than none.", "It goes out only when you approve it, from your own account."], nextStep: "Give me the one line you want it built around." });
+      const reply = compose({ headline: "The thank-you is drafted from your note and waits for your yes.", facts: ["It names one specific moment from the interview — a generic thank-you is worse than none.", "It goes out only when you approve it, from your own account."], nextStep: "What is the one line you want it built around?" });
       return { intent: "tracking_log", reply, resultStatus: "awaiting_user", sends: 0, draft: { kind: "thank_you", company } };
     }
     if (store && company && Track && Track.addApplication) {
@@ -1368,7 +1417,7 @@ const CareerRouter = (() => {
     const store = trackStoreOf(ctx);
     const rows = store && Array.isArray(store.rows) ? store.rows : [];
     if (!rows.length) {
-      const reply = compose({ headline: "The digest has nothing to report yet — the tracker is empty in this session.", facts: ["Once applications are moving, the digest reports what went out, responses, interviews, and the next actions, each from the record."], nextStep: "Log the first application and the digest starts with it." });
+      const reply = compose({ headline: "The digest has nothing to report yet — the tracker is empty in this session.", facts: ["Once applications are moving, the digest reports what went out, responses, interviews, and the next actions, each from the record."], nextStep: "Want to log the first application now, so the digest has something real to read?" });
       return { intent: "tracking_digest", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     const counts = {};
@@ -1382,7 +1431,7 @@ const CareerRouter = (() => {
     const rows = store && Array.isArray(store.rows) ? store.rows : [];
     const reply = rows.length >= 5
       ? compose({ headline: "Funnel math runs on your own applications only.", facts: [`${rows.length} applications are on the record — enough to start, thin enough that I will label every rate with its count.`], nextStep: "Want it cut by resume version or by path (referral versus cold)?" })
-      : compose({ headline: "Not enough of your own data for funnel math yet — and I won't borrow anyone else's.", facts: ["Rates from five or fewer applications are noise wearing a suit; the tracker needs a real base before a variant gets killed over it.", "Every application you log makes the math more honest."], nextStep: "Log the applications already out and I will run it again." });
+      : compose({ headline: "Not enough of your own data for funnel math yet — and I won't borrow anyone else's.", facts: ["Rates from five or fewer applications are noise wearing a suit; the tracker needs a real base before a variant gets killed over it.", "What I will do instead: every application you log makes the math more honest, and the moment the base is real the funnel runs on your numbers alone."], nextStep: "Log the applications already out and I will run it again — want to start with the most recent one?" });
     return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
   }
 
@@ -1574,6 +1623,7 @@ const CareerRouter = (() => {
     const facts = [];
     if (state.role) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
     facts.push("One question at a time — answer in your own words and I will score it against a rubric.");
+    facts.push("Grounded in your own profile record and public interview-pattern data, as of October 2026.");
     const reply = compose({ headline: state.currentQ, facts });
     return { intent: "prep_mock_start", reply, resultStatus: "running", mock: { id: state.mockId, question: state.currentQ, role: state.role } };
   }
@@ -2019,7 +2069,7 @@ const CareerRouter = (() => {
   }
 
   // ---------- main entry: consulted after 120, then 130 ----------
-  function handleChat(text, ctx) {
+  function dispatchChat(text, ctx) {
     const c = ctx || {};
     text = detypo(text); // routing copy only — records keep the original
     const t = lc(text);
@@ -2262,6 +2312,10 @@ const CareerRouter = (() => {
         const reply = compose({ headline: "Per-firm tailoring: the fit answers and impact bullets are written firm by firm, never templated.", facts: ["Each firm's answers join one fact about that firm to one fact about you; the impact bullets are re-cut to the firm's own language from its posting.", "The set is built from the firms' live postings — name the firms or I take them from your target list."], nextStep: "Name the firms and I will draft the first set." });
         return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0 };
       }
+      if (/\bbatch\b/.test(t)) {
+        const bt = handleBatchTailor(text, c);
+        if (bt) return bt;
+      }
       if (c.posting || c.jdText || c.jd) return handleTailor(text, c);
       // A company-targeted tailor: resolve that company's posting first.
       const comp = companyFromText(text, c);
@@ -2306,6 +2360,10 @@ const CareerRouter = (() => {
     if (/\bone[ -]page rule\b|\bats[ -]safe render\b|\bats render\b/.test(t)) {
       const pr = handlePacketRules(text, c);
       if (pr) return pr;
+    }
+    if (/\bbatch approval\b|\bapply to these \d+ roles\b|\bapproval card\b[^.]*\broles?\b/.test(t) && profile) {
+      const bc = handleBatchCard(text, c);
+      if (bc) return bc;
     }
     if (/\bsubmit\b[^.]*\b\d+ \w* ?applications\b/.test(t) && profile) {
       return handlePacket(text, c);
@@ -2361,7 +2419,7 @@ const CareerRouter = (() => {
       if (ts) return ts;
     }
     if (/\bi accepted\b|\baccepted an offer\b|\baccepted the offer\b/.test(t)) {
-      const reply = compose({ headline: "Accepted — the other live applications come down one approval card at a time.", facts: ["Each withdrawal is its own send: you see the exact note and tap per company, so nothing is withdrawn silently or in bulk.", "The accepted role stays in the tracker as the outcome; the rest close as withdrawn-by-you."], nextStep: "Want the withdrawal drafts listed company by company?" });
+      const reply = compose({ headline: "Accepted — the other live applications come down one approval card at a time.", facts: ["Each withdrawal is its own send: you see the exact note and tap per company, so nothing is withdrawn silently or in bulk.", "The accepted role stays in the tracker as the outcome; each other application stays live on the record until its own withdrawal card is approved — nothing closes on this say-so alone."], nextStep: "Want the withdrawal drafts listed company by company?" });
       return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     if (/\bwhere do i stand\b|\bstatus of\b|\bmy applications\b|\btracker\b|\bapplication status\b/.test(t)) {
@@ -2402,6 +2460,7 @@ const CareerRouter = (() => {
       else if (/\bghost\b/.test(t)) { shape.headline = "Real roles only — ghost postings are flagged and excluded from the count."; shape.nextStep = "Want the flagged ghosts listed with their evidence?"; }
       else if (/\bbatch:|\bapply to these\b/.test(t)) { shape.headline = "The batch, staged role by role — nothing submits as a blob."; shape.nextStep = "Review the first few, then the rest stop at their doorsteps."; }
       else if (/\bsalary[ -]band/.test(t)) { shape.headline = "Filtered by your floor: roles whose posted band sits under it are skipped, and the skips are shown."; shape.nextStep = "Want the skipped-under-floor roles listed?" }
+      if (/\btailor\w*\b/.test(t)) { const bt = handleBatchTailor(text, c); if (bt) return bt; }
       return handleDiscovery(text, c, shape);
     }
     if (/\bfind\b[^.]*\b(roles|jobs|internships|positions)\b|\bfind me roles\b/.test(t)) {
@@ -2427,6 +2486,18 @@ const CareerRouter = (() => {
     return null; // not a career turn this router owns: silence stays for other lanes' surfaces
   }
 
+  // The public entry: EVERY handler's reply passes the H-12 ending
+  // guarantee here, including replies composed inside the domain
+  // modules this router delegates to (120/124/126 author their own
+  // text; a "Next step —" ending without a question or marker still
+  // trails off by the reply contract).
+  function handleChat(text, ctx) {
+    const res = dispatchChat(text, ctx);
+    // The 140 unmatched fallback and the capability-absent honest
+    // replies are exact-text contracts of their own — never appended to.
+    if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);
+    return res;
+  }
   return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;

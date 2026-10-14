@@ -63,7 +63,11 @@ test("A4 SC-287: LinkedIn connection routes to the data-EXPORT path, never sign-
 test("A4 SC-277: return-offer playbook is NOT internship discovery", () => {
   const exp = BY_ID.get("SC-277");
   const { turn, text } = drive("SC-277", exp.ask);
-  assert.equal(turn.result && turn.result.intent, "capability_status");
+  // Ownership moved by design: the Career OS front door in 130
+  // (commit a0f4e0b, SC-271..285) answers playbook asks with
+  // career_os_* intents before the router. Either owner is correct;
+  // internship discovery is the failure this test exists to catch.
+  assert.ok(["capability_status", "career_os_playbook"].includes(turn.result && turn.result.intent), `unexpected intent ${turn.result && turn.result.intent}`);
   assert.ok(!/Northwind Ledger|Lakefront Cloud/.test(text), "no canned discovery shortlist");
 });
 

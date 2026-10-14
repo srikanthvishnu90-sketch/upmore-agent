@@ -10,7 +10,13 @@
      - host allowlist at the driver itself: only the tested ATS families
        (Greenhouse, Lever, Ashby, SmartRecruiters) plus localhost test
        pages may be opened; aggregators and unknown hosts are refused
-       BEFORE any navigation (DRIVER_HOST_REFUSED);
+       BEFORE any navigation (DRIVER_HOST_REFUSED). The gate holds on
+       EVERY hop, not just the initial URL (BUG-060 / lane defect D1 —
+       boards redirect Greenhouse -> the employer's own site): the
+       helper aborts an off-allowlist main-frame navigation before any
+       network traffic, and this driver re-checks the final URL after
+       open and after the review step; an off-list landing is a typed
+       HOST_REDIRECT_REFUSED stop with zero further actions;
      - a visible captcha / human-verification challenge at open or at the
        review step surfaces as { captcha: "challenge" } so 149 stops with
        CAPTCHA_HANDOFF. At that stop the driver captures a screenshot of
@@ -22,9 +28,13 @@
      - the resume file is uploaded only after its bytes hash to the exact
        sha256 the profile carries (RESUME_SHA_MISMATCH otherwise);
      - the submit leg is ARMED-ONLY: board.submit() throws
-       REAL_SUBMIT_DISABLED unless the board was created with
-       submitArmed: true — the owner-approved submit lane's explicit
-       switch, layered under 149's approval gate. An armed submit clicks
+       REAL_SUBMIT_DISABLED unless the board is armed. Arming happens
+       exactly two ways (BUG-063 / lane defect D3): (a) the board was
+       created with submitArmed: true — the test lane's explicit switch;
+       or (b) module 149's approval gate calls board.armForSubmit()
+       with approvedByUser AND an approvalRef naming the owner's batch
+       approval — approval without the ref arms nothing, and the
+       default path stays the refusal. An armed submit clicks
        exactly once and then CAPTURES the employer's confirmation
        (landing-page text, any confirmation/application ID, screenshot);
        the outcome is "accepted" only when that capture carries an ID or
@@ -66,6 +76,15 @@ const CareerPortalBrowser = (() => {
     }
     if (host === "localhost" || host === "127.0.0.1") return { allowed: true, host, atsFamily: null, kind: "local_test" };
     return { allowed: false, host, atsFamily: null, kind: null };
+  }
+  // The redirect gate (BUG-060): the SAME allowlist as the open gate,
+  // applied to a URL the page LANDED on after navigation/redirects.
+  // Returns a typed refusal shape 149 can stop with verbatim.
+  function finalUrlGate(url) {
+    const g = hostAllowed(url);
+    if (g.allowed) return { allowed: true, host: g.host, atsFamily: g.atsFamily || null, kind: g.kind };
+    return { allowed: false, code: "HOST_REDIRECT_REFUSED", host: g.host || "", finalUrl: String(url || ""),
+      reason: "navigation landed off the tested-ATS allowlist (Greenhouse, Lever, Ashby, SmartRecruiters + localhost) — §6.3 gate holds on every hop" };
   }
   function atsFamilyOf(url) {
     try {
@@ -120,18 +139,39 @@ const CareerPortalBrowser = (() => {
     }
     const usedIds = new Set(defs.map((d) => d.field_id));
     const uniqId = (base) => { let id = base || "field"; let i = 2; while (usedIds.has(id)) id = `${base}_${i++}`; usedIds.add(id); return id; };
+    // D6 (BUG-064): the new Greenhouse board emits the same question
+    // twice (EEO fields x3 on one tenant) — identical defs (same kind,
+    // same semantic key, same label, same DOM name) collapse to ONE
+    // def, so the user is never asked the same question twice.
+    const seenSem = new Set();
+    // Semantic key = kind + canonical answer key + label. The DOM name
+    // is deliberately NOT part of it: the duplicate emissions carry
+    // DIFFERENT machine names (country / country_2, school / school_0)
+    // for the same human question. Slug-derived question_keys are
+    // unstable across duplicates, so only canonical keys count.
+    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "sponsorship", "cover_note"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
 
     for (const f of raws) {
       if (consumed.has(f)) continue;
-      const label = (f.label || "").replace(/[*✱]\s*$/, "").trim();
-      const hay = (label + " " + f.name + " " + f.id).toLowerCase();
+      // D9 (BUG-066): a Lever-style custom card carries its human
+      // question as the card/group heading, not a <label> — when the
+      // direct label is empty, the group label IS the label, and it
+      // (not the machine field name) names the field in every ask.
+      const directLabel = (f.label || "").replace(/[*✱]\s*$/, "").trim();
+      const groupLabel = (f.groupLabel || "").replace(/[*✱]\s*$/, "").trim();
+      const label = directLabel || groupLabel;
+      const labelFromGroup = !directLabel && !!groupLabel;
+      const hay = (label + " " + f.name + " " + f.id + " " + groupLabel).toLowerCase();
       // groups first
       if (groupOf.has(f)) {
         const members = groups.get(groupOf.get(f));
-        const gLabel = (f.groupLabel || "").replace(/[*✱]\s*$/, "").trim() || f.name;
-        const gid = uniqId(slug(gLabel) || slug(f.name) || "choice_group");
+        const gLabel = groupLabel || f.name;
         const gHay = (gLabel + " " + f.name).toLowerCase();
         const kind = classifyKind(gHay, "group");
+        for (const m of members) consumed.add(m);
+        if (seenSem.has(semKeyFor(kind, gLabel))) continue; // D6 duplicate group
+        seenSem.add(semKeyFor(kind, gLabel));
+        const gid = uniqId(slug(gLabel) || slug(f.name) || "choice_group");
         const def = { field_id: gid, label: gLabel, kind: kind.kind, required: members.some((m) => m.required) };
         if (kind.profile_key) def.profile_key = kind.profile_key;
         if (kind.question_key) def.question_key = kind.question_key;
@@ -140,38 +180,79 @@ const CareerPortalBrowser = (() => {
           field_id: gid, inputType: f.inputType === "radio" ? "radio_group" : "checkbox_group",
           options: members.map((m) => ({ selector: m.selector, label: (m.label || "").replace(/[*✱]\s*$/, "").trim() || m.value || "" })),
         };
-        for (const m of members) consumed.add(m);
         continue;
       }
-      const baseId = slug(f.name) || slug(f.id) || slug(label) || `field_${f.domIndex}`;
       const kind = classifyKind(hay, f.inputType, f);
+      if (seenSem.has(semKeyFor(kind, label))) continue; // D6 duplicate def
+      seenSem.add(semKeyFor(kind, label));
+      const baseId = (labelFromGroup ? slug(label) : null) || slug(f.name) || slug(f.id) || slug(label) || `field_${f.domIndex}`;
       const def = { field_id: uniqId(baseId), label: label || baseId, kind: kind.kind, required: !!f.required };
       if (kind.profile_key) def.profile_key = kind.profile_key;
       if (kind.question_key) def.question_key = kind.question_key;
       defs.push(def);
       bindings[def.field_id] = bindingFor(f, kind);
     }
+    // Contextual pass (D4, live Aquatic shape): Greenhouse's education
+    // block labels its year selects only "Start date year" / "End date
+    // year" — meaningless alone, unambiguous NEXT TO the block's own
+    // School/Degree/Discipline fields. Bind them to the education
+    // dates only when that education context is present on the form.
+    if (defs.some((d) => d.profile_key && d.profile_key.startsWith("education_"))) {
+      for (const d of defs) {
+        if (d.kind !== "unknown") continue;
+        if (/^start date year$|^start year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_start_date"; }
+        else if (/^end date year$|^end year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_end_date"; }
+      }
+    }
     return { defs, bindings };
   }
   function classifyKind(hay, inputType, f) {
+    // D7 (BUG-065): a profile value binds ONLY when the field's LABEL
+    // belongs to that value's class. The DOM name/id is a fallback for
+    // label-less fields only — last night "Chicago, IL" was attempted
+    // into office-preference and prior-employment fields purely because
+    // their machine names contained "location".
+    const eff = (f && f.label ? String(f.label).toLowerCase() : "") || hay;
     if (inputType === "file") {
-      if (/resume|cv\b/.test(hay)) return { kind: "standard", profile_key: "resume" };
+      // File inputs are the exception to label-first: their visible
+      // label is often just "Attach", and the binding carries no typed
+      // value — the upload is the profile's sha-bound resume or it
+      // does not happen. A cover-letter upload is never the resume.
+      if (/cover/.test(hay)) return { kind: "unknown" };
+      if (/resume|cv\b|curriculum/.test(hay)) return { kind: "standard", profile_key: "resume" };
       return { kind: "unknown" };
     }
-    if (/certif|attest|acknowledge|true and complete|provided.*true/.test(hay) && inputType === "checkbox") return { kind: "attestation", question_key: slug(hay).slice(0, 32) || "attestation" };
-    if (/authori[sz]ed to work|legally authori[sz]ed|right to work/.test(hay)) return { kind: "screening", question_key: "work_authorization" };
-    if (/sponsor/.test(hay)) return { kind: "screening", question_key: "sponsorship" };
-    if (/gender|race|ethnic|veteran|disability|sexual orientation|pronouns|lgbt/.test(hay)) return { kind: "eeo", question_key: slug(hay).slice(0, 32) || "eeo" };
-    if (/first name|last name|full name|your name|^name\b/.test(hay) || (f && (f.name === "name" || f.id === "name"))) return { kind: "standard", profile_key: "name" };
-    if (/e-?mail/.test(hay) || inputType === "email") return { kind: "standard", profile_key: "email" };
-    if (/phone|mobile|telephone/.test(hay) || inputType === "tel") return { kind: "standard", profile_key: "phone" };
-    if (/linkedin/.test(hay)) return { kind: "standard", profile_key: "linkedin" };
-    if (/github/.test(hay)) return { kind: "standard", profile_key: "github" };
-    if (/portfolio|website|web site|personal site/.test(hay)) return { kind: "standard", profile_key: "website" };
-    if (/current company|current employer|present company/.test(hay)) return { kind: "standard", profile_key: "current_company" };
-    if (/location|city|where are you based|current residence/.test(hay)) return { kind: "standard", profile_key: "location" };
-    if (inputType === "textarea" || /cover letter|additional information|anything else/.test(hay)) return { kind: "free_text", question_key: /cover letter/.test(hay) ? "cover_note" : (slug(hay).slice(0, 40) || "free_text") };
-    if (inputType === "checkbox" && /confirm|agree/.test(hay)) return { kind: "attestation", question_key: slug(hay).slice(0, 32) || "attestation" };
+    if (/certif|attest|acknowledge|true and complete|provided.*true/.test(eff) && inputType === "checkbox") return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
+    if (/authori[sz]ed to work|legally authori[sz]ed|right to work/.test(eff)) return { kind: "screening", question_key: "work_authorization" };
+    if (/sponsor/.test(eff)) return { kind: "screening", question_key: "sponsorship" };
+    // EEO also matches on hay: the value carried is the decline
+    // default (or the user's own EEO choice), never a bound fact, and
+    // boards name these fields by machine name (hispanic_ethnicity)
+    // as often as by label ("Are you Hispanic/Latino?").
+    if (/gender|race|ethnic|veteran|disability|sexual orientation|pronouns|lgbt|hispanic|latino/.test(hay)) return { kind: "eeo", question_key: slug(eff).slice(0, 32) || "eeo" };
+    // D4 (BUG-062): education + country keys — the answers exist in the
+    // fact bank (F-001 shape) and now have keys to carry them.
+    if (/preferred name|preferred first name/.test(eff)) return { kind: "standard", profile_key: "preferred_name" };
+    if (/graduat/.test(eff)) return { kind: "standard", profile_key: "education_graduation_year" };
+    if (/fields? of study|discipline|\bmajor\b|area of study|concentration/.test(eff)) return { kind: "standard", profile_key: "education_discipline" };
+    if (/\bgpa\b|grade point average/.test(eff)) return { kind: "standard", profile_key: "education_gpa" };
+    if (/school|university|college|institution|alma mater/.test(eff)) return { kind: "standard", profile_key: "education_school" };
+    if (/\bdegree\b|bachelor|education level|highest level of education/.test(eff)) return { kind: "standard", profile_key: "education_degree" };
+    if (f && /^start_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_start_date" }; // Greenhouse's built-in education-entry fields slug to start_year_<n> / end_year_<n> (labels: "Start date year")
+    if (f && /^end_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_end_date" };
+    if (/(start|begin)/.test(eff) && /(education|school|university|college)/.test(hay)) return { kind: "standard", profile_key: "education_start_date" };
+    if (/(end|completion)/.test(eff) && /(education|school|university|college)/.test(hay)) return { kind: "standard", profile_key: "education_end_date" };
+    if (/\bcountry\b/.test(eff)) return { kind: "standard", profile_key: "country" };
+    if (/first name|last name|full name|your name|^name\b/.test(eff) || (f && !f.label && (f.name === "name" || f.id === "name"))) return { kind: "standard", profile_key: "name" };
+    if (/e-?mail/.test(eff) || inputType === "email") return { kind: "standard", profile_key: "email" };
+    if (/phone|mobile|telephone/.test(eff) || inputType === "tel") return { kind: "standard", profile_key: "phone" };
+    if (/linkedin/.test(eff)) return { kind: "standard", profile_key: "linkedin" };
+    if (/github/.test(eff)) return { kind: "standard", profile_key: "github" };
+    if (/portfolio|website|web site|personal site/.test(eff)) return { kind: "standard", profile_key: "website" };
+    if (/current company|current employer|present company/.test(eff)) return { kind: "standard", profile_key: "current_company" };
+    if (/location|city|where are you based|current residence/.test(eff) && !/preference|desired/.test(eff)) return { kind: "standard", profile_key: "location" }; // a location PREFERENCE question is an ask, never the current-location value (D7)
+    if (inputType === "textarea" || /cover letter|additional information|anything else/.test(eff)) return { kind: "free_text", question_key: /cover letter/.test(eff) ? "cover_note" : (slug(eff).slice(0, 40) || "free_text") };
+    if (inputType === "checkbox" && /confirm|agree/.test(eff)) return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
     return { kind: "unknown" };
   }
   function bindingFor(f, kind) {
@@ -248,6 +329,11 @@ const CareerPortalBrowser = (() => {
       opened: false, closed: false, defs: null, bindings: null,
       filledValues: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
       resumeShaChecked: null, submitAttempted: false, submitCapture: null,
+      redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
+      armed: o.submitArmed === true, approvalRef: o.submitArmed === true ? (o.approvalRef || null) : null,
+    };
+    const refuseIfRedirected = () => {
+      if (state.redirectRefused) throw coded("HOST_REDIRECT_REFUSED", `this board landed off the allowlist at ${state.redirectRefused.finalUrl} — no further actions on it (§6.3)`);
     };
     const calls = { open: 0, fill: 0, submit: 0 };
     const driverLog = [];
@@ -280,6 +366,24 @@ const CareerPortalBrowser = (() => {
       get fillFailures() { return state.fillFailures.slice(); },
       get captchaTech() { return state.captchaTech.slice(); },
       get finalUrl() { return state.finalUrl; },
+      get submitArmed() { return state.armed; },
+      get approvalRef() { return state.approvalRef; },
+      // THE ARMING WIRE (BUG-063 / D3): called ONLY by 149's approval
+      // gate (submitDoorstep). Arms this board iff the gate passed AND
+      // the approval carries a reference naming the owner's batch
+      // approval. Anything else arms nothing and says so — the default
+      // stays unarmed, and submit() stays the refusal.
+      armForSubmit(ctx) {
+        if (state.armed) return { armed: true, alreadyArmed: true, approvalRef: state.approvalRef };
+        const ref = ctx && typeof ctx.approvalRef === "string" ? ctx.approvalRef.trim() : "";
+        if (ctx && ctx.approvedByUser === true && ref) {
+          state.armed = true; state.approvalRef = ref;
+          log("submit_armed", { approvalRef: ref, canonicalKey: ctx.canonicalKey || null });
+          return { armed: true, approvalRef: ref };
+        }
+        log("submit_arm_refused", { reason: !ctx || ctx.approvedByUser !== true ? "approval_gate_not_passed" : "approval_ref_required" });
+        return { armed: false, reason: !ctx || ctx.approvedByUser !== true ? "approval_gate_not_passed" : "approval_ref_required" };
+      },
       open() {
         if (state.closed) throw coded("BOARD_CLOSED", "this browser board is closed");
         if (!gate.allowed) throw coded("DRIVER_HOST_REFUSED", `driver refuses to open ${o.url} — only tested ATS families and localhost test pages may be driven (§6.3)`);
@@ -288,11 +392,24 @@ const CareerPortalBrowser = (() => {
         state.opened = true;
         state.finalUrl = r.finalUrl; state.captchaTech = r.captchaTech || []; state.navSteps = r.navSteps || [];
         log("open", { url: o.url, finalUrl: r.finalUrl, fieldCount: r.fieldCount, captchaTech: state.captchaTech, navSteps: state.navSteps });
+        // §6.3 on EVERY hop (BUG-060 / D1): wherever the page actually
+        // landed — initial load, redirect chain, or the apply-click —
+        // must still be on the allowlist. The helper also aborts an
+        // off-list navigation pre-network (blockedNavigation).
+        const landed = r.blockedNavigation || r.finalUrl;
+        const fg = landed ? finalUrlGate(landed) : { allowed: true };
+        if (!fg.allowed) {
+          state.redirectRefused = fg;
+          log("host_redirect_refused", { at: "open", finalUrl: fg.finalUrl, host: fg.host });
+          return { ok: false, captcha: null, code: fg.code, finalUrl: fg.finalUrl, host: fg.host, reason: fg.reason };
+        }
         if (r.captcha) { log("captcha_detected", { at: "open" }); return { ok: true, captcha: r.captcha, screenshotRef: captureStopScreenshot("open") }; }
         return { ok: true, captcha: r.captcha || null };
       },
       form() {
+        refuseIfRedirected();
         if (!state.opened) board.open();
+        refuseIfRedirected();
         const r = call(boardId, { type: "discover" }, 30000);
         const { defs, bindings } = classifyFields(r.fields || []);
         state.defs = defs; state.bindings = bindings;
@@ -301,6 +418,7 @@ const CareerPortalBrowser = (() => {
         return { fields: defs.map((d) => Object.assign({}, d)), captchaAt: null };
       },
       fill(fieldId, value) {
+        refuseIfRedirected();
         if (!state.bindings) board.form();
         const binding = state.bindings[fieldId];
         if (!binding) throw coded("UNKNOWN_FIELD", `no such field on this board: ${fieldId}`);
@@ -352,7 +470,21 @@ const CareerPortalBrowser = (() => {
         return out;
       },
       atReview() {
+        refuseIfRedirected();
         const r = call(boardId, { type: "review" }, 90000);
+        // §6.3 hop gate at review (BUG-060): the Next/Continue clicks
+        // inside the review step navigate too — wherever they landed
+        // must still be on the allowlist before anything submits.
+        const landed = r.blockedNavigation || r.finalUrl;
+        if (landed) {
+          const fg = finalUrlGate(landed);
+          if (!fg.allowed) {
+            state.redirectRefused = fg;
+            log("host_redirect_refused", { at: "review", finalUrl: fg.finalUrl, host: fg.host });
+            return { ok: false, captcha: null, code: fg.code, finalUrl: fg.finalUrl, host: fg.host, reason: fg.reason };
+          }
+          state.finalUrl = landed;
+        }
         if (r.captcha) { log("captcha_detected", { at: "review" }); return { ok: true, captcha: "challenge", screenshotRef: captureStopScreenshot("review") }; }
         log("at_review", {});
         return { ok: true, captcha: null };
@@ -363,12 +495,14 @@ const CareerPortalBrowser = (() => {
         return r.path;
       },
       submit() {
-        // The submit leg fires ONLY on an explicitly armed board
-        // (opts.submitArmed === true) — the owner-approved submit lane's
-        // switch, on top of 149's approval gate. Unarmed boards refuse
-        // here no matter what approval 149 was handed.
-        if (o.submitArmed !== true) {
-          throw coded("REAL_SUBMIT_DISABLED", "this browser board is not armed for submission — the doorstep is the end of the line until the owner's submit lane arms the board");
+        refuseIfRedirected();
+        // The submit leg fires ONLY on an armed board: created armed
+        // (opts.submitArmed === true, the test lane) or armed by 149's
+        // approval gate via armForSubmit (approval + approvalRef,
+        // BUG-063). Unarmed boards refuse here no matter what approval
+        // 149 was handed — the refusal stays the default path.
+        if (state.armed !== true) {
+          throw coded("REAL_SUBMIT_DISABLED", "this browser board is not armed for submission — the doorstep is the end of the line until 149's approval gate arms it with the owner's batch approval reference");
         }
         if (state.submitAttempted) {
           throw coded("SUBMIT_ALREADY_ATTEMPTED", "this board already fired its one submit — reconcile the captured outcome, never re-click (§8.3)");
@@ -429,6 +563,6 @@ const CareerPortalBrowser = (() => {
     return board;
   }
 
-  return { createBrowserBoard, classifyFields, hostAllowed, shutdownAll };
+  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, shutdownAll };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalBrowser;

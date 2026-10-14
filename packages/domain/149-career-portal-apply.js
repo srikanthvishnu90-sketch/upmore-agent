@@ -22,9 +22,17 @@
    SANDBOX/TEST, following the 133 makeTestBoard / F3 form-driver pattern)
    and the module-150 Playwright driver (packages/domain/
    150-career-portal-browser.js), which drives REAL hosted forms to the
-   doorstep only: its submit leg is unplugged (REAL_SUBMIT_DISABLED), so
-   the approval gate below can never transmit a real application through
-   it. classifyTarget can recognize a real ATS URL, but runApply refuses
+   doorstep. Its submit leg is ARMED-ONLY (BUG-063 / lane defect D3): a
+   browser board transmits only when submitDoorstep below arms it from
+   an approval that carries the owner's batch approval reference
+   (approval.approvalRef) on top of approvedByUser — approval alone, or
+   a board constructed armed for the test lane, are the only other
+   paths, and an unarmed board's submit() throws REAL_SUBMIT_DISABLED.
+   The §6.3 host gate is enforced on EVERY navigation hop (BUG-060 /
+   D1): a redirect off the allowlist surfaces from the driver as a typed
+   HOST_REDIRECT_REFUSED stop, and a board exposing zero fillable fields
+   is a typed EMPTY_FORM stop, never a doorstep (BUG-061 / D2).
+   classifyTarget can recognize a real ATS URL, but runApply refuses
    any board that is neither a registered sandbox board nor the attested
    browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
    (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
@@ -140,6 +148,26 @@ const CareerPortalApply = (() => {
     };
   }
 
+  // ---------- profile contract: standard-field value resolution ----------
+  // Flat keys live on the profile itself (name, email, phone, location,
+  // linkedin, github, website, current_company, preferred_name, country).
+  // Education keys (BUG-062 / lane defect D4) live under profile.education
+  // in the fact-bank F-001 shape — { school, degree, discipline,
+  // start_date, end_date, gpa, graduation_year } — with a flat
+  // profile["education_<key>"] accepted as a fallback. A key that
+  // resolves nowhere is an ask (no_confirmed_fact), never invented.
+  const EDUCATION_KEYS = ["school", "degree", "discipline", "start_date", "end_date", "gpa", "graduation_year"];
+  function profileValue(profile, key) {
+    if (!profile || !key) return undefined;
+    if (key === "resume") return profile.resume;
+    if (key.startsWith("education_")) {
+      const sub = key.slice("education_".length);
+      if (profile.education && profile.education[sub] !== undefined) return profile.education[sub];
+      return profile[key];
+    }
+    return profile[key];
+  }
+
   // ---------- §6.1 step 3: form analysis ----------
   function analyzeForm(formDef) {
     return (formDef.fields || []).map((f) => ({
@@ -200,11 +228,10 @@ const CareerPortalApply = (() => {
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
     if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
     if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
-      // The real-browser seam (module 150) HAS landed for doorstep runs:
-      // an attested browser board may be driven to the final review step.
-      // Its submit leg is unplugged in that build (REAL_SUBMIT_DISABLED),
-      // so no real submission can happen through it; any other
-      // non-sandbox board is still refused outright.
+      // The real-browser seam (module 150) HAS landed: an attested
+      // browser board may be driven, and may transmit ONLY through the
+      // arming wire in submitDoorstep (approval + approvalRef, BUG-063);
+      // any other non-sandbox board is still refused outright.
       return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
     }
     if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
@@ -222,6 +249,15 @@ const CareerPortalApply = (() => {
     // open the board; a challenge here stops everything (§6.3)
     const opened = board.open();
     logStep("open", { host: board.host });
+    // §6.3 host gate on EVERY hop (BUG-060 / D1): the driver reports a
+    // navigation that landed off the allowlist (initial URL checked
+    // above is not enough — boards redirect to employer sites) as a
+    // typed refusal. The run stops here: no form read, no fill, no
+    // doorstep, no submit on or after the off-list page.
+    if (opened && opened.code) {
+      logStep("host_redirect_refused", { code: opened.code, finalUrl: opened.finalUrl || null, host: opened.host || null, at: "open" });
+      return blocked(opened.code, { reason: opened.reason || "the page landed off the tested-ATS allowlist (§6.3)", finalUrl: opened.finalUrl || null, host: opened.host || null });
+    }
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
@@ -235,13 +271,20 @@ const CareerPortalApply = (() => {
     // steps 3+4: analyze, then fill from confirmed facts only
     const formDef = board.form();
     const formAnalysis = analyzeForm(formDef);
+    // D2 (BUG-061): a board exposing ZERO fields is a stop, never a
+    // doorstep — last night "prepared" was spoken over forms the driver
+    // never actually reached, with a payload of only the resume hash.
+    if (!formDef.fields || formDef.fields.length === 0) {
+      logStep("empty_form_stop", { fieldCount: 0 });
+      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
+    }
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
     for (const f of formDef.fields) {
       const entry = { field_id: f.field_id, category: f.kind };
       if (f.kind === "standard") {
-        const raw = f.profile_key === "resume" ? profile.resume : profile[f.profile_key];
+        const raw = profileValue(profile, f.profile_key);
         if (raw === undefined || raw === null || raw === "") { asks.push({ field_id: f.field_id, reason: "no_confirmed_fact" }); continue; }
         const value = f.profile_key === "resume" ? { filename: raw.filename, sha256: raw.sha256 } : raw;
         board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
@@ -291,6 +334,12 @@ const CareerPortalApply = (() => {
 
     // the doorstep: final review, exact payload snapshot, STOP (§6.1 step 5/6 boundary)
     const review = board.atReview();
+    // §6.3 hop gate at review too (BUG-060 / D1): a Next/Continue click
+    // that navigated off the allowlist stops the run before any submit.
+    if (review && review.code) {
+      logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
+      return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null });
+    }
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
@@ -302,6 +351,13 @@ const CareerPortalApply = (() => {
       payload[f.field_id] = f.field_id === "resume"
         ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
         : boardAnswers[f.field_id];
+    }
+    // D2 second half (BUG-061): a payload with no actual answers in it
+    // (every fill failed or read back empty) is hollow even when the
+    // form had fields — it must never be spoken as a doorstep.
+    if (Object.keys(payload).length === 0) {
+      logStep("empty_form_stop", { fieldCount: formDef.fields.length, filledCount: 0 });
+      return blocked("EMPTY_FORM", { reason: "no field value landed on the board — the would-submit payload would carry nothing but the resume hash; this is a stop, not a doorstep", formAnalysis, asks });
     }
     if (profile.resume) payload.resume_sha256 = profile.resume.sha256;
     const payloadSha256 = sha256(JSON.stringify(payload));
@@ -336,9 +392,21 @@ const CareerPortalApply = (() => {
       return { resultStatus: "blocked", code: "NO_DOORSTEP", reason: "no prepared doorstep payload in this session" };
     }
     const board = session.board;
+    // THE ARMING WIRE (BUG-063 / D3): this approval gate is the ONLY
+    // place a board gets armed for a real submit. Arming requires BOTH
+    // (a) this gate's pass (approvedByUser === true, checked above) AND
+    // (b) an approval reference naming the owner's batch approval
+    // (approval.approvalRef, or ctx.approvalRef). A board that exposes
+    // no armForSubmit (the sandbox board — a local test sink) needs no
+    // arming; a browser board stays unarmed without the ref and its
+    // submit() throws REAL_SUBMIT_DISABLED, which propagates as before.
+    const approvalRef = approval.approvalRef || approval.ref || c.approvalRef || null;
+    if (board && typeof board.armForSubmit === "function") {
+      board.armForSubmit({ approvedByUser: true, approvalRef, canonicalKey: session.doorstep.postingKey });
+    }
     const out = board.submit();
     if (out.outcome === "accepted") {
-      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind,
+      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
@@ -375,6 +443,6 @@ const CareerPortalApply = (() => {
       reason: "the board holds no submission for this session — a retry needs a fresh approval, and the earlier attempt stays on record as an uncertain outcome" };
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, profileValue, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

@@ -76,12 +76,52 @@ async function getBrowser() {
   browser = await pw.chromium.launch(launchOpts);
   return browser;
 }
+// §6.3 hop gate (BUG-060 / D1): the allowlist holds on EVERY main-frame
+// navigation, not just the URL module 150 was asked to open. Boards
+// redirect off their own host (Greenhouse -> the employer's site); the
+// redirect target must never even load. Only main-frame navigation
+// requests are gated — subresources (scripts, trackers, CDNs) pass
+// untouched, and the one armed submit's own landing navigation is
+// suspended by cmdSubmitCapture (the employer's answer is evidence).
+const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];
+function navAllowed(url) {
+  let u;
+  try { u = new URL(String(url)); } catch (e) { return false; }
+  if (!/^https?:$/.test(u.protocol)) return true; // about:, data:, blob: — not network hops
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  return NAV_SUFFIXES.some((d) => host === d || host.endsWith("." + d));
+}
 async function getBoard(boardId) {
   if (!boards.has(boardId)) {
     const b = await getBrowser();
     const context = await b.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
     const page = await context.newPage();
-    boards.set(boardId, { context, page, url: null });
+    const entry = { context, page, url: null, blockedNav: null, submitInProgress: false };
+    boards.set(boardId, entry);
+    // Redirect hops never pass through page.route (a 302 target is part
+    // of the initial request chain in Chromium/Playwright), but they DO
+    // surface as request events — record any off-allowlist main-frame
+    // navigation attempt so cmdOpen/cmdReview can stop on it, and
+    // module 150's post-load final-URL gate makes the typed refusal.
+    page.on("request", (req) => {
+      try {
+        if (!entry.submitInProgress && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
+          entry.blockedNav = entry.blockedNav || req.url();
+        }
+      } catch (e) { /* frame may be gone; the final-URL gate still decides */ }
+    });
+    await page.route("**/*", async (route) => {
+      try {
+        const req = route.request();
+        if (!entry.submitInProgress && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
+          entry.blockedNav = req.url();
+          await route.abort("blockedbyclient");
+          return;
+        }
+        await route.continue();
+      } catch (e) { try { await route.continue(); } catch (_) { /* already handled */ } }
+    });
   }
   return boards.get(boardId);
 }
@@ -155,7 +195,11 @@ function fnDiscoverFields() {
       inputType: type, name: el.getAttribute("name") || "", id: el.id || "", label,
       required: !!el.required || el.getAttribute("aria-required") === "true" || /(\*|✱)\s*$/.test(label) || /required/i.test(el.getAttribute("aria-label") || ""),
     };
-    if (type === "radio" || type === "checkbox") f.groupLabel = clean(groupLabelFor(el));
+    // D9 (BUG-066): the card/group heading is carried for EVERY field,
+    // not just radio/checkbox groups — a Lever custom card's text input
+    // has no <label>, and its heading is the only human label there is.
+    const gl = clean(groupLabelFor(el));
+    if (gl) f.groupLabel = gl;
     if (el.tagName === "SELECT") {
       f.options = Array.from(el.options).map((o) => ({ value: o.value, label: clean(o.textContent) }));
     }
@@ -233,18 +277,29 @@ function fnReadback(bindings) {
 async function cmdOpen(board, cmd) {
   const page = board.page;
   const navSteps = [];
+  board.blockedNav = null;
   // "commit" + a soft domcontentloaded wait: heavy ATS pages hang for a
   // long time on third-party subresources, and the form is usable long
   // before every tracker finishes (a hard domcontentloaded wait timed
   // out at 45s on a live Greenhouse page that had in fact loaded). One
   // navigation retry on a timeout — a human would refresh too; nothing
   // has been filled or sent at this point, so a retry is stateless-safe.
+  // A gate-blocked navigation (BUG-060) is NOT retried: it is the stop.
   try {
     await page.goto(cmd.url, { waitUntil: "commit", timeout: 60000 });
   } catch (e) {
+    await page.waitForTimeout(300); // let the request listener record a redirect hop that raced the failure
+    if (board.blockedNav) {
+      navSteps.push("goto-blocked:" + board.blockedNav);
+      return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav, fieldCount: 0, captchaTech: [], navSteps };
+    }
     navSteps.push("goto-retry:" + String(e.message || e).slice(0, 80));
     await page.waitForTimeout(3000);
     await page.goto(cmd.url, { waitUntil: "commit", timeout: 60000 });
+  }
+  if (board.blockedNav) {
+    navSteps.push("goto-blocked:" + board.blockedNav);
+    return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav, fieldCount: 0, captchaTech: [], navSteps };
   }
   await page.waitForLoadState("domcontentloaded", { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(1200);
@@ -276,6 +331,10 @@ async function cmdOpen(board, cmd) {
     board.fieldCount = fields.length;
   }
   const tech = await page.evaluate(fnCaptchaTech).catch(() => []);
+  if (board.blockedNav) {
+    navSteps.push("apply-click-blocked:" + board.blockedNav);
+    return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav, fieldCount: 0, captchaTech: tech, navSteps };
+  }
   return { ok: true, captcha, finalUrl: board.url, fieldCount: board.fieldCount || 0, captchaTech: tech, navSteps };
 }
 
@@ -285,7 +344,13 @@ async function cmdDiscover(board) {
   return { fields: raw };
 }
 
-const normOpt = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const normOpt = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+// D8 (BUG-067): the EEO decline default is ONE semantic choice worded a
+// dozen ways across boards ("Decline to self-identify", "Decline",
+// "Prefer not to answer", "I don't wish to answer", "Do not wish to
+// disclose"...). Exact text matching made the §6.1 default unreliable;
+// decline-class equivalence is matched explicitly, nothing else is.
+const isDeclineText = (s) => /decline|prefer not|do not wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(normOpt(s));
 function matchOption(options, value) {
   const v = normOpt(value);
   if (!v) return null;
@@ -294,6 +359,10 @@ function matchOption(options, value) {
   const head = v.split(/\s*[—–(]\s*/)[0].trim(); // "yes — authorized..." -> "yes"
   hit = options.find((o) => normOpt(o.label) === head || normOpt(o.value) === head);
   if (hit) return hit;
+  if (isDeclineText(v)) {
+    hit = options.find((o) => isDeclineText(o.label) || isDeclineText(o.value));
+    if (hit) return hit;
+  }
   hit = options.find((o) => normOpt(o.label).startsWith(v) || v.startsWith(normOpt(o.label)) && normOpt(o.label).length > 1);
   return hit || null;
 }
@@ -341,18 +410,25 @@ async function cmdFill(board, cmd) {
 
 async function cmdReview(board) {
   const page = board.page;
+  board.blockedNav = null;
   for (let step = 0; step < 8; step++) {
     const captcha = await page.evaluate(fnDetectChallenge);
-    if (captcha) return { captcha: "challenge" };
+    if (captcha) return { captcha: "challenge", finalUrl: page.url() };
     const state = await page.evaluate(fnReviewState);
-    if (state.hasSubmit) return { ok: true, captcha: null };
-    if (!state.hasNext) return { ok: true, captcha: null };
-    await page.click('[data-upmore-next="1"]', { timeout: 20000 });
+    if (state.hasSubmit) return { ok: true, captcha: null, finalUrl: page.url() };
+    if (!state.hasNext) return { ok: true, captcha: null, finalUrl: page.url() };
+    try {
+      await page.click('[data-upmore-next="1"]', { timeout: 20000 });
+    } catch (e) {
+      if (board.blockedNav) return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav };
+      throw e;
+    }
     await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(700);
+    if (board.blockedNav) return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav };
   }
   const captcha = await page.evaluate(fnDetectChallenge);
-  return captcha ? { captcha: "challenge" } : { ok: true, captcha: null };
+  return captcha ? { captcha: "challenge", finalUrl: page.url() } : { ok: true, captcha: null, finalUrl: page.url() };
 }
 
 /* The one submit click in this process — reachable only from an armed
@@ -366,9 +442,16 @@ async function cmdSubmitCapture(board, cmd) {
   if (captchaBefore) return { captcha: "challenge", clicked: false };
   const marked = await page.evaluate(fnMarkSubmit);
   if (!marked) return { clicked: false, reason: "no_submit_control" };
-  await page.click('[data-upmore-submit="1"]', { timeout: 20000 });
+  // The click is ALREADY authorized (armed board, 149's gate): the
+  // employer's confirmation may legitimately land on another host, and
+  // capturing that answer is evidence, not driving — so the navigation
+  // gate is suspended for this one landing, then restored.
+  board.submitInProgress = true;
+  try { await page.click('[data-upmore-submit="1"]', { timeout: 20000 }); }
+  finally { /* landing waits below still belong to the submit capture */ }
   await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
+  board.submitInProgress = false;
   const captcha = await page.evaluate(fnDetectChallenge);
   const text = await page.evaluate(() => ((document.body && document.body.innerText) || "").replace(/\s+/g, " ").slice(0, 6000)).catch(() => "");
   let screenshot = null;

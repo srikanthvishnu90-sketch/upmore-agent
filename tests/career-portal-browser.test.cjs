@@ -41,6 +41,11 @@ const PROFILE = {
   email: "alex.testcase@example.test",
   phone: "+1 000 555 0100",
   location: "Chicago, IL",
+  country: "United States",
+  education: {
+    school: "TEST University", degree: "Bachelor's", discipline: "Computer Science",
+    start_date: "2024", end_date: "2028", gpa: "3.7", graduation_year: "2028",
+  },
   current_company: "TEST Systems Inc",
   resume: { filename: "alex-testcase-resume.txt", sha256: RESUME_SHA },
   answers: {
@@ -243,6 +248,99 @@ test("confirmation capture: an ambiguous landing page is unknown_outcome — nev
     assert.equal(rec.resultStatus, "unknown_outcome", "an unverifiable board state must not be read as 'not submitted'");
     assert.equal(rec.submission.needsHuman, true);
     assert.equal(session.needsReconcile, true, "the reconcile lock stays on — no retry is cleared against an unreadable board");
+  } finally { board.close(); }
+});
+
+test("D1 redirect gate: a board page that redirects OFF the allowlist stops the run typed HOST_REDIRECT_REFUSED — nothing filled, nothing submitted", { skip: SKIP, timeout: 180000 }, async () => {
+  const url = `${base}/redirect-offlist`;
+  const { board, session } = browserSession(url);
+  try {
+    const r = Portal.runApply(session, { posting: postingFor(url), profile: PROFILE, log: newLog(),
+      attestations: { certify_true: { value: true, explicit: true } },
+      approval: { approvedByUser: true, approvalRef: "owner-batch-001-2026-10-13" } });
+    assert.equal(r.resultStatus, "blocked");
+    assert.equal(r.code, "HOST_REDIRECT_REFUSED");
+    assert.equal(board.calls.fill, 0, "zero fills happened on (or after) the off-list hop");
+    assert.equal(board.calls.submit, 0);
+    assert.equal(session.doorstep, null, "no doorstep over a refused page");
+  } finally { board.close(); }
+});
+
+test("D3 arming wire: runApply with an owner approvalRef arms the board and submits exactly once, confirmation captured; without a ref it refuses", { skip: SKIP, timeout: 180000 }, async () => {
+  const url = `${base}/gh-confirm`;
+  // armed end to end: board created UNARMED; the ref in the run's approval arms it
+  const s1 = browserSession(url); // submitArmed NOT set
+  try {
+    assert.equal(s1.board.submitArmed, false, "the board starts unarmed");
+    const r = Portal.runApply(s1.session, {
+      posting: postingFor(url, "localhost:test:d3-armed"), profile: PROFILE, log: newLog(),
+      attestations: { certify_true: { value: true, explicit: true } },
+      approval: { approvedByUser: true, approvalRef: "owner-batch-001-2026-10-13" },
+    });
+    assert.equal(r.resultStatus, "completed", "armed + approved run transmits on the sandbox board");
+    assert.equal(s1.board.calls.submit, 1, "submit fired exactly once");
+    assert.equal(r.submission.status, "submitted");
+    assert.equal(r.submission.confirmationId, "TEST-APP-12345", "employer confirmation captured into the result");
+    assert.ok(/received/i.test(r.submission.confirmationText || ""));
+    assert.ok(typeof r.submission.screenshotRef === "string" && r.submission.screenshotRef.endsWith(".png"));
+    assert.equal(r.submission.approvalRef, "owner-batch-001-2026-10-13", "the submission names the owner's batch approval it fired under");
+    assert.equal(s1.board.submitArmed, true, "the board is armed by the wire, not by construction");
+  } finally { s1.board.close(); }
+  // unarmed control: approval WITHOUT a ref never transmits
+  const s2 = browserSession(url);
+  try {
+    const r2 = Portal.runApply(s2.session, {
+      posting: postingFor(url, "localhost:test:d3-unarmed"), profile: PROFILE, log: newLog(),
+      attestations: { certify_true: { value: true, explicit: true } },
+    });
+    assert.equal(r2.resultStatus, "prepared");
+    assert.throws(() => Portal.submitDoorstep(s2.session, { approvedByUser: true }), (e) => e.code === "REAL_SUBMIT_DISABLED");
+    assert.equal(s2.board.calls.submit, 0, "no click ever fired without the ref");
+  } finally { s2.board.close(); }
+});
+
+test("D4 through the driver: education + country fields on a real form fill from the profile and land in the payload", { skip: SKIP, timeout: 180000 }, async () => {
+  const url = `${base}/gh-form`;
+  const { board, session } = browserSession(url);
+  try {
+    const r = Portal.runApply(session, {
+      posting: postingFor(url), profile: PROFILE, log: newLog(),
+      attestations: { certify_true: { value: true, explicit: true } },
+    });
+    assert.equal(r.resultStatus, "prepared");
+    assert.equal(r.doorstep.payload.school, "TEST University");
+    assert.equal(r.doorstep.payload.degree, "Bachelor's");
+    assert.equal(r.doorstep.payload.field_of_study, "Computer Science");
+    assert.equal(r.doorstep.payload.gpa, "3.7");
+    assert.equal(r.doorstep.payload.graduation_year, "2028");
+    assert.equal(r.doorstep.payload.country, "United States");
+  } finally { board.close(); }
+});
+
+test("D8 EEO decline default: the decline is selected even when the board words it 'Prefer not to answer'", { skip: SKIP, timeout: 180000 }, async () => {
+  const url = `${base}/gh-eeo-variant`;
+  const { board, session } = browserSession(url);
+  try {
+    const r = Portal.runApply(session, {
+      posting: postingFor(url), profile: PROFILE, log: newLog(),
+      attestations: { certify_true: { value: true, explicit: true } },
+    });
+    assert.equal(r.resultStatus, "prepared");
+    assert.equal(r.doorstep.payload.gender, "Prefer not to answer", "the board's own decline-worded option was chosen");
+    assert.deepEqual(board.fillFailures.filter((f) => f.field_id === "gender"), [], "no fill failure recorded for the EEO field");
+  } finally { board.close(); }
+});
+
+test("D9 Lever custom card: the ask record quotes the human card question, not the machine field name", { skip: SKIP, timeout: 180000 }, async () => {
+  const url = `${base}/lever-card`;
+  const { board, session } = browserSession(url);
+  try {
+    const r = Portal.runApply(session, { posting: postingFor(url), profile: PROFILE, log: newLog() });
+    assert.equal(r.resultStatus, "awaiting_user", "the required card question is an ask");
+    const cardAsk = (r.formAnalysis || []).find((f) => /relocate/i.test(f.label || ""));
+    assert.ok(cardAsk, "form analysis carries the human card label");
+    assert.equal(cardAsk.label, "Are you willing to relocate to New York?");
+    assert.ok(r.asks.some((a) => a.field_id === cardAsk.field_id), "the ask is recorded under the human-labeled field");
   } finally { board.close(); }
 });
 

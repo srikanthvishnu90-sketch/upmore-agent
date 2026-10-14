@@ -15,6 +15,13 @@ const GH_FORM = `<!doctype html><html><head><title>Job Application (TEST fixture
   <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
   <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
   <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="school">School</label><input id="school" name="school" type="text"></div>
+  <div><label for="degree">Degree</label><input id="degree" name="degree" type="text"></div>
+  <div><label for="fos">Field of Study</label><input id="fos" name="field_of_study" type="text"></div>
+  <div><label for="gpa">GPA</label><input id="gpa" name="gpa" type="text"></div>
+  <div><label for="gy">Graduation Year</label><input id="gy" name="graduation_year" type="text"></div>
+  <div><label for="country">Country</label>
+    <select id="country" name="country"><option value="">Select...</option><option>United States</option><option>Canada</option></select></div>
   <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
   <div><label for="wa">Are you authorized to work in the US? *</label>
     <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
@@ -78,7 +85,38 @@ const GH_AMBIGUOUS = `<!doctype html><html><head><title>Job Application (TEST fi
   document.body.innerHTML = '<h1>Done</h1><p>You may now close this window.</p>';
 });</script></body></html>`;
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS };const server = http.createServer((req, res) => {
+// D8 fixture: same confirm form, but the EEO select offers the decline
+// default only in the "Prefer not to answer" wording (no exact match for
+// 149's "Decline to self-identify" string).
+const GH_EEO_VARIANT = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Software Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">${FORM_FIELDS}
+  <div><label for="gender">Gender (voluntary)</label>
+    <select id="gender" name="gender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Prefer not to answer</option></select></div>
+  <button type="button" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+// D9 fixture (Lever custom-card shape): the card question has NO <label>;
+// its human text is the card's .question heading, and the input's name is
+// a machine name (cards_<id>_field<n>) — the ask must quote the heading.
+const LEVER_CARD = `<!doctype html><html><head><title>Apply (TEST fixture)</title></head><body>
+<h1>Software Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div class="card"><div class="question">Are you willing to relocate to New York?</div>
+    <div class="field"><input name="cards_9f2abc_field0" type="text" required></div></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD };const server = http.createServer((req, res) => {
+  // D1 fixture: an allowed-host page that server-redirects OFF the
+  // allowlist (the HRT Greenhouse -> employer-site shape). The target is
+  // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the
+  // fixed driver's navigation gate aborts the hop before any network.
+  if (req.url === "/redirect-offlist") {
+    res.writeHead(302, { Location: "http://employer.example.invalid/apply" });
+    res.end(); return;
+  }
   const body = pages[req.url];
   res.writeHead(body ? 200 : 404, { "content-type": "text/html" });
   res.end(body || "<html><body>not found</body></html>");

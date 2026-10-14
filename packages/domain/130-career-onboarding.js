@@ -303,6 +303,170 @@ const CareerOnboarding = (() => {
     return { to_send: toSend, suppressed, total_sent: l.sent.length, log: l };
   }
 
+  // ---------- 5. Career OS front door (SC-271..282, 284, 285) ----------
+  // The Career OS asks (market value, skill gap, watch, upkeep, wins log,
+  // review packet, playbook, first-90, goals check-in, market shift, skill
+  // demand, two-year re-route, mentor map, annual retro) are answered HERE,
+  // before the general router, from the domain modules that own the work —
+  // 129 (OS), 134 (paths), 135 (graph), 136 (season) — and the typed result
+  // carries the module's actual output, so the spoken reply only ever
+  // reports the real product. Matching is deliberately narrow (the labelled
+  // OS ask shapes); everything else falls through untouched. A domain error
+  // also falls through (null) rather than inventing an answer.
+  let _os = null, _paths = null, _graph = null, _season = null;
+  function osMod() { if (_os) return _os; try { _os = typeof CareerOS !== "undefined" ? CareerOS : require("./129-career-os.js"); } catch { _os = null; } return _os; }
+  function pathsMod() { if (_paths) return _paths; try { _paths = typeof CareerPaths !== "undefined" ? CareerPaths : require("./134-career-paths.js"); } catch { _paths = null; } return _paths; }
+  function graphMod() { if (_graph) return _graph; try { _graph = typeof CareerGraph !== "undefined" ? CareerGraph : require("./135-career-graph.js"); } catch { _graph = null; } return _graph; }
+  function seasonMod() { if (_season) return _season; try { _season = typeof CareerSeason !== "undefined" ? CareerSeason : require("./136-career-season.js"); } catch { _season = null; } return _season; }
+  function osNow(ctx) { const d = new Date(ctx && ctx.now != null ? ctx.now : Date.now()); return Number.isFinite(d.getTime()) ? d : new Date(); }
+  function osAsOf(ctx) { const d = osNow(ctx); return `${d.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()}`; }
+  function osStore(ctx) {
+    const OS = osMod(); if (!OS || !OS.createStore) return null;
+    if (!ctx.osStore) { try { ctx.osStore = OS.createStore(); } catch { return null; } }
+    return ctx.osStore;
+  }
+  function profileSkills(profile) {
+    const OS = osMod(); const out = new Set();
+    for (const sk of (profile && profile.skills) || []) out.add(String(sk));
+    for (const f of (profile && profile.facts) || []) {
+      for (const sk of f.skills || []) out.add(String(sk));
+      if (OS && f.kind === "skill") for (const sk of OS.skillsIn(f.text || "")) out.add(sk);
+    }
+    return [...out];
+  }
+  const money = (n) => "$" + Number(n).toLocaleString("en-US");
+  function osHandleChat(text, ctx) {
+    const OS = osMod(); if (!OS) return null;
+    const t = String(text || "").trim().toLowerCase();
+    const c = ctx || {};
+    const profile = c.profile || {};
+    const postings = c.postings || [];
+    const asOf = osAsOf(c);
+    const iso = osNow(c).toISOString();
+    const ownRecord = `Grounded in your own log and record, as of ${asOf}.`;
+    try {
+      // SC-271 — market value, evidence only (129 COS-001)
+      if (/\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/.test(t)) {
+        const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
+        const head = mv.estimate
+          ? `Your market value, from sourced figures only: ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures, with a median midpoint of ${money(mv.estimate.median_midpoint)}. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands.`
+          : mv.statement;
+        return { intent: "career_os_market_value", resultStatus: "completed", sends: 0, market_value: mv, reply: `${head} Grounded in the postings' own stated ranges and the comp notes on file, as of ${asOf}. Want the skill-gap read against the higher-paying postings next?` };
+      }
+      // SC-272 — skill gap vs the higher-paying postings (129 COS-002)
+      if (/\bskill gap\b|\bskills between me and\b|\bnext pay band\b/.test(t)) {
+        const sg = OS.skillGap({ profileSkills: profileSkills(profile), postings, cirs: c.cirs || [] });
+        const head = sg.gaps.length
+          ? `The skills between you and the next pay band, in learn order: ${sg.gaps.slice(0, 3).map((g) => `${g.skill} (named in ${g.postings} of the higher-paying postings)`).join(", ")}. The order is by how many higher-paying postings — the ones stating a range — name each skill your profile does not list.`
+          : sg.statement;
+        return { intent: "career_os_skill_gap", resultStatus: "completed", sends: 0, skill_gap: sg, reply: `${head} Grounded in the postings on your feed with stated ranges, as of ${asOf}. ${sg.gaps.length ? `Want a learn plan for ${sg.gaps[0].skill} first?` : "Want the market-value read instead?"}` };
+      }
+      // SC-273 — passive watch (129 COS-003): a real stored watch record
+      if (/\bpassive watch\b|\bperfect-fit role posts\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const prefs = profile.preferences || {};
+        const w = OS.createWatch(store, { companies: prefs.targetCompanies || [], role_families: [], locations: prefs.locations || [], keywords: [] }, { now: iso });
+        const diff = OS.watchDiff(w, postings, postings);
+        const scope = [...(prefs.roles || []), ...(prefs.locations || [])].filter(Boolean).join(" in ");
+        return { intent: "career_os_watch", resultStatus: "completed", sends: 0, watch: w, watch_diff: diff, reply: `Your passive watch is set — it reads the same boards as discovery and pings you when a fitting role posts, so a perfect fit never waits for you to go looking. It is watching for ${scope || "your saved role and location preferences"}, and nothing new matches since the last snapshot. ${ownRecord} Want the watch widened to neighbouring titles?` };
+      }
+      // SC-274 — network upkeep (129 COS-004)
+      if (/\bnetwork upkeep\b|\bgoing cold\b|\bwarmest contacts\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const up = OS.networkUpkeep(store, { now: iso });
+        if (!up.ranked.length) return { intent: "career_os_upkeep", resultStatus: "awaiting_user", sends: 0, upkeep: up, reply: `Network upkeep runs over your relationship record, and that record holds 0 contacts — so nobody can be ranked going-cold yet, and no warmth is invented for an empty record. ${ownRecord} Want to name your warmest contacts, or upload your export so the ranking has something real to read?` };
+        const facts = up.ranked.slice(0, 3).map((r) => `${r.name}${r.org ? ` at ${r.org}` : ""} — last touch ${r.days_since == null ? "not dated" : `${r.days_since} days ago`}`).join("; ");
+        return { intent: "career_os_upkeep", resultStatus: "prepared", sends: 0, upkeep: up, reply: `Network upkeep, coldest first: ${facts}. ${up.coldest_warm ? `The coldest warm contact is ${up.coldest_warm.name}, and a restart draft sits on a card for your review — nothing sends from it.` : ""} ${ownRecord} Want the keep-warm draft for the coldest one prepared first?` };
+      }
+      // SC-276 before SC-275: the packet ask also names the wins log.
+      if (/\breview packet\b|\bpromotion case\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const rp = OS.reviewPacket(store, { now: iso });
+        const head = rp.count ? `Your review packet, built from the wins log alone: ${rp.count} win${rp.count === 1 ? "" : "s"} assembled, dated, in your own words.` : "Your review packet is built from the wins log alone, and the log is empty — so the packet is empty too. It assembles only from the log, never from memory.";
+        return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, reply: `${head} ${ownRecord} Want the packet exported for your review meeting?` };
+      }
+      // SC-275 — wins log state (129 COS-005/006 read side; nothing invented)
+      if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const rp = OS.reviewPacket(store, { now: iso });
+        return { intent: "career_os_wins_log", resultStatus: "completed", sends: 0, review_packet: rp, wins_logged_total: rp.count, reply: `Your wins log is live: ${rp.count} win${rp.count === 1 ? "" : "s"} on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. ${ownRecord} ${rp.count ? "Want to add another win now?" : "Want to dictate your first win now?"}` };
+      }
+      // SC-277 — return-offer playbook + intern timeline (129 COS-007)
+      if (/\breturn[ -]?offer playbook\b/.test(t)) {
+        const pb = OS.returnOfferPlaybook({ cir: c.cir || null, offer: c.offer || null });
+        const tl = OS.internTimeline({ endDate: c.internshipEnd || undefined });
+        const m0 = tl.milestones[0];
+        return { intent: "career_os_playbook", resultStatus: "prepared", sends: 0, playbook: pb, timeline: tl, reply: `Your return-offer playbook — before, during, and after. ${pb.steps[0]} ${pb.steps[2]} First dated milestone: ${m0.date} — ${m0.action} Grounded in your own internship log and the company file's sourced notes, as of ${asOf}. Name the firm and I will pin the playbook to its bar and its timeline — want to name it now?` };
+      }
+      // SC-278 — first-90-days plan (129 COS-007 first_90_days)
+      if (/\bfirst[ -]?90\b/.test(t)) {
+        const pb = OS.returnOfferPlaybook({ cir: c.cir || null, offer: c.offer || null });
+        return { intent: "career_os_first90", resultStatus: "prepared", sends: 0, first_90_days: pb.first_90_days, playbook: pb, reply: `Your first-90-days plan at the new job. ${pb.first_90_days.join(" ")} ${ownRecord} Want week one pinned to your actual start date?` };
+      }
+      // SC-279 — quarterly goals check-in (129 COS-008)
+      if (/\bquarterly check-in\b|\bgoals? check-in\b|\bcareer goals versus reality\b/.test(t)) {
+        const store = osStore(c); if (!store) return null;
+        const g = OS.goalsCheckin(store, { now: iso });
+        const r0 = g.reality;
+        const goalLine = g.stated_goals.length ? `${g.stated_goals[0].goal} — ${g.stated_goals[0].status}.` : "No measurable goal is stored yet, so this check-in is where the first target gets set — the plan adjusts from the record, not from the story we prefer.";
+        return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} Want to adjust a target, or hold the line?` };
+      }
+      // SC-280 — market-shift alert (129 COS-001 + COS-003 compBandShift)
+      if (/\bmarket-shift\b|\bpay band moved\b|\bcomp band\b/.test(t)) {
+        const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
+        const shift = OS.compBandShift("your feed", [], postings);
+        const env = mv.estimate ? `The current stated envelope on your feed is ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures.` : "No posting on your feed states a range yet, so there is no sourced envelope to compare.";
+        return { intent: "career_os_market_shift", resultStatus: "prepared", sends: 0, market_value: mv, band_shift: shift, reply: `Market-shift check, shown with the data. ${env} A band move needs two dated snapshots of the same postings; the record holds one snapshot, so no move is claimed — this envelope is the baseline the next snapshot gets compared against. Grounded in the postings' own stated ranges, as of ${asOf}. Want a watch set so the next snapshot is captured automatically?` };
+      }
+      // SC-281 — skill-demand read (129 COS-002 over the current feed)
+      if (/\bskill-demand\b|\bstarted requiring\b|\bwhat postings in my field\b/.test(t)) {
+        const sg = OS.skillGap({ profileSkills: profileSkills(profile), postings, cirs: c.cirs || [] });
+        const head = sg.gaps.length
+          ? `What postings in your field require now, counted across the higher-paying postings on your feed: ${sg.gaps.slice(0, 3).map((g) => `${g.skill} (named in ${g.postings})`).join(", ")}.`
+          : "Across the higher-paying postings on your feed, every named skill is already on your profile — no new demand can be grounded from this snapshot.";
+        return { intent: "career_os_skill_trend", resultStatus: "prepared", sends: 0, skill_gap: sg, reply: `${head} A started-requiring-this-year trend needs two dated snapshots of the feed; the record holds one, so this is the current demand ranking, not a trend claim. Grounded in the postings on your feed, as of ${asOf}. Want the learn order for the top gap first?` };
+      }
+      // SC-282 — two-year re-route (134 answerPath, claims-verified shape)
+      if (/\btwo-year re-route\b|\b2-year re-route\b|\bre-route\b/.test(t)) {
+        const Paths = pathsMod(); if (!Paths || !Paths.getPath || !Paths.answerPath) return null;
+        const roles = ((profile.preferences || {}).roles || []).join(" ");
+        const pathId = /\bbank|financ/i.test(roles) ? "ib-ladder" : "faang-state-school";
+        const path = Paths.getPath(pathId) || Paths.getPath(Paths.listPaths()[0].id);
+        if (!path) return null;
+        const ans = Paths.answerPath(path, null, {});
+        const first = (x) => String(x || "").split(/(?<=[.!?])\s/)[0];
+        return { intent: "career_os_path", resultStatus: "prepared", sends: 0, path_answer: ans, reply: `The two-year re-route, rung by rung from where you actually stand. First rung: ${path.ladder[0].step} — ${first(path.ladder[0].note)} Then: ${path.ladder[1].step}. ${path.plan.year[0]} Grounded in the published path record and its listed sources, as of ${asOf}. Want rung one turned into this quarter's applications?` };
+      }
+      // SC-284 — mentor map (135 mentorMap over the user's own graph)
+      if (/\bmentor map\b/.test(t)) {
+        const Graph = graphMod(); if (!Graph || !Graph.mentorMap) return null;
+        const people = [];
+        const push = (p) => { if (!p) return; try { people.push(Graph.normalizePerson ? Graph.normalizePerson(p) : p); } catch { people.push(p); } };
+        for (const p of (c.graph && c.graph.people) || []) push(p);
+        for (const p of c.contacts || []) push(p);
+        for (const p of profile.connections || []) push(p);
+        const store = { people, interactions: (c.graph && c.graph.interactions) || [], referrals: (c.graph && c.graph.referrals) || [], user: (c.graph && c.graph.user) || null };
+        const companies = (profile.preferences || {}).targetCompanies || [];
+        const mm = Graph.mentorMap(store, companies);
+        if (!people.length) return { intent: "career_os_mentor_map", resultStatus: "awaiting_user", sends: 0, mentor_map: mm, graph_people: 0, reply: `Your mentor map ranks people already in your network by the shared fact each path stands on — school, club, major, hometown. Your graph on file holds 0 people, so the map is honestly empty: nobody can be ranked, and nobody is invented. Grounded in your own graph record, as of ${asOf}. Upload your export or name a firm and I will rank the mentors to deepen — want to start with the export?` };
+        const rows = mm.flatMap((m) => m.mentors.map((x) => `${x.name} at ${m.company} (${x.shared_fact})`));
+        return { intent: "career_os_mentor_map", resultStatus: "prepared", sends: 0, mentor_map: mm, graph_people: people.length, reply: `Your mentor map, ranked from your graph: ${rows.slice(0, 3).join("; ") || "no senior contact ranks as a mentor yet"}. Every path shows the fact it stands on, and people at your current employer are excluded by default. Grounded in your own graph record, as of ${asOf}. Want the first one's intro path prepared as a held card?` };
+      }
+      // SC-285 — annual career retro (136 seasonRetro over the season record)
+      if (/\bannual career retro\b|\bcareer retro\b|\boutcomes versus plan\b/.test(t)) {
+        const Season = seasonMod(); if (!Season || !Season.seasonRetro) return null;
+        if (!Array.isArray(profile._careerSeasonStore)) { try { profile._careerSeasonStore = []; } catch { /* profile may be frozen; an empty record is the honest read */ } }
+        const store = c.seasonStore || profile._careerSeasonStore || [];
+        const r = Season.seasonRetro(store);
+        const head = r.total
+          ? `${r.what_converted} ${r.what_didnt} Next season: ${r.next_season_plan[0]}`
+          : "Your season record holds 0 applications, so the retro is honest and short: no outcomes to count yet. The retro counts applications, advancement, and offers from the record — the misses included, unedited — and next year's targets get set from those same numbers, not from the story we prefer.";
+        return { intent: "career_os_retro", resultStatus: "prepared", sends: 0, retro: r, reply: `Your career retro: outcomes versus plan, from the record. ${head} Every count comes from your own application log, as of ${asOf}. Want next year's targets drafted from this?` };
+      }
+    } catch { return null; }
+    return null;
+  }
+
   // ---------- chat glue: the router tries 120 first, then this ----------
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
@@ -336,6 +500,10 @@ const CareerOnboarding = (() => {
       const r = profileExport(c.profile, c.access || {});
       return { intent: "profile_export", fact_count: r.fact_count, connection_count: r.connection_count, delete_path_offered: r.delete_path_offered, reply: r.text };
     }
+    // Career OS front door (section 5): narrow OS ask shapes only; a null
+    // here falls through to the general router exactly as before.
+    const osResult = osHandleChat(text, c);
+    if (osResult) return osResult;
     return null;
   }
 

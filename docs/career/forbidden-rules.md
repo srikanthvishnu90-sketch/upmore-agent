@@ -1748,10 +1748,10 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-essay-tailor.test.cjs (5 tests incl. clinical-persona themes, empty-profile typed blocker, non-essay negative).
 - **STATUS:** ENFORCED
 
-### FR-279 — Outreach plan/state turns carry their typed record (BUG-105)
+### FR-279 — Outreach plan/state turns carry their typed record (BUG-108)
 - **FORBIDDEN:** An outreach plan/state turn returning prose alone, or carrying its product only under a handler-private key no reader consumes; every no-campaign branch carries its typed plan/state record as payload + artifact (zeroed/empty records for empty states, never estimated numbers).
 - **FROM:** Residual lane 2026-10-14 — 19 Outreach scenarios failed doorstep + A4 in the true-score run because the no-campaign branches never carried their product where the completion chain reads.
-- **ENFORCEMENT:** tests/career-outreach-completion.test.cjs (39 tests: record kind + elements + artifact per canonical ask) + run-grand.cjs BUG-105 element-keyed branches + Outreach re-run grader-v2 20/20 (outreach-fix-index.json).
+- **ENFORCEMENT:** tests/career-outreach-completion.test.cjs (39 tests: record kind + elements + artifact per canonical ask) + run-grand.cjs BUG-108 element-keyed branches + Outreach re-run grader-v2 20/20 (outreach-fix-index.json).
 - **STATUS:** ENFORCED
 
 ### FR-280 — Ask counts parse tolerantly where honesty sentences depend on them (BUG-106)
@@ -1766,9 +1766,45 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-outreach-completion.test.cjs SC-044 test (digest record + no bare-refusal opening).
 - **STATUS:** ENFORCED
 
+### FR-285 — A company-file reply is composed from that file's sections, picked by the ask's angle (BUG-087)
+- **FORBIDDEN:** Serving one framed summary text for multiple company-file asks, or claiming a file is "thin" without reading the fields the file actually carries (hiring_bar_summary / compensation_notes / cadence / routes / thesis prose lives under `statement`).
+- **FROM:** Template-breakup lane 2026-10-14 — 23 Intelligence asks shared one text; the "thin file" sentence was false for all 38 files on disk because the field reader never read `statement`.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-087 (pairwise non-identity across the 23 asks + grounding + each reply must carry a 6-word run from its own file's sections).
+- **STATUS:** ENFORCED
+
+### FR-286 — Negotiation advice is composed per ask shape from the shape's own product (BUG-088)
+- **FORBIDDEN:** One advice paragraph (method + benchmark sentence + "paste the offer letter") serving materially different negotiation asks — intake, benchmark, comparison, extension, below-floor, equity, script, return offer, expectation, exploding offer, leverage, withdrawal, referral-out.
+- **FROM:** Template-breakup lane 2026-10-14 — 13 asks byte-identical; 128's per-shape products existed and were never consulted by the fallback.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-088 (pairwise non-identity + per-shape answer markers + the bench product still carried on every branch).
+- **STATUS:** ENFORCED
+
+### FR-287 — A reply names a set as the set, never as one member (BUG-089)
+- **FORBIDDEN:** Attributing a plan, answer, or artifact to a single member of a set the user asked about (an MBB-wide ask answered as a plan "for Bain & Company"); naming any entity the ask did not name and typed product state does not carry.
+- **FROM:** Template-breakup lane 2026-10-14 — SC-185 flipped PASS→FAIL in the re-judge: 127's casePrepPlan text was built from the set's first file while its own record named the set.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-089 (set text names the set; single-firm control; SC-185 through the chat path + reply grounding across all six template groups).
+- **STATUS:** ENFORCED
+
+### FR-288 — No shared fallback paragraph may serve two different referral asks (BUG-109)
+- **FORBIDDEN:** A graph/referral fallback composition (ranked-paths paragraph, mini-campaign text) delivered for more than one ask shape; a mini-campaign sized by a default when the ask stated its own size or range.
+- **FROM:** Template-breakup lane 2026-10-14 — 17 asks byte-identical at the true-score build (breakup branches landed as BUG-098; the residual SC-100/SC-170 pair shared the mini-campaign composition, both sized to a default 8 neither ask stated).
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-109 (pairwise non-identity + grounding across all 19 warm-path asks).
+- **STATUS:** ENFORCED
+
+### FR-289 — A campaign plan names the firms the user named; a default set is spoken only as a proposal (BUG-110)
+- **FORBIDDEN:** Expanding a named firm into its firm set in the spoken plan (a Google ask planned for Meta/Apple/Amazon/Netflix); presenting a vague ask's default firm set as the user's chosen target; letting a default overwrite the ask's own role or industry.
+- **FROM:** Template-breakup lane 2026-10-14 — 124's first-alias expansion replaced named firms, the vague default assigned bulge-bracket firms as if chosen, and a seed-founder ask was re-dressed as "120 investment bankers".
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-110 (32 plan asks pairwise distinct + named-firm and proposal assertions + parseTarget recognizer units: full name / unique token / abbreviation / raw-capital short names; "follow-ups" never yields UPS, "Chicago" never yields Chicago Ventures).
+- **STATUS:** ENFORCED
+
+### FR-290 — A tailor ask's named target is resolved or honestly stopped; the closing is composed per chain context (BUG-111)
+- **FORBIDDEN:** Tailoring a substitute role under a named firm's ask (the pool's top role tailored for Goldman/McKinsey/Palantir/Big Law asks); one identical closing block (saved line + grounded line + next step) across batch, variant, discovery, and direct tailor chains.
+- **FROM:** Template-breakup lane 2026-10-14 — the chain resolved companies only by "at X"/full-name matching, so named-firm asks fell into discovery and wore a substitute artifact; 14 asks shared one skeleton.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-111 (15 asks pairwise distinct; artifacts preserved where they existed; named firm with no posting stops as tailor_needs_posting carrying that firm's file fact and typed company/payload; a category is stopped as a category).
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 188 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 281
+Counts: ENFORCED 194 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 287
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2050,8 +2086,14 @@ Counts: ENFORCED 188 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-276 (BUG-102) | ENFORCED | run-grand.cjs BUG-102 branches + Referrals re-run grader-v2 30/30 (referrals-fix-index.json) |
 | FR-277 (BUG-103) | ENFORCED | tests/career-referrals-completion.test.cjs populated SC-146 + tests/career-ib-outreach-integration.test.cjs IB-2/IB-2b |
 | FR-278 (BUG-104) | ENFORCED | tests/career-essay-tailor.test.cjs (5 tests) |
-| FR-279 (BUG-105) | ENFORCED | tests/career-outreach-completion.test.cjs (39 tests) + run-grand BUG-105 branches + outreach re-run 20/20 |
+| FR-279 (BUG-108) | ENFORCED | tests/career-outreach-completion.test.cjs (39 tests) + run-grand BUG-108 branches + outreach re-run 20/20 |
 | FR-280 (BUG-106) | ENFORCED | tests/career-outreach-completion.test.cjs SC-025 test |
 | FR-281 (BUG-107) | ENFORCED | tests/career-outreach-completion.test.cjs SC-044 test |
+| FR-285 (BUG-087) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-087 |
+| FR-286 (BUG-088) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-088 |
+| FR-287 (BUG-089) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-089 |
+| FR-288 (BUG-109) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-109 |
+| FR-289 (BUG-110) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 |
+| FR-290 (BUG-111) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-111 |
 
-<!-- totals: total=281 enforced=188 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=287 enforced=194 guarded_red=1 hard_shut=1 unenforced=91 -->

@@ -925,7 +925,7 @@ const CareerRouter = (() => {
     }
     const n = (lc(text).match(/(\d+)\s*names/) || [])[1];
     const reply = compose({ headline: `Send the file and the run for ${n ? `those ${n} names` : "every name on it"} is fixed.`, facts: ["Each address gets verified, duplicates merge by name and firm, people who left are flagged, and drafts are written only from confirmed facts.", "And the order matters: I ask before any enriching spend, every time — enrichment is the step that costs money and guesses addresses."], nextStep: "Upload the file and I will show received, deduped, and flagged counts before drafting anything." });
-    // BUG-105: the intake PLAN is this turn's typed product — the
+    // BUG-108: the intake PLAN is this turn's typed product — the
     // fixed run order over the coming file, with the enrich gate on
     // the record. Before this the branch returned prose only.
     const plan = { kind: "intake_plan", expected_count: n ? Number(n) : null, file_received: false, steps: ["verify each address", "dedupe by name and firm", "flag people who left", "draft only from confirmed facts"], ask_before_enrich: true };
@@ -940,7 +940,7 @@ const CareerRouter = (() => {
       return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0, voice: v };
     }
     const reply = compose({ headline: "I will learn your voice from your own past emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually written, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: "Connect Gmail or paste two or three of your own past emails and I will build the voice profile first." });
-    // BUG-105: the awaiting-samples state is the typed record.
+    // BUG-108: the awaiting-samples state is the typed record.
     const vrec = { kind: "voice_profile", status: "awaiting_samples", sample_count: 0, requested_samples: Number((lc(text).match(/(\d+)\s+of my sent/) || [])[1]) || null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: vrec, artifact: vrec };
   }
@@ -959,7 +959,7 @@ const CareerRouter = (() => {
     if (/\bdrop analysts\b/.test(t)) cuts.push("analysts out");
     const keepM = s(text).match(/\bonly ([^.]+?) people\b/i);
     const reply = compose({ headline: "List surgery noted — the rules land before any drafting.", facts: [cuts.length || keepM ? `The cut: ${[...cuts, ...(keepM ? [`only ${keepM[1]} people stay`] : [])].join("; ")}.` : "The cut rules are noted exactly as you stated them.", "The re-count lands on the current list before any draft changes, and no draft goes out on the old list."], nextStep: "Open the current list and I will show the before-and-after counts." });
-    // BUG-105: the surgery SPEC is the typed record when no list is
+    // BUG-108: the surgery SPEC is the typed record when no list is
     // on file to re-cut — the stated cut, carried, not just described.
     const surg = { kind: "list_surgery", cuts, keep_only: keepM ? keepM[1] : null, applied_to_list: false, recount: null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: surg, artifact: surg };
@@ -969,7 +969,7 @@ const CareerRouter = (() => {
     const drafts = ctx.drafts || ctx.sampleDrafts || null;
     const n = Number((lc(text).match(/(\d+)\s*sample/) || [])[1]) || (drafts ? drafts.length : 5);
     const reply = compose({ headline: "Style change noted: shorter, less formal.", facts: [`The ${n} sample emails re-render in that voice for your review.`, "Nothing goes out until you approve the new samples — the old ones are not quietly reused."], nextStep: "Want the re-rendered samples at the top of your review doc?" });
-    // BUG-105: the style-change record rides as payload + artifact.
+    // BUG-108: the style-change record rides as payload + artifact.
     const ds = { kind: "draft_surgery", style: { shorter: true, less_formal: true }, samples: n, applied: false };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: ds, artifact: ds };
   }
@@ -984,7 +984,7 @@ const CareerRouter = (() => {
       sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : "Nothing is scheduled yet — the plan fills in once the list is built.",
     ];
     const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Approve this plan once, and every send stays inside it — nothing outside it goes out." });
-    // BUG-105: the REAL 124 card (already built above as `sp`) is
+    // BUG-108: the REAL 124 card (already built above as `sp`) is
     // the artifact — the campaign-plan branch's shape (card +
     // committed:false + sends:0 at awaiting_user). Before this the
     // card rode only under the unread `safety_plan` key.
@@ -1007,7 +1007,7 @@ const CareerRouter = (() => {
     const found = num(/([\d,]+)\s*found/), trusted = num(/([\d,]+)\s*trust\w*/), sendable = num(/([\d,]+)\s*sendable/);
     const quoted = found && trusted && sendable ? `You quoted ${found.raw} found, ${trusted.raw} trustworthy, ${sendable.raw} sendable — those are the right three numbers, in the right order.` : "The three numbers that matter are found, trustworthy, and sendable.";
     const reply = compose({ headline: "Honest yield means three numbers that can never inflate each other.", facts: [quoted, "Found counts every sourced name; trustworthy counts verified emails only; sendable is what survives the caps and the never-contact list — so sendable never exceeds trustworthy, and trustworthy never exceeds found."], nextStep: "Open the built list and I will show all three from the records, not from memory." });
-    // BUG-105: the quoted yield is a typed record, its source named —
+    // BUG-108: the quoted yield is a typed record, its source named —
     // user-quoted numbers are never presented as list-read numbers.
     const yrec = { kind: "yield_report", found: found ? found.n : null, trustworthy: trusted ? trusted.n : null, sendable: sendable ? sendable.n : null, source: "user_quoted" };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: yrec, artifact: yrec };
@@ -1033,7 +1033,7 @@ const CareerRouter = (() => {
     const totalM = t.match(/(\d[\d,]*)\s+(?:[a-z][a-z-]*\s+){0,3}?(bankers|people|names|analysts|contacts)\b/);
     const shortfall = totalM ? `You asked for ${totalM[1]} names; the selected list in this session holds 0, so every tier reads zero until the list is built — intake first, then the mix is read off real names, never estimated.` : null;
     const reply = compose({ headline: "Tier C is held by default — here is why.", facts: shortfall ? [mix, shortfall, "Tier C means no sourced personalization fact exists for that person, and a generic email in your name is the fastest way to burn a firm. Tier A and B carry real facts and draft first."] : [mix, "Tier C means no sourced personalization fact exists for that person, and a generic email in your name is the fastest way to burn a firm. Tier A and B carry real facts and draft first."], nextStep: "Hold Tier C back, or release it knowing the drafts will be generic?" });
-    // BUG-105: the tier state is the typed record — the ask's own
+    // BUG-108: the tier state is the typed record — the ask's own
     // mix/count, the held tier, and the true selected count (0).
     const tmRec = { kind: "tier_mix", requested_total: totalM ? Number(totalM[1].replace(/,/g, "")) : null, mix: a != null && b != null && cc != null ? { A: a, B: b, C: cc } : null, held_tier: "C", selected_on_file: 0 };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: tmRec, artifact: tmRec };
@@ -1041,7 +1041,7 @@ const CareerRouter = (() => {
 
   function handleFirmCap(text, ctx) {
     const reply = compose({ headline: "The per-firm cap is enforced in code, twice.", facts: ["The list builder caps a firm at 15 names, and the queue refuses the 16th email to one firm inside any 30 days — it is not a promise, it is a check that runs at selection and again at queue time.", "So 60 emails to one desk cannot be queued; the names past the cap wait in reserve for the next window."], nextStep: "Want the per-firm breakdown of the current list?" });
-    // BUG-105: the locked cap values are the typed record.
+    // BUG-108: the locked cap values are the typed record.
     const cap = { kind: "firm_cap", per_firm_cap: 15, window_days: 30, enforced_at: ["selection", "queue"], queue_refuses_nth: 16 };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: cap, artifact: cap };
   }
@@ -1062,7 +1062,7 @@ const CareerRouter = (() => {
     const reply = fin
       ? compose({ headline: "The day-15 wave is the gracious close.", facts: ["It thanks them, leaves the door open, and asks for nothing.", "After it, follow-ups for this campaign stop for good — no third touch, ever."], nextStep: "Open the campaign and I will show the close wave with its exact count before your approval." })
       : compose({ headline: "The day-6 wave is a draft wave, not a send wave.", facts: ["Only people who never replied and never bounced get it — responders and the never-contact list are out by construction.", "Each follow-up threads onto the first email and takes a new angle; nothing in it repeats the first ask."], nextStep: "Open the campaign and I will show the wave with its exact count before your approval." });
-    // BUG-105: the wave PLAN is the typed record when no campaign is
+    // BUG-108: the wave PLAN is the typed record when no campaign is
     // loaded to run the wave against — touch, audience, threading.
     const wave = { kind: "followup_wave_plan", touch: fin ? 2 : 1, final: fin, audience: "non_responders_only", threaded: true, campaign_on_file: false };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: wave, artifact: wave };
@@ -1079,7 +1079,7 @@ const CareerRouter = (() => {
     // readable alternative, tripping REFUSAL_NO_ALTERNATIVE on an
     // honest empty state. The headline now leads with the state and
     // the next step offers the alternative as a question.
-    // BUG-105: the empty digest is itself the typed record — zeroed
+    // BUG-108: the empty digest is itself the typed record — zeroed
     // totals over no campaign, never estimated numbers.
     const reply = compose({ headline: "The digest is empty — no campaign is running on the record in this session.", facts: ["The digest reports, for each day a campaign runs: how many went out, bounces and the bounce rate, replies, positive replies, and meetings waiting on you.", "It never mixes days together, so a bad day cannot hide inside a good week."], nextStep: "Once the first wave goes out, the digest reports every day it runs — want the first wave staged?" });
     const dg = { kind: "campaign_digest", campaign_on_file: false, days: [], totals: { sent: 0, bounced: 0, bounce_rate: null, replies: 0, positive: 0, meetings_pending: 0 } };
@@ -1100,7 +1100,7 @@ const CareerRouter = (() => {
       } catch { /* fall through to the honest plan answer */ }
     }
     const reply = compose({ headline: "The close-out needs the finished campaign on record, and none is loaded in this session.", facts: ["When it runs, it reports reply rate by draft structure — which angles earned replies and which fell flat — from the real counts only.", "Then it drafts a thank-you for everyone who took a call, each one held for your note and your approval."], nextStep: "Open the campaign record and I will run the full close-out." });
-    // BUG-105: the empty close-out record — no angles, no drafts,
+    // BUG-108: the empty close-out record — no angles, no drafts,
     // nothing invented in place of the missing campaign.
     const coRec = { kind: "close_out", campaign_on_file: false, angles: [], thank_you_drafts: [] };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: coRec, artifact: coRec };
@@ -1114,7 +1114,7 @@ const CareerRouter = (() => {
     const camp = campaignOf(c);
     const countFact = camp ? "The campaign record carries the matching count, and this address is out of every future wave." : "No campaign counts are loaded in this session, so the honest count I can give you is this one, recorded now.";
     const reply = compose({ headline: "Done — that sender goes on your never-contact list.", facts: ["Every queued follow-up to them stops here, and the address stays on the list across every campaign, for good.", countFact], nextStep: "Want the never-contact count in your next digest?" });
-    // BUG-105: the suppression record is this turn's doorstep
+    // BUG-108: the suppression record is this turn's doorstep
     // artifact — the completion branch already read `suppression`;
     // the doorstep derivation reads draft/packet/artifact/brief.
     return { intent: "intent_opt_out", reply, resultStatus: "completed", sends: 0, suppression: { recorded: true, scope: "all_campaigns" }, payload: { kind: "suppression_record", recorded: true, scope: "all_campaigns" }, artifact: { kind: "suppression_record", recorded: true, scope: "all_campaigns" } };
@@ -1171,7 +1171,7 @@ const CareerRouter = (() => {
     let resched = null;
     if (Outreach && Outreach.classifyReply) { try { const cls = Outreach.classifyReply({ body: probe }, { now: nowOf(ctx) }); resched = cls && cls.reschedule_followup_on || null; } catch { resched = null; } }
     const reply = compose({ headline: "That is an out-of-office notice, not a reply — and the follow-up moves.", facts: ["It does not count as a reply, and it does not burn one of the two follow-up touches.", resched ? `The next touch moves to ${resched}, the day after the return date on the notice.` : "The next touch moves to the day after the return date on the notice."], nextStep: "Nothing else about the campaign changes — want the updated wave timing?" });
-    // BUG-105: the reschedule decision is the typed record (the
+    // BUG-108: the reschedule decision is the typed record (the
     // calendar family's commitment for this turn) — it rode only
     // under the unread `followup` key before.
     const fu = { kind: "followup_reschedule", classification: "auto-reply-ooo", counts_as_reply: false, reschedule_followup_on: resched };
@@ -1182,7 +1182,7 @@ const CareerRouter = (() => {
     const rateM = lc(text).match(/(\d+(?:\.\d+)?)\s*%/);
     const rate = rateM ? rateM[1] : null;
     const reply = compose({ headline: rate ? `At ${rate}% bounces, the breaker has tripped and the wave is paused.` : "The bounce breaker rule governs this, and it is enforced in code.", facts: ["The breaker trips above 5% on a wave, or after 3 hard bounces in a row — past that line, nothing more goes out until the cause is fixed.", "The usual cause at this size is one bad address pattern at one firm; the fix is to re-verify that firm's pattern from published addresses, never to push through."], nextStep: "The resume point: once the pattern is re-verified, the wave restarts from the paused point with your approval — say the word and I prepare the re-verification." });
-    // BUG-105: the breaker state is the typed record (it rode under
+    // BUG-108: the breaker state is the typed record (it rode under
     // the unread `breaker` key only).
     const brk = { kind: "bounce_breaker", tripped: rate != null && Number(rate) > 5, observed_rate: rate != null ? Number(rate) : null, threshold_pct: 5, state: rate != null && Number(rate) > 5 ? "paused" : "armed" };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, breaker: { tripped: brk.tripped, observed_rate: brk.observed_rate }, payload: brk, artifact: brk };
@@ -1218,7 +1218,7 @@ const CareerRouter = (() => {
     if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", `Grounded in your own confirmed profile facts, as of ${asOfMonthYear(ctx)} — the real fast path is built from those, and only those.`);
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
     const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
-    // BUG-105: the refusal decision is a typed record — what was
+    // BUG-108: the refusal decision is a typed record — what was
     // refused and the safe alternative offered. A refusal turn's
     // doorstep is this record: there is nothing further to drive.
     const refused = [];
@@ -2706,7 +2706,7 @@ const CareerRouter = (() => {
     const t = lc(text);
     if (/\bseed\b|\bplacement test\b|\binbox placement\b/.test(t)) {
       const reply = compose({ headline: "The seed test runs before wave 1, never after.", facts: ["The first sends go to seed inboxes — Gmail, Outlook, Yahoo — and the placement is read before a single real name is emailed.", "A spam-folder landing stops the wave; the fix happens first, while it costs nothing."], nextStep: "Want the seed run staged for the current draft set?" });
-      // BUG-105: the seed-test plan is the typed record.
+      // BUG-108: the seed-test plan is the typed record.
       const seed = { kind: "seed_test_plan", providers: ["Gmail", "Outlook", "Yahoo"], runs_before: "wave_1", stop_on: "spam_folder_landing" };
       return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: seed, artifact: seed };
     }
@@ -2718,13 +2718,13 @@ const CareerRouter = (() => {
         try { const y = Outreach.buildList(pool, {}, { profile: ctx.profile, nowMs: nowOf(ctx) }).yield; counts = { already_emailed: y.exclusions.already_emailed || 0, suppressed: y.exclusions.suppressed || 0 }; fact = `On the current pool: ${counts.already_emailed} already contacted and ${counts.suppressed} on the never-contact list — both excluded before drafting.`; } catch { /* keep the rule answer */ }
       }
       const reply = compose({ headline: "Suppression is checked before drafting, not after a complaint.", facts: [fact], nextStep: "Want the exclusion counts on the current list?" });
-      // BUG-105: the check's own record — sources + pool counts when
+      // BUG-108: the check's own record — sources + pool counts when
       // a pool exists to count.
       const sc = { kind: "suppression_check", checked_before: "drafting", sources: ["past_outreach_history", "shared_never_contact_list"], pool_counts: counts };
       return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0, payload: sc, artifact: sc };
     }
     const reply = compose({ headline: "The reserve pool is the next names in rank order — nothing more mysterious than that.", facts: ["When a send bounces or a name drops out, the reserve backfills the slot in rank order at queue time, inside the same caps.", "Reserve names get the same verification and exclusions as the selected list — a backfill is never a shortcut."], nextStep: "Want the selected-versus-reserve split on the current list?" });
-    // BUG-105: the reserve split the user stated is the typed record.
+    // BUG-108: the reserve split the user stated is the typed record.
     const selM = t.match(/(\d[\d,]*)\s*selected/), resM = t.match(/(\d[\d,]*)\s*reserve/);
     const rv = { kind: "reserve_pool", selected: selM ? Number(selM[1].replace(/,/g, "")) : null, reserve: resM ? Number(resM[1].replace(/,/g, "")) : null, backfill: "rank_order_at_queue_time" };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: rv, artifact: rv };

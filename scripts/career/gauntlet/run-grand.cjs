@@ -196,7 +196,7 @@ async function runOne(id) {
     // where an essay would have to be invented). Keyed on the
     // packet's own elements, never on reply text.
     else if (intent === "career_essay" && res.payload && res.payload.kind === "essay_packet" && ((res.payload.ok === true && Array.isArray(res.payload.essays) && res.payload.essays.length >= 1 && res.payload.essays.every((e) => Array.isArray(e.outline) && e.outline.length >= 1 && e.outline.every((p) => typeof p.factId === "string" && !!p.factId))) || (res.payload.ok === false && typeof res.payload.reason === "string" && res.payload.reason.length > 0))) { completion = true; completionWhy = "essay packet delivered from confirmed facts (133 medEssayPacket: fact-cited outlines), or the producer's typed no-facts blocker carried"; }
-    // BUG-105 (residual lane, CONTRACT — flagged): the outreach
+    // BUG-108 (residual lane, CONTRACT — flagged): the outreach
     // plan/state records. The outreach handlers' no-campaign branches
     // used to return prose only (or carry the product under keys no
     // reader consumes), so 19 scenarios could neither complete nor

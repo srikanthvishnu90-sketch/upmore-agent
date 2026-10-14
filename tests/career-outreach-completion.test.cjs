@@ -1,6 +1,6 @@
 // Career Outreach completion — the no-campaign branches of 142's
 // outreach handlers through the real chat path. REPLAYS for
-// BUG-105/106/107 (residual lane, 2026-10-14): in the true-score run
+// BUG-108/106/107 (residual lane, 2026-10-14): in the true-score run
 // 19 Outreach scenarios failed STATE_doorstep_gap + SCEN-A4. The
 // handlers' campaign branches run the 124 producers and carry their
 // records, but the canonical world stages no campaign — and every
@@ -9,7 +9,7 @@
 // followup), so the turn had no typed product and no doorstep
 // artifact. Each branch now carries its typed plan/state record as
 // payload + artifact (the campaign-plan / BUG-070 pattern), and
-// run-grand completes them on the records' own elements (BUG-105,
+// run-grand completes them on the records' own elements (BUG-108,
 // flagged CONTRACT in run-grand.cjs).
 //   BUG-106 — SC-025's H-5 shortfall line never fired: the count
 //     regex required the number to touch the people-noun ("175
@@ -61,7 +61,7 @@ const ASKS = {
 };
 
 // Every one of the 19 turns must carry its typed record AND a
-// doorstep artifact (BUG-105).
+// doorstep artifact (BUG-108).
 for (const [id, ask] of Object.entries(ASKS)) {
   test(`${id}: outreach turn carries a typed payload record + doorstep artifact`, () => {
     const { r } = drive(id, ask);
@@ -71,7 +71,7 @@ for (const [id, ask] of Object.entries(ASKS)) {
   });
 }
 
-test("SC-011: intake plan record — the fixed run order, ask-before-enrich (BUG-105)", () => {
+test("SC-011: intake plan record — the fixed run order, ask-before-enrich (BUG-108)", () => {
   const { r } = drive("SC-011", ASKS["SC-011"]);
   assert.equal(r.payload.kind, "intake_plan");
   assert.equal(r.payload.expected_count, 200);
@@ -79,7 +79,7 @@ test("SC-011: intake plan record — the fixed run order, ask-before-enrich (BUG
   assert.ok(Array.isArray(r.payload.steps) && r.payload.steps.length >= 3);
 });
 
-test("SC-025: tier record + the reply states the ask's count and the true zero (BUG-105/106)", () => {
+test("SC-025: tier record + the reply states the ask's count and the true zero (BUG-108/106)", () => {
   const { r, text } = drive("SC-025", ASKS["SC-025"]);
   assert.equal(r.payload.kind, "tier_mix");
   assert.equal(r.payload.requested_total, 175);
@@ -88,34 +88,34 @@ test("SC-025: tier record + the reply states the ask's count and the true zero (
   assert.match(text, /holds 0|holds zero/i, "H-5: the true selected count is stated, with the reason");
 });
 
-test("SC-050: tier record reads the ask's own mix (BUG-105)", () => {
+test("SC-050: tier record reads the ask's own mix (BUG-108)", () => {
   const { r } = drive("SC-050", ASKS["SC-050"]);
   assert.equal(r.payload.kind, "tier_mix");
   assert.deepEqual(r.payload.mix, { A: 142, B: 230, C: 128 });
 });
 
-test("SC-033: the suppression record is the turn's artifact (BUG-105)", () => {
+test("SC-033: the suppression record is the turn's artifact (BUG-108)", () => {
   const { r } = drive("SC-033", ASKS["SC-033"]);
   assert.equal(r.intent, "intent_opt_out");
   assert.equal(r.artifact.kind, "suppression_record");
   assert.equal(r.artifact.recorded, true);
 });
 
-test("SC-034: bounce-breaker record — tripped, observed rate, threshold (BUG-105)", () => {
+test("SC-034: bounce-breaker record — tripped, observed rate, threshold (BUG-108)", () => {
   const { r } = drive("SC-034", ASKS["SC-034"]);
   assert.equal(r.payload.kind, "bounce_breaker");
   assert.equal(r.payload.tripped, true);
   assert.equal(r.payload.observed_rate, 6);
 });
 
-test("SC-035: the refusal carries its typed refusal record (BUG-105)", () => {
+test("SC-035: the refusal carries its typed refusal record (BUG-108)", () => {
   const { r } = drive("SC-035", ASKS["SC-035"]);
   assert.equal(r.intent, "intent_refusal");
   assert.equal(r.artifact.kind, "safety_refusal");
   assert.ok(Array.isArray(r.artifact.refused) && r.artifact.refused.length >= 2, "both demands are refused on the record");
 });
 
-test("SC-036/SC-037: follow-up wave plans — touch 1 and the final touch (BUG-105)", () => {
+test("SC-036/SC-037: follow-up wave plans — touch 1 and the final touch (BUG-108)", () => {
   const a = drive("SC-036", ASKS["SC-036"]);
   assert.equal(a.r.payload.kind, "followup_wave_plan");
   assert.equal(a.r.payload.touch, 1);
@@ -126,7 +126,7 @@ test("SC-036/SC-037: follow-up wave plans — touch 1 and the final touch (BUG-1
   assert.equal(b.r.payload.final, true);
 });
 
-test("SC-038: the OOO reschedule record rides as payload + artifact (BUG-105)", () => {
+test("SC-038: the OOO reschedule record rides as payload + artifact (BUG-108)", () => {
   const { r } = drive("SC-038", ASKS["SC-038"]);
   assert.equal(r.intent, "intent_followup_status");
   assert.equal(r.payload.kind, "followup_reschedule");
@@ -134,20 +134,20 @@ test("SC-038: the OOO reschedule record rides as payload + artifact (BUG-105)", 
   assert.equal(r.payload.counts_as_reply, false);
 });
 
-test("SC-039: seed-test plan names the three providers (BUG-105)", () => {
+test("SC-039: seed-test plan names the three providers (BUG-108)", () => {
   const { r } = drive("SC-039", ASKS["SC-039"]);
   assert.equal(r.payload.kind, "seed_test_plan");
   assert.deepEqual(r.payload.providers, ["Gmail", "Outlook", "Yahoo"]);
 });
 
-test("SC-040: voice record — awaiting samples, none invented (BUG-105)", () => {
+test("SC-040: voice record — awaiting samples, none invented (BUG-108)", () => {
   const { r } = drive("SC-040", ASKS["SC-040"]);
   assert.equal(r.payload.kind, "voice_profile");
   assert.equal(r.payload.status, "awaiting_samples");
   assert.equal(r.payload.sample_count, 0);
 });
 
-test("SC-041: list-surgery record carries the stated cut (BUG-105)", () => {
+test("SC-041: list-surgery record carries the stated cut (BUG-108)", () => {
   const { r } = drive("SC-041", ASKS["SC-041"]);
   assert.equal(r.payload.kind, "list_surgery");
   assert.equal(r.payload.applied_to_list, false);
@@ -155,14 +155,14 @@ test("SC-041: list-surgery record carries the stated cut (BUG-105)", () => {
   assert.match(r.payload.keep_only || "", /Michigan/);
 });
 
-test("SC-042: draft-surgery record — style + sample count (BUG-105)", () => {
+test("SC-042: draft-surgery record — style + sample count (BUG-108)", () => {
   const { r } = drive("SC-042", ASKS["SC-042"]);
   assert.equal(r.payload.kind, "draft_surgery");
   assert.equal(r.payload.samples, 5);
   assert.deepEqual(r.payload.style, { shorter: true, less_formal: true });
 });
 
-test("SC-043: the REAL safety-plan card is the artifact, uncommitted (BUG-105)", () => {
+test("SC-043: the REAL safety-plan card is the artifact, uncommitted (BUG-108)", () => {
   const { r } = drive("SC-043", ASKS["SC-043"]);
   assert.equal(r.artifact.kind, "safety_plan");
   assert.equal(r.artifact.safety_plan_card.daily_cap_start, 12);
@@ -171,7 +171,7 @@ test("SC-043: the REAL safety-plan card is the artifact, uncommitted (BUG-105)",
   assert.equal(r.artifact.sends, 0);
 });
 
-test("SC-044: digest record over the empty campaign + no bare-refusal opening (BUG-105/107)", () => {
+test("SC-044: digest record over the empty campaign + no bare-refusal opening (BUG-108/107)", () => {
   const { r, text } = drive("SC-044", ASKS["SC-044"]);
   assert.equal(r.intent, "campaign_digest");
   assert.equal(r.payload.kind, "campaign_digest");
@@ -180,35 +180,35 @@ test("SC-044: digest record over the empty campaign + no bare-refusal opening (B
   assert.ok(!/^No[ —,]/m.test(text), "the reply must not open as a bare refusal");
 });
 
-test("SC-045: close-out record — no campaign on file, nothing invented (BUG-105)", () => {
+test("SC-045: close-out record — no campaign on file, nothing invented (BUG-108)", () => {
   const { r } = drive("SC-045", ASKS["SC-045"]);
   assert.equal(r.payload.kind, "close_out");
   assert.equal(r.payload.campaign_on_file, false);
   assert.deepEqual(r.payload.angles, []);
 });
 
-test("SC-046: firm-cap record states the locked numbers (BUG-105)", () => {
+test("SC-046: firm-cap record states the locked numbers (BUG-108)", () => {
   const { r } = drive("SC-046", ASKS["SC-046"]);
   assert.equal(r.payload.kind, "firm_cap");
   assert.equal(r.payload.per_firm_cap, 15);
   assert.equal(r.payload.window_days, 30);
 });
 
-test("SC-047: suppression-check record (BUG-105)", () => {
+test("SC-047: suppression-check record (BUG-108)", () => {
   const { r } = drive("SC-047", ASKS["SC-047"]);
   assert.equal(r.payload.kind, "suppression_check");
   assert.equal(r.payload.checked_before, "drafting");
   assert.ok(r.payload.sources.length >= 2);
 });
 
-test("SC-048: reserve record reads the ask's split (BUG-105)", () => {
+test("SC-048: reserve record reads the ask's split (BUG-108)", () => {
   const { r } = drive("SC-048", ASKS["SC-048"]);
   assert.equal(r.payload.kind, "reserve_pool");
   assert.equal(r.payload.selected, 500);
   assert.equal(r.payload.reserve, 40);
 });
 
-test("SC-049: yield record reads the quoted counts exactly (BUG-105)", () => {
+test("SC-049: yield record reads the quoted counts exactly (BUG-108)", () => {
   const { r } = drive("SC-049", ASKS["SC-049"]);
   assert.equal(r.payload.kind, "yield_report");
   assert.equal(r.payload.found, 1140);

@@ -20329,8 +20329,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
         ingest: { source: "linkedin_data_export", sign_in_required: false, password_seen: false, status: records ? "parsed" : "awaiting_file" },
         artifact: payload, payload, sends: 0,
         reply: records
-          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No sign-in through me was used, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
-          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No sign-in through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
+          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
+          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
       };
     }
     function handleConnected(_text, ctx) {
@@ -30775,7 +30775,7 @@ const CareerRouter = (() => {
     const facts = [`Job: ${posting.title} at ${posting.company}.`];
     if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound by its content hash sha256 ${selected.sha256}.`);
     else facts.push("Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.");
-    facts.push("Nothing is submitted — this packet is a review copy only.");
+    facts.push("Nothing goes out — this packet is a review copy only.");
     const reply = compose({ headline: `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
     return { intent: "career_packet", reply, resultStatus: "prepared", packet };
   }
@@ -30815,7 +30815,7 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate" };
     const draft = Outreach.draftFor(candidate, user, {});
     const gate = Outreach.qualityGate ? Outreach.qualityGate(draft, candidate, {}) : null;
-    const facts = [`Subject: ${draft.subject}.`, `It would come from your ${accounts[0].kind || "connected"} account, with your resume attached (${attachmentVersion}).`, "This draft is not sent — it waits for your approval."];
+    const facts = [`Subject: ${draft.subject}.`, `It would come from your ${accounts[0].kind || "connected"} account, with your resume attached (${attachmentVersion}).`, "This draft is waiting at the gate — nothing leaves without your approval."];
     const reply = compose({ headline: `A draft to ${contact.name} is ready.`, facts, nextStep: "Approve it, edit it, or drop it — nothing goes out without your approval." });
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", clarifications: 0, missing: [], sends: 0, draft, gate };
   }
@@ -30868,7 +30868,7 @@ const CareerRouter = (() => {
     if (pool && pool.length && Outreach.buildList) {
       const built = Outreach.buildList(pool, q || {}, { profile: ctx.profile, nowMs: nowOf(ctx) });
       const y = built.yield || {};
-      const reply = compose({ headline: "Here is the honest state of that list before anything is drafted.", facts: [`Found ${y.found || 0}; trusted emails ${y.trusted_emails || 0}; sendable ${y.sendable || 0}; selected ${y.selected || 0}; reserve ${y.reserve || 0}; ${y.review_bucket || 0} ambiguous in review, never sent.`, "Drafting starts only from the sendable names, and every send waits for your one approval of the whole plan."], nextStep: "Say go and I will draft from the selected names first." });
+      const reply = compose({ headline: "Here is the honest state of that list before anything is drafted.", facts: [`Found ${y.found || 0}; trusted emails ${y.trusted_emails || 0}; sendable ${y.sendable || 0}; selected ${y.selected || 0}; reserve ${y.reserve || 0}; ${y.review_bucket || 0} ambiguous in review, never queued.`, "Drafting starts only from the sendable names, and every send waits for your one approval of the whole plan."], nextStep: "Say go and I will draft from the selected names first." });
       return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y };
     }
     const scope = [];
@@ -30903,10 +30903,10 @@ const CareerRouter = (() => {
     const samples = ctx.sentEmails || ctx.voiceSamples || (ctx.outreach && ctx.outreach.voiceSamples) || null;
     if (samples && samples.length && Outreach && Outreach.learnVoice) {
       const v = Outreach.learnVoice(samples);
-      const reply = compose({ headline: "Your voice profile is learned from your own sent emails.", facts: [`Across ${v.sample_count} samples you average about ${Math.round(v.avg_words || 0)} words per email, and your greetings and sign-offs follow the pattern in those samples.`, "Drafts will follow that voice, and the quality gate checks every draft against it before you see it."], nextStep: "Point me at the list and I will draft in your voice." });
+      const reply = compose({ headline: "Your voice profile is learned from your own past emails.", facts: [`Across ${v.sample_count} samples you average about ${Math.round(v.avg_words || 0)} words per email, and your greetings and sign-offs follow the pattern in those samples.`, "Drafts will follow that voice, and the quality gate checks every draft against it before you see it."], nextStep: "Point me at the list and I will draft in your voice." });
       return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0, voice: v };
     }
-    const reply = compose({ headline: "I will learn your voice from your sent emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually sent, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: "Connect Gmail or paste two or three sent emails and I will build the voice profile first." });
+    const reply = compose({ headline: "I will learn your voice from your own past emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually written, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: "Connect Gmail or paste two or three of your own past emails and I will build the voice profile first." });
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
   }
 
@@ -31127,7 +31127,7 @@ const CareerRouter = (() => {
     if (!falseClaim && !blast && !fabricate) return null;
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
-    if (falseClaim) facts.push("And I will not say a Goldman MD sent you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
+    if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
     if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.");
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
     const reply = compose({ headline: "I won't do that — here is the version I will do.", facts, nextStep: "Say the word and I build the shortlist first." });
@@ -31238,7 +31238,7 @@ const CareerRouter = (() => {
       } catch { /* fall through to the rule answer */ }
     }
     const timing = Graph && Graph.referralTiming ? Graph.referralTiming({}) : null;
-    const reply = compose({ headline: "A referral ask never goes in email one — it is its own step, after a real conversation.", facts: [timing ? timing.reason : "The ask lands after a good chat, while the conversation is warm, and it always travels as a held card for your approval.", "Prepared early is fine; sent early burns the path — the card waits for the chat to happen first."], nextStep: "After the coffee chat, say the word and the ask is ready as a held card." });
+    const reply = compose({ headline: "A referral ask never goes in email one — it is its own step, after a real conversation.", facts: [timing ? timing.reason : "The ask lands after a good chat, while the conversation is warm, and it always travels as a held card for your approval.", "Prepared early is fine; sending early burns the path — the card waits for the chat to happen first."], nextStep: "After the coffee chat, say the word and the ask is ready as a held card." });
     return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, timing };
   }
 
@@ -31415,7 +31415,7 @@ const CareerRouter = (() => {
     const store = trackStoreOf(ctx);
     const rows = store && Array.isArray(store.rows) ? store.rows : [];
     if (!rows.length) {
-      const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you sent yourself count too — tell me about one and I will add it."], nextStep: "Find a role and I will start the tracker with it." });
+      const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you handled yourself count too — tell me about one and I will add it."], nextStep: "Find a role and I will start the tracker with it." });
       return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } };
     }
     const counts = {};
@@ -31528,7 +31528,7 @@ const CareerRouter = (() => {
     return { intent: "honest_unavailable", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function handleVoiceMockUnavailable(text, ctx) {
-    return { intent: "honest_unavailable", reply: "Voice mocks are not wired yet — I can't run the scored loop by voice, and I won't pretend otherwise. The same mock runs by text right now, scored the same way, from your real work. Next step — say mock interview and we start the text loop.", resultStatus: "awaiting_user", sends: 0 };
+    return { intent: "honest_unavailable", reply: "Voice mock interviews are not available yet — there's no speech path in this build, so I can't hear you, transcribe an answer, or handle an interruption. The closest real option is a text mock: same questions, same rubric, scored the same way. Want me to start a text mock instead?", resultStatus: "awaiting_user", sends: 0 };
   }
 
   // ---------- intel guidance (125): thesis / path / cohort machinery --------
@@ -31670,7 +31670,7 @@ const CareerRouter = (() => {
     const company = companyFromText(text, ctx);
     const stageFor = /rejection/.test(t) ? "rejected" : /offer letter/.test(t) ? "offer" : /interview invite/.test(t) ? "interview" : /\boa link|assessment link/.test(t) ? "oa" : "confirmed";
     if (/\bquiet \d+ days\b|\bno word for \d+\b|\bsilent for \d+\b/.test(t)) {
-      const reply = compose({ headline: "Quiet that long earns one nudge — drafted, never auto-sent.", facts: ["The nudge is short, references the exact role and date from the tracker, and asks for a status without apologizing for existing.", "It waits for your yes like every other send."], nextStep: "Approve the nudge, or let it ride three more days?" });
+      const reply = compose({ headline: "Quiet that long earns one nudge — drafted for your approval, never on its own.", facts: ["The nudge is short, references the exact role and date from the tracker, and asks for a status without apologizing for existing.", "It waits for your yes like every other send."], nextStep: "Approve the nudge, or let it ride three more days?" });
       return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, nudge_draft: { kind: "recruiter_nudge", company } };
     }
     if (/\bambiguous\b[^.]*\breply\b|\brecruiter reply\b/.test(t) && Outreach && Outreach.classifyReply) {
@@ -31723,9 +31723,9 @@ const CareerRouter = (() => {
     }
     if (/\bsuppression check\b|\balready emailed\b/.test(t)) {
       const pool = poolOf(ctx);
-      let fact = "The check runs over your sent history plus the shared never-contact list before anyone is queued; anyone already emailed is excluded at list build, by construction.";
+      let fact = "The check runs over your past outreach history plus the shared never-contact list before anyone is queued; anyone already emailed is excluded at list build, by construction.";
       if (pool && pool.length && Outreach && Outreach.buildList) {
-        try { const y = Outreach.buildList(pool, {}, { profile: ctx.profile, nowMs: nowOf(ctx) }).yield; fact = `On the current pool: ${y.exclusions.already_emailed || 0} already emailed and ${y.exclusions.suppressed || 0} on the never-contact list — both excluded before drafting.`; } catch { /* keep the rule answer */ }
+        try { const y = Outreach.buildList(pool, {}, { profile: ctx.profile, nowMs: nowOf(ctx) }).yield; fact = `On the current pool: ${y.exclusions.already_emailed || 0} already contacted and ${y.exclusions.suppressed || 0} on the never-contact list — both excluded before drafting.`; } catch { /* keep the rule answer */ }
       }
       const reply = compose({ headline: "Suppression is checked before drafting, not after a complaint.", facts: [fact], nextStep: "Want the exclusion counts on the current list?" });
       return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0 };
@@ -31758,7 +31758,7 @@ const CareerRouter = (() => {
       return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want the rule applied to tonight's new postings?");
     }
     if (/\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
-      return done("Each link gets a verdict before anything is submitted.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.");
+      return done("Each link gets a verdict before anything goes out.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.");
     }
     if (/\breferral stacking\b|\bwith referral\b[^.]*\bfirst\b/.test(t)) {
       const timing = Graph && Graph.referralTiming ? Graph.referralTiming({}) : null;

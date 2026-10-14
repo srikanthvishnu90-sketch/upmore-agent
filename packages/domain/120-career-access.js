@@ -267,8 +267,8 @@
         ingest: { source: "linkedin_data_export", sign_in_required: false, password_seen: false, status: records ? "parsed" : "awaiting_file" },
         artifact: payload, payload, sends: 0,
         reply: records
-          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No sign-in through me was used, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
-          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No sign-in through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
+          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
+          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
       };
     }
     function handleConnected(_text, ctx) {

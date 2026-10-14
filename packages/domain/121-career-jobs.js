@@ -85,12 +85,20 @@ const CareerJobs = (() => {
 
   // ---------- classification ----------
   const FAMILY_RULES = [
+    // BUG-051 (FV-1/FV-2/SS-1): Medicine, Law and Real Estate had NO rule at
+    // all — clinical titles classified Other or SWE (via company boilerplate
+    // in the JD fallback), legal titles Operations/Marketing/Other, and RE
+    // titles Finance via the bare-analyst fallback. These three rules sit
+    // FIRST so a decided title can never be outvoted by JD boilerplate.
+    ["Medicine", /\b(nurse|nursing|medical assistant|patient care|clinical|phlebotom|medical scribe|radiologic|respiratory therapist|pharmacy technician|nurse practitioner|physician assistant|registered nurse|healthcare|health care|cna|rn)\b/],
+    ["Law", /\b(paralegal|legal|law clerk|attorney|counsel|litigation|juris)\b/],
+    ["Real Estate", /\b(real estate|acquisitions|asset management|leasing|brokerage|property management|multifamily|commercial real estate|mortgage|escrow)\b/],
     ["Finance", /\b(quant|trader|trading|investment bank|banking analyst|private equity|equity research|portfolio|fp&a|financial analyst|finance|accounting|audit|treasury|capital markets|wealth|risk analyst|actuar|underwrit)/],
     ["SWE", /\b(software|backend|back end|frontend|front end|full stack|fullstack|mobile|ios|android|devops|sre|site reliability|platform engineer|infrastructure|systems engineer|firmware|embedded|web developer|engineer,? software|application engineer|quality engineer|qa engineer|security engineer)/],
     ["Data/ML", /\b(data scien|machine learning|ml engineer|ai engineer|data engineer|data analyst|analytics engineer|research scien)/],
     ["PM", /\b(product manager|program manager|product management|technical program)/],
     ["Design", /\b(designer|design|ux|ui\b|user research)/],
-    ["Consulting", /\b(consultant|consulting|advisory associate|strategy associate)/],
+    ["Consulting", /\b(consultant|consultancy|consulting|advisory associate|strategy associate)/],
     ["Operations", /\b(operations|business operations|bizops|supply chain|logistics)/],
     ["Marketing", /\b(marketing|growth|brand|content strateg)/],
     ["Sales", /\b(account executive|sales|business development|bd representative|sdr|bdr)\b/],
@@ -119,6 +127,13 @@ const CareerJobs = (() => {
   function roleFamily(title, jd) {
     const t = lc(title);
     for (const [fam, re] of FAMILY_RULES) if (re.test(t)) return fam;
+    // BUG-051 (SS-6): firm-identity pass. A consultancy's own declaration in
+    // the JD ("global technology and management consultancy", "consulting
+    // methodologies", "consulting culture") is the firm's identity and
+    // outranks practice-area tokens in the generic JD fallback — the Capco
+    // BA sits in a "Wealth & Asset Management" PRACTICE, but the job is at a
+    // consultancy; "consultancy" also never matched /\bconsulting/ before.
+    if (/\b(consultancy|management consulting|consulting firm|consulting culture|consulting methodologies)\b/.test(lc(jd).slice(0, 3000))) return "Consulting";
     const j = lc(jd).slice(0, 600);
     for (const [fam, re] of FAMILY_RULES) if (re.test(j)) return fam;
     if (/\bengineer/.test(t)) return "SWE";

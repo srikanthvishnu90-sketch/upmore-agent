@@ -542,6 +542,16 @@ const CareerJobs = (() => {
     liveBoard("Ramp", "ashby", "ramp", "FIXED 2026-10-13: was Lever (api.lever.co/v0/postings/ramp = HTTP 404); Ramp's real board is Ashby — HTTP 200, 165 postings"),
     liveBoard("OpenAI", "ashby", "openai", "verified live 2026-10-13: HTTP 200, 805 postings"),
     liveBoard("Linear", "ashby", "linear", "verified live 2026-10-13: HTTP 200, 31 postings"),
+    // BUG-059 (W7 alert-speed gap G3): six more boards verified live
+    // 2026-10-13/14 by the alert-speed lane's overnight watch — they worked
+    // through the generic feeds builders but were invisible to
+    // boardFeeds()/131 discovery planning until registered here.
+    liveBoard("Gusto", "greenhouse", "gusto", "verified live 2026-10-13/14 (alert-speed lane): HTTP 200, 99 postings"),
+    liveBoard("Gemini", "greenhouse", "gemini", "verified live 2026-10-13/14 (alert-speed lane): HTTP 200, 33 postings"),
+    liveBoard("Virtu Financial", "greenhouse", "virtu", "verified live 2026-10-13/14 (alert-speed lane): HTTP 200, 48 postings"),
+    liveBoard("Scale AI", "greenhouse", "scaleai", "verified live 2026-10-13/14 (alert-speed lane): HTTP 200, 183 postings"),
+    liveBoard("Notion", "ashby", "notion", "verified live 2026-10-13/14 (alert-speed lane): HTTP 200, 131 postings"),
+    liveBoard("Old Mission Capital", "greenhouse", "oldmissioncapital", "verified live 2026-10-13/14 (alert-speed lane): HTTP 200, 41 postings"),
     deadBoard("Square", "Square", "SmartRecruiters endpoint answers HTTP 200 with totalFound 0 and zero postings (run 1 and 2026-10-13); SmartRecruiters returns the identical 200/totalFound 0 body for a gibberish company token, so the 200 evidences no real board and no postings have ever been pulled from it — checked 2026-10-13"),
     liveBoard("Bosch Group", "smartrecruiters", "BoschGroup", "verified live 2026-10-13: HTTP 200, 100 postings on first page, totalFound 4948"),
     deadBoard("Visa", "Visa", "SmartRecruiters endpoint answers HTTP 200 with totalFound 0 and zero postings (run 1 and 2026-10-13); SmartRecruiters returns the identical 200/totalFound 0 body for a gibberish company token, so the 200 evidences no real board and no postings have ever been pulled from it — checked 2026-10-13"),

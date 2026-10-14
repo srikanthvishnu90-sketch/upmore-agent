@@ -679,6 +679,28 @@ const CareerRouter = (() => {
   }
 
   // ---------- outreach campaign family (124) -------------------------------
+  // The campaign plan's commitment point: a real 124 campaign in
+  // draft state + its wave plan + safety-plan card, carried as the
+  // turn's artifact. A bulk ask with no people yet cannot honestly
+  // produce drafts — the plan at the gate IS the doorstep (the same
+  // pieces 141 assembles for a single-recipient draft, minus the
+  // recipient). committed:false, sends:0, always.
+  function campaignPlanArtifact(ctx, q, y) {
+    if (!Outreach || !Outreach.createCampaign || !Outreach.safetyPlan) return null;
+    try {
+      const campaign = Outreach.createCampaign({ id: "campaign-plan", userId: ctx.userId || "user-1" });
+      const plan = Outreach.planWave ? Outreach.planWave(campaign, { waveNumber: 1, startDayIndex: 0 }) : null;
+      const card = Outreach.safetyPlan(campaign, plan, { startDateIso: new Date(nowOf(ctx)).toISOString() });
+      return {
+        kind: "campaign_plan", family: "outreach-send",
+        campaign: { id: campaign.id, status: campaign.status, sending_channel: campaign.sending_channel, cap_ceiling_per_day: campaign.cap_per_day, cap_today: card ? card.daily_cap_start : null, item_count: Array.isArray(campaign.items) ? campaign.items.length : 0 },
+        safety_plan_card: card || null,
+        target: q || null,
+        yield: y || { found: 0, trusted_emails: 0, sendable: 0, selected: 0, reserve: 0, review_bucket: 0 },
+        sends: 0, committed: false,
+      };
+    } catch { return null; }
+  }
   function handleCampaignPlan(text, ctx) {
     const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null;
     const count = (q && q.count) || Number((lc(text).match(/\b(\d+)\b/) || [])[1]) || 40;
@@ -687,13 +709,15 @@ const CareerRouter = (() => {
       const built = Outreach.buildList(pool, q || {}, { profile: ctx.profile, nowMs: nowOf(ctx) });
       const y = built.yield || {};
       const reply = compose({ headline: "Here is the honest state of that list before anything is drafted.", facts: [`Found ${y.found || 0}; trusted emails ${y.trusted_emails || 0}; sendable ${y.sendable || 0}; selected ${y.selected || 0}; reserve ${y.reserve || 0}; ${y.review_bucket || 0} ambiguous in review, never queued.`, "Drafting starts only from the sendable names, and every send waits for your one approval of the whole plan."], nextStep: "Say go and I will draft from the selected names first." });
-      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y };
+      const artifact = campaignPlanArtifact(ctx, q, y);
+      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y, ...(artifact ? { artifact, payload: artifact } : {}) };
     }
     const scope = [];
     if (q && q.firms && q.firms.length) scope.push(`at ${q.firms.slice(0, 4).join(", ")}`);
     if (q && q.geography) scope.push(`in ${q.geography}`);
     const reply = compose({ headline: `Here is the plan for ${count} people${scope.length ? " " + scope.join(" ") : ""} — shortlist first, drafts second.`, facts: ["Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.", `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`], nextStep: "Say go and I build the list from those sources first — you see the found, trustworthy, and sendable counts before a single draft exists." });
-    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q };
+    const artifact = campaignPlanArtifact(ctx, q, null);
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, ...(artifact ? { artifact, payload: artifact } : {}) };
   }
 
   function handleIntake(text, ctx) {

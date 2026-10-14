@@ -1,5 +1,5 @@
 // Exercise the actual authenticated handler over synthetic PostgREST transport.
-// No provider model is impersonated, and no real network request is sent after imports.
+// Provider inference is allowed only with --real-model and shared budget reservations; action rails stay blocked.
 import {handleChat} from '../../supabase/functions/agent-chat/handler.ts';
 import {world,clone} from './world.ts';
 import {AuditBudget,MODEL} from './budget.ts';
@@ -102,6 +102,13 @@ globalThis.fetch=async(input:any,init:any={})=>{
  if(headers.get('accept')?.includes('vnd.pgrst.object'))return result.length===1?json(result[0]):json({message:'JSON object requested, multiple (or no) rows returned',code:'PGRST116',details:result.length+' rows'},406);
  return json(result,200,{'content-range':`0-${Math.max(0,result.length-1)}/${count}`});
 };
+export async function judgeCompletion(w:any,payload:any){
+ active=w;
+ const response=await globalThis.fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+existingKey},body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
+ const body=await response.json();
+ if(!response.ok)throw Error('Judge HTTP '+response.status+': '+(body.error?.type||'unavailable'));
+ return body;
+}
 export function handlerWorld(userId=USER){
  const w=world();w.threadIds={};w.journal=[];w.messageSeq=0;w.userId=userId;
  w.recipients=w.recipients.map((r:any)=>({...r,user_id:userId}));
@@ -113,7 +120,9 @@ export function handlerWorld(userId=USER){
   const res=await handleChat(new Request('https://audit.supabase.test/functions/v1/agent-chat',{method:'POST',headers:{Authorization:'Bearer mock-user-token','content-type':'application/json'},body:JSON.stringify(body)}));
   const result=await res.json();if(result.thread_id)w.threadIds[w.thread]=result.thread_id;
   result.http_status=res.status;
-  w.transcript.push({thread:w.thread,user:message,result:clone(result),operations:clone(w.journal.slice(firstOp))});
+  const turn={thread:w.thread,user:message,result:clone(result),operations:clone(w.journal.slice(firstOp))};
+  w.transcript.push(turn);
+  if(w.eventPath)await Deno.writeTextFile(w.eventPath,JSON.stringify({case_id:w.caseId,...turn})+'\n',{append:true});
   return result;
  };
  return w;

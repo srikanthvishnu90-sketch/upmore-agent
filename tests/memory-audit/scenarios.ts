@@ -1,0 +1,61 @@
+// User-observable contracts; no model answers or intended outcomes are injected.
+export type Step={say?:string;match?:string;not?:string;outcome?:string;state?:string;equals?:unknown;thread?:string;minutes?:number;set?:Record<string,unknown>;error?:string};
+export type Scenario={id:string;category:string;title:string;steps:Step[]};
+const say=(text:string,match?:string,outcome?:string):Step=>({say:text,match,outcome});
+const state=(path:string,equals:unknown):Step=>({state:path,equals});
+const alias=[say('save sam as brother'),say('yes')];
+const rent=[say('pay my rent'),say('Sam $900 on the 1st via Venmo'),say('yes')];
+const payment=say('send sam 20');
+const split=say('split 60 with sam and maya');
+export const scenarios:Scenario[]=[
+ {id:'M01',category:'facts',title:'Confirmed nickname recalls the right person',steps:[...alias,say('send brother 20','Sam Kim.*@samk','confirm')]},
+ {id:'M02',category:'facts',title:'Explicit remember phrasing persists an alias',steps:[say('remember Maya Rao as my sister'),say('yes'),say('send sister 25','Maya Rao.*@mayar','confirm')]},
+ {id:'M03',category:'facts',title:'Natural relationship statement needs confirmation and persists',steps:[say('my dad is Sam Kim','Save'),say('yes'),say('send dad 30','Sam Kim','confirm')]},
+ {id:'M04',category:'facts',title:'An alias is moved only to the newly confirmed person',steps:[...alias,say('brother is Maya Rao'),say('yes'),say('send brother 20','Maya Rao','confirm')]},
+ {id:'M05',category:'facts',title:'Rejected alias preserves the previous confirmed fact',steps:[...alias,say('brother is Maya Rao'),say('no'),say('send brother 20','Sam Kim','confirm')]},
+ {id:'M06',category:'corrections',title:'Amount correction preserves payee and replaces the old card',steps:[payment,say('make it 35','35.00.*Sam Kim','confirm'),say('yes','35.00','staged'),state('state.send.sends.0.amount_cents',3500)]},
+ {id:'M07',category:'corrections',title:'Actually correction handles a different amount',steps:[payment,say('actually make it 50','50.00.*Sam Kim','confirm'),say('yes','50.00','staged')]},
+ {id:'M08',category:'corrections',title:'Bare currency correction retains payment context',steps:[payment,say('$12.50 instead','12.50.*Sam Kim','confirm'),say('yes','12.50','staged')]},
+ {id:'M09',category:'corrections',title:'Split total correction recomputes every share before approval',steps:[split,say('make it 90','30.00 each.*90.00','confirm'),say('yes','30.00','staged')]},
+ {id:'M10',category:'corrections',title:'Rent setup correction retains recipient and due day',steps:[say('pay my rent'),say('Sam $900 on the 1st via Venmo'),say('make it 950','950.00.*Sam Kim.*1st','confirm'),say('yes'),state('standing.0.amount_cents',95000)]},
+ {id:'M11',category:'references',title:'Details refers to the pending payment',steps:[payment,say('details','20.00.*Sam Kim','details')]},
+ {id:'M12',category:'references',title:'A short yes resumes a serialized split',steps:[split,say('yes','Sam Kim.*20.00.*Maya Rao.*20.00','staged')]},
+ {id:'M13',category:'references',title:'Cancellation that resolves the last discussed subscription',steps:[say('cancel netflix','Netflix'),say('cancel that','Netflix')]},
+ {id:'M14',category:'references',title:'Stop rent refers to the confirmed standing instruction',steps:[...rent,say('stop rent','Rent is off','rent_stopped'),state('standing.0.status','stopped')]},
+ {id:'M15',category:'references',title:'A contextual fee question retains payment identity and asks before acting',steps:[payment,say("what's the fee on that",'20.00.*Sam Kim'),state('state.send.sends.length',0)]},
+ {id:'M16',category:'goals',title:'Rent setup answers retain the original goal',steps:[say('pay my rent','Who'),say('Sam $900 on the 1st via Venmo','900.00.*Sam Kim','confirm'),say('yes','Rent is set up','rent_set'),state('standing.0.payee_handle','@samk')]},
+ {id:'M17',category:'goals',title:'New recipient handle and rail answers retain amount',steps:[say('send Dana 25'),say('@danak'),say('@danak'),say('Venmo'),say('@danak','25.00.*Dana','confirm')]},
+ {id:'M18',category:'goals',title:'Split remembers total while asking who participated',steps:[say('split 60 with 2 friends'),say('sam and maya','20.00 each.*60.00','confirm')]},
+ {id:'M19',category:'goals',title:'Rent is remembered on the next independent invocation',steps:[...rent,say('pay my rent','900.00.*Sam Kim','confirm')]},
+ {id:'M20',category:'goals',title:'An interrupted alias goal remains unconfirmed',steps:[say('save sam as brother'),say('no'),state('recipients.0.nickname',null),say('send brother 20','handle','ask')]},
+ {id:'M21',category:'task-state',title:'A staged payment is remembered without claiming completion',steps:[payment,say('yes','Staged, not sent','staged'),say('yes','already staged','already_done'),state('state.send.sends.length',1)]},
+ {id:'M22',category:'task-state',title:'A staged split is remembered without duplicating it',steps:[split,say('yes','Staged','staged'),say('yes','already staged','already_done'),state('state.split.staged.length',1)]},
+ {id:'M23',category:'task-state',title:'A declined payment cannot be resurrected by yes',steps:[payment,say('no','Nothing','declined'),{say:'yes',not:'^Staged, not sent'},state('state.send.sends.length',0)]},
+ {id:'M24',category:'task-state',title:'Stopping rent prevents the next turn from claiming an active rule',steps:[...rent,say('stop rent'),say('pay my rent','Who','ask')]},
+ {id:'M25',category:'task-state',title:'Status follow-up recalls staged versus sent',steps:[payment,say('yes'),say('did it go through','(?:not (?:yet )?(?:sent|posted)|staged|have not seen|waiting for.*post)')]},
+ {id:'M26',category:'permissions',title:'Unapproved nickname does not become a known fact',steps:[say('save sam as brother'),state('recipients.0.nickname',null),say('no'),state('recipients.0.nickname',null)]},
+ {id:'M27',category:'permissions',title:'Unapproved rent terms are not durable instructions',steps:[say('pay my rent'),say('Sam $900 on the 1st via Venmo'),state('standing.length',0),say('no'),state('standing.length',0)]},
+ {id:'M28',category:'permissions',title:'An expired payment card is restated and requires a fresh yes',steps:[payment,{minutes:11},say('yes','expired.*fresh','confirm'),state('state.send.sends.length',0),say('yes','Staged','staged')]},
+ {id:'M29',category:'permissions',title:'An expired nickname card never writes a fact',steps:[say('save sam as brother'),{minutes:11},say('yes','expired'),state('recipients.0.nickname',null)]},
+ {id:'M30',category:'permissions',title:'A question containing yes does not approve a payment',steps:[payment,say('yes but is there a fee'),state('state.send.sends.length',0),say('no')]},
+ {id:'M31',category:'interruptions',title:'Moving to small talk explicitly drops the old payment',steps:[payment,say("what's a good movie",'dropped.*20.00'),{say:'yes',not:'^Staged'},state('state.send.sends.length',0)]},
+ {id:'M32',category:'interruptions',title:'Switching recipients makes the latest request authoritative',steps:[payment,say('send maya 30','30.00.*Maya Rao','confirm'),say('yes','30.00.*Maya Rao','staged'),state('state.send.sends.length',1)]},
+ {id:'M33',category:'interruptions',title:'A payment supersedes a pending split rather than approving both',steps:[split,say('send sam 20','20.00.*Sam Kim','confirm'),say('yes','Staged, not sent','staged'),state('state.split.staged.length',0)]},
+ {id:'M34',category:'interruptions',title:'Switching from payment to rent keeps the new goal',steps:[payment,say('pay my rent','Who','ask'),say('Sam $900 on the 1st via Venmo'),say('yes','Rent is set up','rent_set'),state('state.send.sends.length',0)]},
+ {id:'M35',category:'interruptions',title:'Never mind cancels an alias confirmation without saving',steps:[say('save sam as brother'),say('never mind'),state('recipients.0.nickname',null),{say:'yes',not:'^Saved:'}]},
+ {id:'M36',category:'sessions',title:'Confirmed aliases survive a new conversation',steps:[...alias,{thread:'B'},say('send brother 20','Sam Kim','confirm')]},
+ {id:'M37',category:'sessions',title:'Standing rent survives a new conversation',steps:[...rent,{thread:'B'},say('pay my rent','900.00.*Sam Kim','confirm')]},
+ {id:'M38',category:'sessions',title:'Unapproved thread A card cannot be approved in thread B',steps:[payment,{thread:'B'},{say:'yes',not:'^Staged'},{thread:'A'},state('state.send.sends.length',0)]},
+ {id:'M39',category:'sessions',title:'A nickname correction in another session supersedes the old meaning',steps:[...alias,{thread:'B'},say('brother is Maya Rao'),say('yes'),{thread:'C'},say('send brother 20','Maya Rao','confirm')]},
+ {id:'M40',category:'sessions',title:'Stopping rent in another session prevents future offers',steps:[...rent,{thread:'B'},say('stop rent'),{thread:'C'},say('pay my rent','Who','ask')]},
+ {id:'M41',category:'retries',title:'Repeating a staged approval does not stage twice after restore',steps:[payment,say('yes'),say('yes','already staged','already_done'),say('yes','already staged','already_done'),state('state.send.sends.length',1)]},
+ {id:'M42',category:'retries',title:'Rent setup retry leaves exactly one standing instruction',steps:[...rent,{say:'yes',not:'^Rent is set up'},state('standing.length',1)]},
+ {id:'M43',category:'retries',title:'Confirmed alias repeated is recognized as already known',steps:[...alias,say('save sam as brother','already|Already|already means','already_done'),state('ops.length',1)]},
+ {id:'M44',category:'retries',title:'The same month rent is staged once across restored sessions',steps:[...rent,say('pay my rent'),say('yes','Staged','staged'),say('pay my rent','already staged','already_done')]},
+ {id:'M45',category:'retries',title:'Retried split approval preserves one set of requests',steps:[split,say('yes'),say('yes'),state('state.split.staged.length',1)]},
+ {id:'M46',category:'storage-failures',title:'Nickname save failure is never reported as remembered',steps:[say('save sam as brother'),{set:{failRecipients:true}},say('yes',"couldn't save"),state('recipients.0.nickname',null)]},
+ {id:'M47',category:'storage-failures',title:'Rent save failure is never reported as a stored rule',steps:[say('pay my rent'),say('Sam $900 on the 1st via Venmo'),{set:{failStanding:true}},say('yes',"couldn't.*save|couldn't.*set|nothing was set up"),state('standing.length',0)]},
+ {id:'M48',category:'storage-failures',title:'A failed state write yields no approval card and retry is recoverable',steps:[{set:{failState:true}},{say:'send sam 20',error:'state storage unavailable'},{set:{failState:false}},say('send sam 20','20.00.*Sam Kim','confirm'),state('state.send.sends.length',0)]},
+ {id:'M49',category:'storage-failures',title:'Unavailable facts cause an honest blocker and preserve the old card',steps:[payment,{set:{unreadable:true}},say('yes',"can't read.*Nothing was changed",'unavailable'),state('state.send.sends.length',0)]},
+ {id:'M50',category:'storage-failures',title:'A failed rent correction retains the prior confirmed terms',steps:[...rent,say('rent is 950 now'),{set:{failStanding:true}},say('yes',"couldn't.*save|couldn't.*change|rent stays as it was"),state('standing.0.amount_cents',90000)]},
+];

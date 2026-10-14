@@ -1,0 +1,12 @@
+// Synthetic local counterparty only. Each turn constructs production sessions anew.
+import {routeFlows, mapFlowData, type FlowDb} from '../../supabase/functions/_shared/flow_router.ts';
+export const clone=(x:any)=>JSON.parse(JSON.stringify(x));
+export function world(){
+  const w:any={now:Date.UTC(2026,9,12,14),thread:'A',states:{},recipients:[{id:'sam',handle:'@samk',display_name:'Sam Kim',channel:'in-app',source:'completed_send',rail:'venmo',nickname:null},{id:'maya',handle:'@mayar',display_name:'Maya Rao',channel:'in-app',source:'completed_send',rail:'venmo',nickname:null}],standing:[],transcript:[],failState:false,failRecipients:false,failStanding:false,unreadable:false,ops:[]};
+  const tx:any[]=[];
+  for(const [merchant,cents] of [['NETFLIX.COM',1799],['HULU',999]] as const)for(const d of ['2026-07-03','2026-08-03','2026-09-03','2026-10-03'])tx.push({account_id:'visa',provider_transaction_id:merchant+d,amount_cents:-cents,posted_on:d,merchant_raw:merchant,is_pending:false,is_transfer:false});
+  w.db={async loadState(){return clone(w.states[w.thread]||null)},async saveState(s:any){if(w.failState)throw Error('simulated state storage unavailable');w.states[w.thread]=clone(s);},async loadData(){return {ok:!w.unreadable,missing:w.unreadable?'saved data':undefined,...mapFlowData(tx,[],[],clone(w.recipients),clone(w.standing))}},async saveRecipients(ops:any[]){if(w.failRecipients)throw Error('simulated recipient storage unavailable');for(const o of ops){w.ops.push(clone(o));if(o.op==='nickname'){for(const p of w.recipients)if((o.clear_row_ids||[]).includes(p.id))p.nickname=null;w.recipients.find((p:any)=>p.id===o.row_id).nickname=o.nickname;}else if(o.op==='insert')w.recipients.push({...o,id:'new-'+w.recipients.length});}},async saveStanding(ops:any[]){if(w.failStanding)throw Error('simulated standing storage unavailable');for(const o of ops){w.ops.push(clone(o));if(o.op==='insert')w.standing.push({...o.row,id:'rent-'+w.standing.length,created_at:new Date(w.now).toISOString()});else{const row=w.standing.find((p:any)=>p.id===o.id);if(row)Object.assign(row,o.set);}}}} satisfies FlowDb;
+  w.turn=async(message:string)=>{try{const r:any=await routeFlows(message,{db:w.db,extract:null,now:()=>w.now,termsFetch:null,tz:'America/Chicago'});w.transcript.push({thread:w.thread,user:message,result:clone(r)});return r;}catch(e){w.transcript.push({thread:w.thread,user:message,error:String(e)});throw e;}};
+  w.state=()=>clone(w.states[w.thread]||null);
+  return w;
+}

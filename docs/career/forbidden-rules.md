@@ -1748,9 +1748,27 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-essay-tailor.test.cjs (5 tests incl. clinical-persona themes, empty-profile typed blocker, non-essay negative).
 - **STATUS:** ENFORCED
 
+### FR-279 — Outreach plan/state turns carry their typed record (BUG-105)
+- **FORBIDDEN:** An outreach plan/state turn returning prose alone, or carrying its product only under a handler-private key no reader consumes; every no-campaign branch carries its typed plan/state record as payload + artifact (zeroed/empty records for empty states, never estimated numbers).
+- **FROM:** Residual lane 2026-10-14 — 19 Outreach scenarios failed doorstep + A4 in the true-score run because the no-campaign branches never carried their product where the completion chain reads.
+- **ENFORCEMENT:** tests/career-outreach-completion.test.cjs (39 tests: record kind + elements + artifact per canonical ask) + run-grand.cjs BUG-105 element-keyed branches + Outreach re-run grader-v2 20/20 (outreach-fix-index.json).
+- **STATUS:** ENFORCED
+
+### FR-280 — Ask counts parse tolerantly where honesty sentences depend on them (BUG-106)
+- **FORBIDDEN:** A count pattern that requires the number to touch its noun, so a modified count ("175 middle-market bankers") parses as no count and the shortfall/honesty sentence silently never fires.
+- **FROM:** Residual lane 2026-10-14 — SC-025 failed H-5 because handleTierMix's regex missed the ask's own count.
+- **ENFORCEMENT:** tests/career-outreach-completion.test.cjs SC-025 test (record requested_total=175 + reply states 175 and the true 0).
+- **STATUS:** ENFORCED
+
+### FR-281 — Empty-state answers never open as bare refusals (BUG-107)
+- **FORBIDDEN:** An honest empty-state answer opening with a bare "No …" refusal shape; it leads with the state and offers the alternative as a readable next step.
+- **FROM:** Residual lane 2026-10-14 — SC-044's empty digest tripped REFUSAL_NO_ALTERNATIVE on an honest answer.
+- **ENFORCEMENT:** tests/career-outreach-completion.test.cjs SC-044 test (digest record + no bare-refusal opening).
+- **STATUS:** ENFORCED
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 185 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 278
+Counts: ENFORCED 188 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 281
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2032,5 +2050,8 @@ Counts: ENFORCED 185 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 2
 | FR-276 (BUG-102) | ENFORCED | run-grand.cjs BUG-102 branches + Referrals re-run grader-v2 30/30 (referrals-fix-index.json) |
 | FR-277 (BUG-103) | ENFORCED | tests/career-referrals-completion.test.cjs populated SC-146 + tests/career-ib-outreach-integration.test.cjs IB-2/IB-2b |
 | FR-278 (BUG-104) | ENFORCED | tests/career-essay-tailor.test.cjs (5 tests) |
+| FR-279 (BUG-105) | ENFORCED | tests/career-outreach-completion.test.cjs (39 tests) + run-grand BUG-105 branches + outreach re-run 20/20 |
+| FR-280 (BUG-106) | ENFORCED | tests/career-outreach-completion.test.cjs SC-025 test |
+| FR-281 (BUG-107) | ENFORCED | tests/career-outreach-completion.test.cjs SC-044 test |
 
-<!-- totals: total=278 enforced=185 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=281 enforced=188 guarded_red=1 hard_shut=1 unenforced=91 -->

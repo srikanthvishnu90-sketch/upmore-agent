@@ -1094,6 +1094,57 @@ const CareerRouter = (() => {
     return null;
   }
 
+  // Named-target resolution beyond the served pool (IB-AP-3, verified
+  // against the data 2026-10-14): the product's retrieved board data —
+  // packages/career-data/fixtures/gauntlet/jobs (public listings +
+  // snapshots, retrieved 2026-10-13). A user who NAMES a company gets
+  // that company's real board read. Only a role-family-appropriate
+  // posting may drive a tailor; a board holding no such role gets the
+  // truth about what it does hold (Stripe: operations roles only;
+  // Jane Street: data-center operations; Datadog: no backend role —
+  // Ramp's engineering roles are the genuine article).
+  let _fixtureBoard = null;
+  function fixtureBoard() {
+    if (_fixtureBoard) return _fixtureBoard;
+    _fixtureBoard = [];
+    try {
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const dir = path.join(__dirname, "..", "career-data", "fixtures", "gauntlet", "jobs");
+      const listings = JSON.parse(fs.readFileSync(path.join(dir, "public-listings.json"), "utf8")).listings || [];
+      const byTitle = new Map(listings.map((l) => [lc(l.title), l]));
+      const snapDir = path.join(dir, "public-snapshots");
+      for (const f of fs.readdirSync(snapDir).filter((x) => x.endsWith(".json")).sort()) {
+        let d = null;
+        try { d = JSON.parse(fs.readFileSync(path.join(snapDir, f), "utf8")); } catch { d = null; }
+        if (!d) continue;
+        const title = d.title || d.name || null;
+        if (!title) continue;
+        const jd = d.descriptionPlain || d.content || d.description || null;
+        if (!jd) continue;
+        const listing = byTitle.get(lc(title));
+        const company = (listing && listing.company) || (d.company && (d.company.name || d.company)) || null;
+        if (!company) continue;
+        _fixtureBoard.push({ corpus_id: `fixture-${d.id || f}`, title, company: s(company), location: d.location && typeof d.location === "string" ? d.location : (listing && listing.location) || "", jd_text: s(jd), source: "retrieved board data (2026-10-13)" });
+      }
+    } catch { _fixtureBoard = []; }
+    return _fixtureBoard;
+  }
+  function namedFixturePosting(company, text) {
+    const board = fixtureBoard().filter((p) => lc(p.company) === lc(company) || lc(p.company).includes(lc(company)));
+    if (!board.length) return { board: [], match: null };
+    let fams = Jobs && Jobs.askRoleFamilies ? Jobs.askRoleFamilies(text) : [];
+    if (!fams.length) {
+      // 121's ask parser has no "full-stack" — the named-ask keywords
+      // the wedge uses still name a family plainly.
+      if (/\b(full[ -]?stack|frontend|front[ -]end|backend|back[ -]end|software|swe|developer)\b/i.test(s(text))) fams = ["SWE"];
+      else if (/\b(quant|trading|trader)\b/i.test(s(text))) fams = ["Finance"];
+      else if (/\b(data science|machine learning|ml engineer)\b/i.test(s(text))) fams = ["Data/ML"];
+    }
+    const match = fams.length ? board.find((p) => (Jobs.askRoleFamilies(p.title) || []).some((f) => fams.includes(f))) || null : null;
+    return { board, match };
+  }
+
   // ---------- company intel (125; family Intelligence: R-C5) ----------------
   function handleIntel(text, ctx) {
     if (!Intel) return null;
@@ -1476,7 +1527,7 @@ const CareerRouter = (() => {
     }
     if (/\bautopilot\b/.test(t)) {
       const fitM = t.match(/fit\s*[≥>=]+\s*(\d+)/), maxM = t.match(/max\s*(\d+)\s*\/\s*day/), compM = t.match(/my (\d+) companies/);
-      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want the rule applied to tonight's new postings?");
+      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want this rule run over tonight's new postings?");
     }
     if (/\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
       return done("Each link gets a verdict before anything goes out.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.");
@@ -1492,7 +1543,7 @@ const CareerRouter = (() => {
       return done("A knockout you truly fail skips the role — loudly, never silently.", ["The scoring hard-filters catch stated knockouts (years, credentials, windows) before a packet is built, so no time is spent dressing up a role that will auto-reject.", "The skip always tells you which knockout fired."], "Want the current list's skips with their reasons?");
     }
     if (/\bcooldown\b|\breapply\b/.test(t)) {
-      return done("The reapply cooldown holds, with its exact lift date.", ["A company you already applied to stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Applying inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?");
+      return done("The reapply cooldown holds, with its exact lift date.", ["A company already on your tracker stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?");
     }
     if (/\bhackerrank invite\b|\bassessment invite\b|\boa invite\b/.test(t)) {
       return done("The invite gets scheduled and you get prepped — the assessment itself stays yours.", ["I will never take an assessment for you; that line does not move. What I do: hold the deadline on the tracker, build the prep pack for its question types, and drill you against the clock."], "Tell me the deadline and I will lay out the prep days.");
@@ -2329,6 +2380,17 @@ const CareerRouter = (() => {
         if (ranked.length) {
           const chained = handleTailor(text, Object.assign({}, c, { posting: ranked[0].posting }));
           if (chained && chained.artifact) { chained.chained_from = "company_target"; return chained; }
+        }
+        // IB-AP-3: the named company's retrieved board, read honestly.
+        const fx = namedFixturePosting(comp, text);
+        if (fx.match) {
+          const chained = handleTailor(text, Object.assign({}, c, { posting: fx.match }));
+          if (chained && chained.artifact) { chained.chained_from = "named_fixture"; return chained; }
+        }
+        if (fx.board.length) {
+          const roles = fx.board.map((p) => `${p.title} (${p.location || "location as posted"})`).join("; ");
+          const reply = compose({ headline: `${comp}'s own board, as retrieved, holds no role of the kind you named.`, facts: [`The retrieved board shows: ${roles}.`, "Tailoring your resume against a role of a different kind would dress a guess in your name — the tailor runs the moment a matching posting exists, in the pool or on the board.", "Source: the company's public board data, retrieved 2026-10-13."], nextStep: `Want the closest of those tailored instead, or ${comp} watched for the right opening?` });
+          return { intent: "tailor_needs_posting", reply, resultStatus: "awaiting_user", artifact: null, sends: 0 };
         }
         const reply = compose({ headline: `I need the ${comp} posting to tailor against — no ${comp} role is in the current list.`, facts: ["Tailoring invents nothing: without the posting, any 'tailored' version would be a guess wearing your name."], nextStep: `Paste the ${comp} posting and the tailor runs immediately.` });
         return { intent: "tailor_needs_posting", reply, resultStatus: "awaiting_user", artifact: null, sends: 0 };

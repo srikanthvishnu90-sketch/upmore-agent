@@ -20681,6 +20681,18 @@ const CareerJobs = (() => {
   function seniorityBand(title, jd) {
     const t = lc(title), j = lc(jd);
     if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
+    // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
+    // winter forms) ARE the finance/consulting internship titles and carry no
+    // intern token; without this they fell through to "mid" and intern-band
+    // watches silently missed them (witness: Lane A seed LA-0043). The
+    // analyst-track noun is required — seasonal titles without it are
+    // seasonal JOBS (customer service, housekeeping), never internships. A
+    // title that also names a management role ("Summer Analyst Program
+    // Manager") is the manager's posting and falls through to the checks
+    // below.
+    if (/\b(summer|winter)\s+(business\s+)?(analyst|associate)\b/.test(t)
+        && !/\b(manager|director|vp|vice president|head of|chief)\b/.test(t)) return "intern";
     if (/\b(director|vp|vice president|head of|chief)\b/.test(t)) return "director";
     if (/\bmanager\b/.test(t)) return "manager";
     if (/\b(staff|principal)\b/.test(t)) return "staff";
@@ -20974,13 +20986,21 @@ const CareerJobs = (() => {
     return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
   }
 
+  // TN-1a FEED PATH (BUG-226, FR-384): a posting's company comes only
+  // from a source that NAMES it — the payload itself, or the feed
+  // descriptor's stated company (registry boards carry one). The board
+  // token is an address, never a company: when neither source names a
+  // company the posting arrives company-less (null + the not-stated
+  // marker), per the owner's TN-1a ruling — never invented.
+  const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
                        : `${p.source}:${normName(p.company)}:${hash(p.url)}`.replace(/\s+/g, "-");
     const jd_text = stripHtml(p.jd_text || "");
     const posting = {
-      job_id, company: s(p.company), title: s(p.title),
+      job_id, company: p.company ? s(p.company) : null, company_not_stated: !p.company, title: s(p.title),
       role_family: roleFamily(p.title, jd_text), seniority_band: seniorityBand(p.title, jd_text),
       location: s(p.location || ""), remote: remoteOf(p.location, jd_text),
       url: s(p.url), posted_at: iso(p.posted_at), jd_text,
@@ -20996,8 +21016,8 @@ const CareerJobs = (() => {
   }
 
   // ---------- per-ATS normalization (recorded shapes; see tests) ----------
-  function normalizeGreenhouse(json, token) {
-    const company = (json && json.name) || token;
+  function normalizeGreenhouse(json, token, statedCompany) {
+    const company = companyOf(json && json.name, statedCompany);
     return ((json && json.jobs) || []).map((j) => basePosting({
       // BUG-005 (SC-032): Stripe's board returns requisition_id "See Opening ID" for ALL 721 jobs —
       // using it as the req id collapsed every Stripe posting onto ONE job_id. A requisition id
@@ -21008,29 +21028,29 @@ const CareerJobs = (() => {
       jd_text: j.content || "", department: (j.departments && j.departments[0] && j.departments[0].name) || "",
     }));
   }
-  function normalizeLever(json, companyToken) {
+  function normalizeLever(json, companyToken, statedCompany) {
     return (Array.isArray(json) ? json : []).map((j) => basePosting({
-      source: "lever", company: companyToken, title: j.text, req_id: j.id,
+      source: "lever", company: companyOf(null, statedCompany), title: j.text, req_id: j.id,
       location: (j.categories && j.categories.location) || "", url: j.hostedUrl || j.applyUrl,
       posted_at: j.createdAt, jd_text: j.descriptionPlain || j.description || "",
       department: (j.categories && (j.categories.team || j.categories.department)) || "",
     }));
   }
-  function normalizeAshby(json, name) {
+  function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
-      source: "ashby", company: (json && json.name) || name, title: j.title, req_id: j.id,
+      source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
       location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
   }
-  function normalizeSmartRecruiters(json, companyToken) {
+  function normalizeSmartRecruiters(json, companyToken, statedCompany) {
     return ((json && json.content) || []).map((j) => {
       const loc = j.location || {};
       const location = [loc.city, loc.region, loc.country].filter(Boolean).join(", ") + (loc.remote ? " (Remote)" : loc.hybrid ? " (Hybrid)" : "");
       const sections = j.jobAd && j.jobAd.sections ? Object.values(j.jobAd.sections).map((x) => (x && (x.text || "")) || "").join(" ") : "";
       return basePosting({
-        source: "smartrecruiters", company: (j.company && j.company.name) || companyToken, title: j.name, req_id: j.ref || j.id,
+        source: "smartrecruiters", company: companyOf(j.company && j.company.name, statedCompany), title: j.name, req_id: j.ref || j.id,
         location, url: `https://jobs.smartrecruiters.com/${companyToken}/${j.id}`,
         posted_at: j.releasedDate || j.createdOn, jd_text: sections, department: (j.department && j.department.label) || "",
       });
@@ -21111,7 +21131,7 @@ const CareerJobs = (() => {
       const status = res.status != null ? res.status : (res.ok ? 200 : 0);
       if (status < 200 || status >= 300) return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: [], error: `HTTP ${status}` };
       const json = typeof res.json === "function" ? await res.json() : res;
-      const postings = NORMALIZERS[feed.source](json, feed.company_token);
+      const postings = NORMALIZERS[feed.source](json, feed.company_token, feed.company);
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings };
     } catch (e) {
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status: 0, postings: [], error: s(e && e.message || e) };
@@ -21121,19 +21141,54 @@ const CareerJobs = (() => {
   // ---------- dedupe ----------
   // City segment only: "San Francisco, CA" and "San Francisco, California" are the same place to a feed.
   function dedupeKey(p) { return `${normName(p.company)}|${normTitle(p.title)}|${normLoc(s(p.location).split(",")[0])}`; }
+  // BUG-228 (MI-031, FR-386): dedupe identity has a recency bound and a
+  // quality survivor. Copies posted more than 14 days apart are distinct
+  // openings of a recurring role, never one posting — LA-0016's new
+  // Lever posting merged into a month-old record, kept the old job_id,
+  // and diffNew never fired. And when copies do merge, the cleaner copy
+  // (JD substance, then department) supplies the identity, in either
+  // arrival order — first-seen-wins kept the worse record.
+  const DEDUPE_RECENCY_MS = 14 * 86400000;
+  const postedFarApart = (a, b) => {
+    const ta = Date.parse(a.posted_at || ""), tb = Date.parse(b.posted_at || "");
+    return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) > DEDUPE_RECENCY_MS;
+  };
+  const copyQuality = (p) => (p.jd_text || "").length + (p.department ? 500 : 0);
+  // MI-051/LA-0016 (2026-10-15): copies merge only when their JD texts
+  // are the same document (whitespace/case-normalized) or one side
+  // carries no text. Two boards can carry the same role with DIFFERENT
+  // text — LA-0016's Greenhouse twin carried a license-knockout
+  // sentence its Lever twin lacked; merging them (and keeping the
+  // longer text) poisoned the survivor and the gate killed a posting
+  // that should have reminded. A syndicated copy of one opening
+  // carries the employer's text; different text is a different record
+  // for every downstream verdict (gate, fit, deadline).
+  const jdNorm = (p) => (p.jd_text || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const sameJdText = (a, b) => { const x = jdNorm(a), y = jdNorm(b); return !x || !y || x === y || x.includes(y) || y.includes(x); };
+  // A shared req id is the employer's own identity for the opening —
+  // the same req on two boards is one posting however differently the
+  // boards render its text (the gauntlet mirror pair GJ-X02/GJ-X03,
+  // same req OPS-4471, requirement text rendered per board). Different
+  // reqs fall back to the same-text test above.
+  const sameOpening = (a, b) => (a.req_id && b.req_id && a.req_id === b.req_id) || sameJdText(a, b);
   function dedupe(postings) {
     const groups = new Map();
     for (const p of postings || []) {
       const key = dedupeKey(p);
       // Req ids are source-scoped: two DIFFERENT boards carrying the same role merge even though
       // their req ids differ; two postings on the SAME board with different req ids are distinct roles.
-      const hit = (groups.get(key) || []).find((g) => g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id));
-      if (!hit) { groups.set(key, (groups.get(key) || []).concat([Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })])); continue; }
-      for (const u of p.source_urls || [p.url]) if (!hit.source_urls.includes(u)) hit.source_urls.push(u);
-      for (const src of p.sources || [p.source]) if (!hit.sources.includes(src)) hit.sources.push(src);
-      if ((p.jd_text || "").length > (hit.jd_text || "").length) hit.jd_text = p.jd_text;
-      if (!hit.posted_at || (p.posted_at && p.posted_at < hit.posted_at)) hit.posted_at = p.posted_at;
-      if (!hit.department && p.department) hit.department = p.department;
+      const group = groups.get(key) || [];
+      const hit = group.find((g) => (g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id)) && !postedFarApart(g, p) && sameOpening(g, p));
+      if (!hit) { group.push(Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })); groups.set(key, group); continue; }
+      const winner = copyQuality(p) > copyQuality(hit) ? p : hit;
+      const loser = winner === p ? hit : p;
+      group[group.indexOf(hit)] = Object.assign({}, winner, {
+        sources: [...new Set([...(hit.sources || [hit.source]), ...(p.sources || [p.source])])],
+        source_urls: [...new Set([...(hit.source_urls || [hit.url]), ...(p.source_urls || [p.url])])],
+        jd_text: (loser.jd_text || "").length > (winner.jd_text || "").length ? loser.jd_text : (winner.jd_text || ""),
+        posted_at: [hit.posted_at, p.posted_at].filter(Boolean).sort()[0] || winner.posted_at || null,
+        department: winner.department || loser.department || "",
+      });
     }
     return [...groups.values()].flat();
   }
@@ -27529,6 +27584,13 @@ const CareerNegotiation = (() => {
   const DISCLAIMER = "Negotiation support is advice, not a guarantee of outcome. It is not legal or tax advice — have an employment lawyer review any agreement before you sign.";
   const s = (v) => (v == null ? "" : String(v));
   const money = (n) => (n == null || !Number.isFinite(n) ? null : Math.round(n));
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
 
   function createStore() { return { offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }; }
 
@@ -27750,7 +27812,7 @@ const CareerNegotiation = (() => {
 
   // ---------- deadline sequencing (colliding deadlines) ----------
   function deadlinePlan(offers, opts) {
-    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const sorted = [...(offers || [])].filter((o) => o.expiry_date).sort((a, b) => a.expiry_date.localeCompare(b.expiry_date))
       .map((o) => ({ offer_id: o.offer_id || null, company: o.company, expiry_date: o.expiry_date, days_left: Math.ceil((Date.parse(o.expiry_date + "T00:00:00Z") - now) / 86400000) }));
     const collide = sorted.length > 1 && sorted[0].expiry_date === sorted[sorted.length - 1].expiry_date;
@@ -27781,6 +27843,13 @@ const CareerOS = (() => {
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
 
   function createStore(seed) { return Object.assign({ offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }, seed || {}); }
 
@@ -27881,7 +27950,7 @@ const CareerOS = (() => {
 
   // ---------- COS-004 network upkeep ----------
   function networkUpkeep(store, opts) {
-    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const rows = [...(store.relationships || [])].map((r) => ({ name: r.name, org: r.org || null, warmth: r.warmth || null, last_touch: r.last_touch || null, days_since: r.last_touch ? Math.floor((now - Date.parse(r.last_touch)) / DAY) : null, channel: r.channel || null }))
       .sort((a, b) => (b.days_since == null ? 1e9 : b.days_since) - (a.days_since == null ? 1e9 : a.days_since));
     const coldestWarm = rows.find((r) => r.warmth === "warm") || rows[0] || null;
@@ -29069,6 +29138,13 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPath
    fact_ids array). */
 const CareerGraph = (() => {
   "use strict";
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const norm = (v) => lc(v).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -29220,7 +29296,7 @@ const CareerGraph = (() => {
       last_contact_at: (person && person.last_contact_at) || last.at || null, last_summary: last.summary || null };
   }
   function keepWarm(store, opts) {
-    opts = opts || {}; const now = Date.parse(opts.now || new Date().toISOString());
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const due = [];
     for (const p of store.people || []) {
       const mem = relationshipMemory(store, p.full_name);
@@ -30159,6 +30235,14 @@ const DISCLAIMER = "Advice, not a guarantee of outcome. Not legal or tax advice 
 const s = (v) => (v == null ? "" : String(v));
 const card = (kind, title, body, destination) => ({ type: "approval_card", kind, title, body, destination: destination || "recruiter (address confirmed on the card before send)", requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." });
 
+// CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
+// numeric epoch ms from the router/host and Date.parse(number) is NaN.
+// Coerce type-safely — a finite number passes through, a string parses,
+// anything else is NaN and the caller applies its own default.
+// (Uniquely named: the bundle concatenates files into one module
+// scope, so file-scope helper names must be unique across files.)
+function w11ClockMsOf(v) { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; }
+
 // ---------- BUG-141 adapter: pivot/career CIRs store screening_signals as {stated, revealed} ----------
 // 127's normalizeCir calls .map on screening_signals and crashes on the merged-corpus shape.
 // Flattening stated+revealed into one list (entries untouched) lets the vendored engine consume
@@ -30409,7 +30493,7 @@ function compExpectationAnswer(bench) {
 
 // ---------- SC-217 exploding-offer (48h) pressure plan ----------
 function pressurePlan(offer, opts) {
-  opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+  opts = opts || {}; const now = (() => { const t = w11ClockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
   const exp = offer.expiry_date ? Date.parse(offer.expiry_date + "T00:00:00Z") : null;
   const hoursLeft = exp != null ? Math.round((exp - now) / 3600000) : null;
   return {
@@ -32500,7 +32584,12 @@ const CareerDoorstep = (() => {
     // for the next day (busy and quiet checks rerun) and the card
     // says so; when only some are past, the proposal prefers a
     // future free slot and each past slot's verdict says it passed.
-    const nowMs = (() => { const n = Date.parse(c.now || ""); return Number.isNaN(n) ? Date.now() : n; })();
+    // CLOCK-SOURCE (BUG-198 class, FR-383): c.now arrives as numeric
+    // epoch ms from the harness/host and Date.parse(number) is NaN —
+    // the old line silently fell back to the wall clock, so verdicts
+    // flipped between morning and afternoon runs. Parse via isoOf,
+    // which is number-safe (the same pattern as the outreach emitter).
+    const nowMs = (() => { const n = Date.parse(isoOf(c.now) || ""); return Number.isNaN(n) ? Date.now() : n; })();
     const slotMsOf = (e) => Date.parse(e.utc || e.start_iso || e.start || "");
     let shiftedNote = null;
     if (evaluations.length && evaluations.every((e) => { const m = slotMsOf(e); return !Number.isNaN(m) && m < nowMs; })) {
@@ -33994,7 +34083,10 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate", school: (edu && edu.org) || (profile.basics && profile.basics.school) || "" };
     const candidate = { full_name: named.name, current_firm: named.firm, title: "", schools: user.school ? [user.school] : [], relationship_to_user: "", personalization_facts: [] };
     let gated = null;
-    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now ? Date.parse(ctx.now) : undefined }); } catch { gated = null; }
+    // CLOCK-SOURCE (BUG-198 class, FR-383): nowOf coerces the turn clock
+    // type-safely; Date.parse(ctx.now) on the numeric clock was NaN,
+    // which silently disabled 124's stale-record check at this call.
+    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now != null ? nowOf(ctx) : undefined }); } catch { gated = null; }
     if (!gated || !gated.draft || !gated.gate || !gated.gate.pass) return null;
     const facts = [`Subject: ${gated.draft.subject || "(set at the gate)"}.`, `No email address is on file for ${named.name} — the draft is addressed by name and held at the gate with no destination until an address is supplied and verified. Nothing can go out from the gate, and sending stays off regardless.`];
     const reply = compose({ headline: `Your draft to ${named.name} at ${named.firm} is ready at the approval gate.`, facts, nextStep: "Approve it as-is, edit it, or add the address first?" });
@@ -37126,7 +37218,7 @@ const CareerRouter = (() => {
     if (/\breject(ed|ion)\b[^.]*\b(advice|what now|next)\b|\bafter (a |the )?rejection\b/.test(t)) return "rejection";
     if (/\bgraduat|\bgrad school\b|\bwhich major\b|\bstraight out of college\b|\bfrom undergrad\b/.test(t)) return "graduation_window";
     if (/\bcredential\b|\blicense\b|\brequirement\b[^.]*\breal\b/.test(t)) return "classify_credential";
-    if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b/.test(t)) return "plan_paths";
+    if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbreak into\b|\bwhere do i start\b|\bhow do i start\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b/.test(t)) return "plan_paths";
     if (/\bfatal for\b|\bno sugarcoating\b|\bactually require\b|\bactually help\b|\boffsets the brand gap\b|\bmarket (bad|brutal)\b|\bdata science entry\b|\bstartup entry\b/.test(t)) return "honest_evidence";
     return null;
   }
@@ -39746,6 +39838,21 @@ const CareerRouter = (() => {
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls
     // through to 141 when this router returns null or the fallback.
+    // BUG-227 (MI-047, FR-385): the guidance dispatch gate (in the
+    // intel block above) and guidanceIntentFor kept SEPARATE phrase
+    // lists, and the flagship entry shapes ("break into investment
+    // banking — where do I start?") fell through both into the
+    // contained fallback (LF-01f). The intent matcher is a source of
+    // truth too — but it runs HERE, after every named owner in this
+    // dispatch has had its chance: an ask another handler owns (the
+    // weak-profile plan, SC-113, whose text happens to match
+    // plan_paths' quant...path shape) keeps its owner, and only the
+    // otherwise-unowned guidance-shaped asks reach the guidance
+    // engine instead of the generic fallback.
+    if (guidanceIntentFor(t)) {
+      const ig = handleIntelGuidance(text, c);
+      if (ig) return ig;
+    }
     // Career-adjacent but unmatched: the 140 unmatched fallback finally has a
     // caller (the baseline noted it existed with none in the path).
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {

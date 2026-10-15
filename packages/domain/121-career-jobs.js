@@ -143,6 +143,18 @@ const CareerJobs = (() => {
   function seniorityBand(title, jd) {
     const t = lc(title), j = lc(jd);
     if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
+    // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
+    // winter forms) ARE the finance/consulting internship titles and carry no
+    // intern token; without this they fell through to "mid" and intern-band
+    // watches silently missed them (witness: Lane A seed LA-0043). The
+    // analyst-track noun is required — seasonal titles without it are
+    // seasonal JOBS (customer service, housekeeping), never internships. A
+    // title that also names a management role ("Summer Analyst Program
+    // Manager") is the manager's posting and falls through to the checks
+    // below.
+    if (/\b(summer|winter)\s+(business\s+)?(analyst|associate)\b/.test(t)
+        && !/\b(manager|director|vp|vice president|head of|chief)\b/.test(t)) return "intern";
     if (/\b(director|vp|vice president|head of|chief)\b/.test(t)) return "director";
     if (/\bmanager\b/.test(t)) return "manager";
     if (/\b(staff|principal)\b/.test(t)) return "staff";
@@ -436,13 +448,21 @@ const CareerJobs = (() => {
     return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
   }
 
+  // TN-1a FEED PATH (BUG-226, FR-384): a posting's company comes only
+  // from a source that NAMES it — the payload itself, or the feed
+  // descriptor's stated company (registry boards carry one). The board
+  // token is an address, never a company: when neither source names a
+  // company the posting arrives company-less (null + the not-stated
+  // marker), per the owner's TN-1a ruling — never invented.
+  const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
                        : `${p.source}:${normName(p.company)}:${hash(p.url)}`.replace(/\s+/g, "-");
     const jd_text = stripHtml(p.jd_text || "");
     const posting = {
-      job_id, company: s(p.company), title: s(p.title),
+      job_id, company: p.company ? s(p.company) : null, company_not_stated: !p.company, title: s(p.title),
       role_family: roleFamily(p.title, jd_text), seniority_band: seniorityBand(p.title, jd_text),
       location: s(p.location || ""), remote: remoteOf(p.location, jd_text),
       url: s(p.url), posted_at: iso(p.posted_at), jd_text,
@@ -458,8 +478,8 @@ const CareerJobs = (() => {
   }
 
   // ---------- per-ATS normalization (recorded shapes; see tests) ----------
-  function normalizeGreenhouse(json, token) {
-    const company = (json && json.name) || token;
+  function normalizeGreenhouse(json, token, statedCompany) {
+    const company = companyOf(json && json.name, statedCompany);
     return ((json && json.jobs) || []).map((j) => basePosting({
       // BUG-005 (SC-032): Stripe's board returns requisition_id "See Opening ID" for ALL 721 jobs —
       // using it as the req id collapsed every Stripe posting onto ONE job_id. A requisition id
@@ -470,29 +490,29 @@ const CareerJobs = (() => {
       jd_text: j.content || "", department: (j.departments && j.departments[0] && j.departments[0].name) || "",
     }));
   }
-  function normalizeLever(json, companyToken) {
+  function normalizeLever(json, companyToken, statedCompany) {
     return (Array.isArray(json) ? json : []).map((j) => basePosting({
-      source: "lever", company: companyToken, title: j.text, req_id: j.id,
+      source: "lever", company: companyOf(null, statedCompany), title: j.text, req_id: j.id,
       location: (j.categories && j.categories.location) || "", url: j.hostedUrl || j.applyUrl,
       posted_at: j.createdAt, jd_text: j.descriptionPlain || j.description || "",
       department: (j.categories && (j.categories.team || j.categories.department)) || "",
     }));
   }
-  function normalizeAshby(json, name) {
+  function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
-      source: "ashby", company: (json && json.name) || name, title: j.title, req_id: j.id,
+      source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
       location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
   }
-  function normalizeSmartRecruiters(json, companyToken) {
+  function normalizeSmartRecruiters(json, companyToken, statedCompany) {
     return ((json && json.content) || []).map((j) => {
       const loc = j.location || {};
       const location = [loc.city, loc.region, loc.country].filter(Boolean).join(", ") + (loc.remote ? " (Remote)" : loc.hybrid ? " (Hybrid)" : "");
       const sections = j.jobAd && j.jobAd.sections ? Object.values(j.jobAd.sections).map((x) => (x && (x.text || "")) || "").join(" ") : "";
       return basePosting({
-        source: "smartrecruiters", company: (j.company && j.company.name) || companyToken, title: j.name, req_id: j.ref || j.id,
+        source: "smartrecruiters", company: companyOf(j.company && j.company.name, statedCompany), title: j.name, req_id: j.ref || j.id,
         location, url: `https://jobs.smartrecruiters.com/${companyToken}/${j.id}`,
         posted_at: j.releasedDate || j.createdOn, jd_text: sections, department: (j.department && j.department.label) || "",
       });
@@ -573,7 +593,7 @@ const CareerJobs = (() => {
       const status = res.status != null ? res.status : (res.ok ? 200 : 0);
       if (status < 200 || status >= 300) return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: [], error: `HTTP ${status}` };
       const json = typeof res.json === "function" ? await res.json() : res;
-      const postings = NORMALIZERS[feed.source](json, feed.company_token);
+      const postings = NORMALIZERS[feed.source](json, feed.company_token, feed.company);
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings };
     } catch (e) {
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status: 0, postings: [], error: s(e && e.message || e) };
@@ -583,19 +603,54 @@ const CareerJobs = (() => {
   // ---------- dedupe ----------
   // City segment only: "San Francisco, CA" and "San Francisco, California" are the same place to a feed.
   function dedupeKey(p) { return `${normName(p.company)}|${normTitle(p.title)}|${normLoc(s(p.location).split(",")[0])}`; }
+  // BUG-228 (MI-031, FR-386): dedupe identity has a recency bound and a
+  // quality survivor. Copies posted more than 14 days apart are distinct
+  // openings of a recurring role, never one posting — LA-0016's new
+  // Lever posting merged into a month-old record, kept the old job_id,
+  // and diffNew never fired. And when copies do merge, the cleaner copy
+  // (JD substance, then department) supplies the identity, in either
+  // arrival order — first-seen-wins kept the worse record.
+  const DEDUPE_RECENCY_MS = 14 * 86400000;
+  const postedFarApart = (a, b) => {
+    const ta = Date.parse(a.posted_at || ""), tb = Date.parse(b.posted_at || "");
+    return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) > DEDUPE_RECENCY_MS;
+  };
+  const copyQuality = (p) => (p.jd_text || "").length + (p.department ? 500 : 0);
+  // MI-051/LA-0016 (2026-10-15): copies merge only when their JD texts
+  // are the same document (whitespace/case-normalized) or one side
+  // carries no text. Two boards can carry the same role with DIFFERENT
+  // text — LA-0016's Greenhouse twin carried a license-knockout
+  // sentence its Lever twin lacked; merging them (and keeping the
+  // longer text) poisoned the survivor and the gate killed a posting
+  // that should have reminded. A syndicated copy of one opening
+  // carries the employer's text; different text is a different record
+  // for every downstream verdict (gate, fit, deadline).
+  const jdNorm = (p) => (p.jd_text || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const sameJdText = (a, b) => { const x = jdNorm(a), y = jdNorm(b); return !x || !y || x === y || x.includes(y) || y.includes(x); };
+  // A shared req id is the employer's own identity for the opening —
+  // the same req on two boards is one posting however differently the
+  // boards render its text (the gauntlet mirror pair GJ-X02/GJ-X03,
+  // same req OPS-4471, requirement text rendered per board). Different
+  // reqs fall back to the same-text test above.
+  const sameOpening = (a, b) => (a.req_id && b.req_id && a.req_id === b.req_id) || sameJdText(a, b);
   function dedupe(postings) {
     const groups = new Map();
     for (const p of postings || []) {
       const key = dedupeKey(p);
       // Req ids are source-scoped: two DIFFERENT boards carrying the same role merge even though
       // their req ids differ; two postings on the SAME board with different req ids are distinct roles.
-      const hit = (groups.get(key) || []).find((g) => g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id));
-      if (!hit) { groups.set(key, (groups.get(key) || []).concat([Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })])); continue; }
-      for (const u of p.source_urls || [p.url]) if (!hit.source_urls.includes(u)) hit.source_urls.push(u);
-      for (const src of p.sources || [p.source]) if (!hit.sources.includes(src)) hit.sources.push(src);
-      if ((p.jd_text || "").length > (hit.jd_text || "").length) hit.jd_text = p.jd_text;
-      if (!hit.posted_at || (p.posted_at && p.posted_at < hit.posted_at)) hit.posted_at = p.posted_at;
-      if (!hit.department && p.department) hit.department = p.department;
+      const group = groups.get(key) || [];
+      const hit = group.find((g) => (g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id)) && !postedFarApart(g, p) && sameOpening(g, p));
+      if (!hit) { group.push(Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })); groups.set(key, group); continue; }
+      const winner = copyQuality(p) > copyQuality(hit) ? p : hit;
+      const loser = winner === p ? hit : p;
+      group[group.indexOf(hit)] = Object.assign({}, winner, {
+        sources: [...new Set([...(hit.sources || [hit.source]), ...(p.sources || [p.source])])],
+        source_urls: [...new Set([...(hit.source_urls || [hit.url]), ...(p.source_urls || [p.url])])],
+        jd_text: (loser.jd_text || "").length > (winner.jd_text || "").length ? loser.jd_text : (winner.jd_text || ""),
+        posted_at: [hit.posted_at, p.posted_at].filter(Boolean).sort()[0] || winner.posted_at || null,
+        department: winner.department || loser.department || "",
+      });
     }
     return [...groups.values()].flat();
   }

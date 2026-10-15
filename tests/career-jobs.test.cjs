@@ -18,7 +18,12 @@ const GH = { name: "Stripe", jobs: [
   { id: 555002, title: "Senior Software Engineer", location: { name: "New York, NY" }, absolute_url: "https://boards.greenhouse.io/stripe/jobs/555002", updated_at: "2026-07-15T00:00:00Z", requisition_id: "REQ-101", departments: [{ name: "Engineering" }], content: "&lt;p&gt;Requires US citizenship. 7+ years of experience required. PhD required.&lt;/p&gt;" },
 ]};
 const LEVER = [
-  { id: "lev-1", text: "Software Engineer, New Grad", categories: { location: "San Francisco, California", team: "Engineering", commitment: "Full-time" }, hostedUrl: "https://jobs.lever.co/stripe/lev-1", createdAt: Date.parse("2026-10-09T00:00:00Z"), descriptionPlain: "Same cross-posted role on Lever. Python React team." },
+  // MI-051/LA-0016 (2026-10-15): a cross-post carries the employer's
+  // SAME JD text (the old fixture text was a meta-description, "Same
+  // cross-posted role on Lever", which no real syndication carries).
+  // Dedupe identity now requires same-text (121 sameJdText), so the
+  // fixture stages the syndication it claims to test.
+  { id: "lev-1", text: "Software Engineer, New Grad", categories: { location: "San Francisco, California", team: "Engineering", commitment: "Full-time" }, hostedUrl: "https://jobs.lever.co/stripe/lev-1", createdAt: Date.parse("2026-10-09T00:00:00Z"), descriptionPlain: "Join our team building payments in Python and React. Salary range $120,000 - $150,000." },
   { id: "lev-2", text: "Investment Banking Analyst", categories: { location: "Chicago, IL", team: "Finance" }, hostedUrl: "https://jobs.lever.co/leverdemo/lev-2", createdAt: Date.parse("2026-10-11T00:00:00Z"), descriptionPlain: "Financial modeling, DCF and comps for a finance team." },
 ];
 const ASHBY = { name: "Ramp", jobs: [
@@ -66,7 +71,11 @@ test("DISC-003 fetchFeed never throws on HTTP error; the failure is recorded", a
   assert.equal(r.status, 404); assert.deepEqual(r.postings, []); assert.match(r.error, /404/);
 });
 test("DISC-003 dedupe: same role cross-posted on two boards collapses, both URLs kept (regression: req ids are source-scoped)", () => {
-  const all = [...J.normalizeGreenhouse(GH, "stripe"), ...J.normalizeLever(LEVER.slice(0, 1), "stripe")];
+  // BUG-226/FR-384 (2026-10-15): the Lever side is staged the way
+  // production fetches it — the board descriptor states the company
+  // ("Stripe"); a Lever payload never names one, and the board token
+  // alone is an address, not a company (TN-1a feed path).
+  const all = [...J.normalizeGreenhouse(GH, "stripe"), ...J.normalizeLever(LEVER.slice(0, 1), "stripe", "Stripe")];
   const dd = J.dedupe(all);
   const role = dd.filter((p) => /New Grad/.test(p.title));
   assert.equal(role.length, 1, JSON.stringify(dd.map((p) => p.job_id)));

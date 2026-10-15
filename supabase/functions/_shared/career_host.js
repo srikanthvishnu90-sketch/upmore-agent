@@ -31,6 +31,12 @@ const CareerHost = (() => {
     "outreachContacts", "contacts", "sendingAccounts", "artifacts",
     "discovery", "plan", "offer", "portalRecords", "statusRecords",
     "tasks", "resumeTexts", "pastedText",
+    // COMPLEXITY WAVE: a user-pasted posting staged on ctx, the user's
+    // own stated facts, the deferred parts of a multi-intent turn, and
+    // relayed opt-out records — all four are conversation state the
+    // router reads back on later turns, so all four must survive the
+    // snapshot round trip like every other store here.
+    "posting", "statedFacts", "intentQueue", "_relayedSuppressions",
   ];
 
   function cloneJson(v) {

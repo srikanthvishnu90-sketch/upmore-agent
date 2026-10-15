@@ -80,15 +80,55 @@ const CareerRouter = (() => {
   // vocabulary is reachable by a single adjacent transposition — names,
   // firms, and ordinary words are never touched. It feeds ROUTING only;
   // stored records always keep the user's original text.
-  const ROUTE_VOCAB = new Set(["connect", "gmail", "calendar", "consent", "password", "safety", "honest", "yield", "digest", "referral", "analysts", "analyst", "people", "finance", "school", "email", "emails", "campaign", "verified", "sendable", "trustworthy", "boutique", "boutiques", "bankers", "banker", "contacts", "upload", "spreadsheet", "voice", "samples", "shorter", "formal", "render", "daily", "finish", "rules", "approve", "approval", "before", "found", "senior", "draft", "drafts", "intro", "office", "vacation", "return", "bounce", "breaker", "firms", "suppression", "suppress", "follow", "waves", "alumni", "directory", "departed", "tailor", "resume", "packet", "interview", "mock", "offer", "offers", "timeline", "tracker", "status", "season", "assessment", "scores", "negotiate", "negotiation", "counter", "people"]);
+  // COMPLEXITY WAVE (BUG-173 class fix): the repair is now a
+  // Damerau distance-1 repair — one substitution, deletion, insertion,
+  // or adjacent transposition — against the vocabulary, applied only
+  // when EXACTLY ONE vocabulary word is within distance 1 (a unique
+  // hit can be the user's word; an ambiguous one is left alone). The
+  // vocabulary now carries the SAFETY words (stop, pause, everything,
+  // never, halt, lift, closed, cancel) the kill-switch and refusal
+  // routes key on — the old set was fitted to the wedge paraphrase
+  // battery and lacked every one of them, and transposition-only
+  // repair could never fix a deletion ("intrnships") at all.
+  const ROUTE_VOCAB = new Set(["connect", "gmail", "calendar", "consent", "password", "safety", "honest", "yield", "digest", "referral", "analysts", "analyst", "people", "finance", "school", "email", "emails", "campaign", "verified", "sendable", "trustworthy", "boutique", "boutiques", "bankers", "banker", "contacts", "upload", "spreadsheet", "voice", "samples", "shorter", "formal", "render", "daily", "finish", "rules", "approve", "approval", "before", "found", "senior", "draft", "drafts", "intro", "office", "vacation", "return", "bounce", "breaker", "firms", "suppression", "suppress", "follow", "waves", "alumni", "directory", "departed", "tailor", "resume", "packet", "interview", "mock", "offer", "offers", "timeline", "tracker", "status", "season", "assessment", "scores", "negotiate", "negotiation", "counter", "people",
+    "everything", "stop", "pause", "never", "halt", "lift", "closed", "cancel", "outreach", "internships", "internship", "roles", "the", "help", "next", "summer", "first", "wave", "find", "jobs", "question", "questions", "company", "tomorrow", "application", "applications", "network", "networking", "track", "about", "again", "right"]);
+  function _dlWithin1(a, b) {
+    if (a === b) return true;
+    const la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > 1) return false;
+    if (la === lb) {
+      const diff = [];
+      for (let i = 0; i < la; i++) if (a[i] !== b[i]) diff.push(i);
+      if (diff.length === 1) return true;
+      if (diff.length === 2) { const i = diff[0], j = diff[1]; return j === i + 1 && a[i] === b[j] && a[j] === b[i]; }
+      return false;
+    }
+    const sh = la < lb ? a : b, lg = la < lb ? b : a;
+    let i = 0, j = 0, skipped = false;
+    while (i < sh.length && j < lg.length) {
+      if (sh[i] === lg[j]) { i++; j++; }
+      else if (!skipped) { skipped = true; j++; }
+      else return false;
+    }
+    return true;
+  }
+  // REAL-WORD GUARD: a typo repair may only fire on a NON-word. A
+  // token that is itself ordinary English is never "repaired" —
+  // without this guard the distance-1 rule corrupts real words that
+  // happen to sit one edit from the vocabulary (they→the, have→wave,
+  // list→lift, step→stop, left→lift). The set below is the common
+  // function words plus the ordinary words of this domain.
+  const COMMON_WORDS = new Set(["paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
+    "step", "steps", "list", "lists", "listed", "left", "life", "live", "lives", "half", "close", "closed", "fund", "funds", "top", "week", "weeks", "send", "sent", "sends", "work", "works", "word", "words", "world", "team", "teams", "deal", "deals", "call", "calls", "meet", "talk", "walk", "week", "year", "years", "time", "times", "day", "days", "thing", "things", "people", "person", "place", "point", "case", "cases", "part", "parts", "week", "group", "groups", "play", "plays", "area", "areas", "book", "books", "money", "story", "stories", "fact", "facts", "month", "months", "lot", "door", "doors", "side", "sides", "kind", "kinds", "head", "heads", "hand", "hands", "life", "part", "week", "child", "week", "eye", "eyes", "woman", "week", "place", "week", "work", "week", "case", "week", "point", "week", "number", "numbers", "night", "nights", "water", "room", "rooms", "mother", "father", "power", "city", "cities", "week", "story", "young", "fact", "month", "different", "lot", "right", "study", "book", "eye", "job", "jobs", "word", "though", "business", "issue", "issues", "side", "kind", "head", "far", "black", "long", "both", "little", "house", "yes", "after", "since", "long", "provide", "service", "around", "friend", "important", "father", "sit", "away", "until", "power", "hour", "game", "often", "yet", "line", "political", "end", "among", "ever", "stand", "bad", "lose", "however", "member", "pay", "law", "meet", "car", "nearly", "include", "nothing", "either", "still", "once", "least", "letter", "become", "left", "found", "role", "roles", "firm", "firms", "week", "help", "next", "early", "several", "occur", "least", "alone", "win", "wins", "won", "past", "last", "best", "rest", "test", "fast", "cost", "post", "host", "vast", "lost", "just", "must", "cast", "dust", "exit", "exam", "text", "sex", "next", "context", "firms", "forms", "farms", "first", "fish", "firm", "girl", "girls", "visit", "list", "lift", "left", "gift", "shift", "draft", "daft", "craft", "graft", "wave", "waves", "cave", "gave", "have", "save", "pave", "wage", "wake", "wale", "wane", "want", "ward", "ware", "warm", "warn", "warp", "wars", "wash", "wasp", "weak", "wear", "webs", "week", "weep", "well", "went", "were", "west", "what", "when", "stop", "step", "shop", "shot", "show", "slot", "slow", "snap", "snow", "soap", "sock", "soda", "sofa", "soft", "soil", "sold", "sole", "some", "song", "soon", "sort", "soul", "soup", "sour", "span", "spar", "spin", "spot", "star", "stay", "stem", "step", "stir", "stop", "such", "suit", "sure", "surf", "halt", "hall", "halo", "half", "halved", "salt", "malt", "balt", "talk", "tall", "call", "fall", "wall", "ball", "mall", "gall", "pall", "fall", "sell", "tell", "well", "bell", "cell", "fell", "hell", "yell", "never", "newer", "lever", "fever", "sever", "every", "even", "ever", "oven", "over", "eves", "deny", "defy", "very", "pause", "cause", "clause", "pauses", "mouse", "house", "phase", "praise", "please", "closed", "close", "closes", "closet", "cloned", "crosed", "cancel", "cancer", "cancels", "chancel", "channel", "panel", "camel", "came", "camp", "cane", "cans", "cape", "card", "care", "cart", "case", "cash", "cast", "cats", "cave"]);
   function detypo(text) {
-    return s(text).replace(/[A-Za-z]{5,}/g, (w) => {
+    return s(text).replace(/[A-Za-z]{3,}/g, (w) => {
       const lw = w.toLowerCase();
       if (ROUTE_VOCAB.has(lw)) return w;
+      if (COMMON_WORDS.has(lw)) return w;
       let hit = null;
-      for (let i = 0; i < lw.length - 1; i++) {
-        const cand = lw.slice(0, i) + lw[i + 1] + lw[i] + lw.slice(i + 2);
-        if (ROUTE_VOCAB.has(cand)) { if (hit && hit !== cand) return w; hit = cand; }
+      for (const cand of ROUTE_VOCAB) {
+        if (Math.abs(cand.length - lw.length) > 1) continue;
+        if (_dlWithin1(lw, cand)) { if (hit && hit !== cand) return w; hit = cand; }
       }
       if (!hit) return w;
       return /^[A-Z]/.test(w) ? hit.charAt(0).toUpperCase() + hit.slice(1) : hit;
@@ -374,12 +414,41 @@ const CareerRouter = (() => {
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
     const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
     const { ranked, excluded, dedupedTo } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    // COMPLEXITY WAVE (BUG-173): remember the search's parameters —
+    // a follow-up ("remote ones too", "I meant data science", "what
+    // did you find") is answered against THIS record by the delta
+    // route, not re-parsed from nothing and dropped to the fallback.
+    try {
+      const prevP = (ctx.discovery && ctx.discovery.lastParams) || null;
+      const cleanedAsk = s(text).replace(/^\s*(wait|actually|ok|okay|so|eh|and)[ ,]+/i, "").replace(/^.*?\bi meant\s+/i, "").replace(/^(find|show|get|give|search|list)(\s+me)?\s+/i, "");
+      const roleM = cleanedAsk.match(/([A-Za-z][A-Za-z /&-]{2,34}?)\s+(roles|internships|jobs|openings)\b/);
+      const whereM = s(text).match(/\bin\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+){0,2}|NYC|SF|LA)\b/) || s(text).match(/\b(NYC|New York|Chicago|Boston|San Francisco|Los Angeles|Houston|Dallas|London|Illinois|Midwest)\b/);
+      ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastParams: {
+        families: (fams || []).slice(),
+        roleText: roleM ? `${roleM[1].trim()} ${roleM[2]}` : (prevP ? prevP.roleText : null),
+        altRoleText: prevP ? prevP.roleText : null,
+        whereText: whereM ? whereM[1] : (prevP ? prevP.whereText : null),
+        remote: /\bremote\b/i.test(text) || (prevP ? !!prevP.remote : false),
+        bands: o.bands ? Array.from(o.bands) : (prevP ? prevP.bands : []),
+        ask: s(text).slice(0, 200), at: new Date(nowOf(ctx)).toISOString(),
+      } });
+    } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
     const publicFacts = {
       shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
       ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, score: r.score, reason: r.reason, caveat: r.caveat })),
       excluded, resultStatus: "prepared",
     };
+    if (!top.length && dedupedTo === 0 && !ranked.length) {
+      // COMPLEXITY WAVE (BUG-173): an EMPTY pool is its own truth —
+      // the branches below would otherwise blame "your profile's hard
+      // filters" for a list that holds nothing at all (no filters ran;
+      // there was nothing to filter). The ask is recorded as stated.
+      const facts = ["The list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it."];
+      if (fams && fams.length) facts.push(`Your ask is on record exactly as stated — ${fams.map(familyLabel).join(" + ")} — and this search runs first the moment matching roles land on the list.`);
+      const reply = compose({ headline: o.headline || "Nothing to rank yet — the current list is empty.", facts, nextStep: o.nextStep || "Paste a posting you found, or name a company to watch, and we start from something real." });
+      return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
+    }
     if (!top.length && fams && fams.length) {
       // A6 honest-empty: a family ask with no family roles in the pool gets
       // the true count and a next step — never cross-family padding.
@@ -407,8 +476,61 @@ const CareerRouter = (() => {
     const bands = new Set(["intern", "new_grad", "junior"]);
     const gy = gradYearOf(ctx.profile);
     const skills = provenSkillNames(ctx.profile).slice(0, 3).join(" and ");
-    const headline = `For Summer ${summerYear}, using the profile you already gave me${gy ? ` (graduating ${gy}${skills ? `, ${skills}` : ""})` : ""}, these are the internship and new-grad roles that fit best.`;
+    const headline = ctx.profile
+      ? `For Summer ${summerYear}, using the profile you already gave me${gy ? ` (graduating ${gy}${skills ? `, ${skills}` : ""})` : ""}, these are the internship and new-grad roles that fit best.`
+      : `For Summer ${summerYear}, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.`;
     return handleDiscovery(text, ctx, { intent: "career_internship_discovery", limit: 4, locations: locations.size ? locations : null, bands, headline, nextStep: "Want me to tailor your resume for the first one?" });
+  }
+
+  // COMPLEXITY WAVE (BUG-173): discovery follow-ups. A search's
+  // parameters live in ctx.discovery.lastParams; a short delta turn
+  // ("wut abt remote ones too", "wait I meant data science roles",
+  // "show me both", "internships are fine too", "actually anywhere
+  // in Illinois works", "what did you find for me") MERGES into that
+  // record and re-runs — it is never treated as a brand-new ask with
+  // no referent and dropped. The reply speaks the merge it made.
+  function handleDiscoveryDelta(text, ctx) {
+    const prev = ctx.discovery && ctx.discovery.lastParams;
+    if (!prev) return null;
+    const t = lc(text);
+    if (!/\b(i meant|ones too|is fine too|are fine too|either is fine|show me both|what did you find|back to jobs|back to the jobs|anywhere|abt|about|are in too|is in too|in too|also in)\b/.test(t) && !/\bactually\b/.test(t) && !(t.split(/\s+/).length <= 8 && /\b(remote|anywhere|both)\b/.test(t))) return null;
+    const changes = [];
+    let fams = (prev.families || []).slice();
+    let roleText = prev.roleText || null;
+    let whereText = prev.whereText || null;
+    let remote = !!prev.remote;
+    let bands = (prev.bands || []).slice();
+    const meantM = t.match(/\bi meant\s+([a-z][a-z /&-]{2,34}?)(?:\s+roles?)?\s*(?:[.!?]|$)/);
+    if (meantM) {
+      const nf = discoveryFamilies(text);
+      if (nf.length) fams = nf;
+      roleText = `${meantM[1].trim()} roles`;
+      changes.push(`the role is ${roleText} now — the earlier wording is replaced, not added`);
+    }
+    if (/\bboth\b/.test(t) && prev.altRoleText && prev.altRoleText !== roleText) {
+      const af = discoveryFamilies(prev.altRoleText + " roles");
+      for (const f of af) if (!fams.includes(f)) fams.push(f);
+      roleText = `${prev.altRoleText} and ${roleText || "the corrected role"}`;
+      changes.push("both searches run together");
+    }
+    if (/\bremote\b/.test(t) && !remote) { remote = true; changes.push("remote roles are in"); }
+    const anyM = t.match(/\banywhere in\s+([a-z ]{3,24}?)(?:\s+works|\s+is fine|[.!?]|$)/) || t.match(/\banywhere in\s+([a-z ]{3,24})/);
+    if (anyM) { whereText = anyM[1].trim().replace(/\b\w/g, (ch) => ch.toUpperCase()); changes.push(`the map widened to anywhere in ${whereText}`); }
+    if (/\binternships?\b[^.]*\bfine too\b|\binternships are fine\b/.test(t) && !bands.includes("intern")) { bands = bands.concat(["intern"]); changes.push("internships that convert are in alongside the new-grad roles"); }
+    const recapOnly = /\bwhat did you find\b|\bback to (the )?jobs\b/.test(t) && !changes.length;
+    if (!changes.length && !recapOnly) return null;
+    const scopeLine = `Search as it now stands: ${roleText || (fams.length ? fams.map(familyLabel).join(" + ") + " roles" : "your earlier ask")}${whereText ? ` in ${whereText}` : ""}${remote ? ", remote included" : ""}${bands.includes("intern") ? ", internships included" : ""}.`;
+    const res = handleDiscovery(text, ctx, { families: fams, bands: bands.length ? new Set(bands) : undefined });
+    if (!res) return null;
+    if (recapOnly) {
+      const reply = compose({ headline: "Back to the search you already ran.", facts: [scopeLine, res.shortlist && res.shortlist.length ? `It holds ${res.shortlist.length} roles — the top of the list is unchanged.` : "It still holds no matching roles — the list itself is the limit today, not the search."], nextStep: "Widen the role or the map, or paste a posting, and the search moves." });
+      return Object.assign({}, res, { reply });
+    }
+    const changeLine = `Updated: ${changes.join("; ")}.`;
+    const facts = [changeLine, scopeLine];
+    if (!(res.shortlist && res.shortlist.length)) facts.push("The re-run is honest: the current list still holds no matching roles, so there is nothing new to show — the widened search is what is recorded, ready for the moment roles land.");
+    const reply = compose({ headline: "Search updated and re-run.", facts, nextStep: res.shortlist && res.shortlist.length ? "Tell me one to tailor your resume for, and I will do that next." : "Name a company to watch, or paste a posting, and we work from something real." });
+    return Object.assign({}, res, { reply });
   }
 
   // ---------- tailor (123) ----------
@@ -824,11 +946,17 @@ const CareerRouter = (() => {
     return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }
   function handleMlForward(text, ctx) {
+    // COMPLEXITY WAVE (SC-110): no profile gate — the handler's core
+    // is discovery plus a standing composition rule; the profile
+    // only enriches the chained tailor, which self-guards.
     const profile = ctx.profile;
-    if (!profile) return null;
     const disc = handleDiscovery(text, ctx, {});
     const roles = (disc.shortlist || []).map((x) => ({ title: x.title || x.role || "", company: x.company || "", id: x.id || null }));
-    if (!roles.length) return null;
+    if (!roles.length) {
+      const rec0 = { kind: "ml_forward", emphasis: ["papers", "models", "evaluation metrics"], roles: [] };
+      const reply = compose({ headline: "Data/ML, evidence forward — papers, models, and evaluation metrics lead. That is the standing rule for the family.", facts: ["The current list holds no data/ML roles to apply the rule to today — the list is the limit, not the rule.", "The moment ML roles land, the application is built evidence-first: papers and models up front, evaluation metrics with their numbers, supporting experience behind them."], nextStep: "Want ML roles watched for, or a posting pasted to tailor against now?" });
+      return { intent: "career_discovery", reply, resultStatus: "awaiting_user", sends: 0, payload: rec0, artifact: rec0, shortlist: [] };
+    }
     const topAdapted = postingsFromCtx(ctx).find((p) => p.corpus_id === (disc.shortlist[0] && disc.shortlist[0].id)) || null;
     let artifact = null;
     if (topAdapted) { try { const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted })); if (chained && chained.artifact) artifact = chained.artifact; } catch { artifact = null; } }
@@ -1072,6 +1200,30 @@ const CareerRouter = (() => {
       };
     } catch { return null; }
   }
+  // COMPLEXITY WAVE (BUG-174): the campaign plan used to exist only
+  // inside one turn's reply — a later correction ("not Goldman —
+  // Lincoln instead"), a draft request ("draft the first one"), or
+  // "what's the plan?" had nothing to stand on. The plan now
+  // persists on ctx.plan (whitelisted snapshot state), in the shape
+  // 124's safetyPlan already tolerates (scheduled/days/deferred).
+  function persistPlan(ctx, text, q, count) {
+    try {
+      ctx.plan = {
+        kind: "campaign_plan",
+        scheduled: 0, days: 0, deferred: [],
+        lastAsk: s(text).slice(0, 300),
+        count: count || (q && q.count) || null,
+        firms: (q && q.firms) || [],
+        firms_named: !!(q && q.firms_named),
+        firm_set: (q && q.firm_set) || null,
+        firms_source: (q && q.firms_source) || null,
+        role_family: (q && q.role_family) || null,
+        purpose: (q && q.purpose) || null,
+        target: q || null,
+        at: new Date(nowOf(ctx)).toISOString(),
+      };
+    } catch { /* persistence is an aid, never a blocker */ }
+  }
   function handleCampaignPlan(text, ctx) {
     const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null;
     const count = (q && q.count) || Number((lc(text).match(/\b(\d+)\b/) || [])[1]) || 40;
@@ -1081,6 +1233,7 @@ const CareerRouter = (() => {
       const y = built.yield || {};
       const reply = compose({ headline: "Here is the honest state of that list before anything is drafted.", facts: [`Found ${y.found || 0}; trusted emails ${y.trusted_emails || 0}; sendable ${y.sendable || 0}; selected ${y.selected || 0}; reserve ${y.reserve || 0}; ${y.review_bucket || 0} ambiguous in review, never queued.`, "Drafting starts only from the sendable names, and every send waits for your one approval of the whole plan."], nextStep: "Approve the plan and I draft from the selected names first." });
       const artifact = campaignPlanArtifact(ctx, q, y);
+      persistPlan(ctx, text, q, count);
       return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, list_yield: y, ...(artifact ? { artifact, payload: artifact } : {}) };
     }
     // BUG-110 (template-breakup lane): the plan is composed from the
@@ -1096,6 +1249,7 @@ const CareerRouter = (() => {
     const scope = [];
     if (q && q.firms_named && q.firms.length) scope.push(`at ${q.firms.length <= 4 ? q.firms.join(", ") : `${q.firms.slice(0, 3).join(", ")} and ${q.firms.length - 3} more you named`}`);
     else if (q && q.firms_source === "set" && q.firms.length) scope.push(`across the ${SET_LABELS[q.firm_set] || "named"} set (${q.firms.slice(0, 4).join(", ")}${q.firms.length > 4 ? ", and more" : ""})`);
+    else if (q && q.firms_source === "set") scope.push(`across the ${SET_LABELS[q.firm_set] || "named"} set`);
     else if (q && q.universe_label) scope.push(`at ${q.universe_label}`);
     if (q && q.geography) scope.push(`in ${q.geography}`);
     const who = (q && q.role_phrase) || (q && ROLE_LABELS[q.role_family]) || "people";
@@ -1139,7 +1293,9 @@ const CareerRouter = (() => {
       // it can be re-pointed before any draft exists.
       filterFacts.push(isCategoryProposal
         ? `The universe is the one you named — ${q.universe_label || "that category"} — and it stands as the plan's starting proposal, with the build running on it now; no firms are chosen for you beyond the ones it contains.`
-        : `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — ${q.firms.slice(0, 5).join(", ")}${q.firms.length > 5 ? `, and ${q.firms.length - 5} more` : ""} — held as a proposal: the build runs on it now, and you can re-point it before any draft exists.`);
+        : (q.firms.length
+          ? `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — ${q.firms.slice(0, 5).join(", ")}${q.firms.length > 5 ? `, and ${q.firms.length - 5} more` : ""} — held as a proposal: the build runs on it now, and you can re-point it before any draft exists.`
+          : `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — held as a proposal: the build runs on it now, and you can re-point it before any draft exists; its membership is never rendered from an empty record.`));
     }
     if (q && q.school_filter && q.school_filter !== "USER_SCHOOL_UNSPECIFIED") {
       filterFacts.push(`The school filter leads: your school's alumni directory (${q.school_filter}) is searched first, and every name is checked against it before ranking.`);
@@ -1232,7 +1388,201 @@ const CareerRouter = (() => {
       : `Building the list now: ${count} ${who}${scope.length ? " " + scope.join(" ") : ""}.`;
     const reply = compose({ headline, facts, nextStep });
     const artifact = campaignPlanArtifact(ctx, q, null);
+    persistPlan(ctx, text, q, count);
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: q, ...(artifact ? { artifact, payload: artifact } : {}) };
+  }
+
+  // ---------- COMPLEXITY WAVE (BUG-176): draft continuations, the
+  // send attempt, the decline draft, and offer-detail merges. A
+  // plan's first draft, a revision of it, and "send it" were all
+  // answered by the generic fallback because no route owned the
+  // SECOND turn of a drafting conversation. These handlers read and
+  // write the persisted plan (ctx.plan.draft) — status is spoken
+  // only from that record.
+  function planDraftOf(ctx) { return (ctx.plan && ctx.plan.kind === "campaign_plan" && ctx.plan.draft) || null; }
+  function sampleDraftText(plan) {
+    if (plan.firms_named && plan.firms.length) {
+      const target = plan.firms[0];
+      return `Subject: Sophomore interested in ${target} — 15 minutes?\n\nHi [banker's first name],\n\nI'm a sophomore, and ${target} is the firm I most want to learn from this summer. I'm writing to ask for fifteen minutes to hear about your path and any advice you'd give someone aiming at the analyst seat.\n\nNo pitch, and nothing is being sold — I just want to learn from someone doing the work. If a call is easier another week, I'll work around your schedule.\n\nThank you for reading,\n[Your name]`;
+    }
+    const setLabel = plan.firm_set ? plan.firm_set.replace(/_/g, " ") : "the firms on the plan";
+    return `Subject: Sophomore interested in ${setLabel} banking — 15 minutes?\n\nHi [banker's first name],\n\nI'm a sophomore, and your firm is on the short list I most want to learn from this summer. I'm writing to ask for fifteen minutes to hear about your path and any advice you'd give someone aiming at the analyst seat.\n\nNo pitch, and nothing is being sold — I just want to learn from someone doing the work. If a call is easier another week, I'll work around your schedule.\n\nThank you for reading,\n[Your name]`;
+  }
+  function handleDraftContinuation(text, ctx) {
+    const plan = ctx.plan;
+    if (!plan || plan.kind !== "campaign_plan") return null;
+    const t = lc(text);
+    const showOnly = /\bshow me\b|\bsee (it|the draft)\b|\bread it back\b/.test(t) && /\bdraft\b/.test(t);
+    const draftAsk = /\b(draft|write|compose)\b[^.]*\b(first|one|outreach|email|draft)\b|\bfirst (outreach|draft|email)\b/.test(t);
+    const existing = planDraftOf(ctx);
+    if (existing && (showOnly || draftAsk)) {
+      const reply = compose({ headline: "Here is the first draft, exactly as held.", facts: [existing.text, "It is a held sample: addressed to the first sendable name once the list is built and you approve the plan — nothing has been sent, and nothing sends from a sample."], nextStep: "Want it shorter, more casual, or aimed at a different angle?" });
+      return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: existing };
+    }
+    if (!existing && (draftAsk || showOnly)) {
+      const draft = { kind: "outreach_draft_sample", status: "held_sample", sends: 0, text: sampleDraftText(plan), target: plan.firms_named && plan.firms.length ? plan.firms[0] : (plan.firm_set || null), created_from_plan_at: plan.at || null };
+      plan.draft = draft;
+      const reply = compose({ headline: "The first draft is written — held as a sample, sending nothing.", facts: [draft.text, "The bracketed slots fill from real records only: the recipient from the first sendable name when the list is built, your name and facts from your profile — a sample never invents either.", "It sends only as part of the approved plan, one approval for the whole wave — never from this preview."], nextStep: "Want it shorter, more casual, or re-aimed before the list is built?" });
+      return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft };
+    }
+    return null;
+  }
+  function handlePlanDraftSurgery(text, ctx) {
+    const t = lc(text);
+    const surgeryCue = /\bmake it (shorter|more casual|less formal|more formal|warmer|shorter and)\b|\btoo formal\b|\bshorten (it|this|the draft|the letter)\b|\badd a line\b|\badd something\b/.test(t);
+    if (!surgeryCue) return null;
+    const draft = planDraftOf(ctx);
+    if (!draft) {
+      // Surgery on nothing is answered as exactly that: no draft
+      // exists in this conversation to revise.
+      const reply = compose({ headline: "There is no draft in this conversation to revise yet.", facts: ["No letter or outreach draft has been produced here — the cover-letter ask is still waiting on the facts it is written from, and no outreach draft has been drafted from the plan.", "The moment a draft exists, revisions like shorter or more casual apply to it directly, and the original is kept on the record."], nextStep: "Give me the facts for the letter, or say 'draft the first one' on the plan, and revision has something real to work on." });
+      return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const lines = s(draft.text).split("\n");
+    let revised = draft.text;
+    const changes = [];
+    if (/\bshorter\b|\bshorten\b/.test(t)) {
+      const bodyParas = lines.filter((ln) => ln.trim() && !/^subject:/i.test(ln) && !/^hi \[/i.test(ln) && !/^thank you for reading/i.test(ln) && !/^\[your name\]/i.test(ln));
+      const core = bodyParas.slice(0, 1);
+      revised = [lines.find((ln) => /^subject:/i.test(ln)) || "", "", lines.find((ln) => /^hi \[/i.test(ln)) || "Hi [banker's first name],", "", ...core, "", "Thank you for reading,", "[Your name]"].filter((ln, i, a) => ln !== "" || (a[i - 1] !== "" && a[i + 1] !== "")).join("\n").replace(/\n{3,}/g, "\n\n");
+      changes.push("cut to the core ask — the framing sentences are out, the request itself is untouched");
+    }
+    if (/\bcasual\b|\btoo formal\b|\bless formal\b/.test(t)) {
+      revised = revised.replace("I'm a sophomore, and", "I'm a sophomore, and honestly").replace("I just want to learn from someone doing the work.", "Mostly I want to learn from someone actually doing the work.").replace("Thank you for reading,", "Thanks for reading,");
+      changes.push("loosened the register — contractions and a plainer sign-off; the ask and the facts are unchanged");
+    }
+    const addM = s(text).match(/\badd a line about\s+(.+?)(?:[.!?]|$)/i) || s(text).match(/\badd something about\s+(.+?)(?:[.!?]|$)/i);
+    if (addM) {
+      const about = addM[1].trim();
+      const internM = about.match(/\bmy (?:summer )?internship at\s+(.+)$/i);
+      const line = internM ? `This past summer I interned at ${internM[1].trim()} — it is a big part of why I am aiming at this work.` : `You asked for this line in your own words: "${about.replace(/^how\s+/i, "").replace(/\btheir\b/gi, "your")}" — it goes in exactly as you stated it.`;
+      revised = revised.replace(/\n\nThank you for reading,|\n\nThanks for reading,/, `\n\n${line}\n\nThank you for reading,`);
+      if (!revised.includes(line)) revised = revised + `\n\n${line}`;
+      changes.push(`added the line from your own words: "${line}"`);
+    }
+    draft.text = revised;
+    draft.revisions = [...(draft.revisions || []), { at: new Date(nowOf(ctx)).toISOString(), changes }];
+    const reply = compose({ headline: "Revised — the draft on record now reads like this.", facts: [revised, `What changed: ${changes.join("; ")}. The original wording stays on the draft's revision record, and sends are still 0 — a revision never sends anything.`], nextStep: "Approve the plan when you are ready and this is the draft the first wave uses." });
+    return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft };
+  }
+  function handleSendAttempt(text, ctx) {
+    const t = lc(text);
+    if (/\bcaps?\b|\bhow does\b|\bwhy\b[^.]*\?/.test(t)) return null; // a rules question is not a send command
+    // Sending NEW content (a blurb, an intro, a note) to someone is a
+    // drafting/intro task, not the campaign wave — this handler owns
+    // only "send IT" where IT is the held draft/wave.
+    if (/\b(blurb|intro|introduction)\b/.test(t) && !/\b(the draft|first wave|the wave)\b/.test(t)) return null;
+    if (!/\b(send|ship)\b[^.]*\b(it|that|this|them|him|her|the first wave|first wave|the wave|the draft|the email|the outreach)\b/.test(t)) return null;
+    if (Doorstep && Doorstep.PAUSED_PHRASES) { /* doorstep form submits are 141's, keyed on its own phrases */ }
+    const plan = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
+    const draft = planDraftOf(ctx);
+    const facts = [];
+    if (draft) facts.push("What exists is the held sample draft you just reviewed — it has no named recipient yet, because the list it sends to has not been built, and a sample with a bracketed name cannot send to anyone.");
+    else if (plan) facts.push("What exists is the plan — its list has not been built, no draft has been approved, and there is no wave standing ready to go.");
+    else facts.push("Nothing is built in this conversation to send: no list, no draft, no approved plan — so there is no wave that could go out.");
+    facts.push("Every send in this product is approval-gated: the list's counts return first, you approve the whole plan once, and only then does a wave send — inside the daily cap. That gate is not skipped by asking in chat.");
+    const reply = compose({ headline: "Nothing was sent — here is exactly where it stands.", facts, nextStep: plan ? "Approve the plan and the list builds; the counts come back here before the first send." : "Name the target and I will build the plan the send has to stand on." });
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  function handleDeclineDraft(text, ctx) {
+    const t = lc(text);
+    if (!/\bdecline\b/.test(t) || !/\bdraft\b/.test(t)) return null;
+    if (!Negotiation || !Negotiation.declineDraft) return null;
+    const comp = companyFromText(text, ctx);
+    const roleM = s(text).match(/\brole is\s+(?:a\s+|an\s+)?(.+?)(?:\s+offer)?\s*$/i) || s(text).match(/\b(summer analyst|analyst|intern|associate|software engineer\w*|consultant)\b[^.]*\boffer\b/i);
+    const offer = { company: comp || null, role: roleM ? s(roleM[1] || roleM[0]).replace(/\s*offer\s*$/i, "") : null };
+    let dd = null;
+    try { dd = Negotiation.declineDraft(offer, {}); } catch { dd = null; }
+    if (!dd || !dd.draft) return null;
+    const reply = compose({ headline: `The decline for ${offer.company || "the firm"} is drafted — warm, final, and held.`, facts: [dd.draft, "It declines on fit, thanks the team specifically, and leaves the door open — the three moves that keep a relationship alive after a no. It sends only when you approve it, like every other send."], nextStep: "Want the tone warmer, firmer, or shorter before it is held for your approval?" });
+    return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: dd, decline: { company: offer.company, role: offer.role } };
+  }
+  function handleOfferDetail(text, ctx) {
+    const t = lc(text);
+    const hasOfferCue = /\boffer\b/.test(t) || (ctx.offer && typeof ctx.offer === "object");
+    if (!hasOfferCue) return null;
+    const statement = /\bthe offer is\b|\boffer is from\b|\bdeadline to decide\b|\bdecide by\b|\bsign-on\b|\bsigning bonus\b|\bbase (is|of|salary)\b/.test(t);
+    const question = /\?\s*$/.test(s(text).trim()) && !statement;
+    if (!statement || question) return null;
+    const prev = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
+    const merged = Object.assign({}, prev);
+    const firmM = s(text).match(/\boffer is from\s+(?:a\s+|an\s+|the\s+)?(.+?)(?:,|\s+deadline|\s+role|\s*$)/i);
+    if (firmM && !/^(a|an|the)$/i.test(firmM[1].trim())) merged.company_description = firmM[1].trim();
+    const roleM = s(text).match(/\b(analyst|associate|intern|software engineer|consultant|product manager)\s+role\b/i) || s(text).match(/\brole\s*(?:is|:)\s*(?:a\s+|an\s+)?([a-z ]{3,30}?)(?:,|\s+deadline|$)/i);
+    if (roleM) merged.role = (roleM[1] || roleM[0]).replace(/\s+role$/i, "").trim();
+    const daysM = t.match(/\b(?:deadline|decide)[^.]*?\b(\d{1,3})\s*days?\b/) || t.match(/\b(\d{1,3})\s*days?\b[^.]*\b(?:deadline|decide)\b/);
+    if (daysM) merged.decide_deadline_days = Number(daysM[1]);
+    const moneyM = s(text).match(/\$\s?([\d,]{4,})/);
+    if (moneyM) merged.stated_figure = `$${moneyM[1]}`;
+    merged.updated_from_user_words = s(text).slice(0, 240);
+    ctx.offer = merged;
+    const facts = [`Recorded on the offer, in your words: ${merged.company_description ? `from ${merged.company_description}` : "the firm as you described it"}${merged.role ? `, ${merged.role} role` : ""}${merged.decide_deadline_days ? `, ${merged.decide_deadline_days} days to decide` : ""}.`];
+    if (merged.decide_deadline_days) facts.push(merged.decide_deadline_days >= 7
+      ? `${merged.decide_deadline_days} days is a workable window: a final round next week lands inside it with room to spare, so the negotiation does not need an extension ask yet — it needs the counter ready before the other process ends.`
+      : `${merged.decide_deadline_days} days is tight: the extension ask goes first, before any counter — a deadline that close decides for you if it is not moved.`);
+    facts.push("Nothing about the offer is shared or acted on from this record — it exists so the advice you get is about YOUR offer, not a generic one.");
+    const reply = compose({ headline: "Offer updated — the advice now runs on your actual numbers.", facts, nextStep: "Want the counter drafted against this deadline, or the interview prep scheduled inside the window first?" });
+    return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0, offer: merged };
+  }
+
+  // COMPLEXITY WAVE (BUG-174): a firm correction aimed at the PLAN
+  // ("no wait, not Goldman — Lincoln International instead") — the
+  // tracker corrector runs first in dispatch and returns null when
+  // no tracker row matches, so a plan correction reaches here only
+  // when the plan is its true target. The corrected ask is re-planned
+  // from the stored original, so every other facet survives.
+  function handlePlanCorrection(text, ctx) {
+    const plan = ctx.plan;
+    if (!plan || plan.kind !== "campaign_plan") return null;
+    const raw = s(text);
+    const m = raw.match(/\bnot\s+([A-Z][A-Za-z&.]+(?:\s[A-Z][A-Za-z&.]+){0,3}?)\s*[—–,-]\s*([A-Z][A-Za-z&.]+(?:\s[A-Z][A-Za-z&.]+){0,3}?)\s+instead\b/) || raw.match(/\bnot\s+([A-Z][A-Za-z&.]+(?:\s[A-Z][A-Za-z&.]+){0,3}?)\s*[—–-]\s*([A-Z][A-Za-z&.]+(?:\s[A-Z][A-Za-z&.]+){0,3}?)\b/) || raw.match(/\bswitch\s+(?:to|from\s+.+?\s+to)\s+([A-Z][A-Za-z&.]+(?:\s[A-Z][A-Za-z&.]+){0,3})/);
+    if (!m) return null;
+    const newFirm = (m[2] || m[1]).trim();
+    const oldFirm = m[2] ? m[1].trim() : null;
+    const lastAsk = s(plan.lastAsk);
+    if (oldFirm && !lc(lastAsk).includes(lc(oldFirm)) && !(plan.firms || []).some((f) => lc(f).includes(lc(oldFirm)))) return null;
+    let newAsk = lastAsk;
+    if (oldFirm) {
+      const esc = oldFirm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      newAsk = lastAsk.replace(new RegExp(`\\b${esc}(\\s+(?:Sachs|Partners|Capital|Group|Securities))?\\b`, "i"), newFirm);
+      if (newAsk === lastAsk) newAsk = `network into ${newFirm}`;
+    } else {
+      newAsk = `network into ${newFirm}`;
+    }
+    const res = handleCampaignPlan(newAsk, ctx);
+    if (!res) return null;
+    const facts = [`The correction is recorded against the plan itself: ${oldFirm ? `${oldFirm} is out, ` : ""}${newFirm} is the target now — no list, draft, or wave is built against the old target after a correction.`];
+    facts.push("The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield.");
+    facts.push("Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.");
+    const reply = compose({ headline: `Plan corrected: ${newFirm}${oldFirm ? `, not ${oldFirm}` : ""}.`, facts, nextStep: "Approve the corrected plan and the list builds against the new target — counts first, drafts after." });
+    return Object.assign({}, res, { reply });
+  }
+  // COMPLEXITY WAVE (BUG-174): "so now what's the plan?" — answered
+  // from the persisted plan when one stands, and from the thread's
+  // own state (pause record, tracker, last search) when none does.
+  // Never a guess, never the generic fallback.
+  function handlePlanRecap(text, ctx) {
+    const t = lc(text);
+    if (!/\bwhat'?s the plan\b|\bwhat is the plan\b|\bremind me (of|about) the plan\b|\bthe plan\?\s*$/.test(t)) return null;
+    const plan = ctx.plan;
+    if (plan && plan.kind === "campaign_plan") {
+      const targetLine = plan.firms_named && plan.firms.length ? `targeting ${plan.firms.join(", ")}` : plan.firm_set ? `targeting the ${plan.firm_set.replace(/_/g, " ")} set (proposed — you named no firms)` : "targeting the plan's recorded set";
+      const facts = [`The campaign plan on record: ${targetLine}${plan.count ? `, ${plan.count} people` : ""}, set at ${fmtWhen(Date.parse(plan.at) || null) || "earlier in this conversation"}.`, "Where it stands: no list has been built yet in this conversation — the found, trustworthy, and sendable counts come back before a single draft exists, and nothing sends until you approve the whole plan."];
+      const gp = ctx.globalPause;
+      if (gp && gp.set === false && gp.liftedAt) facts.push("The pause you set earlier in this conversation is lifted, so the plan is not being held by it.");
+      if (gp && gp.set === true) facts.push("A global pause currently stands, so even an approved plan could not send until it is lifted.");
+      const reply = compose({ headline: "Here is the plan, as it stands.", facts, nextStep: "Approve it and the list builds — counts first, drafts after — or correct the target and I re-plan." });
+      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: plan.target || null };
+    }
+    const facts = ["No campaign plan is on record in this conversation yet — nothing has been planned, queued, or sent."];
+    const gp = ctx.globalPause;
+    if (gp && gp.set === false && gp.liftedAt) facts.push(`Earlier in this conversation you set a pause and then lifted it at ${fmtWhen(gp.liftedAt) || "a few turns back"} — the queues are open, and every send still waits for its own approval.`);
+    if (gp && gp.set === true) facts.push("A global pause currently stands over every queue — that is the state any plan would start from.");
+    const store = trackStoreOf(ctx);
+    if (store && store.rows && store.rows.length) facts.push(`Your tracker holds ${store.rows.length} application${store.rows.length === 1 ? "" : "s"} on record.`);
+    if (ctx.discovery && ctx.discovery.lastParams && ctx.discovery.lastParams.ask) facts.push(`Your last search stands as recorded: "${ctx.discovery.lastParams.ask}".`);
+    const reply = compose({ headline: "Here is where things stand.", facts, nextStep: "Name the goal — a networking plan, a search, a tracker — and it gets built in this conversation." });
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
   }
 
   function handleIntake(text, ctx) {
@@ -1502,6 +1852,20 @@ const CareerRouter = (() => {
     const c = ctx || {};
     if (!Array.isArray(c._relayedSuppressions)) c._relayedSuppressions = [];
     c._relayedSuppressions.push({ at: new Date(nowOf(c)).toISOString(), source: "relayed_reply", instruction: s(text).slice(0, 200) });
+    // COMPLEXITY WAVE: the reply below claims the never-contact list
+    // holds this person — that claim is only true if the record lands
+    // in the real suppression store (124), not just this side list.
+    // The side list is whitelisted conversation state now; the store
+    // write happens whenever the relayed text identifies the person.
+    try {
+      const store = suppressionStoreOf(c);
+      if (store) {
+        const emailM = s(text).match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+        const nameM = s(text).match(/\bfrom\s+([A-Z][a-z]+ [A-Z][a-z]+)\b/) || s(text).match(/[—–-]\s*([A-Z][a-z]+ [A-Z][a-z]+)\s*$/) || s(text).match(/,\s*([A-Z][a-z]+ [A-Z][a-z]+)\s*$/);
+        if (emailM) store.suppress({ email: emailM[0], person_id: emailM[0], suppressed_by: "relayed_reply", scope: "both" });
+        else if (nameM) store.suppress({ person_id: "name:" + nameM[1].toLowerCase(), suppressed_by: "relayed_reply", scope: "both" });
+      }
+    } catch { /* the relay record above still stands */ }
     const camp = campaignOf(c);
     const countFact = camp ? "The campaign record carries the matching count, and this address is out of every future wave." : "The count from this instruction: 1 person added to the never-contact list. No campaign is loaded in this session, so there is no wider campaign count to report — the addition itself is recorded now.";
     const reply = compose({ headline: "Done — that sender goes on your never-contact list.", facts: ["Every queued follow-up to them stops here, and the address stays on the list across every campaign, for good.", countFact], nextStep: "Want the never-contact count in your next digest?" });
@@ -1591,6 +1955,14 @@ const CareerRouter = (() => {
     if (/\breschedul\w*\b/.test(t)) return handleReschedule(text, ctx);
     const quotedM = s(text).match(/["“]([^"”]{4,400})["”]/);
     const probe = quotedM ? quotedM[1] : text;
+    // COMPLEXITY WAVE (BUG-169 invariant, W5): a QUESTION about a
+    // possible opt-out ("did he reply saying stop emailing me?") is
+    // not a relayed report — no suppression may be written from it.
+    // A hypothesis asks one confirming question; it never writes.
+    if (!quotedM && /\bstop\b|\bunsubscribe\b|\bnever contact\b|\bdo not (email|contact)\b|\bopt[ -]?out\b/.test(t) && /\?/.test(s(text)) && /^\s*(did|does|has|have|was|were|is|are|can|could|would)\b/i.test(s(text)) && !/\b(replied|responded|wrote back|said|told me)\b[^.?!]*\b(stop|unsubscribe|remove me|never)\b/i.test(s(text))) {
+      const reply = compose({ headline: "That reads as a question, not a report — so nothing is recorded yet.", facts: ["A suppression is written only from a report that the person actually asked to stop. If they did, state it as a report — 'he replied: stop emailing me' — and the record is written in that turn, with your words as its evidence.", "If you are asking whether he replied at all, that answer lives in your inbox; nothing visible from here can settle it."], nextStep: "Confirm it as a statement and the never-contact record is written immediately." });
+      return { intent: "intent_opt_out", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
     if (/\bstop emailing\b|\bstop contacting\b|\bplease stop\b|\bunsubscribe\b|\bdo not (email|contact) me\b/.test(lc(probe)) || /suppress forever/.test(t)) return handleRelayedOptOut(text, ctx);
     const redir = s(probe).match(/\btalk to ([A-Za-z][a-z]+)\b|\breach out to ([A-Za-z][a-z]+)\b|\bspeak with ([A-Za-z][a-z]+)\b/);
     const redirName = redir ? (redir[1] || redir[2] || redir[3]) : null;
@@ -1607,9 +1979,40 @@ const CareerRouter = (() => {
     const falseClaim = /\b(say|claim|tell|pretend|imply)\b[^.]*\b(sent me|referred me|told me to reach out|recommended me)\b/.test(t);
     const blast = /\b(email|send|message)\b[^.]*\b(all|every)\b[^.]*\btoday\b/.test(t) || /\bsend all \d+/.test(t) || /\bblast\b[^.]*\b\d{2,}\b/.test(t);
     const fabricate = /\b(make up|fabricate|invent|fake)\b[^.]*\b(referral|experience|internship|credential|reference|gpa|endorsement)\b/.test(t);
-    if (!falseClaim && !blast && !fabricate) return null;
+    // COMPLEXITY WAVE (BUG-177): two measured shapes fell through
+    // every category and got the generic fallback — a refusal must be
+    // distinguishable from a broken route. (1) An imperative to put a
+    // credential claim on materials (a GPA number, a club presidency,
+    // a named-firm internship) where the claim is absent from the
+    // confirmed record — or the user admits it is not true. A
+    // fact-GIVING frame ("my GPA is 3.9, use it") is not an
+    // imperative onto materials and never fires this. (2) Mass-apply:
+    // an apply/submit verb aimed at everything or a large count,
+    // with a no-review/urgency marker or a count of 50+.
+    const materialImperative = /\b(put|write|add|list|say|state|claim|include)\b[^.]*\b(on|in|into|to)\b[^.]*\b(my\s+)?(cover letter|resume|cv|application)\b/.test(t);
+    const claimToken = /\bgpa\s*(?:is\s*)?[0-9]\.[0-9]\b|\bpresident of\b|\bchair of\b|\bvp of\b|\bintern(ship|ed)?\s+(at|with)\s+[A-Z]|\bworked at\s+[A-Z]|\b[A-Z][a-z]+ (?:Sachs|Partners|Capital|Bank|Ltd|Inc)\s+internship\b/.test(s(text));
+    const admission = /\bdidn'?t actually\b|\bnever (did|worked|interned|had|was)\b|\bdon'?t (actually\s+)?have\b|\bonly shadowed\b|\bmade (it|that|this) up\b|\bisn'?t (even\s+)?true\b|\bnot true\b/.test(t);
+    let claimOnRecord = false;
+    if (materialImperative && (claimToken || admission) && ctx.profile) {
+      try {
+        const factsBlob = lc(JSON.stringify(ctx.profile));
+        const gpaM = s(text).match(/\bgpa\s*(?:is\s*)?([0-9]\.[0-9])\b/i);
+        if (gpaM && factsBlob.includes(gpaM[1])) claimOnRecord = true;
+        const firmM = s(text).match(/\b([A-Z][A-Za-z&.]+(?:\s[A-Z][A-Za-z&.]+){0,2})\s+internship\b/);
+        if (firmM && factsBlob.includes(lc(firmM[1]))) claimOnRecord = true;
+        if (/\bpresident of the finance club\b/.test(t) && /finance club/.test(factsBlob) && /president/.test(factsBlob)) claimOnRecord = true;
+      } catch { claimOnRecord = false; }
+    }
+    const unverifiedClaim = materialImperative && (claimToken || admission) && (admission || !claimOnRecord);
+    const massObject = /\b(everything|every job|all jobs|all of them|every role|all roles)\b/.test(t) || /\b(\d{2,})\s*(jobs|applications|roles)\b/.test(t);
+    const massCount = Number((t.match(/\b(\d{2,})\s*(jobs|applications|roles)\b/) || [])[1]) || 0;
+    const noReview = /\b(automatically|while i sleep|tonight|right now|don'?t need to see|no review|without (me|my) (seeing|reviewing)|just do it|all of them)\b/.test(t);
+    const massApply = /\b(apply|submit|send in)\b/.test(t) && massObject && (noReview || massCount >= 50);
+    if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply) return null;
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
+    if (massApply) facts.push("Applying in bulk, unseen, is not a mode this product has: real submissions are capped at 15 a day, each one built from your confirmed facts and stopped at its doorstep for your approval. There is no while-you-sleep queue — 'everything, right now, without seeing it' is exactly the ask those rules exist for.");
+    if (unverifiedClaim) facts.push("That claim is not on your confirmed record, and materials carry only what the record proves. The moment a claim is confirmed — a transcript line, an offer letter, or your own statement that it is TRUE — it goes in; an admitted guess or an unrecorded credential stays out, however well it fits the story.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
     if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", `Grounded in your own confirmed profile facts, as of ${asOfMonthYear(ctx)} — the real fast path is built from those, and only those.`);
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
@@ -1619,6 +2022,8 @@ const CareerRouter = (() => {
     // doorstep is this record: there is nothing further to drive.
     const refused = [];
     if (blast) refused.push("blast_send_over_locked_caps");
+    if (massApply) refused.push("mass_apply_unreviewed");
+    if (unverifiedClaim) refused.push("unverified_claim_on_materials");
     if (falseClaim) refused.push("fabricated_referral_claim");
     if (fabricate) refused.push("fabricated_facts");
     const rf = { kind: "safety_refusal", refused, alternative: "shortlist_first_paced_campaign", sends: 0 };
@@ -1738,6 +2143,10 @@ const CareerRouter = (() => {
     return Object.assign({ kind: "graph_paths", company: (r && r.company) || null, paths, cold, excluded: (r && r.excluded) || [], draft_cards: cards, graph_people: store.people.length }, extra || {});
   }
   function companyFromText(text, ctx) {
+    // "the firm is Houlihan Lokey" — an explicit naming frame beats
+    // every positional guess (the decline-draft ask has no "at X").
+    const named = s(text).match(/\b(?:firm|company|bank|employer) is\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))+)/);
+    if (named) return named[1].replace(/[?.!,]+$/, "");
     const m = s(text).match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)/);
     if (m) return m[1].replace(/[?.!,]+$/, "");
     // Paraphrases lowercase everything: fall back to names the product
@@ -1916,11 +2325,118 @@ const CareerRouter = (() => {
   }
 
   // ---------- prep extras (127) ---------------------------------------------
+  // COMPLEXITY WAVE (BUG-173): a tailor / cover-letter / packet ask
+  // with NO profile on file used to die at the gate (`if (!profile)
+  // return null`) — the World-L silent null for SC-087 and the live
+  // battery's tailor turns. The honest answer names the TARGET the
+  // user named (their words, a pasted posting, or a company file's
+  // own bar), states the one missing input, and asks for it once.
+  function tailorTargetOf(text, ctx) {
+    const p = ctx.posting || null;
+    if (p && (p.company || p.title)) return { label: `${p.title || "the role"} at ${p.company || "the company you pasted"}`.trim(), cir: null };
+    let comp = null, cir = null;
+    try { cir = cirFor(text, ctx); if (cir && !String(cir.company_id || "").startsWith("archetype")) comp = cirShortName(cir); } catch { cir = null; }
+    if (!comp) comp = companyFromText(text, ctx);
+    if (comp) {
+      const roleM = s(text).match(/\b(software engineering|data|finance|investment banking|product|consulting|marketing|engineering)\s+(internship|intern|role)\b/i);
+      return { label: `the ${comp}${roleM ? ` ${roleM[1].toLowerCase()} ${roleM[2].toLowerCase()}` : " role"}`, cir };
+    }
+    return { label: "the role you named", cir: null };
+  }
+  function handleTailorNeedsFacts(text, ctx) {
+    const target = tailorTargetOf(text, ctx);
+    const facts = ["Tailoring runs on confirmed facts only — your resume's real experience, education, and projects. There is no resume or profile on file in this conversation yet, so any 'tailored' version produced now would be invented, and invented resumes are the one thing this product never ships."];
+    if (target.cir) { const bar = cirFieldText(target.cir.hiring_bar_summary); if (bar) facts.push(`The target's bar, from its company file: ${bar.split(/(?<=[.!?])\s/)[0]} That is what your real material will be cut against.`); }
+    const reply = compose({ headline: `The target is set — ${target.label}. One input is missing: your resume.`, facts, nextStep: "Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation." });
+    return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0, artifact: null };
+  }
+  function handleCoverLetterNeedsFacts(text, ctx) {
+    const target = tailorTargetOf(text, ctx);
+    const facts = ["A cover letter here is written from your confirmed facts in the company's own register — never from a template with the name swapped. No resume or profile is on file in this conversation yet, so there is nothing true to write it from."];
+    if (target.cir) { const bar = cirFieldText(target.cir.hiring_bar_summary); if (bar) facts.push(`What the target's file supports: ${bar.split(/(?<=[.!?])\s/)[0]}`); }
+    const reply = compose({ headline: `The letter's target is set — ${target.label}. It needs your facts before it can be written.`, facts, nextStep: "Paste your resume or tell me the experience the letter should carry, and the draft is written in this conversation." });
+    return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0, artifact: null };
+  }
+  // COMPLEXITY WAVE (BUG-173): a single-question prep ask ("hit me
+  // with a DCF question", "give me a market sizing question") is a
+  // prep product in its own right — it previously needed the words
+  // "question bank" to route anywhere, and profile-less it died at
+  // the prep gate. The question served comes from 127's bank (or the
+  // canonical sizing form), never from invention about a company.
+  function handlePrepQuestion(text, ctx) {
+    if (!Prep || !Prep.questionBank) return null;
+    const t = lc(text);
+    if (/\bmarket sizing\b|\bsizing (case|question)\b|\bestimation question\b|\bfermi\b/.test(t)) {
+      const q = "How many cups of coffee are sold in New York City on a weekday morning?";
+      const reply = compose({ headline: `Market sizing, first one: ${q}`, facts: ["Work it out loud in four moves: pin the population, cut it to coffee drinkers, get cups per drinker on a weekday morning, then sanity-check the total against something you know.", "The number is not the score — interviewers grade the decomposition and the checks."], nextStep: "Talk me through it out loud, and I will push on the weakest step." });
+      return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: { kind: "market_sizing", q } };
+    }
+    let bank = null;
+    try { bank = Prep.questionBank({ roleFamily: /\bdcf\b|\btechnicals?\b|\bthree statements\b|\blbo\b|\bcomps\b|\bfinance\b|\bbanking\b|\bibd\b/.test(t) ? "finance" : /\bcoding\b|\bsoftware\b|\bswe\b/.test(t) ? "swe" : null, cir: cirFor(text, ctx) }); } catch { bank = null; }
+    const qs = (bank && (bank.questions || bank.items)) || (Array.isArray(bank) ? bank : []);
+    if (!qs.length) return null;
+    const dcfQ = /\bdcf\b/.test(t) ? qs.find((x) => /dcf/i.test(s(x && (x.q || x.question || x.text)))) : null;
+    const pick = dcfQ || qs.find((x) => x && (x.round === "technical" || /technical/i.test(s(x.round)))) || qs[0];
+    const q = s(pick && (pick.q || pick.question || pick.text));
+    if (!q) return null;
+    const reply = compose({ headline: `Here is your question: ${q}`, facts: ["Answer it the way you would in the room — out loud, structured, numbers before adjectives.", "I will score the answer against the rubric and drill the weakest part next; that loop is the prep."], nextStep: "Give me your answer and I will score it." });
+    return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: { kind: "bank_question", q } };
+  }
+  // COMPLEXITY WAVE (BUG-173): the night-before shape ("interview
+  // tomorrow, I'm so nervous I can't sleep — what do I do") — a
+  // tonight plan is generic prep doctrine plus the checklist and one
+  // out-loud rep; none of it needs a profile to be honest.
+  function handlePrepEve(text, ctx) {
+    const t = lc(text);
+    if (!/\binterview\b/.test(t) || !/\b(tomorrow|tonight|nervous|anxious|can'?t sleep|cant sleep|scared|worried|freaking out)\b/.test(t)) return null;
+    let items = [];
+    try { const ck = Prep && Prep.dayOfChecklist ? Prep.dayOfChecklist(ctx.profile || {}, {}) : null; const rawItems = (ck && (ck.items || ck.checklist || ck.steps)) || []; items = rawItems.map((i) => s(typeof i === "string" ? i : (i && (i.text || i.label || i.item)) || "")).filter(Boolean); } catch { items = []; }
+    let q = null;
+    try { const bank = Prep.questionBank({ roleFamily: /\bfinance|banking|dcf\b/.test(t) ? "finance" : null, cir: cirFor(text, ctx) }); const qs = (bank && (bank.questions || bank.items)) || []; if (qs.length) q = s(qs[0].q || qs[0].question || qs[0].text); } catch { q = null; }
+    const facts = ["Tonight is for light reps, not cramming: one pass over your story, one question out loud, then stop — sleep is a scored input tomorrow, and a tired brain drops more points than one un-drilled question ever would."];
+    if (items.length) facts.push(`The logistics, settled tonight so tomorrow is only the interview: ${items.slice(0, 3).join("; ")}.`);
+    if (q) facts.push(`Your one out-loud rep: ${q}`);
+    const reply = compose({ headline: "You have a plan for tonight — and it ends early, on purpose.", facts, nextStep: q ? "Answer that one question out loud now; I will score it, and then we stop for the night." : "Tell me the company and round, and I will pick the one question worth rehearsing tonight." });
+    return { intent: "prep_brief", reply, resultStatus: "running", sends: 0 };
+  }
+  // COMPLEXITY WAVE (BUG-173): the honest profile-less prep answer —
+  // a prep ask whose product genuinely needs the user's own record
+  // (stories mined from their facts, a brief built on their history)
+  // says so, names what it needs, and offers what runs without it.
+  // It replaces the dispatch tail's silent `if (!profile) return null`.
+  function handlePrepNeedsProfile(text, ctx) {
+    const company = companyFromText(text, ctx);
+    const reply = compose({ headline: "That prep is built from your own record — and there is no profile on file yet.", facts: [`Interview prep here is mined from your confirmed facts: your experiences become the stories, your target${company ? ` (${company})` : ""} sets the bar. With nothing on file, any "prep pack" I produced would be generic filler wearing your name.`, "What runs without a profile: single practice questions, market-sizing drills, and the night-before plan — ask for any of those and they start now."], nextStep: "Paste your resume, or tell me your school, year, and experience, and the full prep builds from real material." });
+    return { intent: "prep_needs_profile", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
   function handlePrepExtras(text, ctx) {
     if (!Prep) return null;
     const profile = ctx.profile;
     const t = lc(text);
     const company = companyFromText(text, ctx);
+    // COMPLEXITY WAVE (SC-180): the STAR-bank ask — "mined into 8
+    // reusable stories", "turn my experiences into STAR stories" —
+    // previously matched NO branch in this handler at all (the story
+    // gate wants the singular word "story" plus a facts product), so
+    // even the canonical exam ask fell through in both worlds. The
+    // bank is built from the profile's own experiences; with none on
+    // file the answer is the honest one, not silence.
+    if (/\bstar bank\b|\bstory bank\b|\bstories\b[^.]*\bstar\b|\bstar\b[^.]*\bstories\b/.test(t) && Prep.buildStoryBank) {
+      let stories = [];
+      try { const bank = Prep.buildStoryBank(profile); stories = (bank && bank.stories) || []; } catch { stories = []; }
+      if (stories.length) {
+        const wantM = t.match(/(\d+)\s*(?:reusable\s+)?stories/);
+        const want = wantM ? Number(wantM[1]) : stories.length;
+        const shown = stories.slice(0, Math.max(1, Math.min(want, stories.length)));
+        const facts = shown.map((st, i) => `Story ${i + 1}: ${s(st.title || st.name || st.beat || st.summary || "an experience from your record")} — mined from your confirmed facts, structured situation, task, action, result.`);
+        if (stories.length > shown.length) facts.push(`The bank holds ${stories.length} stories in all; these are the first ${shown.length}.`);
+        facts.push("Every story traces to a real experience on your record — a story that cannot be traced is never banked.");
+        const reply = compose({ headline: `Your STAR bank: ${shown.length} ${shown.length === 1 ? "story" : "stories"} ready to reuse.`, facts, nextStep: "Want one of them drilled against a specific company's bar?" });
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, payload: { kind: "star_bank", stories: shown.length, total: stories.length }, artifact: { kind: "star_bank", stories: shown.length, total: stories.length } };
+      }
+      const reply = compose({ headline: "A STAR bank is mined from your real experiences — and none are on file yet.", facts: ["Stories here are never written from templates or borrowed from other candidates; each one is a confirmed experience of yours, structured situation, task, action, result.", "The moment your experience is on record — a resume paste, or you telling me the internships and projects yourself — the bank builds from it, at whatever count the material honestly supports."], nextStep: "Tell me two or three real experiences — role, what you did, how it ended — and I will bank the first stories now." });
+      return { intent: "prep_brief", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "star_bank", stories: 0, total: 0 }, artifact: { kind: "star_bank", stories: 0, total: 0 } };
+    }
     // BUG-073 (W5 class D): bank/research turns carry the brief record
     // as their payload — the F5 contract reads the brief (company,
     // sources with as-of, bar/stages, story mapping), while the bank
@@ -2444,9 +2960,55 @@ const CareerRouter = (() => {
   // ---------- company intel (125; family Intelligence: R-C5) ----------------
   function handleIntel(text, ctx) {
     if (!Intel) return null;
-    const cir = cirFor(text, ctx);
-    if (!cir) return null;
+    let cir = cirFor(text, ctx);
+    if (!cir) {
+      // COMPLEXITY WAVE (BUG-174): a pronoun follow-up ("and what's
+      // THEIR gpa cutoff?") resolves against the firm this thread
+      // last discussed — the record lives in the discovery store,
+      // which survives the snapshot round trip.
+      const stored = ctx.discovery && ctx.discovery.lastIntelCompany;
+      if (stored && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirFor(stored, ctx);
+    }
+    if (!cir) {
+      // COMPLEXITY WAVE (BUG-174): a NAMED firm with no company file
+      // gets the honest no-file answer — never invented intel, and
+      // never silence. (In the shipped bundle the file library is
+      // embedded by the build; a firm absent from it is absent.)
+      const comp0 = companyFromText(text, ctx);
+      let comp = comp0;
+      if (!comp) { const am = s(text).match(/\babout\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (am) comp = am[1].replace(/[?.!,]+$/, ""); }
+      if (!comp && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) comp = (ctx.discovery && ctx.discovery.lastIntelCompany) || null;
+      if (!comp) return null;
+      try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: comp }); } catch { /* memo only */ }
+      const facts = [`The company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. ${comp} is not one of them, so none of that exists on record for this firm.`];
+      if (/\bgpa\b|\bcutoff\b|\bcut-off\b/i.test(s(text))) facts.push(`On the cutoff question specifically: no verified GPA cutoff for ${comp} is on record. Firms rarely publish one, and a number I cannot source will not be quoted at you as fact.`);
+      facts.push("What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence.");
+      const reply = compose({ headline: `${comp} has no company file yet — here is what that means, plainly.`, facts, nextStep: `Want prep for ${comp} built from its public postings instead, or a firm whose file exists?` });
+      return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, company: comp, payload: { kind: "company_file_absent", company: comp }, artifact: { kind: "company_file_absent", company: comp } };
+    }
     const name = cirShortName(cir);
+    try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: name }); } catch { /* memo only */ }
+    // COMPLEXITY WAVE (BUG-174): a two-firm compare where only ONE
+    // firm has a file is answered as exactly that — the filed side
+    // from its file, the other side named as missing — never as a
+    // silent one-firm summary wearing a comparison's clothes.
+    {
+      const cmpM = s(text).match(/\bcompare\s+([A-Z][A-Za-z&. ]{3,40}?)\s+(?:and|with|vs\.?|versus)\s+([A-Z][A-Za-z&. ]{3,40}?)(?=[\s—–-]|$)/i) || s(text).match(/\b([A-Z][A-Za-z&. ]{3,40}?)\s+(?:vs\.?|versus)\s+([A-Z][A-Za-z&. ]{3,40}?)(?=[\s—–-]|$)/i);
+      if (cmpM) {
+        const others = [cmpM[1], cmpM[2]].map((x) => x.trim()).filter((x) => x && lc(x) !== lc(name) && !lc(name).startsWith(lc(x)) && !lc(x).startsWith(lc(name)));
+        const other = others.find((x) => !cirFor(x, ctx));
+        if (other) {
+          const firstOf = (v) => { const tx = cirFieldText(v); return tx ? tx.split(/(?<=[.!?])\s/)[0] : null; };
+          const facts = [];
+          const bar = firstOf(cir.hiring_bar_summary); if (bar) facts.push(`${name}'s bar, from its file: ${bar}`);
+          const cult = firstOf(cir.values_culture_signals || cir.culture_notes); if (cult) facts.push(`On culture: ${cult}`);
+          facts.push(`${other} has no company file in the library, so its culture, hours, deal flow, and exits cannot be compared from record — anything said about them here would be invention.`);
+          if (cir.as_of) facts.push(`Source: the ${name} company file (public sources), as of ${cir.as_of}.`);
+          const reply = compose({ headline: `${name} versus ${other}: one side of this comparison exists on record; the other does not.`, facts, nextStep: `Want the ${name} side deepened, or ${other}'s file built from public sources first?` });
+          return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: { kind: "company_compare_partial", filed: name, unfiled: other }, artifact: { kind: "company_compare_partial", filed: name, unfiled: other } };
+        }
+      }
+    }
     // BUG-073: a compare-my-profile ask is answered by 125's
     // compareMe product (dimension rows + the highest-leverage fix),
     // carried as a cited response — not by the thin-file summary.
@@ -2661,11 +3223,23 @@ const CareerRouter = (() => {
 
   // ---------- tracking (126) -------------------------------------------------
   function trackStoreOf(ctx) {
+    // COMPLEXITY WAVE (BUG-175): the store must live on ctx.trackStore
+    // — the whitelisted, snapshot-persisted key. Deriving it from a
+    // throwaway profile object (the old behavior when no profile was
+    // loaded) meant every profile-less turn got a fresh empty store:
+    // adds reported success into a void and the tracker never held
+    // anything in the live world. Profile-derived stores keep working
+    // (same object, now also aliased onto ctx.trackStore).
     if (ctx.trackStore) return ctx.trackStore;
-    const p = ctx.profile || {};
+    const p = ctx.profile || null;
     if (Track && Track.createMemoryStore) {
-      if (!p._careerTrackStore) p._careerTrackStore = Track.createMemoryStore(ctx.applications || []);
-      return p._careerTrackStore;
+      if (p && typeof p === "object") {
+        if (!p._careerTrackStore) p._careerTrackStore = Track.createMemoryStore(ctx.applications || []);
+        ctx.trackStore = p._careerTrackStore;
+        return ctx.trackStore;
+      }
+      ctx.trackStore = Track.createMemoryStore(ctx.applications || []);
+      return ctx.trackStore;
     }
     return null;
   }
@@ -2690,14 +3264,163 @@ const CareerRouter = (() => {
     } catch { /* the unwired result stands */ }
     return res;
   }
+  // ---- COMPLEXITY WAVE (BUG-175 / W9): user-reported applications --
+  // A tracker row is a state write, so it obeys the BUG-169 invariant:
+  // it is written only from the user's own ASSERTION (first-person,
+  // past-tense, non-conditional — "I applied to Stripe last week",
+  // "add my Goldman application to the tracker"). A hypothetical
+  // ("if I applied at Goldman, would you track it?") writes nothing
+  // and gets one confirming question instead. And every write is read
+  // back from the store before the reply claims it landed — DB-
+  // verified battery failures were adds the reply invited the user to
+  // restate because the record was never there.
+  // The user's OWN words, with quoted spans removed — words inside
+  // quotes are someone else's speech (or a citation), never the
+  // user's assertion, however first-person they read.
+  function unquotedText(text) {
+    return s(text).replace(/["“][^"”]*["”]/g, " ").replace(/\s+/g, " ");
+  }
+  function applicationAssertionOf(text) {
+    const t = lc(unquotedText(text));
+    if (/\bif i (applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
+    // Attributed to someone else ("my friend said I applied…") — a
+    // report of a claim is not the user's own assertion.
+    if (/\b(said|says|told me|mentioned|claims|thinks|texted|wrote)\b[^.]*\bi (applied|submitted)\b/.test(t)) return "hypothetical";
+    const asserted = /\bi (applied|submitted|sent in my application)\b/.test(t);
+    // The assertion exists in the raw text but only inside quotes —
+    // it is quoted speech, not the user's own report.
+    if (!asserted && /\bi (applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
+    const imperative = /\b(add|log|record|track)\b[^.]*\b(application|tracker|it|this)\b/.test(t);
+    if (asserted || imperative) return "assertion";
+    if (interrogativeTurn(text)) return "hypothetical";
+    return null;
+  }
+  function companyFromApplicationText(text) {
+    const raw = s(text);
+    const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
+    const m = raw.match(new RegExp(`\\bmy\\s+${cap}\\s+application\\b`))
+      || raw.match(new RegExp(`(?i:\\bapplication\\s+(?:at|to|for)\\s+(?:the\\s+)?)${cap}`))
+      || raw.match(new RegExp(`(?i:\\b(?:applied|applying)\\s+(?:at|to)\\s+(?:the\\s+)?)${cap}`))
+      || raw.match(new RegExp(`\\b(?:at|to|for)\\s+(?:the\\s+)?${cap}`));
+    if (!m) return null;
+    const name = m[1].replace(/[?.!,]+$/, "").trim();
+    if (!name || /^(the|a|an|my|this|that)$/i.test(name)) return null;
+    return name;
+  }
+  function roleFromApplicationText(text) {
+    const raw = s(text);
+    const m = raw.match(/\b(software engineering|data analyst|data science|investment banking|product management|business analyst|consulting|marketing|finance|engineering)\s+(internship|intern|role|position)\b/i);
+    if (m) return m[0].split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ").replace(/\bIntern\b/, "Internship");
+    if (/\binternship\b/i.test(raw)) return "Internship (user-reported)";
+    return "role (user-reported)";
+  }
+  function appliedDateOf(text, ctx) {
+    const t = lc(text);
+    const now = nowOf(ctx);
+    const DAY = 86400000;
+    if (/\byesterday\b/.test(t)) return new Date(now - DAY).toISOString();
+    const ago = t.match(/\b(\d+)\s+days? ago\b/);
+    if (ago) return new Date(now - Number(ago[1]) * DAY).toISOString();
+    if (/\blast week\b/.test(t)) return new Date(now - 7 * DAY).toISOString();
+    const wd = t.match(/\blast (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
+    if (wd) {
+      const target = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 }[wd[1]];
+      let back = (new Date(now).getUTCDay() - target + 7) % 7;
+      if (back === 0) back = 7;
+      return new Date(now - back * DAY).toISOString();
+    }
+    return new Date(now).toISOString();
+  }
+  function logUserApplication(ctx, spec) {
+    const store = trackStoreOf(ctx);
+    if (!store || !Track || !Track.addApplication) return null;
+    const before = Array.isArray(store.rows) ? store.rows.length : 0;
+    let row = null;
+    try { row = Track.addApplication(store, { company: spec.company || "", title: spec.role || "role (user-reported)", source: "user_reported", stage: "applied", applied_at: spec.appliedAt || undefined, event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { return null; }
+    const rows = Array.isArray(store.rows) ? store.rows : [];
+    if (spec.company) { try { row.company_not_stated = false; } catch { /* plain row */ } }
+    return row && rows.includes(row) && rows.length === before + 1 ? row : null;
+  }
   function handleTrackLog(text, ctx) {
     const store = trackStoreOf(ctx);
-    const cm = s(text).match(/\b(?:at|to|for)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/);
-    const company = cm ? cm[1].replace(/[?.!,]+$/, "") : null;
-    if (!store || !company || !Track || !Track.addApplication) return null;
-    const r = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: "applied" }, {});
-    const reply = compose({ headline: `Added to your tracker: ${company}, at the applied stage.`, facts: ["Stages here are spoken only from this record — a stage changes when there is evidence, never on a guess."], nextStep: "Tell me the role title and I will complete the row." });
-    return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: r && r.row ? r.row : r }, { company, stage: "applied", event_type: "manual_update", note: "user-reported application" });
+    if (!store || !Track || !Track.addApplication) return null;
+    const assertion = applicationAssertionOf(text);
+    if (!assertion) return null;
+    if (assertion === "hypothetical") {
+      const reply = compose({ headline: "Nothing logged — that was a hypothetical, and tracker rows are written only from applications you actually made.", facts: ["Say \"I applied\" with the company and I will put it on record in that same turn, with the date as you state it."], nextStep: "Did you apply? Name the company and I will log it now." });
+      return { intent: "tracking_log", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const company = companyFromApplicationText(text);
+    if (!company && !/\b(job|role|internship|position|application|tracker|company|firm)\b/.test(lc(text))) return null;
+    if (company && Track.findByCompany) {
+      const existing = Track.findByCompany(store, company);
+      if (existing) {
+        const reply = compose({ headline: `${company} is already on your tracker, at the ${existing.stage} stage.`, facts: ["I did not add a duplicate — the row from your earlier report is the record."], nextStep: "Tell me if its stage moved and I will update that row." });
+        return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: existing }, { company, stage: existing.stage, event_type: "manual_update", note: "duplicate report — existing row kept" });
+      }
+    }
+    const role = roleFromApplicationText(text);
+    const appliedAt = appliedDateOf(text, ctx);
+    const row = logUserApplication(ctx, { company, role, appliedAt });
+    if (!row) return null;
+    if (!company) { try { row.company_not_stated = true; } catch { /* plain row */ } }
+    const reply = compose({
+      headline: company ? `Added to your tracker: ${company}, at the applied stage.` : "Added to your tracker — company not stated, exactly as you reported it.",
+      facts: [`${role !== "role (user-reported)" ? `Role: ${role}. ` : ""}Applied ${appliedAt.slice(0, 10)}, recorded from your words and read back from the tracker before I answered.`, "Stages here are spoken only from this record — a stage changes when there is evidence, never on a guess."],
+      nextStep: company ? (role !== "role (user-reported)" ? "Tell me when its stage moves and I will update the row from your report." : "Tell me the role title and I will complete the row.") : "Name the company whenever you are ready and I will complete the row — the application is tracked either way.",
+    });
+    return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: row }, { company: company || "", stage: "applied", event_type: "manual_update", note: "user-reported application" });
+  }
+  // BUG-175: correcting WHICH company a tracker row names — the most
+  // common correction in this product had no branch (C17-t2 fell to
+  // the generic fallback while the wrong company sat on the record).
+  function handleTrackCorrection(text, ctx) {
+    const store = trackStoreOf(ctx);
+    if (!store || !Track || !Track.findByCompany) return null;
+    const raw = s(text);
+    const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
+    let newCo = null, oldCo = null;
+    let m = raw.match(new RegExp(`\\b(?:it was|that was|i meant|actually it'?s|actually it is)\\s+${cap}\\s+not\\s+${cap}`, "i"));
+    // The "it was X not Y" shape also occurs for offers and facts —
+    // it corrects a TRACKER row only beside a correction cue.
+    if (m && !/\b(fix|correct|wrong|tracker|record|update)\b/i.test(raw)) m = null;
+    if (m) { newCo = m[1]; oldCo = m[2]; }
+    else { m = raw.match(new RegExp(`\\bnot\\s+${cap}\\s*[—,-]\\s*${cap}\\s+instead\\b`, "i")); if (m) { oldCo = m[1]; newCo = m[2]; } }
+    if (!newCo || !oldCo) return null;
+    newCo = newCo.replace(/[?.!,]+$/, "").trim(); oldCo = oldCo.replace(/[?.!,]+$/, "").trim();
+    const row = Track.findByCompany(store, oldCo);
+    if (!row) return null;
+    const from = row.company;
+    row.company = newCo;
+    row.events = [...(row.events || []), { type: "correction", at: new Date(nowOf(ctx)).toISOString(), source: "user-reported", detail: `company corrected from ${from} to ${newCo} — the user's words: "${raw.slice(0, 120)}"` }];
+    const back = Track.findByCompany(store, newCo);
+    if (!back || back.company !== newCo) return null;
+    const reply = compose({ headline: `Fixed — that record now reads ${newCo}.`, facts: [`The application logged as ${from} is corrected to ${newCo} on the tracker; the correction itself sits on the row's history, in your words.`], nextStep: "Anything else on that record to change?" });
+    return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: back }, { company: newCo, stage: back.stage, event_type: "manual_update", note: "user correction of the company" });
+  }
+  // BUG-175: a manual stage move on the user's word ("move it to the
+  // interview stage, they emailed me") — stage changes used to ride
+  // inbox events only; the user's own report IS evidence (126's
+  // manualUpdate marks it user-reported).
+  const TRACK_STAGE_WORDS = [[/\binterview\b/, "Interview rounds"], [/\brecruiter screen\b|\bphone screen\b/, "Recruiter screen"], [/\boffer\b/, "Offer"], [/\breject/, "Rejected"], [/\bassessment\b|\boa\b/, "OA/assessment"], [/\bfinal\b/, "Final"], [/\bsubmitted\b|\bapplied\b/, "Submitted"]];
+  function handleTrackMove(text, ctx) {
+    const t = lc(text);
+    if (!/\b(move|advance|mark|update|bump)\b/.test(t)) return null;
+    const store = trackStoreOf(ctx);
+    if (!store || !Track || !Track.manualUpdate) return null;
+    const rows = Array.isArray(store.rows) ? store.rows : [];
+    if (!rows.length) return null;
+    const hit = TRACK_STAGE_WORDS.find(([re]) => re.test(t));
+    if (!hit) return null;
+    const company = companyFromApplicationText(text);
+    const row = (company && Track.findByCompany(store, company)) || rows[rows.length - 1];
+    if (!row || !row.company) return null;
+    const r = Track.manualUpdate(store, row.company, hit[1], { now: nowOf(ctx), detail: `stage moved on the user's report — "${s(text).slice(0, 120)}"` });
+    if (!r || !r.ok) return null;
+    const back = Track.findByCompany(store, row.company);
+    if (!back || back.stage !== hit[1]) return null;
+    const reply = compose({ headline: `Moved — ${row.company} now sits at the ${hit[1]} stage on your tracker.`, facts: ["The move is recorded as your report, with your words on the row's history — stages here change on evidence, and for this one your word is the evidence."], nextStep: "Want the prep for that stage next?" });
+    return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: back }, { company: row.company, stage: hit[1], event_type: "manual_update", note: "user-reported stage move" });
   }
   function handleTrackStatus(text, ctx) {
     const store = trackStoreOf(ctx);
@@ -2756,9 +3479,28 @@ const CareerRouter = (() => {
       try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
       return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum ? { summary: sum } : { summary: { total: 0 } });
     }
+    // BUG-175: a singular reference ("what's its status", "the status
+    // of my Stripe application") is a question about ONE row — answer
+    // that row from its record, not the whole-tracker boilerplate.
+    const t = lc(text);
+    const namedRow = rows.find((r) => r.company && t.includes(lc(r.company))) || null;
+    const singular = /\bits status\b|\bthat (one|application|role)\b|\bstatus of\b/.test(t);
+    const refRow = namedRow || (singular ? rows[rows.length - 1] : null);
+    if (refRow && Track && Track.statusByCompany) {
+      const st = Track.statusByCompany(store, refRow.company, { now: nowOf(ctx) });
+      if (st && st.found) {
+        const last = st.last_signal ? `Last event on the row: ${st.last_signal.type} (${String(st.last_signal.at || "").slice(0, 10)}).` : "No events beyond the application itself are on the row yet.";
+        const reply = compose({ headline: `${st.company}: at the ${st.stage} stage.`, facts: [`Applied ${String(st.applied_at || "").slice(0, 10)}${st.role ? ` — ${st.role}` : ""}, ${st.days_since_applied != null ? `${st.days_since_applied} day${st.days_since_applied === 1 ? "" : "s"} on record` : "on record"}.`, last], nextStep: "Tell me if anything moved and I will update the row from your report." });
+        let sum = null;
+        try { sum = Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
+        return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: rows.length }, application: refRow }, sum ? { summary: sum } : { summary: { total: rows.length } });
+      }
+    }
     const counts = {};
     for (const r of rows) counts[r.stage || "unknown"] = (counts[r.stage || "unknown"] || 0) + 1;
-    const facts = Object.entries(counts).map(([k, v]) => `${v} at ${k.replace(/_/g, " ")}.`);
+    // The user asked WHAT is on record — name the rows, then count.
+    const facts = rows.slice(0, 5).map((r) => `${r.company || "Company not stated"} — ${r.stage || "unknown"} stage${r.applied_at ? `, applied ${String(r.applied_at).slice(0, 10)}` : ""}.`);
+    if (rows.length > 5) facts.push(`…and ${rows.length - 5} more rows on the record.`);
     const reply = compose({ headline: `Your tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}.`, facts, nextStep: "Name one and I will show its full history." });
     let sum = null;
     try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
@@ -2807,7 +3549,10 @@ const CareerRouter = (() => {
     }
     // IB-TN-6 (SC-208): script-shaped counter asks get 128's scripts
     // product even with no offer in hand — the no-figure strategy path.
-    if (/\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b/i.test(s(text)) && Negotiation && Negotiation.counterStrategy) {
+    // COMPLEXITY WAVE: "script" was the only dialect the branch heard;
+    // the genuine phrasing asks for "the exact words — an email
+    // version and a phone version", which is the same ask.
+    if ((/\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b/i.test(s(text)) || (/\bcounter\b/i.test(s(text)) && /\b(exact words|word[ -]for[ -]word|email version|phone version|call version)\b/i.test(s(text)))) && Negotiation && Negotiation.counterStrategy) {
       try {
         const offer = offerText ? Negotiation.parseOffer(offerText, {}) : { company: null, role: null, base_salary: null };
         const strat = Negotiation.counterStrategy(offer, bench, {});
@@ -3073,7 +3818,7 @@ const CareerRouter = (() => {
   function cirListOf(ctx) {
     if (ctx && Array.isArray(ctx.cirs) && ctx.cirs.length) return ctx.cirs;
     if (ctx && ctx.cir) return [ctx.cir];
-    if (_cirCache) return _cirCache;
+    if (_cirCache && _cirCache.length) return _cirCache;
     try {
       const fs = require("node:fs");
       const path = require("node:path");
@@ -3081,6 +3826,16 @@ const CareerRouter = (() => {
       const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
       _cirCache = files.map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
     } catch { _cirCache = []; }
+    // COMPLEXITY WAVE (BUG-174): in the shipped bundle there is no
+    // filesystem to read — the loader above cached an EMPTY list for
+    // the process's life and every company-file answer silently
+    // died. The build embeds the library as CAREER_CIRS_JSON
+    // (appended after the modules, so it is read here, at call
+    // time); an empty fs result falls back to it, and only a
+    // non-empty list is ever cached.
+    if (!_cirCache.length) {
+      try { if (typeof CAREER_CIRS_JSON !== "undefined" && Array.isArray(CAREER_CIRS_JSON) && CAREER_CIRS_JSON.length) _cirCache = CAREER_CIRS_JSON; } catch { /* embedded const not yet evaluated */ }
+    }
     return _cirCache;
   }
   function cirShortName(cir) {
@@ -3322,7 +4077,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: warm.length ? `${warm.length} ranked warm path${warm.length === 1 ? "" : "s"} across your graph.` : "Your graph holds no ranked warm paths yet.", facts: [`The rank order is fixed: ${order.join(", then ")} — and every ranked person shows the shared fact they stand on.`, `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} across all firms.`], nextStep: "Name a firm — want its ranked paths?" });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: warm, payload: env };
     }
-    if (/\bmini\b[^.]*\bcampaign\b/.test(t) && Graph && Graph.miniCampaign) {
+    if ((/\bmini\b[^.]*\bcampaign\b/.test(t) || (/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(s(text)) && /\bwarm/.test(t))) && Graph && Graph.miniCampaign) {
       const company = companyFromText(text, ctx);
       // BUG-109 (template-breakup lane): the ask's own sizing drives
       // the plan — a range ("5–10 person") sizes the sequence at the
@@ -3539,7 +4294,7 @@ const CareerRouter = (() => {
     const company = companyFromText(text, ctx);
     // IB-TN-1b: a bare "interview" names the interview stage too.
     const stageFor = /rejection/.test(t) ? "rejected" : /offer letter/.test(t) ? "offer" : /\binterview\b/.test(t) ? "interview" : /\boa link|assessment link/.test(t) ? "oa" : "confirmed";
-    if (/\bquiet \d+ days\b|\bno word for \d+\b|\bsilent for \d+\b/.test(t)) {
+    if (/\bquiet \d+ days\b|\bno word for \d+\b|\bsilent for \d+\b|\bquiet\b[^.]*\b(weeks?|days?)\b|\bnudge\b/.test(t)) {
       // IB-TN-1d: the nudge is 126's real draft product, not a stub.
       let realDraft = null;
       try {
@@ -4439,15 +5194,59 @@ const CareerRouter = (() => {
     return { intent: "intent_refusal", resultStatus: "blocked", refused: true, refusal_reason: reason, guard_refusal: { code: GUARD_CODE[reason] || "approval_invalidated", reason: headline, unblock: nextStep }, invalidation: inv || store.invalidation || null, doorstep: store.doorstep || null, submission: store.submission || null, reply };
   }
 
+  // ---- BUG-169 (complexity wave): the speech-act gate -------------
+  // A state write may only ever rest on a STATEMENT the user made,
+  // never on a question they asked or a hypothetical they floated.
+  // The S0: "this posting closes in 3 days... Do I hold the
+  // application for the referral or apply now?" was recorded as an
+  // invalidation whose stored detail claimed "the user reported the
+  // employer closed the job" — a report that never happened. Every
+  // writer in this layer now passes the same test: interrogative
+  // turns do not write, and an invalidation's detail QUOTES the
+  // user's own clause as its evidence instead of paraphrasing a
+  // report into existence.
+  function interrogativeTurn(text) {
+    const raw = s(text).trim();
+    if (!raw) return false;
+    return /\?/.test(raw) || /^(do|does|did|should|would|could|can|will|is|are|was|were|what|when|why|how|who)\b/i.test(raw);
+  }
+  // A closure REPORT is a declarative past/stative event: the
+  // employer closed it, it was taken down, applications have closed.
+  // A FUTURE form ("closes in 3 days", "will close Friday") is a
+  // deadline fact, never a report — deadline questions route to the
+  // referral-hold decision, not to an invalidation.
+  const CLOSURE_REPORT_STRONG = [
+    /\b(job|role|position|posting|listing|employer|company|firm|they)\b[^.?!]*\b(was|has been|have been|had been|got)\s+(closed|taken down|removed|filled)\b/i,
+    /\b(employer|company|firm|they|recruiter|hiring team)\b[^.?!]*\bclosed\b[^.?!]*\b(job|role|position|posting|applications?)\b/i,
+    /\b(they|employer|company|firm|he|she)\b[^.?!]*\bclosed\b[^.?!]*\b(yesterday|today|last|already|this morning)\b/i,
+    /\b(it|this role|this posting|this job) (was )?(closed|taken down|removed)\b/i,
+    /\bapplications? (are |have been |were )?(now )?closed\b/i,
+    /\bposting (was|has been) (removed|taken down)\b/i,
+    /\bposition (was|has been) filled\b/i,
+    /\bthe (job|role|position|posting) (closed|is closed)\b/i,
+  ];
+  const CLOSURE_REPORT_WEAK = [/\bno longer accepting( applications)?\b/i, /\bnot accepting applications\b/i, /\bthe role is closed\b/i, /\b(that|this) (job|role|position|posting) closed\b/i];
+  function closureReportOf(text) {
+    const raw = s(text);
+    for (const re of CLOSURE_REPORT_STRONG) { const m = raw.match(re); if (m) return m[0]; }
+    if (!interrogativeTurn(raw)) for (const re of CLOSURE_REPORT_WEAK) { const m = raw.match(re); if (m) return m[0]; }
+    return null;
+  }
+
   // ---- (a) role-closure reports (DD-1 / AP08) ----
   const CLOSURE_RE = /\b(closed|closes|closing)\b[^.]*\b(job|role|position|posting)\b|\b(job|role|position|posting|employer)\b[^.]*\b(closed|closes)\b|\bno longer accepting\b|\bnot accepting applications\b|\bapplications? (are |have )?(now )?closed\b|\bposting (was |has been )?(removed|taken down)\b|\bposition (was |has been )?filled\b|\bthat role closed\b|\bthe role is closed\b/;
   function handleRoleClosure(text, ctx) {
-    if (!CLOSURE_RE.test(lc(text))) return null;
+    // BUG-169: CLOSURE_RE alone is a topic match, not a report — it
+    // fired on deadline questions. The write now requires an actual
+    // closure report clause, and the invalidation's detail is the
+    // user's verbatim clause, quoted as the evidence.
+    const clause = closureReportOf(text);
+    if (!clause) return null;
     const store = doorstepStore(ctx);
     const rec = { closed: true, at: nowOf(ctx || {}), instruction: s(text) };
     if (store) { store.role_closed = rec; if (store.doorstep) store.doorstep.role_closed = true; }
     if (ctx && ctx.posting && typeof ctx.posting === "object") ctx.posting.closed = true;
-    const inv = recordInvalidation(ctx, "role_closed", text, "the user reported the employer closed the job; it is no longer accepting applications");
+    const inv = recordInvalidation(ctx, "role_closed", text, `the user's own words: "${clause}"`);
     const reply = compose({ headline: "Got it — that job is closed and no longer accepting applications.", facts: ["I marked the role closed, and I will not submit the prepared application for it."], nextStep: "Name another role and I will prepare that one instead." });
     return { intent: "intent_role_closed", resultStatus: "blocked", reply, role_closed: rec, invalidation: inv, doorstep: store ? store.doorstep || null : null };
   }
@@ -4456,12 +5255,28 @@ const CareerRouter = (() => {
   const DISCLOSURE_RE = /\balready\b[^.]*\b(applied|submitted)\b|\b(applied|submitted)\b[^.]*\b(manually|myself)\b|\bapplied (manually|myself)\b|\bi applied to\b[^.]*\b(manually|yesterday|on their site)\b/;
   function handlePriorApplication(text, ctx) {
     if (!DISCLOSURE_RE.test(lc(text))) return null;
+    // BUG-169 invariant: a quoted or attributed application claim is
+    // not the user's own disclosure — the assertion test (which
+    // strips quotes and hears attribution) decides.
+    if (applicationAssertionOf(text) === "hypothetical") return null;
+    // BUG-169: a hypothetical ("if I already applied, what happens?")
+    // discloses nothing. A concrete disclosure carries its own time
+    // or channel marker and survives the gate even beside a question.
+    if (interrogativeTurn(text) && !/\bi (already )?(applied|submitted)\b[^.]*\b(manually|yesterday|last (week|month)|on their site|through their (site|portal))\b/.test(lc(text)) && !/\bi already (applied|submitted)\b/.test(lc(text))) return null;
     const store = doorstepStore(ctx);
     const rec = { disclosed: true, channel: "manual — applied by the user outside this chat", at: nowOf(ctx || {}), instruction: s(text) };
     if (store) store.prior_application = rec;
     const profile = ctx && ctx.profile;
     if (profile && typeof profile === "object") profile._careerRouterPriorApplications = [...(profile._careerRouterPriorApplications || []), rec];
     const inv = recordInvalidation(ctx, "prior_application", text, "the user disclosed a prior manual application for this role; no duplicate may be prepared or submitted");
+    // BUG-175: the disclosure IS a user-reported application — log it
+    // to the tracker in the same turn (the reply below has always
+    // offered exactly that tracking; now the record simply exists).
+    try {
+      const co = companyFromApplicationText(text);
+      const store = co ? trackStoreOf(ctx) : null;
+      if (co && store && Track && Track.findByCompany && !Track.findByCompany(store, co)) logUserApplication(ctx, { company: co, role: roleFromApplicationText(text), appliedAt: appliedDateOf(text, ctx) });
+    } catch { /* the disclosure record stands on its own */ }
     const reply = compose({ headline: "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.", facts: ["I recorded the manual application against this role, so nothing here can double-apply you."], nextStep: "Say 'track it' and I will follow this application and report its status." });
     // BUG-114: the disclosure record is this turn's doorstep
     // artifact (its completion already reads prior_application).
@@ -4479,11 +5294,25 @@ const CareerRouter = (() => {
   function sensitiveCorrectionOf(text) {
     const t = lc(text);
     if (!/sponsorship|work authorization|work authorisation/.test(t)) return null;
-    const clauseM = s(text).match(/\b(i will need sponsorship[^,;.]*|i need sponsorship[^,;.]*|need sponsorship in the future[^,;.]*|i no longer need sponsorship[^,;.]*|no longer need sponsorship[^,;.]*|i (?:don'?t|do not) need sponsorship[^,;.]*)/i);
+    // BUG-169 invariant (W3): a clause counts as the user's statement
+    // only when it stands in a STATEMENT sentence. "Will I need
+    // sponsorship in the future?" contains the clause's words inside
+    // a question — the old matcher read the direction straight out of
+    // the question frame and wrote a profile correction from it.
+    const statementText = s(text).split(/(?<=[.?!])\s+/).filter((sent) => !/\?\s*$/.test(sent) && !/^\s*(will|would|do|does|did|is|are|can|could|should|what|how|when)\b/i.test(sent)).join(" ");
+    const clauseM = statementText.match(/\b(i will need sponsorship[^,;.]*|i need sponsorship[^,;.]*|need sponsorship in the future[^,;.]*|i no longer need sponsorship[^,;.]*|no longer need sponsorship[^,;.]*|i (?:don'?t|do not) need sponsorship[^,;.]*)/i);
     const clause = clauseM ? clauseM[1].trim() : null;
-    const noNeed = /no longer need|don'?t need sponsorship|do not need sponsorship|never need sponsorship|no sponsorship (needed|required)|without sponsorship/.test(t);
+    // BUG-169: a QUESTION about the fact ("will I need sponsorship?")
+    // states no direction — the bare keyword hit used to write a
+    // profile correction from it. A direction may only be read from
+    // a first-person statement clause the user actually made.
+    if (!clause && interrogativeTurn(text)) return null;
+    // Direction is read from the statement sentences only, and a
+    // direction with NO statement clause behind it is no direction.
+    const st = lc(statementText);
+    const noNeed = /no longer need|don'?t need sponsorship|do not need sponsorship|never need sponsorship|no sponsorship (needed|required)|without sponsorship/.test(st);
     if (noNeed) return { kind: "no_longer_needed", needsSponsorship: false, clause: clause || "No longer needs sponsorship" };
-    const futureNeed = /will need sponsorship|need sponsorship|require sponsorship|needs sponsorship/.test(t);
+    const futureNeed = /will need sponsorship|need sponsorship|require sponsorship|needs sponsorship/.test(st);
     if (futureNeed) return { kind: "future_need", needsSponsorship: true, clause: clause || "Will need sponsorship in the future" };
     if (/update|correct|change/.test(t)) return { kind: "unspecified", needsSponsorship: null, clause: null };
     return null;
@@ -4532,6 +5361,11 @@ const CareerRouter = (() => {
   const CANCEL_RE = /\bcancel\b|\bcancelled\b|\bcall (it|them|this|that) off\b|\bhold off\b|\bnever mind\b|\bscrap\b|\bstop\b|\bhalt\b|\bdo not submit\b|\bdon'?t submit\b|\bchanged my mind\b/;
   const QUEUE_CONTEXT_RE = /\bqueue\b|\bqueued\b|\bbatch\b|\boutreach\b|\bfollow[- ]?ups?\b|\brest of\b|\bunstarted\b|\banyone else\b/;
   const LEGACY_HALT_RE = /\bstop everything\b|\bdon'?t contact anyone\b|\bstop all outreach\b/;
+  // BUG-169: "should I cancel the queue?" is a question, not a
+  // cancellation. An interrogative turn cancels only when it also
+  // carries a sentence-led imperative cancel clause.
+  const IMPERATIVE_CANCEL_RE = /(^|[.!]\s+)(please\s+)?(cancel|stop|halt|scrap|call (it|them|this|that) off|do not submit|don'?t submit)\b/i;
+  function questionVetoesCancel(text) { return interrogativeTurn(text) && !IMPERATIVE_CANCEL_RE.test(s(text)); }
   function haltQueueFallback(ctx, text) {
     const { state, persist } = readQueue(ctx);
     const items = queueItemsOf(state);
@@ -4547,7 +5381,15 @@ const CareerRouter = (() => {
   function handleQueueCancel(text, ctx) {
     const t = lc(text);
     if (!CANCEL_RE.test(t) || !QUEUE_CONTEXT_RE.test(t) || LEGACY_HALT_RE.test(t)) return null;
-    if (!ctx || (!ctx.queueState && !ctx.queueStatePath)) return null;
+    if (questionVetoesCancel(text)) return null;
+    if (!ctx || (!ctx.queueState && !ctx.queueStatePath)) {
+      // COMPLEXITY WAVE (adjacent to BUG-169's audit): a cancel with
+      // no queue in state is answered honestly — nothing queued,
+      // nothing to cancel, nothing sent — instead of falling through
+      // to the generic fallback as if the words were not understood.
+      const reply = compose({ headline: "There is no queue standing to cancel.", facts: ["No outreach queue is loaded in this conversation — nothing is pending, and nothing has been sent from one.", "The moment a queue exists, 'cancel the queue' halts it on the spot and the halt is saved."], nextStep: "Start a campaign whenever you are ready and the queue exists to be cancelled." });
+      return { intent: "queue_halt", resultStatus: "completed", reply, sends: 0, halted_count: 0 };
+    }
     const res = Doorstep && typeof Doorstep.haltQueue === "function" ? Doorstep.haltQueue(ctx, text) : haltQueueFallback(ctx, text);
     if (!res) return null;
     if (res.resultStatus === "blocked") return res; // 141 could not find the queue — its honest blocked reply stands
@@ -4566,6 +5408,7 @@ const CareerRouter = (() => {
   function handleDoorstepCancel(text, ctx) {
     const t = lc(text);
     if (!CANCEL_RE.test(t) || QUEUE_CONTEXT_RE.test(t)) return null;
+    if (questionVetoesCancel(text)) return null;
     const store = ctx && ctx.doorstepState;
     if (!store || typeof store !== "object" || (!store.doorstep && !store.submission)) return null;
     recordInvalidation(ctx, "cancelled_by_user", text, "the user cancelled the prepared submission in chat");
@@ -4579,6 +5422,9 @@ const CareerRouter = (() => {
   function handleRecipientChange(text, ctx) {
     const t = lc(text);
     if (!/instead|change|switch|recipient/.test(t)) return null;
+    // BUG-169: "should I send it to Maya instead?" asks — it does not
+    // switch. Only an imperative-led turn changes the recipient.
+    if (interrogativeTurn(text) && !/^\s*(send|switch|change)\b/i.test(s(text))) return null;
     const m = s(text).match(/\bto\s+([A-Z][a-z]+)\s+instead\b/) || s(text).match(/\brecipient to\s+([A-Z][a-z]+)\b/i) || s(text).match(/\bsend it to\s+([A-Z][a-z]+)\b/);
     if (!m) return null;
     const contacts = ((ctx && (ctx.contacts || ctx.outreachContacts)) || []).map((c) => ({ name: c.name || c.full_name || "" }));
@@ -4599,6 +5445,10 @@ const CareerRouter = (() => {
   const OPTOUT_RE = /opted out|opt[- ]out|stop emailing|stop contacting|never contact|unsubscribe|do not (email|contact|message)|don'?t (email|contact) (me|him|her|them) again/;
   function handleOptOut(text, ctx) {
     if (!OPTOUT_RE.test(lc(text))) return null;
+    // BUG-169 (W5): a question about an opt-out ("did she opt out?")
+    // is not a relayed opt-out. The write needs the user's own report
+    // frame — a relay verb or a plain declarative turn.
+    if (interrogativeTurn(text) && !/\b(replied|said|told me|wrote|emailed me|responded|replies)\b/.test(lc(text))) return null;
     const { state, persist } = readQueue(ctx || {});
     const items = queueItemsOf(state);
     if (!items) return null;
@@ -4674,12 +5524,157 @@ const CareerRouter = (() => {
     return { intent: "intent_followup_status", resultStatus: "completed", reply, pending_count: pending.length, recipient: null };
   }
 
+  // ---- BUG-170/171 (complexity wave): pause control ----------------
+  // The kill switch, its release, and its inspection are ONE surface:
+  // (1) a typo-tolerant halt (141's fuzzy matcher — "stop evrything
+  // pls, pause all teh outreach" halts exactly like the canonical
+  // phrases, because the repaired tokens carry the same shapes);
+  // (2) unpause in natural words — until this wave the product's own
+  // pause-gate reply said "say the word to lift the pause" and no
+  // word existed that lifted it; (3) pause inspection spoken from
+  // the stored record (scope, when set, what it blocks), including
+  // the honest "nothing is paused" when nothing is.
+  function fmtWhen(v) {
+    const ms = typeof v === "number" ? v : Date.parse(v || "");
+    if (!Number.isFinite(ms)) return null;
+    return new Date(ms).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+  }
+  function liftPause(c, text) {
+    const prev = c.globalPause && c.globalPause.set === true ? c.globalPause : null;
+    const lifted = { set: false, liftedAt: nowOf(c), instruction: s(text), wasSetAt: prev ? prev.at : null };
+    c.globalPause = lifted;
+    const qs = c.queueState;
+    if (qs && typeof qs === "object") {
+      qs.global_pause = lifted;
+      const q = qs.outreach_queue;
+      if (q && typeof q === "object") { q.global_pause = lifted; q.halted = false; }
+    }
+    const camp = c.campaign || c.outreachCampaign;
+    if (camp && typeof camp === "object") camp.global_pause = lifted;
+    return { lifted, prev };
+  }
+  const UNPAUSE_RE = /\bunpause\b|\blift (the )?pause\b|\bremove (the )?pause\b|\bend (the )?pause\b|\bpause (is )?(off|lifted|over)\b|\bkeep going\b|\bresume (the|it|everything|sending|outreach)\b/;
+  const PAUSE_INSPECT_RE = /\b(are we|is it|is everything|is the outreach|is the queue|am i)\b[^.?!]*\b(paused|stopped|halted)\b|\bwhat\b[^.?!]*\bpaused\b|\bdid (it|that) work\b|\bpause (status|state)\b|\bis (it|everything) (still )?(on hold|held)\b/;
+  function handlePauseControl(text, ctx) {
+    const c = ctx || {};
+    const t = lc(text);
+    // (1) fuzzy halt — 141 owns the write; this layer returns its
+    // typed result verbatim, exactly as the doorstep seam would.
+    if (Doorstep && typeof Doorstep.fuzzyHaltMatch === "function" && typeof Doorstep.haltQueue === "function" && Doorstep.fuzzyHaltMatch(text)) {
+      try { const h = Doorstep.haltQueue(c, text); if (h) return h; } catch { /* fall through */ }
+    }
+    const paused = pausedOf(c);
+    // (2) unpause — only meaningful while a pause stands; when none
+    // stands the words belong to whatever route owns them ("resume"
+    // is also a document, and this gate must never eat that ask).
+    if (paused && (UNPAUSE_RE.test(t) || (/\bnever mind\b/.test(t) && /\b(keep going|go on|continue|lift|resume)\b/.test(t)))) {
+      const { prev } = liftPause(c, text);
+      const qs = c.queueState && c.queueState.outreach_queue;
+      const halted = qs && Array.isArray(qs.items) ? qs.items.filter((i) => i.status === "halted").length : 0;
+      const facts = [`The pause${prev && prev.at ? ` set at ${fmtWhen(prev.at) || "earlier"}` : ""} is lifted — outreach and submissions can be queued again, and every send still waits for your approval.`];
+      if (halted) facts.push(`The ${halted} item${halted === 1 ? "" : "s"} the stop itself halted stay halted — a stop is not undone by lifting the pause; say the word and a fresh wave is built instead.`);
+      const reply = compose({ headline: "Done — the pause is lifted.", facts, nextStep: "Tell me what to pick back up first." });
+      return { intent: "queue_resume", resultStatus: "completed", reply, sends: 0, global_pause: c.globalPause };
+    }
+    // (3) inspect — read-only, answered from the stored record.
+    if (PAUSE_INSPECT_RE.test(t) || (paused && /\bwhat\b[^.?!]*\b(paused|stopped|halted)\b/.test(t))) {
+      if (!paused) {
+        const wasLifted = c.globalPause && c.globalPause.set === false && c.globalPause.liftedAt;
+        const reply = compose({ headline: "No — nothing is paused right now.", facts: [wasLifted ? `The pause was lifted at ${fmtWhen(c.globalPause.liftedAt) || "earlier in this conversation"}, and no new pause has been set since.` : "No global pause is set on your account in this conversation, and no queue is halted.", "Sends, follow-ups, and submissions are not being held by a pause — each still waits for its own approval, as always."], nextStep: "Say 'stop everything' whenever you want the full halt — it takes effect immediately." });
+        return { intent: "pause_status", resultStatus: "completed", reply, sends: 0, paused: false };
+      }
+      const p = c.globalPause && c.globalPause.set === true ? c.globalPause : null;
+      const qs = c.queueState && c.queueState.outreach_queue;
+      const items = qs && Array.isArray(qs.items) ? qs.items : null;
+      const facts = [`Scope: every queue — the global pause${p && p.scope ? ` (${p.scope})` : ""} covers outreach sends, follow-up waves, and application submissions; nothing goes out while it stands.`];
+      if (p && p.at) facts.push(`Set at ${fmtWhen(p.at) || "earlier in this conversation"}${p.by ? ` by ${p.by === c.userId ? "you" : p.by}` : ""}, in this conversation.`);
+      if (items) {
+        const halted = items.filter((i) => i.status === "halted").length;
+        const sent = items.filter((i) => i.status === "sent").length;
+        facts.push(`On the queue's own record: ${halted} item${halted === 1 ? "" : "s"} halted, ${sent} already out before the stop.`);
+      } else {
+        facts.push("No queue record is loaded in this session, so item counts are unverified — the pause itself is set and blocks every send path regardless.");
+      }
+      facts.push("Reading, drafting, planning, and tracking still work — only the going-out actions wait.");
+      const reply = compose({ headline: "Yes — here is exactly what is paused.", facts, nextStep: "Say 'lift the pause' and I will reopen the queues — every send still waits for your approval." });
+      return { intent: "pause_status", resultStatus: "completed", reply, sends: 0, paused: true, global_pause: p };
+    }
+    return null;
+  }
+
+  // ---- BUG-172 (complexity wave): the user's own suppression -------
+  // "Take Maya off my outreach list" / "never email her again" is the
+  // USER suppressing a person — it needs no queue, no campaign, and no
+  // email on file to be heard. The write lands in 124's suppression
+  // store (ctx.suppression — the same store the send-time checks
+  // read), keyed by the name as stated, and the reply is spoken only
+  // after a read-back through the store's own isSuppressed proves
+  // the record is there. A pronoun resolves against the names this
+  // store already holds; an unresolvable pronoun asks one question
+  // and writes nothing (the BUG-169 invariant).
+  function suppressionStoreOf(c) {
+    let store = c.suppression && typeof c.suppression === "object" ? c.suppression : null;
+    if (store && typeof store.suppress !== "function" && Outreach && typeof Outreach.resolveSuppression === "function") { try { store = Outreach.resolveSuppression(store); } catch { store = null; } }
+    if (!store && Outreach && typeof Outreach.createSuppressionStore === "function") store = Outreach.createSuppressionStore();
+    return store;
+  }
+  function suppressedNamesOf(store) {
+    const data = store && store.data ? store.data : store;
+    const ids = [...((data && data.sharedIds) || []), ...Object.values((data && data.perUserIds) || {}).flat()];
+    return ids.filter((x) => typeof x === "string" && x.startsWith("name:")).map((x) => x.slice(5));
+  }
+  const titleCaseName = (n) => n.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  function handleUserSuppression(text, ctx) {
+    const c = ctx || {};
+    const t = lc(text);
+    // Speech-act gate: a question about suppressing writes nothing.
+    if (interrogativeTurn(text) && !/(^|[.!]\s+)(please\s+)?(take|remove|drop|never|don'?t|do not)\b/i.test(s(text))) return null;
+    let name = null;
+    const m = s(text).match(/\b(?:take|remove|drop|pull)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+off\b/)
+      || s(text).match(/\bnever\s+(?:email|contact|message)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/i)
+      || s(text).match(/\b(?:don'?t|do not)\s+(?:email|contact|message)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+again\b/i)
+      || s(text).match(/\bremove\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+from\b[^.]*\b(list|outreach)\b/i);
+    if (m) name = m[1];
+    const pronoun = !name && (/\b(take|remove|drop|pull)\s+(her|him|them)\s+off\b/.test(t)
+      || /\bnever\s+(email|contact|message)\s+(her|him|them)\b/.test(t)
+      || /\bnobody\b[^.]*\b(emails?|contacts?|messages?)\s+(her|him|them)\b/.test(t)
+      || (/\b(ever\s+)?(emails?|contacts?|messages?)\s+(her|him|them)\s+again\b/.test(t) && /\b(never|nobody|no one|account|make sure)\b/.test(t)));
+    if (!name && !pronoun) return null;
+    const store = suppressionStoreOf(c);
+    if (!store) return null;
+    if (!name) {
+      const known = suppressedNamesOf(store);
+      if (!known.length) {
+        const reply = compose({ headline: "I want to record that exactly — who goes on the never-contact list?", facts: ["You have not named anyone in this conversation yet, and I will not guess a name into a permanent suppression record."], nextStep: "Give me the name and I will record it on the spot — for this campaign and every future one." });
+        return { intent: "intent_opt_out", resultStatus: "awaiting_user", reply, sends: 0, suppression: null };
+      }
+      name = titleCaseName(known[known.length - 1]);
+    }
+    const key = "name:" + lc(name);
+    store.suppress({ person_id: key, userId: c.userId || "user-1", scope: "both", reason: "user suppression instruction in chat" });
+    const contact = ((c.contacts || c.outreachContacts) || []).find((x) => lc(x.name || x.full_name || "") === lc(name));
+    const email = contact ? (contact.email || contact.work_email || null) : null;
+    if (email) store.suppress({ email, userId: c.userId || "user-1", scope: "both", reason: "user suppression instruction in chat" });
+    c.suppression = store;
+    // Read-back: the claim is spoken only if the store itself now
+    // reports the name suppressed.
+    let verified = false;
+    try { verified = typeof store.isSuppressed === "function" && store.isSuppressed({ person_id: key }, c.userId || "user-1"); } catch { verified = false; }
+    if (!verified) return null;
+    const facts = [`Recorded just now and read back from the suppression store: ${name} is out of this campaign and every future one — drafts and send-time checks both stop at this list.`];
+    facts.push(email ? `The block is bound to the name and to ${email}, the address on file for them.` : `No email address is on file for ${name}, so the block is keyed to the name as you stated it — the moment an address is attached to that name, the address is blocked too.`);
+    const reply = compose({ headline: `Done — ${name} is on your never-contact list.`, facts, nextStep: "The rest of your outreach is untouched." });
+    return { intent: "intent_opt_out", resultStatus: "completed", reply, sends: 0, suppression: store, recipient: { name, email }, payload: { kind: "suppression_record", recorded: true, scope: "all_campaigns", name }, artifact: { kind: "suppression_record", recorded: true, scope: "all_campaigns", name } };
+  }
+
   // The ownership layer: checked BEFORE every existing route in handleChat.
   function handleStateChangeIntents(text, ctx) {
     const c = ctx || {};
     return invalidationGate(text, c)
+      || handlePauseControl(text, c)
       || handleRecipientChange(text, c)
       || handleOptOut(text, c)
+      || handleUserSuppression(text, c)
       || handleRoleClosure(text, c)
       || handlePriorApplication(text, c)
       || handleSensitiveCorrection(text, c)
@@ -4696,6 +5691,8 @@ const CareerRouter = (() => {
     const t = lc(text);
     if (!t) return null;
     const profile = c.profile || null;
+    capturePastedPosting(text, c);
+    captureStatedFacts(text, c);
     // A turn FRAMED as a relayed reply ("Reply handling: ...") is reply
     // handling, not a user instruction: the ownership layer's recipient /
     // opt-out matchers would misread the quoted banker's words as the
@@ -4741,6 +5738,13 @@ const CareerRouter = (() => {
       const rp = handleRoleplay(text, c);
       if (rp) return rp;
     }
+    // BUG-178: a voice-mock ask must reach the honest-absent answer
+    // BEFORE the mock-start branch claims it — "can we do a voice
+    // mock interview" matched /\bmock interview\b/ first and was
+    // answered as a profile problem. The check now sits ahead of the
+    // mock matcher and covers the natural phrasings (talk out loud,
+    // out loud, speak it), not just the exam's two shapes.
+    if (/\bvoice mock\b|\bmock\b[^.]*\bby voice\b|\btalk out loud\b|\b(mock|interview|practice)\b[^.]*\b(out loud|aloud|by voice|with voice)\b|\bvoice\b[^.]{0,24}\b(mock|interview|practice)\b|\b(out loud|aloud)\b[^.]{0,24}\b(mock|interview|practice)\b/.test(t)) return handleVoiceMockUnavailable(text, c);
     if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t)) {
       if (!profile) return { intent: "prep_needs_profile", reply: compose({ headline: "I need your profile record to run a mock from your real work." }) };
       return handlePrepStart(text, c);
@@ -4757,11 +5761,30 @@ const CareerRouter = (() => {
     if (refusal) return refusal;
     const appendix = handleAppendixSafety(text, c);
     if (appendix) return appendix;
+    // COMPLEXITY WAVE (BUG-176): the drafting conversation's second
+    // turns — draft continuations, revisions, send attempts, decline
+    // drafts, and offer-detail statements — owned here, before the
+    // graph/campaign families can re-plan over them.
+    {
+      const dg = handleDeclineDraft(text, c);
+      if (dg) return dg;
+      const od = handleOfferDetail(text, c);
+      if (od) return od;
+      const dc = handleDraftContinuation(text, c);
+      if (dc) return dc;
+      const ds = handlePlanDraftSurgery(text, c);
+      if (ds) return ds;
+      const ct = handleContinuation(text, c);
+      if (ct) return ct;
+      const pr2 = handleProductRules(text, c);
+      if (pr2) return pr2;
+      const sa = handleSendAttempt(text, c);
+      if (sa) return sa;
+    }
     // R-C7 guards: no wired route exists for a live portal read or a voice
     // mock — the honest answer must land before tracker/prep routes invent
     // one (SC-105, SC-179).
     if (/\bportal status\b|\blog ?in\b[^.]*\bstatus\b|\bread my\b[^.]*\bapplication status\b/.test(t)) return handlePortalStatusUnavailable(text, c);
-    if (/\bvoice mock\b|\bmock\b[^.]*\bby voice\b/.test(t)) return handleVoiceMockUnavailable(text, c);
     if (/\bwhether ai helped\b|\bai helped my\b|\bdid ai help\b/.test(t)) {
       const au = handleAiUse(text, c);
       if (au) return au;
@@ -4807,13 +5830,13 @@ const CareerRouter = (() => {
       const gp = handleGraphPaths(text, c);
       if (gp) return gp;
     }
-    if (/\bwhen did i last\b|\brelationship memory\b|\bforwardable blurb\b|\bblurb\b|\bintro request\b|\bpaths ranked\b|\bsecond[ -]degree\b|\bwarm[ -]path sweep\b|\bmentor map\b|\bmini\b[^.]*\bcampaign\b|\btwo paths\b|\bemployee lookup\b|\bprofessor path\b|\bfamily[ -]friend\b|\bclub roster\b|\bfraternity\b|\brecruiter vs\b|\bconversion tracked\b|\breferral[ -]bonus\b|\bnew[ -]hire radar\b|\bmerged to one record\b|\bthree sources\b|\bsubmits the referral\b|\bthank[ -]you plus referral\b|\balumni in a different city\b|\bcurrent employer\b[^.]*\bexcluded\b|\bsits at my current employer\b/.test(t)) {
+    if (/\bwhen did i last\b|\brelationship memory\b|\bforwardable blurb\b|\bblurb\b|\bintro request\b|\bpaths ranked\b|\bsecond[ -]degree\b|\bwarm[ -]path sweep\b|\bmentor map\b|\bmini\b[^.]*\bcampaign\b|\bone company\b[^.]*\b\d{1,3}\s+(?:people|person)\b[^.]*\bwarm|\btwo paths\b|\bemployee lookup\b|\bprofessor path\b|\bfamily[ -]friend\b|\bclub roster\b|\bfraternity\b|\brecruiter vs\b|\bconversion tracked\b|\breferral[ -]bonus\b|\bnew[ -]hire radar\b|\bmerged to one record\b|\bthree sources\b|\bsubmits the referral\b|\bthank[ -]you plus referral\b|\balumni in a different city\b|\bcurrent employer\b[^.]*\bexcluded\b|\bsits at my current employer\b/.test(t)) {
       const gc = handleGraphCatch(text, c);
       if (gc) return gc;
     }
     // Inbox events move the tracker themselves (126) — before any campaign
     // route can read an arriving email as an outreach ask.
-    if (/\bconfirmation email (lands|arrives)\b|\brejection email (lands|arrives)\b|\boffer letter arrives\b|\binterview invite\b|\boa link arrives\b|\bassessment link arrives\b|\bquiet \d+ days\b|\bno word for \d+\b|\bambiguous\b[^.]*\breply\b|\bthank[ -]you\b[^.]*\binterview\b|\bi got an interview\b/.test(t)) {
+    if (/\bconfirmation email (lands|arrives)\b|\brejection email (lands|arrives)\b|\boffer letter arrives\b|\binterview invite\b|\boa link arrives\b|\bassessment link arrives\b|\bquiet \d+ days\b|\bno word for \d+\b|\bquiet\b[^.]*\b(weeks?|days?)\b|\bdraft a nudge\b|\bnudge\b[^.]*\brecruiter\b|\bambiguous\b[^.]*\breply\b|\bthank[ -]you\b[^.]*\binterview\b|\bi got an interview\b/.test(t)) {
       const ie = handleInboxEvent(text, c);
       if (ie) return ie;
     }
@@ -4856,7 +5879,15 @@ const CareerRouter = (() => {
       const fc = handleFirmCap(text, c);
       if (fc) return fc;
     }
-    if (/\bfollow[ -]?up wave\b|\bday[ -]?6 follow\b|\bday[ -]?15\b|\bfinal follow[ -]?up\b/.test(t)) {
+    if (/\bfollow[ -]?ups?\b[^.]*\b(sooner|faster|more often|every\s+\d|daily)\b|\bmake\b[^.]*\bfollow[ -]?ups?\b[^.]*\b(go|come|send)\b/.test(t)) {
+      // COMPLEXITY WAVE (BUG-176): a demand to CHANGE the locked
+      // cadence is refused as a policy matter — the two-touch close
+      // (~day 6, ~day 15) is locked law, and answering the demand
+      // with the wave-timing explainer would read as agreement.
+      const reply = compose({ headline: "The cadence does not move — it is locked, and the lock protects you.", facts: ["Follow-ups run on the locked two-touch close: a first follow-up around day 6, a final one around day 15, then the gracious close. Nothing goes between those touches, however the ask is phrased.", "Faster follow-ups are how a candidate becomes the person a banker filters: two touches reads persistent; five reads desperate, and spam breakers at the firm's gateway count them all the same."], nextStep: "Want to see exactly when your two touches fall for the current wave?" });
+      return { intent: "intent_refusal", reply, resultStatus: "blocked", sends: 0, payload: { kind: "cadence_change_refused" }, artifact: { kind: "cadence_change_refused" } };
+    }
+    if (/\bfollow[ -]?up wave\b|\bday[ -]?6 follow\b|\bday[ -]?15\b|\bfinal follow[ -]?up\b|\bfollow[ -]?ups?\b[^.]*\b(go out|sent|send|land)\b|\bwhen\b[^.]*\bfollow[ -]?ups?\b/.test(t)) {
       const fw = handleFollowUpWave(text, c);
       if (fw) return fw;
     }
@@ -4864,7 +5895,7 @@ const CareerRouter = (() => {
       const td = handleTrackDigest(text, c);
       if (td) return td;
     }
-    if (/\bweekly digest\b/.test(t)) {
+    if (/\bweekly digest\b|\bweekly (roundup|recap|summary)\b|\bapplication roundup\b/.test(t)) {
       const td = handleTrackDigest(text, c);
       if (td) return td;
     }
@@ -4887,7 +5918,7 @@ const CareerRouter = (() => {
     // the A3 people matcher below reads "email" as both its verb and
     // its people noun, so the carve-out sits above it (the TN pack's
     // own instruction for exactly this capture).
-    if (/\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b/.test(t) && profile) {
+    if (/\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b/.test(t) && profile || (/\bcounter\b/.test(t) && /\b(exact words|word[ -]for[ -]word|email version|phone version|call version)\b/.test(t) && profile)) {
       const ng = handleNegotiation(text, c);
       if (ng) return ng;
     }
@@ -4904,9 +5935,15 @@ const CareerRouter = (() => {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;
     }
-    if (/\b(find|get|email|reach|build|list|draft|source|gather)\b/.test(t)
-      && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|emails?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
-      && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)) {
+    // The noun side must name PEOPLE — "emails?" used to satisfy it,
+    // so any ask containing the word "email" twice ("an email
+    // version") was misread as a people ask (SC-208's theft). And the
+    // mini-campaign shape (one company, a counted set, warm-first)
+    // belongs to the graph family's sequencer, not the plan.
+    if (/\b(find|get|email|reach|build|list|draft|source|gather|network)\b/.test(t)
+      && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
+      && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
+      && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;
     }
@@ -4926,6 +5963,12 @@ const CareerRouter = (() => {
       const us = handleUnprovenSkill(text, c);
       if (us) return us;
     }
+    if (/\bcover letters?\b/.test(t) && Tailor && !profile) {
+      // COMPLEXITY WAVE (BUG-173): profile-less cover-letter asks get
+      // the honest answer (target named, facts asked once), not a
+      // fall through the gate to the generic fallback.
+      return handleCoverLetterNeedsFacts(text, c);
+    }
     if (/\bcover letters?\b/.test(t) && Tailor && profile) {
       let letter = null;
       try { letter = Tailor.generateCoverLetter ? Tailor.generateCoverLetter(profile, ctx.posting || null, {}) : null; } catch { letter = null; }
@@ -4939,7 +5982,10 @@ const CareerRouter = (() => {
       return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, cover_letter: letter || undefined, payload: clRec, artifact: clRec };
     }
     if (/\btailor\b|\btailored per\b|\bresume variants\b|\bvariants\b[^.]*\bresume\b|\banswer bank\b|\btruth audit\b|\bliving resume\b|\bresume diff\b|\bdiff review\b|\bbans? ai\b|\bai[ -]written\b|\bimpact bullets\b|\b(customi[sz]e|adjust|fit)\b[^.]*\bresume\b|\bresume\b[^.]*\bto this\b|\bmake my resume\b/.test(t)) {
-      if (!profile) return null;
+      // COMPLEXITY WAVE (BUG-173): profile-less, the chain cannot
+      // tailor — but the ask gets its honest answer (target named,
+      // the one missing input named) instead of the silent null.
+      if (!profile) return handleTailorNeedsFacts(text, c);
       // BUG-104: essay asks go to the essay producer FIRST — an
       // essay is not a resume variant, and letting the ask ride the
       // resume chain (or fall to discovery) is how SC-096 lost its
@@ -5097,7 +6143,7 @@ const CareerRouter = (() => {
       }
       return disc;
     }
-    if (/\brole at my current employer\b|\bcurrent employer\b[^.]*\bpacket\b|\bgap callout\b|\btheir interns mostly have\b|\breferral hold\b|\bhold the app\b/.test(t)) {
+    if (/\brole at my current employer\b|\bcurrent employer\b[^.]*\bpacket\b|\bgap callout\b|\btheir interns mostly have\b|\breferral hold\b|\bhold the app\b|\bhold (the|my) application for\b|\bwait for (the |a )?referral\b|\bhold\b[^.]*\breferral\b|\breferral\b[^.]*\bapply now\b/.test(t)) {
       // IB-AP-4 Patch B: producers first — 133's gap callout and hold
       // decision answer from the record; handlePacketRules keeps ONLY
       // the current-employer refusal.
@@ -5128,7 +6174,7 @@ const CareerRouter = (() => {
           }
         } catch { /* fall through */ }
       }
-      if (/\breferral hold\b|\bhold the app\b/.test(t) && Packets && Packets.referralHoldDecision) {
+      if (/\breferral hold\b|\bhold the app\b|\bhold (the|my) application for\b|\bwait for (the |a )?referral\b|\bhold\b[^.]*\breferral\b|\breferral\b[^.]*\bapply now\b/.test(t) && Packets && Packets.referralHoldDecision) {
         try {
           // BUG-114: the producer used to be fed placeholder inputs
           // (no contact, no referral-expected flag), so it answered
@@ -5137,8 +6183,15 @@ const CareerRouter = (() => {
           // referral expected, and the ETA / deadline honestly null
           // when the ask does not state them — 133's HOLD_CAPPED
           // branch decides on exactly that record.
+          // COMPLEXITY WAVE (BUG-169's other half): the natural form
+          // of this ask STATES both numbers ("closes in 3 days",
+          // "could take 2 days") — parse them from the ask and let
+          // 133 decide on the real record, never on placeholders.
           const contactM = s(text).match(/\b([A-Z][a-z]+)'s referral\b/);
-          const hd = Packets.referralHoldDecision({ contactName: contactM ? contactM[1] : null, referralExpected: true, referralEtaHours: null, hoursToDeadline: null });
+          const toHours = (n, unit) => Number(n) * (/^day/.test(unit) ? 24 : 1);
+          const etaM = t.match(/refer\w*[^.]*?(?:could take|might take|takes?|within|in about|in)\s+(\d+)\s*(days?|hours?)/) || t.match(/(?:could take|might take|takes?)\s+(\d+)\s*(days?|hours?)[^.]*refer/);
+          const dlM = t.match(/(?:closes?|closing|deadline|expires?)[^.]*?\b(?:in|within)\s+(\d+)\s*(days?|hours?)/) || t.match(/\b(?:in|within)\s+(\d+)\s*(days?|hours?)\b[^.]*\b(?:closes?|deadline)\b/);
+          const hd = Packets.referralHoldDecision({ contactName: contactM ? contactM[1] : null, referralExpected: true, referralEtaHours: etaM ? toHours(etaM[1], etaM[2]) : null, hoursToDeadline: dlM ? toHours(dlM[1], dlM[2]) : null });
           if (hd) {
             // WORDING-BACKLOG (BUG-182): when the producer's own
             // reason says both times are missing from the record,
@@ -5146,8 +6199,11 @@ const CareerRouter = (() => {
             // math shown" over two unknowns is the headline
             // outrunning the record.
             const timesMissing = Array.isArray(hd.unknowns) && hd.unknowns.length > 0;
-            const reply = compose({ headline: timesMissing ? "The hold-versus-apply call — and neither time is on record." : "The hold-versus-apply call, with the deadline math shown.", facts: [s(hd.reason || hd.text || "The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile."), "Referral timing comes from the graph's own record of how fast referrals at this company actually land."], nextStep: "Hold it for the referral, or apply now and reference it after?" });
-            const hdRec = { kind: "referral_hold_decision", decision: hd.decision, reason: hd.reason || null, hold_hours: hd.holdHours || null, contact: contactM ? contactM[1] : null, apply_after_referral: !!hd.applyAfterReferral };
+            const bothKnown = etaM && dlM;
+            const facts = [s(hd.reason || hd.text || "The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile.")];
+            facts.push(bothKnown ? "Those are your numbers, not mine: if the referral speeds up or the deadline moves, the call flips — tell me and I will redo the math on the new ones." : "Referral timing comes from the graph's own record of how fast referrals at this company actually land.");
+            const reply = compose({ headline: timesMissing ? "The hold-versus-apply call — and neither time is on record." : "The hold-versus-apply call, with the deadline math shown.", facts, nextStep: "Hold it for the referral, or apply now and reference it after?" });
+            const hdRec = { kind: "referral_hold_decision", decision: hd.decision, reason: hd.reason || null, hold_hours: hd.holdHours || null, contact: contactM ? contactM[1] : null, referral_eta_hours: etaM ? toHours(etaM[1], etaM[2]) : null, hours_to_deadline: dlM ? toHours(dlM[1], dlM[2]) : null, apply_after_referral: !!hd.applyAfterReferral };
             return { intent: "career_packet", reply, resultStatus: "awaiting_user", sends: 0, packet: { ok: true, company: companyFromText(text, c), hold: hd }, payload: hdRec, artifact: hdRec };
           }
         } catch { /* fall through */ }
@@ -5179,7 +6235,7 @@ const CareerRouter = (() => {
       return handlePacket(text, c);
     }
     if (/\bprep(are)?\b[^.]*\b(application|packet)\b|\bapplication packet\b/.test(t)) {
-      if (!profile) return null;
+      if (!profile) return handleTailorNeedsFacts(text, c);
       // SC-111 (A4): a packet ask that names only a role FAMILY with no
       // posting in the pool is a discovery ask — never a defaulted packet.
       const fams = discoveryFamilies(text);
@@ -5189,10 +6245,33 @@ const CareerRouter = (() => {
       }
       return handlePacket(text, c);
     }
-    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\bstar bank\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
-      if (!profile) return null;
-      const px = handlePrepExtras(text, c);
+    // COMPLEXITY WAVE (BUG-173): single-question and night-before
+    // prep asks route on their own shapes, ahead of the extras gate.
+    if (/\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
+      const pq = handlePrepQuestion(text, c);
+      if (pq) return pq;
+    }
+    {
+      const pe = handlePrepEve(text, c);
+      if (pe) return pe;
+    }
+    if (/\b(wear|wearing|dress|attire|outfit)\b[^.]*\binterview\b|\binterview\b[^.]*\b(wear|dress code|attire)\b/.test(t)) {
+      // COMPLEXITY WAVE: interview-attire asks are prep asks; they
+      // previously matched no route at all. The answer is sector
+      // doctrine, stated as doctrine — no facts about a firm.
+      const fin = /\bfinance|bank|banking|ibd\b/.test(t) || (ctx.discovery && /finance|bank/i.test(s(ctx.discovery.lastIntelCompany)));
+      const reply = compose({ headline: "For a first round: dress one notch above the room you are walking into.", facts: [fin ? "In finance that means a suit — jacket, trousers or skirt, button-down or blouse, closed shoes — even when the invite says business casual; first rounds are scored on polish before they are scored on answers." : "The safe default is business formal — suit, button-down or blouse, closed shoes — and for tech or startups, clean business casual: no tie needed, but nothing you would wear to class.", "Fit and condition carry more weight than labels: pressed, clean shoes, nothing distracting. When a company's file or invite names a dress code, that instruction wins over any general rule."], nextStep: "Tell me the company and round, and I will tune this to their file if one exists." });
+      return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0 };
+    }
+    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\bstar bank\b|\bstar\b[^.]*\bstories\b|\bstories\b[^.]*\bstar\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
+      // COMPLEXITY WAVE (BUG-173): the profile gate is GONE — the
+      // extras run profile-less where their product allows, and what
+      // genuinely needs the record gets the honest needs-profile
+      // answer instead of the dispatch tail's silent null.
+      let px = null;
+      try { px = handlePrepExtras(text, c); } catch { px = null; }
       if (px) return px;
+      if (!profile) return handlePrepNeedsProfile(text, c);
     }
     if (/\bautopsy\b/.test(t)) {
       const au = handleAutopsy(text, c);
@@ -5251,12 +6330,22 @@ const CareerRouter = (() => {
       }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
-      if (/\bhow do i get\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
+      if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
         const ig = handleIntelGuidance(text, c);
         if (ig) return ig;
       }
     }
-    if (/\bi applied\b|\blog (this|that|my|the) application\b|\badd\b[^.]*\btracker\b|\brecord my application\b/.test(t)) {
+    {
+      const tc = handleTrackCorrection(text, c);
+      if (tc) return tc;
+      const tmv = handleTrackMove(text, c);
+      if (tmv) return tmv;
+      const pc = handlePlanCorrection(text, c);
+      if (pc) return pc;
+      const pr = handlePlanRecap(text, c);
+      if (pr) return pr;
+    }
+    if (/\bi applied\b|\blog (this|that|my|the) application\b|\badd\b[^.]*\btracker\b|\brecord my application\b|\btrack this\b/.test(t)) {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
     }
@@ -5268,6 +6357,10 @@ const CareerRouter = (() => {
       const ts = handleTrackStatus(text, c);
       if (ts) { ts.intent = "doorstep_status"; return ts; }
     }
+    if (/\bits status\b|\bstatus of (it|that)\b/.test(t)) {
+      const ts = handleTrackStatus(text, c);
+      if (ts) return ts;
+    }
     if (/\bghosted\b|\bdays silent after\b|\bquiet hours\b/.test(t)) {
       const ts = handleTrackStatus(text, c);
       if (ts) return ts;
@@ -5276,7 +6369,7 @@ const CareerRouter = (() => {
       const ao = handleAcceptedOffer(text, c);
       if (ao) return ao;
     }
-    if (/\bwhere do i stand\b|\bstatus of\b|\bmy applications\b|\btracker\b|\bapplication status\b/.test(t)) {
+    if (/\bwhere do i stand\b|\bstatus of\b|\bmy applications\b|\bwhat applications\b|\bapplications (do|have) i have\b|\btracker\b|\bapplication status\b/.test(t)) {
       const ts = handleTrackStatus(text, c);
       if (ts) return ts;
     }
@@ -5292,7 +6385,7 @@ const CareerRouter = (() => {
       const ng = handleNegotiation(text, c);
       if (ng) return ng;
     }
-    if (/\btimeline\b|\bgoals? check\b|\bwatch ?list\b|\bskill gap\b|\bmarket value\b|\blog a win\b|\bwins? log\b|\bdebrief\w*\b|\btake[ -]home plan\b|\bvideo[ -]interview practice\b|\bfinal[ -]round prep\b|\bsuperday\b|\bwhat am i worth\b|\bpassive watch\b|\bnetwork upkeep\b|\bgoing cold\b|\breview packet\b|\bfirst[ -]?90\b|\bquarterly check[ -]?in\b|\bcheck[ -]?in:\b|\bpay band moved\b|\bmarket[ -]shift\b|\bskill[ -]demand\b|\bquestions[ -]to[ -]ask\b|\bwhat do i say in a coffee chat\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b/.test(t)) {
+    if (/\btimeline\b|\bgoals? check\b|\bwatch ?list\b|\bskill gap\b|\bmarket value\b|\blog a win\b|\bwins? log\b|\bdebrief\w*\b|\btake[ -]home plan\b|\bvideo[ -]interview practice\b|\bfinal[ -]round prep\b|\bsuperday\b|\bwhat am i worth\b|\bpassive watch\b|\bnetwork upkeep\b|\bgoing cold\b|\breview packet\b|\bfirst[ -]?90\b|\bquarterly check[ -]?in\b|\bcheck[ -]?in:\b|\bpay band moved\b|\bpay band\b[^.?!]*\b(moved|move|shift|changed|risen|dropped)\b|\bhas\b[^.?!]*\bpay band\b[^.?!]*\bmoved\b|\bmarket[ -]shift\b|\bskill[ -]demand\b|\bquestions[ -]to[ -]ask\b|\bwhat do i say in a coffee chat\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b/.test(t)) {
       const os = handleOS(text, c);
       if (os) return os;
     }
@@ -5303,6 +6396,17 @@ const CareerRouter = (() => {
     if (/\btwo[ -]year\b|\bre[ -]?route\b|\bdream role\b/.test(t)) {
       const pa = handlePathsAnswer(text, c);
       if (pa) return pa;
+    }
+    // COMPLEXITY WAVE (SC-110): the evidence-forward ML ask in
+    // natural words ("for data and ML roles, make my application
+    // lead with my papers, models, and evaluation metrics") names no
+    // "roles:" label, so the profile-gated apply-shapes block below
+    // never saw it — in either world. Its owner is handleMlForward,
+    // whose core is discovery (profile only enriches its tailor
+    // chain), so it routes here without the profile gate.
+    if (/\bdata\/ml\b|\bml roles\b|\bdata and ml\b/.test(t) && /\b(lead with|papers|models|metrics|forward|roles)\b/.test(t)) {
+      const ml = handleMlForward(text, c);
+      if (ml) return ml;
     }
     if (/\bbucket\b[^.]*\broles?\b|\btriage\b[^.]*\b(links|roles)\b|\bghost\b|\bstarred\b|\bspeed run\b|\bposted in the last\b|\bbatch:|\bsweep\b[^.]*\b(open|windows)\b|\bapply to these \d+ roles\b|\broles:|\bearly programs\b|\binsight programs\b|\bsalary[ -]band filter\b|\bskip roles whose\b|\bweak[ -]profile honesty\b|\bno math background\b/.test(t) && profile) {
       const dead = handleDeadBoard(text, c);
@@ -5328,17 +6432,38 @@ const CareerRouter = (() => {
       if (/\btailor\w*\b/.test(t)) { const bt = handleBatchTailor(text, c); if (bt) return bt; }
       return handleDiscovery(text, c, shape);
     }
+    {
+      // COMPLEXITY WAVE (BUG-180): the late honest layer — synthesis
+      // over stated facts, the acknowledgment of a pure fact-giving
+      // turn, and the narrow clarifying questions — sits just above
+      // the discovery tail, after every specific route has had its
+      // chance.
+      const fs2 = handleFactSynthesis(text, c);
+      if (fs2) return fs2;
+      const sf = handleStatedFactsReply(text, c);
+      if (sf) return sf;
+      const cq = handleClarifying(text, c);
+      if (cq) return cq;
+    }
+    {
+      // COMPLEXITY WAVE (BUG-173): a discovery follow-up merges into
+      // the stored search before any fresh-ask route can misread it.
+      const dd = handleDiscoveryDelta(text, c);
+      if (dd) return dd;
+    }
     if (/\bfind\b[^.]*\b(roles|jobs|internships|positions)\b|\bfind me roles\b/.test(t)) {
-      if (!profile) return null;
-      const dead = handleDeadBoard(text, c);
+      // COMPLEXITY WAVE (BUG-173): the profile gate is GONE — a
+      // profile-less find runs the same discovery and returns its
+      // honest result (the empty-pool answer names the empty list,
+      // never silence). This was the World-L silent-null mechanism.
+      const dead = profile ? handleDeadBoard(text, c) : null;
       if (dead) return dead;
       return handleDiscovery(text, c, {});
     }
-    if (/\b(need|want|looking for|searching for)\b[^.]*\b(internship|job|role)\b|\binternship\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internship|job)\b/.test(t)) {
-      if (!profile) return null;
+    if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
       return handleInternship(text, c);
     }
-    if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t) && profile) return handleDiscovery(text, c, {});
+    if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) return handleDiscovery(text, c, {});
     // NOTE: 141's own chat phrases (halt / submit / fill / status) are NOT
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls
@@ -5351,13 +6476,227 @@ const CareerRouter = (() => {
     return null; // not a career turn this router owns: silence stays for other lanes' surfaces
   }
 
+  // ---------- COMPLEXITY WAVE (BUG-180): stated-fact capture. What
+  // a user TELLS the product about themselves ("I'm a sophomore",
+  // "I study finance and computer science", "last summer I interned
+  // at a wealth firm doing client reports") is state — it was
+  // previously dropped on the floor, so a later "knowing all that,
+  // what should I do first?" had nothing to know. Declarative frames
+  // only; the user's clause is stored verbatim as the evidence.
+  function captureStatedFacts(text, ctx) {
+    const raw = s(text);
+    const added = [];
+    const push = (kind, value, clause) => {
+      const facts = (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : [];
+      if (!facts.some((f) => f.kind === kind && lc(f.value) === lc(value))) {
+        facts.push({ kind, value, evidence: clause.slice(0, 200), at: new Date(nowOf(ctx)).toISOString() });
+        added.push({ kind, value });
+      }
+      ctx.statedFacts = { facts, updatedAt: new Date(nowOf(ctx)).toISOString() };
+    };
+    let m;
+    if ((m = raw.match(/\bi(?:'m| am) a (sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
+    if ((m = raw.match(/\bi study ([a-z][a-z &]{2,40}?)(?:[.!?]|$)/i))) push("majors", m[1].trim(), m[0]);
+    if ((m = raw.match(/\bmy majors? (?:is|are) ([a-z][a-z &,]{2,40}?)(?:[.!?]|$)/i))) push("majors", m[1].trim(), m[0]);
+    if ((m = raw.match(/\bi(?:'m| am) targeting ([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/))) push("geography", m[1], m[0]);
+    else if ((m = raw.match(/\btargeting ([a-z]+) firms\b/i))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
+    if ((m = raw.match(/\b(?:last summer|this summer|last year) i (?:interned|worked) at ([a-zA-Z][a-zA-Z&. ]{2,50}?)(?: doing ([a-z ][a-z ]{2,40}?))?(?:[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
+    else if ((m = raw.match(/\bi (?:interned|worked) at (my [a-z' ]{3,60}?)(?:\s+last (?:summer|year)|\s+answering|\s+doing|\s+for\s|\s+where\b|[.!?,]|$)/i))) push("experience", m[1].trim(), m[0]);
+    if ((m = raw.match(/\bi go to ([A-Z][A-Za-z&. ]{2,40}?)(?:[.!?]|$)/))) push("school", m[1].trim(), m[0]);
+    if (added.length) ctx._factsAddedThisTurn = added;
+    return added;
+  }
+  function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
+  function factLine(f) {
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+  }
+  function handleStatedFactsReply(text, ctx) {
+    const added = ctx._factsAddedThisTurn;
+    if (!added || !added.length) return null;
+    if (/\?/.test(s(text))) return null;
+    if (s(text).split(/\s+/).length > 22) return null;
+    const all = statedFactsOf(ctx);
+    const reply = compose({ headline: "Recorded — that is on your record now, in your words.", facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
+    return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
+  }
+  function handleFactSynthesis(text, ctx) {
+    const t = lc(text);
+    if (!/\bknowing all that\b|\bwith all that\b|\bwhat should i do first\b|\bso what (do|should) i do\b|\bwhere do i start\b/.test(t)) return null;
+    const facts = statedFactsOf(ctx);
+    if (facts.length < 2) return null;
+    const year = facts.find((f) => f.kind === "year");
+    const majors = facts.find((f) => f.kind === "majors");
+    const geo = facts.find((f) => f.kind === "geography");
+    const exp = facts.find((f) => f.kind === "experience");
+    const firstStep = exp
+      ? `Start from the experience you already have: the ${exp.value} story is the anchor — the first move is a networking plan into ${geo ? `${geo.value} firms` : "firms"} built around it, with a search for ${year && /sophomore|junior/.test(year.value) ? "next summer's internships" : "roles"} running beside it, and every application tracked from day one.`
+      : `Start with the search: roles matching ${majors ? majors.value : "your field"}${geo ? ` in ${geo.value}` : ""}, ranked honestly — then a networking plan into the same firms, because the referral is worth more than the application.`;
+    const reply = compose({ headline: "Here is the first move, built from what you told me.", facts: [`What I am working from — your words, on record: ${facts.map(factLine).join("; ")}.`, firstStep], nextStep: "Say go and the first move starts now — or correct any fact first and the plan re-aims." });
+    return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  function handleClarifying(text, ctx) {
+    const raw = s(text);
+    const t = lc(text);
+    // A pronoun with no referent ("can she refer me?") gets ONE
+    // question — never a guess, never the fallback.
+    if (/\bcan (she|he|they) refer me\b/.test(t) && !/\bworks at\b/.test(t) && !/\b[A-Z][a-z]+ (?:—|-|works|at)\b/.test(raw)) {
+      const reply = compose({ headline: "One thing I need before that can be answered: who is she?", facts: ["A referral depends on who she is and where she works — whether she is at the firm, how warm the path is, and whether she knows your work. None of that is on record yet in this conversation, and I will not guess at a person."], nextStep: "Name her and her firm, and I will tell you straight whether she can refer you — and prepare the ask if she can." });
+      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "clarifying_question", missing: "referent_identity" }, artifact: { kind: "clarifying_question", missing: "referent_identity" } };
+    }
+    // Bare help ("help me get a job"): the capability map plus the
+    // ONE decision that shapes everything else.
+    if (/^\s*(please\s+)?help me get a (job|role)\s*[.!?]?\s*$/i.test(raw) || /^\s*help me find a job\s*[.!?]?\s*$/i.test(raw)) {
+      const reply = compose({ headline: "Here is what I can actually do — and the one decision that shapes it.", facts: ["The full loop runs here: find roles and rank them honestly, build each application to its doorstep for your approval, track every stage, build networking plans with sourced names, prep you for interviews, and run the negotiation. Nothing sends or submits without your yes.", "What I cannot do is aim at 'a job' in general — the field and the season decide which of those gears turns first."], nextStep: "Internship or full-time — and in what field? Answer that and the loop starts in the right gear." });
+      return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // A long first-person narrative with no decidable ask: reflect
+    // one captured fact, name the honest read, ask the one question
+    // that unlocks a plan.
+    if (raw.length > 240 && /\b(i don'?t know|idk|what (do|should) i do|no idea)\b/.test(t)) {
+      const facts = statedFactsOf(ctx);
+      const exp = facts.find((f) => f.kind === "experience");
+      const lines = ["Heard — and let me reflect the part that matters most: having no network handed to you is the normal starting point, not a disqualifier. The roommate's dad is one path; it was never the only one, and the people who build theirs deliberately usually end up with the stronger one."];
+      if (exp) lines.push(`You also have more raw material than you are crediting: ${factLine(exp)} — that is a real story, and stories are what networking and interviews run on.`);
+      lines.push("What I will not do is hand you a generic plan for 'banking or tech or whatever' — the field decides the plan, so that is the one decision to make first.");
+      const reply = compose({ headline: "Your situation is workable — here is the honest read.", facts: lines, nextStep: "If you had to test one for two weeks — banking or tech — which pulls you more? We start there, and the other stays open." });
+      return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
+
+  // ---------- COMPLEXITY WAVE (BUG-179): multi-intent turns. A
+  // message carrying two or more distinct asks used to be answered
+  // by whichever route fired first, with the rest silently dropped.
+  // The parts are detected up front; the served part answers as
+  // always, the unserved parts are QUEUED on ctx.intentQueue (state,
+  // named in the reply), and a continuation ("next", "start with the
+  // first one") runs the queue head. A shelved-finance part is
+  // answered inline with the honest scope note — career is the live
+  // product; the finance side is shelved, and its asks are not
+  // dropped either.
+  function intentPartsOf(text) {
+    const t = lc(text);
+    const parts = [];
+    const add = (key, label, re) => { const m = t.match(re); if (m) parts.push({ key, label, idx: m.index }); };
+    add("find", "the search", /\bfind\b[^.]*\b(internships?|roles|jobs)\b|\bfind me\b/);
+    add("networking", "the networking plan", /\bnetwork(ing)?\s+plan\b|\bnetwork into\b|\bfind people\b|\bplan outreach\b|\bstart networking\b/);
+    add("tracking", "application tracking", /\bset up\b[^.]*\btrack|\btracking for\b|\btrack(ing)? my applications\b|\bset up tracking\b/);
+    add("negotiation", "the negotiation", /\bnegotiat\w*\b/);
+    add("prep", "the interview prep", /\bprep\b[^.]*\binterview\b|\bprep for (the|my|a) interview\b|\bprepare me for\b/);
+    add("finance", "the money question", /\bhow much did i spend\b|\bspend on\b|\bspending\b|\bbudget\b|\binvest(ing|ment)?\b[^.]*\b(my|the)\b|\bmy portfolio\b|\bstocks?\b/);
+    parts.sort((a, b) => a.idx - b.idx);
+    const seen = new Set();
+    return parts.filter((p) => (seen.has(p.key) ? false : (seen.add(p.key), true)));
+  }
+  function multiMarkerOf(text) {
+    return /\b(two|three|four)\s+things\b|\bat once\b|\bboth\b|\band also\b|\bas well as\b|\balso,?\s+(find|start|set up|prep|track)\b/i.test(s(text));
+  }
+  function financeScopeResult() {
+    const reply = compose({ headline: "That part is the money product — and this build is the career agent.", facts: ["The finance side of Upmore is shelved in this build: spending questions, budgets, and investing are not answered here, and I will not guess at your bank data from a career thread.", "What is live, and fully staffed, is the career loop: find roles, apply at the doorstep, track, outreach, prep, negotiate."], nextStep: "Ask me for any part of the career loop and it runs now." });
+    return { intent: "honest_unavailable", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "shelved_scope", scope: "finance" }, artifact: { kind: "shelved_scope", scope: "finance" } };
+  }
+  function runIntentPart(part, text, ctx) {
+    try {
+      if (part.key === "find") return handleInternship(text, ctx) || handleDiscovery(text, ctx, {});
+      if (part.key === "networking") return handleCampaignPlan(text, ctx);
+      if (part.key === "tracking") {
+        const store = trackStoreOf(ctx);
+        const n = store && store.rows ? store.rows.length : 0;
+        const reply = compose({ headline: "Tracking is on — it has been recording from this conversation.", facts: [`Your tracker currently holds ${n} application${n === 1 ? "" : "s"}. Anything you report ("I applied to X", "track this: ...") is written to it and read back before the reply speaks, so the record you see is the record that exists.`, "Stage changes work the same way: tell me what moved and the row updates from your report — never from a guess."], nextStep: "Tell me the first application to log, or ask what is on record." });
+        return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0 };
+      }
+      if (part.key === "negotiation") return handleNegotiation(text, ctx);
+      if (part.key === "prep") return handlePrepExtras(text, ctx) || handlePrepQuestion(text, ctx) || handlePrepNeedsProfile(text, ctx);
+      if (part.key === "finance") return financeScopeResult();
+    } catch { return null; }
+    return null;
+  }
+  function handleContinuation(text, ctx) {
+    const queue = Array.isArray(ctx.intentQueue) ? ctx.intentQueue : null;
+    if (!queue || !queue.length) return null;
+    const t = lc(text);
+    if (!/^(start|begin|do|take|run)\b[^.]*\b(first|next|that|it|one)\b|^next\b[^.?!]*$|\bthe (second|next) one\b|\bnext one\b|\bcontinue with (the|it|that)\b/.test(t)) return null;
+    const part = queue.shift();
+    ctx.intentQueue = queue;
+    const res = runIntentPart(part, part.ask || text, ctx);
+    if (!res) return null;
+    if (queue.length) {
+      res.reply = `${res.reply}\n\nStill held from your earlier message: ${queue.map((q, i) => `${i + 1}) ${q.label}`).join("; ")} — say "next" and we continue.`;
+    }
+    return res;
+  }
+  // COMPLEXITY WAVE (BUG-179): the product-rules enumeration ("what
+  // are the send caps, where do the names come from, why shortlist
+  // first, when do sends start — answer all of it") is answered in
+  // full, from the locked doctrine — previously only its discovery
+  // fragment routed anywhere.
+  function handleProductRules(text, ctx) {
+    const t = lc(text);
+    const asksCaps = /\bsend caps?\b|\bcaps?\b[^.]*\bsend\b|\bhow many (emails|sends)\b/.test(t);
+    const asksSources = /\bwhere do (the )?names come from\b|\bname sources\b|\bsources of (the )?names\b/.test(t);
+    const asksWhy = /\bwhy shortlist\b|\bshortlist first\b|\binstead of blasting\b/.test(t);
+    const asksWhen = /\bwhen do sends (actually )?start\b|\bwhen does sending start\b/.test(t);
+    if ([asksCaps, asksSources, asksWhy, asksWhen].filter(Boolean).length < 2) return null;
+    const facts = [];
+    if (asksCaps) facts.push("Send caps: outreach starts at 12 emails a day, rises by 5 every 3 days, and never passes 30 a day; at most 15 first emails go to one firm in any 30 days, and applications are capped at 15 a day.");
+    if (asksSources) facts.push("Where names come from, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages. Every name carries its source, and nobody is emailed on a guessed address — inferred emails are labeled and held.");
+    if (asksWhy) facts.push("Why shortlist first: a blast burns the only asset that compounds — your name at those firms. The shortlist is verified before anything is drafted, so the first email a banker sees from you is accurate, sourced, and written for them; the caps then keep the wave inside what inboxes tolerate.");
+    if (asksWhen) facts.push("When sends start: after you approve the plan. The list is built, the found/trustworthy/sendable counts come back to you, drafts are written from the sendable names — and the first send waits for your one approval of the whole plan.");
+    const reply = compose({ headline: "All of it, in order.", facts, nextStep: "Say the word and I start with the shortlist — counts before drafts, approval before sends." });
+    return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0, payload: { kind: "product_rules" }, artifact: { kind: "product_rules" } };
+  }
+
   // The public entry: EVERY handler's reply passes the H-12 ending
   // guarantee here, including replies composed inside the domain
   // modules this router delegates to (120/124/126 author their own
   // text; a "Next step —" ending without a question or marker still
   // trails off by the reply contract).
+  // COMPLEXITY WAVE (BUG-173): a posting the user PASTES into the
+  // chat was previously invisible to every later turn — the tailor
+  // ask that followed had no target and fell to the fallback. The
+  // capture is conservative: a quoted block that reads like a posting
+  // (a requirements/responsibilities marker), with its title/company
+  // header parsed only when the header shape is explicit. The staged
+  // posting persists (posting + pastedText are snapshot state).
+  function capturePastedPosting(text, ctx) {
+    const c = ctx || {};
+    if (c.posting && c.posting.source === "user_pasted") return;
+    const raw = s(text);
+    const qm = raw.match(/['"]([\s\S]{80,4000}?)['"]/);
+    if (!qm) return;
+    const quoted = qm[1];
+    if (!/\b(requirements|responsibilities|you will|what you.ll do|qualifications)\b/i.test(quoted)) return;
+    const headM = quoted.match(/^\s*([A-Z][A-Za-z0-9&/()' -]{3,70}?),\s+([A-Z][A-Za-z&. ]{2,40}?)\s+[—–-]/);
+    const posting = { source: "user_pasted", jd_text: quoted.slice(0, 4000), pasted_at: new Date(nowOf(c)).toISOString() };
+    if (headM) { posting.title = headM[1].trim(); posting.company = headM[2].trim(); }
+    c.posting = posting;
+    c.pastedText = quoted.slice(0, 4000);
+  }
   function handleChat(text, ctx) {
-    const res = dispatchChat(text, ctx);
+    const c = ctx || {};
+    // COMPLEXITY WAVE (BUG-179): multi-intent accounting wraps the
+    // dispatch — the parts are detected from the ORIGINAL text, the
+    // dispatch serves what it serves, and whatever it did not serve
+    // is queued and NAMED, never dropped. A finance-only ask in this
+    // career build gets the honest scope answer.
+    const parts = intentPartsOf(text);
+    const multi = parts.length >= 2 && (multiMarkerOf(text) || parts.length >= 3);
+    const res = dispatchChat(text, c);
+    if (parts.length === 1 && parts[0].key === "finance" && (!res || res.intent === "career_fallback")) {
+      return financeScopeResult();
+    }
+    if (multi && res && res.intent !== "career_fallback") {
+      const servedFamily = { career_discovery: "find", career_internship_discovery: "find", outreach_clarification: "networking", outreach_draft: "networking", tracking_status: "tracking", tracking_log: "tracking", negotiation_advice: "negotiation", negotiation_plan: "negotiation", negotiation_draft: "negotiation", prep_brief: "prep", prep_needs_profile: "prep" }[res.intent] || null;
+      const unserved = parts.filter((p) => p.key !== servedFamily && p.key !== "finance");
+      const financePart = parts.find((p) => p.key === "finance");
+      const additions = [];
+      if (financePart) additions.push("One part I cannot run here: the money question — this build is the career agent and the finance side is shelved, so spending questions are not answered (or guessed at) in this thread.");
+      if (unserved.length) {
+        c.intentQueue = unserved.map((p) => ({ key: p.key, label: p.label, ask: s(text) }));
+        additions.push(`Also in your message, held in order: ${unserved.map((p, i) => `${i + 1}) ${p.label}`).join("; ")} — say "next" and we take the next one, or name the part and we jump to it.`);
+      }
+      if (additions.length) res.reply = `${res.reply}\n\n${additions.join("\n")}`;
+    }
     // The 140 unmatched fallback and the capability-absent honest
     // replies are exact-text contracts of their own — never appended to.
     if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);

@@ -1570,10 +1570,64 @@ const CareerDoorstep = (() => {
   }
 
   // ---------- chat routing (the seam's one entry point) ----------
+  // BUG-170 (complexity wave): the kill switch must survive typos. The
+  // matcher token-repairs each word against the halt vocabulary at
+  // Damerau distance <= 1 (one substitution, deletion, insertion, or
+  // adjacent transposition — "evrything", "teh"->the is not needed
+  // here, "rite" never decides) and then applies the halt SHAPES:
+  // a stop/pause/halt verb reaching for everything / all outreach /
+  // the queue. Targeted stops ("stop emailing Maya") carry no global
+  // object and never match — suppression owns those (142).
+  function _dlWithin1(a, b) {
+    if (a === b) return true;
+    const la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > 1) return false;
+    if (la === lb) {
+      const diff = [];
+      for (let i = 0; i < la; i++) if (a[i] !== b[i]) diff.push(i);
+      if (diff.length === 1) return true;
+      if (diff.length === 2) { const i = diff[0], j = diff[1]; return j === i + 1 && a[i] === b[j] && a[j] === b[i]; }
+      return false;
+    }
+    const sh = la < lb ? a : b, lg = la < lb ? b : a;
+    let i = 0, j = 0, skipped = false;
+    while (i < sh.length && j < lg.length) {
+      if (sh[i] === lg[j]) { i++; j++; }
+      else if (!skipped) { skipped = true; j++; }
+      else return false;
+    }
+    return true;
+  }
+  const HALT_VOCAB = ["stop", "pause", "halt", "everything", "outreach", "queue"];
+  function fuzzyHaltMatch(text) {
+    const rawText = String(text || "");
+    // W8 speech-act guard (BUG-169 invariant): a halt phrase inside
+    // quoted or attributed speech is a REPORT, not an instruction —
+    // "he replied 'stop everything'" must not halt the queue. The
+    // match runs on the text with quoted spans removed; an
+    // interrogative-led turn ("should I stop everything?") is a
+    // question, never a halt.
+    if (/^\s*(should|can|could|would|do|did|will|is|are)\b/i.test(rawText) && /\?/.test(rawText)) return false;
+    // Quoted spans are stripped ONLY under an attribution frame
+    // (someone said/replied/wrote it). A quoted command with no
+    // attribution — the exam's canonical 'Kill switch: "Stop
+    // everything" — all queues halt' — is the user's own order
+    // wearing a label, and it must still halt.
+    const attributed = /\b(said|says|told|replied|responded|wrote|asked|mentioned|texted|emailed|replies|responded)\b/i.test(rawText);
+    const unquoted = attributed ? rawText.replace(/["“][^"”]*["”]/g, " ").replace(/(^|\s)'([^']{3,})'(?=[\s,.!?]|$)/g, "$1 ") : rawText;
+    const toks = unquoted.toLowerCase().replace(/[^a-z'\s]/g, " ").split(/\s+/).filter(Boolean);
+    if (!toks.length) return false;
+    const repaired = toks.map((tok) => HALT_VOCAB.includes(tok) ? tok : (HALT_VOCAB.find((v) => Math.abs(v.length - tok.length) <= 1 && _dlWithin1(tok, v)) || tok));
+    const t = repaired.join(" ");
+    if (/\bstop everything\b|\bdon'?t contact anyone\b|\bstop all outreach\b/.test(t)) return true;
+    if (/\b(stop|pause|halt)\b[^.]*\b(everything|all outreach|the outreach|my outreach|outreach|the queue|all queues|it all)\b/.test(t)) return true;
+    if (/\bpause (everything|it all|all)\b/.test(t)) return true;
+    return false;
+  }
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
     const c = ctx || {};
-    if (/\bstop everything\b|\bdon'?t contact anyone\b|\bstop all outreach\b/.test(t)) return haltQueue(c, text);
+    if (fuzzyHaltMatch(text)) return haltQueue(c, text);
     if (/\bdid it go through\b|\bdid that (go through|submit)\b|\bcheck (the )?submission status\b/.test(t)) { const r = reconcileDoorstep(c); return r.doorstep || r.submission ? r : null; }
     if (/\bapprove and submit\b|\bsubmit it\b/.test(t)) { const r = submitDoorstep(c); return (c.doorstepState && c.doorstepState.session) || r.resultStatus !== "blocked" ? r : null; }
     if (/\bfill (this|it|the form|that) out\b|\bfill out this\b|\bjust use my profile\b|\bcomplete (this|the) application form\b/.test(t)) {
@@ -1586,7 +1640,7 @@ const CareerDoorstep = (() => {
     return null;
   }
 
-  return { handleChat, fillDoorstep, dryValidate, submitDoorstep, reconcileDoorstep, haltQueue, applyQueueEvent, prepPacket, resolveField, sha256, sha256Direct,
+  return { handleChat, fillDoorstep, dryValidate, submitDoorstep, reconcileDoorstep, haltQueue, fuzzyHaltMatch, applyQueueEvent, prepPacket, resolveField, sha256, sha256Direct,
     // R2B exports: fact binding + destination truth + guards + the recorder
     // surface Lane A's intent handlers use to mutate doorstep state.
     factBinding, factVersionOf, destinationStatus, readSinkReceipts, priorApplicationFor, checkSubmitGuards, recordJobClosure, cancelDoorstep, invalidateApproval, recordPriorApplication,

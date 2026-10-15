@@ -591,19 +591,37 @@ const CareerJobs = (() => {
   // ---------- dedupe ----------
   // City segment only: "San Francisco, CA" and "San Francisco, California" are the same place to a feed.
   function dedupeKey(p) { return `${normName(p.company)}|${normTitle(p.title)}|${normLoc(s(p.location).split(",")[0])}`; }
+  // BUG-212 (MI-031, FR-370): dedupe identity has a recency bound and a
+  // quality survivor. Copies posted more than 14 days apart are distinct
+  // openings of a recurring role, never one posting — LA-0016's new
+  // Lever posting merged into a month-old record, kept the old job_id,
+  // and diffNew never fired. And when copies do merge, the cleaner copy
+  // (JD substance, then department) supplies the identity, in either
+  // arrival order — first-seen-wins kept the worse record.
+  const DEDUPE_RECENCY_MS = 14 * 86400000;
+  const postedFarApart = (a, b) => {
+    const ta = Date.parse(a.posted_at || ""), tb = Date.parse(b.posted_at || "");
+    return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) > DEDUPE_RECENCY_MS;
+  };
+  const copyQuality = (p) => (p.jd_text || "").length + (p.department ? 500 : 0);
   function dedupe(postings) {
     const groups = new Map();
     for (const p of postings || []) {
       const key = dedupeKey(p);
       // Req ids are source-scoped: two DIFFERENT boards carrying the same role merge even though
       // their req ids differ; two postings on the SAME board with different req ids are distinct roles.
-      const hit = (groups.get(key) || []).find((g) => g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id));
-      if (!hit) { groups.set(key, (groups.get(key) || []).concat([Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })])); continue; }
-      for (const u of p.source_urls || [p.url]) if (!hit.source_urls.includes(u)) hit.source_urls.push(u);
-      for (const src of p.sources || [p.source]) if (!hit.sources.includes(src)) hit.sources.push(src);
-      if ((p.jd_text || "").length > (hit.jd_text || "").length) hit.jd_text = p.jd_text;
-      if (!hit.posted_at || (p.posted_at && p.posted_at < hit.posted_at)) hit.posted_at = p.posted_at;
-      if (!hit.department && p.department) hit.department = p.department;
+      const group = groups.get(key) || [];
+      const hit = group.find((g) => (g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id)) && !postedFarApart(g, p));
+      if (!hit) { group.push(Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })); groups.set(key, group); continue; }
+      const winner = copyQuality(p) > copyQuality(hit) ? p : hit;
+      const loser = winner === p ? hit : p;
+      group[group.indexOf(hit)] = Object.assign({}, winner, {
+        sources: [...new Set([...(hit.sources || [hit.source]), ...(p.sources || [p.source])])],
+        source_urls: [...new Set([...(hit.source_urls || [hit.url]), ...(p.source_urls || [p.url])])],
+        jd_text: (loser.jd_text || "").length > (winner.jd_text || "").length ? loser.jd_text : (winner.jd_text || ""),
+        posted_at: [hit.posted_at, p.posted_at].filter(Boolean).sort()[0] || winner.posted_at || null,
+        department: winner.department || loser.department || "",
+      });
     }
     return [...groups.values()].flat();
   }

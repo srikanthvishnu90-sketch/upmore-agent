@@ -2376,8 +2376,9 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-367 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
 | FR-368 (BUG-210) | ENFORCED | tests/career-tn1a-feed-path.test.cjs |
 | FR-369 (BUG-211) | ENFORCED | tests/career-guidance-entry.test.cjs |
+| FR-370 (BUG-212) | ENFORCED | tests/career-dedupe-clean-copy.test.cjs |
 
-<!-- totals: total=369 enforced=274 guarded_red=0 hard_shut=1 unenforced=94 (reconciled 2026-10-15, GC pass #1 + FR-368/FR-369 added ENFORCED at birth, MI-030/MI-047) -->
+<!-- totals: total=370 enforced=275 guarded_red=0 hard_shut=1 unenforced=94 (reconciled 2026-10-15, GC pass #1 + FR-368/369/370 added ENFORCED at birth) -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2538,3 +2539,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-369 — Guidance-shaped asks reach the guidance engine; the intent matcher runs last in dispatch (BUG-211)
 - **RULE:** The guidance dispatch gate and the guidance intent matcher must never silently diverge: an ask the intent matcher recognizes as guidance-shaped reaches 144's engine unless another named handler owns it. The matcher admission runs AFTER every named owner in dispatch (an owned ask keeps its owner even when its text matches a guidance shape — SC-113's weak-profile plan is the standing example), and the entry shapes (break into, where/how do I start) belong to plan_paths.
 - **ENFORCEMENT:** tests/career-guidance-entry.test.cjs (7 tests: the flagship ask + 3 sibling entry phrasings route to the guidance answer; the previously working shape unchanged; a non-guidance ask is not captured; SC-113 keeps its weak_profile_plan owner).
+
+### FR-370 — Dedupe never merges across a 14-day posting gap, and the cleaner copy survives (BUG-212)
+- **RULE:** Two postings that share a dedupe key but were posted more than 14 days apart (both dates known) are distinct openings and must both survive dedupe, each with its own job_id — a fresh req of a recurring role is news, and merging it into the old record silences diffNew. When copies do merge, the cleaner copy (JD substance, then department presence) supplies the record's identity regardless of arrival order.
+- **ENFORCEMENT:** tests/career-dedupe-clean-copy.test.cjs (LA-0016 replay: the 30-day-newer Lever posting survives and diffNew fires; the 1-day cross-post still collapses with both URLs; the clean copy supplies the identity in either arrival order).

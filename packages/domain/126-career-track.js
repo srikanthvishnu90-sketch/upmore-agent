@@ -130,12 +130,20 @@ const CareerTrack = (() => {
   // ---------- inbox classification (Doc 2 7.2; SC-062/063/064/071/078) ----------
   // A message: { id, from, subject, body, at }. Company matched from explicit company field, else
   // from/subject/body mention of a known company name (log rows + caller-supplied list).
+  // BUG-217: the lexicon is no longer inbox-dialect only. Alongside the
+  // formal email phrasings it carries the verb/noun variants people
+  // actually report outcomes in — rejected / a rejection / turned me
+  // down / didn't move forward; invited / call scheduled / set up a
+  // phone screen; an offer / extended me an offer / offered me; OA /
+  // coding challenge / HackerRank; confirmed / received my application —
+  // plus the terminal acceptance ("I accepted the offer" -> Accepted).
   const SIGNAL_RULES = [
-    ["offer", /\b(offer letter|pleased to offer|offer of (employment|internship)|your offer|compensation package)\b/i],
-    ["rejection", /\b(unfortunately|regret to inform|not (be )?moving forward|decided to move forward with other|other candidates|position has been filled|not selected|will not be moving)\b/i],
-    ["oa_invite", /\b(online assessment|hacker ?rank|codility|codesignal|assessment (link|invitation)|complete (the|your) assessment|take-home)\b/i],
-    ["interview_invite", /\b(interview|phone screen|recruiter screen|schedule (a|your) (call|chat|interview)|speak with (our|the) (recruiter|team)|calendly\.com|greenhouse.*schedul|book a time)\b/i],
-    ["confirmation", /\b(application (received|submitted|confirmed)|thank you for applying|thanks for applying|we (have )?received your application|application confirmation)\b/i],
+    ["accepted", /\baccepted\b[^.!?]{0,40}\boffer\b/i],
+    ["offer", /\b(offer letter|pleased to offer|offer of (employment|internship)|your offer|compensation package|offer extended|extended (me|you|us) an? offer|offered (me|you|us)|got an offer|received an offer|landed an offer|an offer from)\b/i],
+    ["rejection", /\b(unfortunately|regret to inform|reject(ed|ion|ing|s)?|turned (me|us) down|turn(ed)? down (my|your|the) application|passed on (me|my application)|not (be )?moving forward|didn'?t move forward|did not move forward|won'?t be moving forward|moving forward with other|decided to move forward with other|other candidates|position has been filled|not selected|will not be moving|unsuccessful)\b/i],
+    ["oa_invite", /\b(online assessment|oa|hacker ?rank|codility|codesignal|assessment (link|invitation|invite)|complete (the|your) assessment|take-home|coding (challenge|test)|technical challenge|(sent|send) (me|you) an? (assessment|challenge)|your assessment)\b/i],
+    ["interview_invite", /\b(interview|phone screen|recruiter screen|schedule (a|your) (call|chat|interview)|scheduled a (call|chat|interview|screen)|call (is )?scheduled|speak with (our|the) (recruiter|team)|calendly\.com|greenhouse.*schedul|book a time|invit(ed|e|ing|ation) (me|you|us) to (a|an|the) (call|chat|conversation|interview)|set up a ((phone )?(call|screen|chat|interview)))\b/i],
+    ["confirmation", /\b(application (received|submitted|confirmed)|application confirmation|confirmation|thank you for applying|thanks for applying|we (have )?received your application|received (my|your) application|confirmed (my|your) application|got (my|your) application|application (is in|went through|has been received))\b/i],
     ["recruiter_other", /\b(recruiter|talent team|hiring team|careers team)\b/i],
   ];
   const NOISE_RULES = [/\b(newsletter|webinar|job alert|jobs you might like|unsubscribe|marketing|% off|sale ends|upcoming event|blog post|digest@|no-?reply@.*(alert|news))\b/i, /^(.*?(job alert|newsletter).*?)$/i];
@@ -150,19 +158,113 @@ const CareerTrack = (() => {
   // confirmation) beat footer boilerplate; (3) remaining noise patterns;
   // (4) recruiter_other, the weakest signal; (5) unknown.
   const MARKETING_SUBJECT = /\b(newsletter|job alert|webinar|digest)\b/i;
+  // BUG-217: a message arrives on one of two channels. Inbox mail is the
+  // default (from/subject/body, second-person). A USER REPORT carries
+  // source "user-reported" (msg.source / msg.report_source / msg.via, or
+  // the same on opts) and its body/text is the user's own words — the
+  // channel decides provenance, the evidence stored, and whether the
+  // assertion gate below applies.
+  function channelOf(msg, opts) {
+    const raw = (msg && (msg.source || msg.report_source || msg.via)) || (opts && (opts.source || opts.report_source)) || "";
+    return ["user-reported", "user_reported", "user", "chat"].includes(lc(raw)) ? "user" : "inbox";
+  }
+  // A company NAMED in a user's own report, from the report's words only:
+  // "an offer from Quill Finance", "Quill Finance rejected me", "a Stripe
+  // rejection". Capitalized event-context phrases only; sentence-opening
+  // fillers are never a company. Inbox text is never mined this way.
+  const NOT_A_COMPANY = new Set(["they", "the", "my", "i", "just", "so", "well", "finally", "yesterday", "today", "got", "it", "this", "that", "an", "a", "ugh", "and", "but", "then", "we", "you", "he", "she"]);
+  function extractNamedCompany(text) {
+    const W = "[A-Z][A-Za-z0-9&.'-]*";
+    const patterns = [
+      new RegExp(`\\b(?:from|at|by|with)\\s+(${W}(?:\\s+(?:${W}|&)){0,2})`),
+      new RegExp(`^\\s*(${W}(?:\\s+${W}){0,2})\\s+(?:rejected|turned|sent|emailed|offered|extended|invited|scheduled|confirmed|passed)\\b`),
+      new RegExp(`\\b(${W}(?:\\s+${W}){0,2})(?:'s)?\\s+(?:rejection|offer|interview|assessment|confirmation)\\b`),
+    ];
+    for (const re of patterns) {
+      const m = s(text).match(re);
+      if (!m) continue;
+      const name = m[1].replace(/[?.!,]+$/, "").trim();
+      const first = lc(name.split(/\s+/)[0]);
+      if (name && !NOT_A_COMPANY.has(first)) return name;
+    }
+    return null;
+  }
+  // The known company (from the caller's list) whose initials appear as
+  // an acronym token in the text, or null.
+  function initialsCompany(knownCompanies, text) {
+    const toks = s(text).match(/\b[A-Z]{2,6}\b/g) || [];
+    if (!toks.length) return null;
+    for (const kc of knownCompanies || []) {
+      if (!kc) continue;
+      const words = s(kc).split(/[^A-Za-z]+/).filter(Boolean);
+      if (words.length < 2) continue;
+      if (toks.includes(words.map((w) => w[0]).join("").toUpperCase())) return kc;
+    }
+    return null;
+  }
+  // The RCA assertion gate for user reports. Returns { clause, class }
+  // for the first clause that is the user's OWN asserted outcome —
+  // first-person, non-negated, non-conditional, non-interrogative,
+  // unquoted — and null for every other form (a question, an "if…", a
+  // negation, a quoted or third-party report, marketing noise): those
+  // write NOTHING. The stored evidence is the clause, verbatim.
+  function signalClassOf(text) {
+    for (const [cls, re] of SIGNAL_RULES) if (re.test(text)) return cls;
+    return null;
+  }
+  const NEG_KEYWORD = { rejection: /reject|turned|unsuccessful/, offer: /offer/, accepted: /accept|offer/, interview_invite: /interview|invit|call|screen/, oa_invite: /assessment|challenge|hackerrank|codility|codesignal|\boa\b/, confirmation: /confirm|received|application/ };
+  function segmentNegated(segLc, cls) {
+    const kw = NEG_KEYWORD[cls]; if (!kw) return false;
+    const negRe = /\b(didn'?t|did not|don'?t|do not|haven'?t|hasn'?t|hadn'?t|wasn'?t|weren'?t|isn'?t|aren'?t|can'?t|couldn'?t|not|no|never)\b/g;
+    let m; while ((m = negRe.exec(segLc))) { if (kw.test(segLc.slice(m.index + m[0].length, m.index + m[0].length + 42))) return true; }
+    return false;
+  }
+  function userAssertionOf(rawText) {
+    // Quoted spans are someone else's speech, never the user's assertion.
+    const unquoted = s(rawText).replace(/["“][^"”]*["”]/g, " ");
+    const segments = unquoted.split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
+    for (const seg of segments) {
+      const segLc = lc(seg);
+      if (/\b(job alert|newsletter|webinar|% off|sale ends|unsubscribe|jobs you might like|marketing)\b/.test(segLc)) continue; // marketing noise opens nothing
+      if (seg.includes("?") || /^(did|do|does|will|would|can|could|have|has|is|are|was|were|what|why|when|how|should)\b/.test(segLc)) continue; // interrogative
+      if (/^(if|suppose|imagine|what if)\b/.test(segLc) || /\bif\b/.test(segLc)) continue; // conditional / hypothetical
+      if (/\b(my friend|my brother|my sister|my roommate|my classmate|my coworker|my colleague|my partner|she|he)\s+(got|received|accepted|was|landed)\b/.test(segLc)) continue; // third-party report
+      // The move-forward idiom is a rejection EVENT, not a negation of
+      // one — normalize it before the negation check so "didn't move
+      // forward" asserts while "didn't reject me" does not.
+      const segA = seg.replace(/\b(didn'?t|did not|doesn'?t|not|n'?t|won'?t|will not|are not|is not|aren'?t)\s+(be\s+)?mov(e|ing) forward\b/gi, "rejected")
+        .replace(/\b(moving|move) forward with other\b/gi, "rejected")
+        .replace(/\bno longer (moving|proceeding)\b/gi, "rejected");
+      const cls = signalClassOf(segA);
+      if (!cls || cls === "recruiter_other") continue; // no outcome stated in this clause
+      if (segmentNegated(lc(segA), cls)) continue; // negated: the event did not happen
+      const firstPerson = /\b(i|me|my|mine)\b/.test(segLc)
+        || /^\s*(just\s+|so\s+|well\s+)?(got|received)\b/.test(segLc)
+        || /^\s*(a\s+|the\s+)?(rejection|offer|interview|assessment|confirmation)\b/.test(segLc);
+      if (!firstPerson) continue;
+      return { clause: seg, class: cls };
+    }
+    return null;
+  }
   function classifyMessage(msg, knownCompanies) {
-    const text = `${s(msg.subject)}\n${s(msg.body)}`;
+    const text = `${s(msg.subject)}\n${s(msg.body)}\n${s(msg.text)}`;
     const fromLc = lc(msg.from);
     let company = msg.company || null;
     if (!company && knownCompanies) {
       company = (knownCompanies || []).find((c) => { const n = normCo(c); return n && (lc(text).includes(lc(c)) || fromLc.includes(n.split(" ")[0])); }) || null;
     }
+    if (!company && knownCompanies) {
+      // BUG-217: an acronym in the text binds to the known company whose
+      // initials it is ("HRT sent me…" -> the Hudson River Trading row).
+      company = initialsCompany(knownCompanies, text);
+    }
+    if (!company && channelOf(msg) === "user") company = extractNamedCompany(text);
     if (!company && msg.company_domain) company = msg.company_domain;
     const noise = () => ({ message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] });
     if (MARKETING_SUBJECT.test(s(msg.subject)) || /(digest@|job-?alerts?@|newsletter@)/i.test(fromLc)) return noise();
     for (const [cls, re] of SIGNAL_RULES) {
       if (cls === "recruiter_other") continue; // weakest signal: checked after the noise patterns
-      if (re.test(text)) return { message_id: msg.id || null, class: cls, is_signal: true, decision: ["rejection", "offer"].includes(cls), company, reasons: [`matched ${cls} pattern`] };
+      if (re.test(text)) return { message_id: msg.id || null, class: cls, is_signal: true, decision: ["rejection", "offer", "accepted"].includes(cls), company, reasons: [`matched ${cls} pattern`] };
     }
     for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return noise();
     const roRe = SIGNAL_RULES.find(([cls]) => cls === "recruiter_other")[1];
@@ -171,16 +273,56 @@ const CareerTrack = (() => {
     }
     return { message_id: msg.id || null, class: "unknown", is_signal: false, decision: false, company, reasons: ["no signal pattern matched — treated as no-signal"] };
   }
-  const CLASS_TO_STAGE = { confirmation: "Confirmed", rejection: "Rejected", oa_invite: "OA/assessment", interview_invite: "Interview rounds", offer: "Offer" };
+  const CLASS_TO_STAGE = { confirmation: "Confirmed", rejection: "Rejected", oa_invite: "OA/assessment", interview_invite: "Interview rounds", offer: "Offer", accepted: "Accepted" };
   // Ingest one message: classify, link to the log row, move stage, attach evidence + side records.
   function ingestMessage(store, msg, opts) {
     opts = opts || {}; const now = opts.now || Date.parse(msg.at || Date.now()) || Date.now();
     const rows = rowsOf(store);
-    const cls = classifyMessage(msg, rows.map((r) => r.company).concat(opts.knownCompanies || []));
+    // BUG-217: the channel decides provenance and, for a user report,
+    // whether the words may write at all. A user's first-person event
+    // report IS the assertion (RCA invariant); any other form — a
+    // question, a conditional, a negation, a quoted or third-party
+    // report — writes nothing and returns unlinked.
+    const channel = channelOf(msg, opts);
+    const eventSource = channel === "user" ? "user-reported" : "inbox";
+    let cls = classifyMessage(msg, rows.map((r) => r.company).concat(opts.knownCompanies || []));
+    let assertion = null;
+    if (channel === "user") {
+      assertion = userAssertionOf(`${s(msg.subject)}\n${s(msg.body)}\n${s(msg.text)}`);
+      if (!assertion) return { classification: cls, linked: false, moved: false, alert: null, source: eventSource, reason: "not an asserted outcome in the user's own words — question, conditional, negated, quoted/third-party and noise forms write nothing (RCA assertion invariant)" };
+      // The asserted clause's class and company win over whole-text
+      // classification: the clause is the event, the rest is commentary.
+      // A clause company that resolves to a known row — exactly, or as
+      // its acronym ("HRT") — binds under the row's full name; only an
+      // unresolved name is carried raw.
+      let segCompany = extractNamedCompany(assertion.clause);
+      if (segCompany) {
+        const knownNames = rows.map((r) => r.company).concat(opts.knownCompanies || []);
+        const hit = knownNames.find((kc) => { const kn = normCo(kc), sn = normCo(segCompany); return kn && sn && (kn === sn || kn.includes(sn) || sn.includes(kn)); }) || initialsCompany(knownNames, segCompany);
+        if (hit) segCompany = hit;
+      }
+      cls = { message_id: msg.id || null, class: assertion.class, is_signal: true, decision: ["rejection", "offer", "accepted"].includes(assertion.class), company: segCompany || cls.company || extractNamedCompany(s(msg.body) || s(msg.text)) || null, reasons: [`matched ${assertion.class} in the user's own first-person report`] };
+    }
     if (!cls.is_signal) return { classification: cls, linked: false, moved: false, alert: null, reason: "no-signal: stage unchanged" };
     const stage = CLASS_TO_STAGE[cls.class];
-    let app = cls.company ? findByCompany(store, cls.company) : null;
+    // Binding order (BUG-217): by app_id first (the caller's explicit
+    // pointer — how a company-less report binds to a known application),
+    // then by named company. NEVER a fuzzy match onto a not-stated row:
+    // findByCompany already refuses empty normalized names.
+    let app = null;
+    const appId = (msg && (msg.app_id || msg.appId)) || (opts && (opts.app_id || opts.appId)) || null;
+    if (appId) app = rows.find((r) => r.app_id === appId) || null;
+    if (!app && cls.company) app = findByCompany(store, cls.company);
     let openedNotStated = false;
+    let openedNamed = false;
+    if (!app && cls.company && stage) {
+      // BUG-217: a signal naming a company with no log row opens that
+      // company's record and lands on it — the event is a detected job
+      // event (TN-1a's spirit: every detected job gets its record); the
+      // old code dropped it as "no matching application in the log".
+      app = addApplication(store, { company: cls.company, role: s(msg.title || msg.role || ""), event_source: eventSource, applied_at: new Date(now).toISOString(), stage: "Submitted" }, { now });
+      openedNamed = true;
+    }
     if (!app && !cls.company && stage) {
       // TN-1a (owner ruling, 2026-10-14): a detected job event whose
       // message names no company still gets its tracking record — the
@@ -189,22 +331,27 @@ const CareerTrack = (() => {
       // (company: null + marker), never invented. Noise never reaches
       // here (no-signal returned above) and a class with no stage
       // (recruiter_other) opens no record.
-      app = addApplication(store, { company: null, company_not_stated: true, role: s(msg.title || msg.subject || ""), event_source: "inbox", applied_at: new Date(now).toISOString(), stage: "Submitted" }, { now });
+      app = addApplication(store, { company: null, company_not_stated: true, role: channel === "user" ? s(msg.title || msg.role || "") : s(msg.title || msg.subject || ""), event_source: eventSource, applied_at: new Date(now).toISOString(), stage: "Submitted" }, { now });
       openedNotStated = true;
     }
     if (!app) return { classification: cls, linked: false, moved: false, alert: null, reason: `signal for ${cls.company || "unknown company"} but no matching application in the log` };
-    const out = { classification: cls, linked: true, application: app.company, ...(openedNotStated ? { company_not_stated: true } : {}), moved: false, alert: null };
+    const out = { classification: cls, linked: true, application: app.company, app_id: app.app_id, source: eventSource, ...(openedNotStated ? { company_not_stated: true } : {}), ...(openedNamed ? { opened_named: true } : {}), moved: false, alert: null };
     if (stage && app.stage !== stage && !TERMINAL.includes(app.stage)) {
-      moveStage(app, stage, { type: cls.class, source: "inbox", detail: `${cls.class} detected in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null }, now);
+      // Evidence (BUG-217): an inbox event cites its message; a user
+      // report stores the user's verbatim clause — that clause IS the
+      // evidence the state write stands on.
+      moveStage(app, stage, channel === "user"
+        ? { type: cls.class, source: eventSource, detail: `${cls.class} reported by the user in their own words: "${assertion.clause}"`, evidence: assertion.clause }
+        : { type: cls.class, source: eventSource, detail: `${cls.class} detected in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null }, now);
       out.moved = true; out.stage_after = stage;
     } else { out.stage_after = app.stage; }
     out.alert = { kind: cls.class, company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), stage_after: out.stage_after, at: new Date(now).toISOString(), text: app.company_not_stated ? notStatedAlertText(cls.class) : alertText(cls.class, app) };
     if (cls.class === "recruiter_other") { // SC-125: a real recruiter signal with no decision — recorded on the log row (it is the last signal, and it resets the quiet clock honestly) but it NEVER moves a stage.
-      app.events.push({ type: "recruiter_other", at: new Date(now).toISOString(), source: "inbox", detail: `recruiter message classified recruiter_other (no decision stated) in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null });
+      app.events.push({ type: "recruiter_other", at: new Date(now).toISOString(), source: eventSource, detail: `recruiter message classified recruiter_other (no decision stated) in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null });
     }
     if (cls.class === "interview_invite") { // SC-064: calendar record attached + F09 prep seam noted
       out.calendar_event = { title: `Interview — ${coLabel(app.company, app.company_not_stated)} (${app.role})`, company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
-      app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: "inbox", detail: out.calendar_event.title, evidence: msg.id || null });
+      app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: eventSource, detail: out.calendar_event.title, evidence: channel === "user" ? assertion.clause : (msg.id || null) });
     }
     if (cls.class === "oa_invite") { // SC-071/SC-126: agent NEVER takes it; a dated message sets the deadline + queues prep
       const dl = extractMessageDate(msg); if (dl && !app.assessment_deadline) app.assessment_deadline = dl;
@@ -218,13 +365,13 @@ const CareerTrack = (() => {
     return out;
   }
   function alertText(cls, app) {
-    return { confirmation: `${app.company}: application confirmed.`, rejection: `${app.company} rejected this application — see the pattern note and plan.`, oa_invite: `${app.company} sent an online assessment. I can schedule, remind and prep — I do not take assessments.`, interview_invite: `${app.company} invited you to interview. Prep triggered.`, offer: `${app.company} sent an offer. Deadline tracking is on.`, recruiter_other: `${app.company} recruiter emailed.` }[cls] || `${app.company}: new signal.`;
+    return { confirmation: `${app.company}: application confirmed.`, rejection: `${app.company} rejected this application — see the pattern note and plan.`, oa_invite: `${app.company} sent an online assessment. I can schedule, remind and prep — I do not take assessments.`, interview_invite: `${app.company} invited you to interview. Prep triggered.`, offer: `${app.company} sent an offer. Deadline tracking is on.`, accepted: `${app.company}: you accepted the offer — recorded as the outcome.`, recruiter_other: `${app.company} recruiter emailed.` }[cls] || `${app.company}: new signal.`;
   }
   // TN-1a: the same alerts for a record whose company is not stated —
   // the event is reported in full; the missing name is stated, never
   // filled in and never rendered as "null".
   function notStatedAlertText(cls) {
-    return { confirmation: "Application confirmed — the message names no company, so the tracker record carries the company as not stated.", rejection: "A rejection landed — the message names no company, so it is recorded as not stated; see the pattern note and plan.", oa_invite: "An online assessment arrived from a company the message does not name — recorded as not stated. I can schedule, remind and prep — I do not take assessments.", interview_invite: "An interview invite arrived from a company the message does not name — recorded as not stated. Prep triggered.", offer: "An offer arrived from a company the message does not name — recorded as not stated. Deadline tracking is on.", recruiter_other: "A recruiter emailed — the message names no company, so it is recorded as not stated." }[cls] || "New signal recorded — the message names no company, so the company is recorded as not stated.";
+    return { confirmation: "Application confirmed — the message names no company, so the tracker record carries the company as not stated.", rejection: "A rejection landed — the message names no company, so it is recorded as not stated; see the pattern note and plan.", oa_invite: "An online assessment arrived from a company the message does not name — recorded as not stated. I can schedule, remind and prep — I do not take assessments.", interview_invite: "An interview invite arrived from a company the message does not name — recorded as not stated. Prep triggered.", offer: "An offer arrived from a company the message does not name — recorded as not stated. Deadline tracking is on.", accepted: "An offer acceptance was reported for a company the message does not name — recorded as not stated, as the outcome.", recruiter_other: "A recruiter emailed — the message names no company, so it is recorded as not stated." }[cls] || "New signal recorded — the message names no company, so the company is recorded as not stated.";
   }
   function handleAssessment(app, msg, now) {
     return { will_take: false, statement: "I will not take this assessment for you — that would be dishonest and can get candidates banned (Doc 2 5.3).", actions: ["schedule a sitting time", "remind before the deadline", "offer prep"], prep_pack_queued: true, company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), deadline: app.assessment_deadline || null, received_at: new Date(now || Date.now()).toISOString(), source_message: msg && msg.id || null };
@@ -509,7 +656,7 @@ const CareerTrack = (() => {
   return { STAGES, TERMINAL, OPEN, NUDGE_AFTER_DAYS, GHOST_AFTER_DAYS, DEFAULT_COOLDOWN_DAYS, QUIET_HOURS, SEED_NOW,
     createMemoryStore, rowsOf, addApplication, findByCompany, moveStage, manualUpdate,
     statusSummary, statusByCompany, timeline, lastSignalAt,
-    classifyMessage, ingestMessage, handleAssessment,
+    classifyMessage, ingestMessage, handleAssessment, channelOf, userAssertionOf, extractNamedCompany,
     quietReport, markGhosted, draftNudge, draftThankYou, draftRecruiterReply, ghostedOptions,
     weeklyDigest, dailyDigest, planDelivery, funnelAnalytics, rejectionAnalysis, resumeVersionVerdict,
     deadlineRadar, extractCirDeadlines, offerCountdown, offerEscalation, extractMessageDate,

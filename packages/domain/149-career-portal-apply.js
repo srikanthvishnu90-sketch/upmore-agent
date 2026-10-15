@@ -479,7 +479,10 @@ const CareerPortalApply = (() => {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId });
-      return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
+      // The step log is the run's audit trail — the armed-success return
+      // carries it like every other return (its omission hid the D11
+      // doorstep repair from the record; caught by the BUG-207 guards).
+      return Object.assign(base(), { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep });
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
     session.needsReconcile = true;

@@ -33552,7 +33552,7 @@ const CareerRouter = (() => {
         // the build target.
         const wantN = Number((t.match(/(\d+)\s+(reusable\s+)?stories/) || [])[1]) || null;
         const reply = compose({ headline: "Your STAR bank is empty — no stories are mined from your profile yet.", facts: [`A bank is your real experiences shaped into Situation, Task, Action, Result stories you can reuse across rounds; the profile on record names your roles and facts, but no experience is attached as a mineable story yet, so ${wantN ? `the ${wantN} reusable stories you asked for do` : "the bank does"} not exist to hand you.`, "Nothing gets invented to fill it: a rehearsed story you cannot defend collapses under the first follow-up question."], nextStep: "Tell me one real experience — a project, a deadline, a team that shipped — and I will shape it into your first story." });
-        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story_bank: bank, payload: bank };
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story_bank: bank, brief: bank, payload: bank };
       }
       // The brief's own record, spoken: bar, loop, screening
       // signals, the story-mapping state, and the likely questions —

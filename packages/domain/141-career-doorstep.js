@@ -1279,13 +1279,16 @@ const CareerDoorstep = (() => {
       } catch { return String(e.start || "the offered time"); }
     };
     const offered = evaluations.map((e) => fmtSlot(e)).join(" or ");
-    const freeNames = evaluations.filter((e) => !e.conflict).map((e) => fmtSlot(e).split(" at ")[0]);
+    // Distinct free DAYS, named once each — three slots on one morning
+    // are one free day, not the same day repeated per slot.
+    const freeDays = [...new Set(evaluations.filter((e) => !e.conflict).map((e) => fmtSlot(e).split(" at ")[0]))];
+    const freePhrase = freeDays.length > 1 ? `${freeDays.slice(0, -1).join(", ")} and ${freeDays[freeDays.length - 1]} are free` : freeDays.length === 1 ? `${freeDays[0]} is free` : "the proposed time is free";
     return {
       intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
       ...art,
       reply: proposed.conflict
         ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the offered times are ${offered}, and ${freeNames.length ? `${freeNames.join(" and ")} is free` : "the proposed time is free"} on the calendar in context and outside quiet hours. Nothing has been booked or sent: approve the card and that time goes to them as the proposal — nothing is booked until they confirm.`,
+        : `Prepared the calendar proposal card for "${title}" — the offered times are ${offered}, and ${freePhrase} on the calendar in context and outside quiet hours. Nothing has been booked or sent: approve the card and that time goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 

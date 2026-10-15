@@ -227,3 +227,72 @@ test("BUG-136: brief replies speak bar, loop, and story state; coffee chats spea
   const t195 = text(turn("SC-195"));
   assert.ok(!/matched to this panel/.test(t195) && /No team fact was supplied/.test(t195), `SC-195: ${t195.slice(0, 200)}`);
 });
+
+// ================= TRACK (BUG-137..BUG-140) =================
+
+// ---- BUG-137: stage announcements speak the event, its true
+// source, and the company state the record carries ----
+test("BUG-137: announcements name the event, its source, and its next step", () => {
+  const t122 = text(turn("SC-122"));
+  assert.ok(/Confirmation logged/.test(t122) && /came from the confirmation email itself/.test(t122), `SC-122: ${t122.slice(0, 160)}`);
+  assert.ok(/carried as company not stated/.test(t122), "SC-122: TN-1a state spoken");
+  assert.ok(!/Want the detail behind the new stage\?/.test(t122), "SC-122: detail-tease closer gone");
+  const t138 = text(turn("SC-138"));
+  assert.ok(/Logged: interview at Ramp/.test(t138), `SC-138: ${t138.slice(0, 120)}`);
+  assert.ok(/from your message just now, not from an email/.test(t138), "SC-138: chat provenance told truly");
+  assert.ok(!/came from the email itself/.test(t138), "SC-138: false email provenance gone");
+  const t126 = text(turn("SC-126"));
+  assert.ok(/Assessment logged/.test(t126) && /prep pack for this assessment now\?/.test(t126), `SC-126: ${t126.slice(0, 160)}`);
+  const t127 = text(turn("SC-127"));
+  assert.ok(/Offer logged/.test(t127) && /offer terms — base, bonus, expiry — laid out now\?/.test(t127), `SC-127: ${t127.slice(0, 160)}`);
+  const t123 = text(turn("SC-123"));
+  assert.ok(/Rejection logged/.test(t123) && /came from the rejection email itself/.test(t123) && /full what-to-tighten note now\?/.test(t123), `SC-123: ${t123.slice(0, 160)}`);
+});
+
+// ---- BUG-138: an empty tracker answers in the shape of the ask ----
+test("BUG-138: empty-tracker replies take the ask's shape", () => {
+  const t134 = text(turn("SC-134"));
+  assert.ok(/Your offer expires Friday — I will flag it daily until you decide/.test(t134), `SC-134: ${t134.slice(0, 120)}`);
+  const t139 = text(turn("SC-139"));
+  assert.ok(/labeled ghosted/.test(t139) && /one follow-up/.test(t139), `SC-139: ${t139.slice(0, 140)}`);
+  const t140 = text(turn("SC-140"));
+  assert.ok(/Done — low-priority alerts are folded into the morning digest during your quiet hours\./.test(t140), `SC-140: ${t140.slice(0, 120)}`);
+  const t121 = text(turn("SC-121"));
+  assert.ok(/Tell me about any application you have already sent, and I will log it first\./.test(t121), `SC-121: ${t121.slice(-120)}`);
+  assert.ok(!/Find a role and I will start the tracker with it\./.test(t121), "SC-121: generic closer gone");
+});
+
+// ---- BUG-139: drafts are shown or their missing input is named —
+// never described as if they existed ----
+test("BUG-139: nudge, thank-you, and classification speak their true state", () => {
+  const t129 = text(turn("SC-129"));
+  assert.ok(/The thank-you is not drafted yet/.test(t129), `SC-129: ${t129.slice(0, 120)}`);
+  assert.ok(!/drafted from your note/.test(t129), "SC-129: no note claimed that the record does not hold");
+  const t125 = text(turn("SC-125"));
+  assert.ok(/sounds positive but has not confirmed anything/.test(t125), `SC-125: ${t125.slice(0, 200)}`);
+  assert.ok(!/positive ready/.test(t125), "SC-125: label fragment gone");
+  const t128 = text(turn("SC-128"));
+  assert.ok(/needs the application it belongs to/.test(t128), `SC-128: ${t128.slice(0, 140)}`);
+  assert.ok(!/references the exact role and date from the tracker/.test(t128), "SC-128: undescribed-draft claim gone");
+});
+
+// ---- BUG-140: digests, funnel, season, and briefs speak their
+// records' numbers ----
+test("BUG-140: track summaries speak their records", () => {
+  const t131 = text(turn("SC-131"));
+  assert.ok(/Sent 0, replies 0, interviews 0/.test(t131), `SC-131: ${t131.slice(0, 160)}`);
+  const t133 = text(turn("SC-133"));
+  assert.ok(!/wearing a suit/.test(t133) && /referral and cold rates can be compared honestly/.test(t133), `SC-133: ${t133.slice(0, 200)}`);
+  const t141 = text(turn("SC-141"));
+  assert.ok(/0 applications across 0 active weeks/.test(t141) && !/week\(s\)/.test(t141), `SC-141: ${t141.slice(0, 160)}`);
+  const t144 = text(turn("SC-144"));
+  assert.ok(/ready to log — give me the number and the company/.test(t144), `SC-144: ${t144.slice(0, 140)}`);
+  const t145 = text(turn("SC-145"));
+  assert.ok(/The retro in numbers: 0 applications/.test(t145), `SC-145: ${t145.slice(0, 160)}`);
+  const t135 = text(turn("SC-135"));
+  assert.ok(/Your interview brief for Thursday at 2:00 PM\./.test(t135) && /(January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}/.test(t135), `SC-135: ${t135.slice(0, 200)}`);
+  const t136 = text(turn("SC-136"));
+  assert.ok(/Your prep order for both interviews\./.test(t136), `SC-136: ${t136.slice(0, 120)}`);
+  const t137 = text(turn("SC-137"));
+  assert.ok(!/Something went wrong/.test(t137) && /no other live applications to withdraw/.test(t137), `SC-137: ${t137.slice(0, 140)}`);
+});

@@ -2003,7 +2003,7 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 256 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 361
+Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 362
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2368,8 +2368,9 @@ Counts: ENFORCED 256 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-359 (BUG-202) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-202 |
 | FR-360 (BUG-203) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 + 3 more (see section) |
 | FR-361 (BUG-204) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-204 (see section) |
+| FR-362 (BUG-205) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-205 (see section) |
 
-<!-- totals: total=361 enforced=256 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=362 enforced=257 guarded_red=1 hard_shut=1 unenforced=103 -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2498,3 +2499,7 @@ Counts: ENFORCED 256 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-361 — Spoken text never outruns, under-runs, or re-cans its record (BUG-204)
 - **RULE:** A reply's claims must reconcile with what the user can see and what the record holds: a count spoken equals the count shown (every brief question the count claims is printed); a timeline never contradicts the caps stated beside it (closed sets pace by window arithmetic); a category the user named is never handed back as the product's proposal, and a category plan names the concrete universe it builds from; dated milestones state their anchor; file prose is voiced before it is spoken (the file's own past-tense verbs are never this turn's claims, in details, evidence, or route names); advice records open with a bottom line under 30 words (the F7 contract) and carry no claim-verb adjectives or finance-sense nouns; an auto-apply ask hears the doorstep rule — no override — before the packet; a proposal names its pick first; a note's substance rides the reply, not a description of its method; and per-role reasons differ because the roles' records differ.
 - **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-204 (13 tests: proposed-set windows, user-category framing, safety-plan anchor, coffee-chat visible count, quant-set purity, jargon ban, note substance, pick-first, not-found closer, autopilot rule, fixture-marker ban, file-prose voicing, F7 bottom lines).
+
+### FR-362 — An absence is stated once, in the position the shape can bear — and never contradicted by the same reply (BUG-205)
+- **RULE:** A missing record (no company file, an empty graph, an empty log) is admitted exactly once per reply, placed where the ask's shape can bear it — never inside a roleplay's character, never duplicated across bubbles, never as filler in a sequence answer. No reply may claim work product from a record it admits does not exist (no sentence "drafted from that range" beside the range's absence; no script described as a product instead of delivered word for word when the ask demands the words). One template never serves materially different asks: keep-warm, timing, and status answers compose from the ask's own premise. A counted ask answered short states the shortfall and never pads; a tie is called a tie-break. Empty-state closers point at the step that fills the state (first win, first target, the one input), never at adjusting or exporting what does not exist. A support reply picks the one step itself — it never ends by asking the user to supply the plan's premise. A halt's next step belongs to the product (it reconciles on load), never to the user being told to report back.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-205 (4 tests: negotiation absence-once + script delivery, per-ask keep-warm/timing + printed note + unlocking closers, OS shortfall/tie/rungs/grounding/picked step/quoted fallback/halt ownership, leftover closers + universe dedupe + shown ramp arithmetic).

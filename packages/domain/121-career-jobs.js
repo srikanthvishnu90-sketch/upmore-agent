@@ -805,8 +805,8 @@ const CareerJobs = (() => {
     const jdWords = new Set(jd.split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
     const overlap = [...profileWords].filter((w) => jdWords.has(w)).length;
     expScore += Math.min(13, overlap);
-    if (overlap >= 5) reasons.push(`your experience language overlaps this description (${overlap} shared terms)`);
-    else gaps.push(`little overlap between your experience and this description (${overlap} shared terms)`);
+    if (overlap >= 5) reasons.push(`your own experience wording shares ${overlap} terms with this posting's text`);
+    else gaps.push(`little overlap between your experience wording and this posting's text (${overlap} shared terms)`);
     if (missing.length && matched.length) gaps.push(`your other profile skills not mentioned here: ${missing.slice(0, 5).map((x) => x.name).join(", ")}`);
     // company preference: 0-15, starred first
     let companyScore = 0;

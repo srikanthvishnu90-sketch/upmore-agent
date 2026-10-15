@@ -372,8 +372,15 @@ const CareerOnboarding = (() => {
       // SC-272 — skill gap vs the higher-paying postings (129 COS-002)
       if (/\bskill gap\b|\bskills between me and\b|\bnext pay band\b/.test(t)) {
         const sg = OS.skillGap({ profileSkills: profileSkills(profile), postings, cirs: c.cirs || [] });
-        const head = sg.gaps.length
-          ? `The skills between you and the next pay band, in learn order: ${sg.gaps.slice(0, 3).map((g) => `${g.skill} (named in ${g.postings} of the higher-paying postings)`).join(", ")}. The order is by how many higher-paying postings — the ones stating a range — name each skill your profile does not list.`
+        // WORDING-BACKLOG (BUG-205): a three-skill ask answered by
+        // two evidenced skills must SAY the third is unevidenced
+        // (never padded), and a tie in the counts must be stated
+        // as a tie-break, not a measured order (SC-272).
+        const gaps = sg.gaps.slice(0, 3);
+        const countWord = /\bthree\b|\b3\b/.test(t) ? 3 : gaps.length;
+        const tie = gaps.length >= 2 && gaps[0].postings === gaps[1].postings;
+        const head = gaps.length
+          ? `The skills between you and the next pay band, in learn order: ${gaps.map((g) => `${g.skill} (named in ${g.postings} of the higher-paying postings)`).join(", ")}.${countWord > gaps.length ? ` Only ${gaps.length} evidenced ${gaps.length === 1 ? "skill stands" : "skills stand"} between you and the band — a ${countWord === 3 ? "third" : "further one"} is not invented to complete the count.` : ""} ${tie ? `Both lead skills are named in ${gaps[0].postings} posting${gaps[0].postings === 1 ? "" : "s"} each, so their order is a tie-break, not a measured gap: ${gaps[0].skill} first.` : "The order is by how many higher-paying postings — the ones stating a range — name each skill your profile does not list."}`
           : sg.statement;
         return { intent: "career_os_skill_gap", resultStatus: "completed", sends: 0, skill_gap: sg, payload: osPayload(sg, "skill-gap", undefined, iso), reply: `${head} Grounded in the postings on your feed with stated ranges, as of ${asOf}. ${sg.gaps.length ? `Want a learn plan for ${sg.gaps[0].skill} first?` : "Want the market-value read instead?"}` };
       }
@@ -383,8 +390,14 @@ const CareerOnboarding = (() => {
         const prefs = profile.preferences || {};
         const w = OS.createWatch(store, { companies: prefs.targetCompanies || [], role_families: [], locations: prefs.locations || [], keywords: [] }, { now: iso });
         const diff = OS.watchDiff(w, postings, postings);
-        const scope = [...(prefs.roles || []), ...(prefs.locations || [])].filter(Boolean).join(" in ");
-        return { intent: "career_os_watch", resultStatus: "completed", sends: 0, watch: w, watch_diff: diff, payload: w, reply: `Your passive watch is set — it reads the same boards as discovery and pings you when a fitting role posts, so a perfect fit never waits for you to go looking. It is watching for ${scope || "your saved role and location preferences"}, and nothing new matches since the last snapshot. ${ownRecord} Want the watch widened to neighbouring titles?` };
+        // WORDING-BACKLOG (BUG-205): the scope read as a chain of
+        // "in" fragments (role in title in city in remote). One
+        // clean line: role, then place/remote, then level (SC-273).
+        const role = (prefs.roles || [])[0] || "Software Engineer";
+        const place = (prefs.locations || [])[0] || "";
+        const remote = /remote/i.test(JSON.stringify(prefs.locations || [])) || /remote/i.test(s(profile.location_preference || ""));
+        const scopeLine = `It watches for ${role} roles${place ? ` in ${place}` : ""}${remote ? ", remote included" : ""} — a ping lands the moment a fitting one posts, and nothing new matches since the last snapshot.`;
+        return { intent: "career_os_watch", resultStatus: "completed", sends: 0, watch: w, watch_diff: diff, payload: w, reply: `Your passive watch is set — it reads the same boards as discovery and pings you when a fitting role posts, so a perfect fit never waits for you to go looking. ${scopeLine} ${ownRecord} Want the watch widened to neighbouring titles?` };
       }
       // SC-274 — network upkeep (129 COS-004)
       if (/\bnetwork upkeep\b|\bgoing cold\b|\bwarmest contacts\b/.test(t)) {
@@ -399,7 +412,7 @@ const CareerOnboarding = (() => {
         const store = osStore(c); if (!store) return null;
         const rp = OS.reviewPacket(store, { now: iso });
         const head = rp.count ? `Your review packet, built from the wins log alone: ${rp.count} win${rp.count === 1 ? "" : "s"} assembled, dated, in your own words.` : "Your review packet is built from the wins log alone, and the log is empty — so the packet is empty too. It assembles only from the log, never from memory.";
-        return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp, reply: `${head} ${ownRecord} Want the packet exported for your review meeting?` };
+        return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp, reply: `${head} ${ownRecord} ${rp.count ? "Want the packet exported for your review meeting?" : "Dictate the first win now — one line is enough — and the packet starts from it."}` };
       }
       // SC-275 — wins log state (129 COS-005/006 read side; nothing invented)
       if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
@@ -425,7 +438,7 @@ const CareerOnboarding = (() => {
         const g = OS.goalsCheckin(store, { now: iso });
         const r0 = g.reality;
         const goalLine = g.stated_goals.length ? `${g.stated_goals[0].goal} — ${g.stated_goals[0].status}.` : "No measurable goal is stored yet, so this check-in is where the first target gets set — the plan adjusts from the record, not from the story we prefer.";
-        return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, payload: osPayload(g, "goals-checkin", g.adjustment_prompt, iso), reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} Want to adjust a target, or hold the line?` };
+        return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, payload: osPayload(g, "goals-checkin", g.adjustment_prompt, iso), reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} ${g.stated_goals.length ? "Want to adjust a target, or hold the line?" : "Tell me the first target — a role, a date, a number — and the next check-in measures against it."}` };
       }
       // SC-280 — market-shift alert (129 COS-001 + COS-003 compBandShift)
       if (/\bmarket-shift\b|\bpay band moved\b|\bcomp band\b/.test(t)) {
@@ -451,7 +464,15 @@ const CareerOnboarding = (() => {
         if (!path) return null;
         const ans = Paths.answerPath(path, null, {});
         const first = (x) => String(x || "").split(/(?<=[.!?])\s/)[0];
-        return { intent: "career_os_path", resultStatus: "prepared", sends: 0, path_answer: ans, payload: osPayload(ans, "career-path", ans && ans.text, iso), reply: `The two-year re-route, rung by rung from where you actually stand. First rung: ${path.ladder[0].step} — ${first(path.ladder[0].note)} Then: ${path.ladder[1].step}. ${path.plan.year[0]} Grounded in the published path record and its listed sources, as of ${asOf}. Want rung one turned into this quarter's applications?` };
+        // WORDING-BACKLOG (BUG-205): the old template printed the
+        // rung's own "First rung:" prefix twice and spoke rung two
+        // as a bare label ("Then: Proof artifacts."). Each rung now
+        // carries its role, a target date inside the two years,
+        // and the proof it must produce (its note) (SC-282).
+        const rungName = (x) => String((x && x.step) || "").replace(/^(first|second|third|fourth) rung:\s*/i, "").replace(/^[A-Z]/, (ch) => ch.toLowerCase());
+        const byWhen = (months) => { const d = new Date(osNow(c).getTime() + months * 30.44 * 864e5); return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(d); };
+        const r1 = path.ladder[0] || {}; const r2 = path.ladder[1] || {};
+        return { intent: "career_os_path", resultStatus: "prepared", sends: 0, path_answer: ans, payload: osPayload(ans, "career-path", ans && ans.text, iso), reply: `The two-year re-route, rung by rung from where you actually stand. Rung one, by ${byWhen(6)}: ${rungName(r1)} — ${first(r1.note)} Rung two, by ${byWhen(18)}: ${rungName(r2)} — ${first(r2.note)} ${path.plan.year[0]} Grounded in the published path record and its listed sources, as of ${asOf}. Want rung one turned into this quarter's applications?` };
       }
       // SC-284 — mentor map (135 mentorMap over the user's own graph)
       if (/\bmentor map\b/.test(t)) {

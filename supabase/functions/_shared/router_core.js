@@ -21343,8 +21343,8 @@ const CareerJobs = (() => {
     const jdWords = new Set(jd.split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
     const overlap = [...profileWords].filter((w) => jdWords.has(w)).length;
     expScore += Math.min(13, overlap);
-    if (overlap >= 5) reasons.push(`your experience language overlaps this description (${overlap} shared terms)`);
-    else gaps.push(`little overlap between your experience and this description (${overlap} shared terms)`);
+    if (overlap >= 5) reasons.push(`your own experience wording shares ${overlap} terms with this posting's text`);
+    else gaps.push(`little overlap between your experience wording and this posting's text (${overlap} shared terms)`);
     if (missing.length && matched.length) gaps.push(`your other profile skills not mentioned here: ${missing.slice(0, 5).map((x) => x.name).join(", ")}`);
     // company preference: 0-15, starred first
     let companyScore = 0;
@@ -24930,7 +24930,7 @@ const CareerIntel = (() => {
       return { action: "support", text: "I hear you, and the career stuff can wait. Please reach out now: in the US you can call or text 988 (Suicide and Crisis Lifeline) any time, or text HOME to 741741. If you might act on this, call 911. You matter more than any application. When you're ready, I'm here — no grilling, at your pace." };
     }
     if (/(i'?m a failure|i feel like a failure|everyone is ahead of me|i'?ll never get in|hopeless about)/i.test(t)) {
-      return { action: "support", text: "You're not a failure — you're early in a process whose timelines are genuinely brutal and mostly hidden. Honest version: your current position is a starting point, not a verdict, and there are routes from it. Let's pick the single highest-leverage next step and do just that one. Which target should we plan around?" };
+      return { action: "support", text: "You're not a failure — you're early in a process whose timelines are genuinely brutal and mostly hidden. Honest version: your current position is a starting point, not a verdict, and there are routes from it. So the plan shrinks to one doable step, and here it is, picked: today, write down the one role you want next and the one person who could open a door to it. That is the whole task for today — small, real, and it counts." };
     }
     const fabrication = [
       /\b(fabricat|falsif|lie|lying|fake|make up|invent|exaggerate)\b[^.]*\b(resume|cv|experience|internship|gpa|credential|reference)\b/i,
@@ -28980,8 +28980,15 @@ const CareerOnboarding = (() => {
       // SC-272 — skill gap vs the higher-paying postings (129 COS-002)
       if (/\bskill gap\b|\bskills between me and\b|\bnext pay band\b/.test(t)) {
         const sg = OS.skillGap({ profileSkills: profileSkills(profile), postings, cirs: c.cirs || [] });
-        const head = sg.gaps.length
-          ? `The skills between you and the next pay band, in learn order: ${sg.gaps.slice(0, 3).map((g) => `${g.skill} (named in ${g.postings} of the higher-paying postings)`).join(", ")}. The order is by how many higher-paying postings — the ones stating a range — name each skill your profile does not list.`
+        // WORDING-BACKLOG (BUG-205): a three-skill ask answered by
+        // two evidenced skills must SAY the third is unevidenced
+        // (never padded), and a tie in the counts must be stated
+        // as a tie-break, not a measured order (SC-272).
+        const gaps = sg.gaps.slice(0, 3);
+        const countWord = /\bthree\b|\b3\b/.test(t) ? 3 : gaps.length;
+        const tie = gaps.length >= 2 && gaps[0].postings === gaps[1].postings;
+        const head = gaps.length
+          ? `The skills between you and the next pay band, in learn order: ${gaps.map((g) => `${g.skill} (named in ${g.postings} of the higher-paying postings)`).join(", ")}.${countWord > gaps.length ? ` Only ${gaps.length} evidenced ${gaps.length === 1 ? "skill stands" : "skills stand"} between you and the band — a ${countWord === 3 ? "third" : "further one"} is not invented to complete the count.` : ""} ${tie ? `Both lead skills are named in ${gaps[0].postings} posting${gaps[0].postings === 1 ? "" : "s"} each, so their order is a tie-break, not a measured gap: ${gaps[0].skill} first.` : "The order is by how many higher-paying postings — the ones stating a range — name each skill your profile does not list."}`
           : sg.statement;
         return { intent: "career_os_skill_gap", resultStatus: "completed", sends: 0, skill_gap: sg, payload: osPayload(sg, "skill-gap", undefined, iso), reply: `${head} Grounded in the postings on your feed with stated ranges, as of ${asOf}. ${sg.gaps.length ? `Want a learn plan for ${sg.gaps[0].skill} first?` : "Want the market-value read instead?"}` };
       }
@@ -28991,8 +28998,14 @@ const CareerOnboarding = (() => {
         const prefs = profile.preferences || {};
         const w = OS.createWatch(store, { companies: prefs.targetCompanies || [], role_families: [], locations: prefs.locations || [], keywords: [] }, { now: iso });
         const diff = OS.watchDiff(w, postings, postings);
-        const scope = [...(prefs.roles || []), ...(prefs.locations || [])].filter(Boolean).join(" in ");
-        return { intent: "career_os_watch", resultStatus: "completed", sends: 0, watch: w, watch_diff: diff, payload: w, reply: `Your passive watch is set — it reads the same boards as discovery and pings you when a fitting role posts, so a perfect fit never waits for you to go looking. It is watching for ${scope || "your saved role and location preferences"}, and nothing new matches since the last snapshot. ${ownRecord} Want the watch widened to neighbouring titles?` };
+        // WORDING-BACKLOG (BUG-205): the scope read as a chain of
+        // "in" fragments (role in title in city in remote). One
+        // clean line: role, then place/remote, then level (SC-273).
+        const role = (prefs.roles || [])[0] || "Software Engineer";
+        const place = (prefs.locations || [])[0] || "";
+        const remote = /remote/i.test(JSON.stringify(prefs.locations || [])) || /remote/i.test(s(profile.location_preference || ""));
+        const scopeLine = `It watches for ${role} roles${place ? ` in ${place}` : ""}${remote ? ", remote included" : ""} — a ping lands the moment a fitting one posts, and nothing new matches since the last snapshot.`;
+        return { intent: "career_os_watch", resultStatus: "completed", sends: 0, watch: w, watch_diff: diff, payload: w, reply: `Your passive watch is set — it reads the same boards as discovery and pings you when a fitting role posts, so a perfect fit never waits for you to go looking. ${scopeLine} ${ownRecord} Want the watch widened to neighbouring titles?` };
       }
       // SC-274 — network upkeep (129 COS-004)
       if (/\bnetwork upkeep\b|\bgoing cold\b|\bwarmest contacts\b/.test(t)) {
@@ -29007,7 +29020,7 @@ const CareerOnboarding = (() => {
         const store = osStore(c); if (!store) return null;
         const rp = OS.reviewPacket(store, { now: iso });
         const head = rp.count ? `Your review packet, built from the wins log alone: ${rp.count} win${rp.count === 1 ? "" : "s"} assembled, dated, in your own words.` : "Your review packet is built from the wins log alone, and the log is empty — so the packet is empty too. It assembles only from the log, never from memory.";
-        return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp, reply: `${head} ${ownRecord} Want the packet exported for your review meeting?` };
+        return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp, reply: `${head} ${ownRecord} ${rp.count ? "Want the packet exported for your review meeting?" : "Dictate the first win now — one line is enough — and the packet starts from it."}` };
       }
       // SC-275 — wins log state (129 COS-005/006 read side; nothing invented)
       if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
@@ -29033,7 +29046,7 @@ const CareerOnboarding = (() => {
         const g = OS.goalsCheckin(store, { now: iso });
         const r0 = g.reality;
         const goalLine = g.stated_goals.length ? `${g.stated_goals[0].goal} — ${g.stated_goals[0].status}.` : "No measurable goal is stored yet, so this check-in is where the first target gets set — the plan adjusts from the record, not from the story we prefer.";
-        return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, payload: osPayload(g, "goals-checkin", g.adjustment_prompt, iso), reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} Want to adjust a target, or hold the line?` };
+        return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, payload: osPayload(g, "goals-checkin", g.adjustment_prompt, iso), reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} ${g.stated_goals.length ? "Want to adjust a target, or hold the line?" : "Tell me the first target — a role, a date, a number — and the next check-in measures against it."}` };
       }
       // SC-280 — market-shift alert (129 COS-001 + COS-003 compBandShift)
       if (/\bmarket-shift\b|\bpay band moved\b|\bcomp band\b/.test(t)) {
@@ -29059,7 +29072,15 @@ const CareerOnboarding = (() => {
         if (!path) return null;
         const ans = Paths.answerPath(path, null, {});
         const first = (x) => String(x || "").split(/(?<=[.!?])\s/)[0];
-        return { intent: "career_os_path", resultStatus: "prepared", sends: 0, path_answer: ans, payload: osPayload(ans, "career-path", ans && ans.text, iso), reply: `The two-year re-route, rung by rung from where you actually stand. First rung: ${path.ladder[0].step} — ${first(path.ladder[0].note)} Then: ${path.ladder[1].step}. ${path.plan.year[0]} Grounded in the published path record and its listed sources, as of ${asOf}. Want rung one turned into this quarter's applications?` };
+        // WORDING-BACKLOG (BUG-205): the old template printed the
+        // rung's own "First rung:" prefix twice and spoke rung two
+        // as a bare label ("Then: Proof artifacts."). Each rung now
+        // carries its role, a target date inside the two years,
+        // and the proof it must produce (its note) (SC-282).
+        const rungName = (x) => String((x && x.step) || "").replace(/^(first|second|third|fourth) rung:\s*/i, "").replace(/^[A-Z]/, (ch) => ch.toLowerCase());
+        const byWhen = (months) => { const d = new Date(osNow(c).getTime() + months * 30.44 * 864e5); return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(d); };
+        const r1 = path.ladder[0] || {}; const r2 = path.ladder[1] || {};
+        return { intent: "career_os_path", resultStatus: "prepared", sends: 0, path_answer: ans, payload: osPayload(ans, "career-path", ans && ans.text, iso), reply: `The two-year re-route, rung by rung from where you actually stand. Rung one, by ${byWhen(6)}: ${rungName(r1)} — ${first(r1.note)} Rung two, by ${byWhen(18)}: ${rungName(r2)} — ${first(r2.note)} ${path.plan.year[0]} Grounded in the published path record and its listed sources, as of ${asOf}. Want rung one turned into this quarter's applications?` };
       }
       // SC-284 — mentor map (135 mentorMap over the user's own graph)
       if (/\bmentor map\b/.test(t)) {
@@ -31032,7 +31053,7 @@ const CareerDoorstep = (() => {
         global_pause_set: true, pause_flag_set: true, global_pause: pause,
         halted_count: null, sent_count: null, in_flight_count: null, already_stopped_count: null, queue_total: null,
         queue_state: null,
-        reply: "Stopped everything I can reach: the global pause is now set for your account, which blocks every send path this product controls. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it.",
+        reply: "Stopped everything I can reach: the global pause is now set for your account, which blocks every send path this product controls. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — the moment the queue records load, I reconcile them and report the exact counts here; you do not need to ask again.",
       };
     }
     // Item accounting — every item lands in exactly one bucket, so the
@@ -32364,9 +32385,15 @@ const CareerRouter = (() => {
     } else if (/\bliving resume\b|\bpromotion\b|\bvariants refreshed\b/.test(at)) {
       // Before the variants branch: a living-resume rebuild that
       // mentions variants is a rebuild ask first.
-      savedFact = `The refreshed cut is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
-      groundedFact = "The rebuild re-cuts from your master profile as it stands today: the promotion shows only where a confirmed fact carries it — a new title is never invented onto the page.";
-      nextStep = "Review the refreshed cut — every variant re-cuts from this master.";
+      savedFact = `The refreshed cut is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}; the rebuild re-cuts from your master profile as it stands today, and a new title is never invented onto the page.`;
+      // WORDING-BACKLOG (BUG-205): the living-resume branch lost
+      // its dated grounding line and its packet closer in an
+      // earlier pass (SC-283's R-C5/H-12 loss) — the groundedFact
+      // slot carries the dated line again, and the rebuild
+      // honesty rides the saved fact above (one sentence each,
+      // because the composer keeps a fact's first sentence).
+      groundedFact = `Grounded in your own profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`;
+      nextStep = "Review the artifact, and I can prepare the full application packet next.";
     } else if (/\bvariants?\b/.test(at)) {
       const vm = String(_text || "").match(/\(([^)]+)\)/);
       const variants = vm ? vm[1].split(/\s*\/\s*/).map((x) => x.trim()).filter(Boolean) : [];
@@ -32960,7 +32987,7 @@ const CareerRouter = (() => {
       ? "The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield."
       : windowCap && count > windowCap
         ? `The caps shape the calendar: at most 15 to one firm in 30 days, and across the ${firmCount} firms ${q.firms_named ? "named" : "in the set"} that caps one 30-day window at ${windowCap} first emails — so ${count} run across ${Math.ceil(count / windowCap)} monthly windows, paced inside each window by the ramp (12 a day, rising by 5 every 3 days to a 30 ceiling).`
-        : `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`;
+        : `The caps shape the calendar: sending starts at 12 a day for three days, then 17, then 22, then 27, up to a 30 ceiling, at most 15 to one firm in 30 days — so the running total passes ${count} on day ${sendDays(count)}, and the true reachable count is whatever the sources actually yield.`;
     // WORDING-BACKLOG (BUG-125): the plan reply SPEAKS its target.
     // Every parsed facet gets its own sentence (the old if/else lead
     // chain spoke at most one filter and silently dropped the rest),
@@ -33051,9 +33078,20 @@ const CareerRouter = (() => {
     // The sources ride in every plan, not only single-firm ones —
     // a plan that names no source leaves the user unable to judge
     // what the list will actually be built from.
+    // WORDING-BACKLOG (BUG-205): for a category proposal the
+    // bubble-1 splice ("The universe is the one you named — …")
+    // and the standalone universe fact said the same thing twice
+    // in one reply (SC-028/029/060). The standalone fact — the
+    // one carrying the sourcing — stays; the splice is dropped.
+    const spliceIdx = isCategoryProposal && universeFact ? filterFacts.findIndex((f) => /^The universe is the one you named/.test(f)) : -1;
+    const factsBase = spliceIdx >= 0 ? filterFacts.filter((_, i) => i !== spliceIdx) : filterFacts;
+    // BUG-110's law survives the dedupe: a category proposal is
+    // still SPOKEN as a proposal — the framing rides the tail of
+    // the surviving universe fact instead of its own sentence.
+    const universeSpoken = universeFact && isCategoryProposal ? universeFact.replace(/\.$/, "") + " — it stands as the plan's starting proposal, with the build running on it now." : universeFact;
     const facts = singleFirm
-      ? [...filterFacts.slice(0, 5), sourcesFact]
-      : [...filterFacts.slice(0, universeFact ? 3 : 4), ...(universeFact ? [universeFact] : []), sourcesFact, capsFact];
+      ? [...factsBase.slice(0, 5), sourcesFact]
+      : [...factsBase.slice(0, universeSpoken ? 3 : 4), ...(universeSpoken ? [universeSpoken] : []), sourcesFact, capsFact];
     let nextStep;
     if (q && q.firms_source === "default") {
       // WORDING-BACKLOG (BUG-187): a proposed set or category is the
@@ -33062,8 +33100,12 @@ const CareerRouter = (() => {
       // I build it", and a category the user named is never handed
       // back to them as homework ("tell me the firms instead").
       nextStep = isCategoryProposal
-        ? "The starting set is being built from that category now — the found, trustworthy, and sendable counts come back here first, and drafting starts only when you approve the whole plan."
+        ? "The found, trustworthy, and sendable counts come back here first, and drafting starts only when you approve the whole plan."
         : "The build runs on the proposed set now — the found, trustworthy, and sendable counts come back here first, and drafting starts only when you approve the whole plan.";
+    } else if (bf.startup_stage) {
+      nextStep = "Reply with your export or pasted names and drafting starts on your word once the counts land.";
+    } else if (bf.state_schools || q.high_school_alumni) {
+      nextStep = "Reply with your export or your school's alumni list and the screen runs on real names first.";
     } else {
       nextStep = "The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.";
     }
@@ -33610,7 +33652,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: `You have ${env.paths.length} warm path${env.paths.length === 1 ? "" : "s"} into ${company}.`, facts, nextStep: "Pick a path and I will prepare the intro ask as a held card." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
     }
-    const reply = compose({ headline: `${company} has no path in your graph yet.`, facts: [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none of them is at ${company} now.`, "People who already left a firm never count as a path into it."], nextStep: "Upload your LinkedIn export or paste names from the firm's team page — want me to rebuild the paths from there?" });
+    const reply = compose({ headline: `${company} has no path in your graph yet.`, facts: [`Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none of them is at ${company} now.`, "People who already left a firm never count as a path into it."], nextStep: `Upload your LinkedIn export or paste names from ${company}'s team page, and I will rebuild the paths first — nothing is asked or submitted until you approve each step.` });
     return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: [], payload: env };
   }
 
@@ -33626,7 +33668,7 @@ const CareerRouter = (() => {
     const store = graphStoreOf(ctx);
     const gp = graphProfileOf(ctx);
     const school = gp.school || "your school";
-    const reply = compose({ headline: "The alumni-directory lane is honest but thin — here is how it actually works.", facts: [`${school}'s alumni directory is yours to browse inside the school's own portal; I cannot extract names from it, and nothing here scrapes it.`, "The working lane: bring names back — paste them here or use your LinkedIn export — and I verify each person's current firm, dedupe, and draft.", `Your graph on file currently holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} to match those names against.`], nextStep: "Paste the first batch of names and I will run verification and dedupe on them." });
+    const reply = compose({ headline: "Your LinkedIn is thin, so the alumni directory is the backup route — here is what I can and cannot do with it.", facts: [`${school}'s alumni directory is yours to browse inside the school's own portal; I cannot extract names from it, and nothing here scrapes it.`, "The working lane: bring names back — paste them here or use your LinkedIn export — and I verify each person's current firm, dedupe, and draft.", `Your graph on file currently holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} to match those names against.`], nextStep: "Paste the first batch of names and I will run verification and dedupe on them." });
     // BUG-101: the lane record rides as the payload — before this the
     // turn carried prose only and no reader could see the lane state.
     return { intent: "graph_alumni", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "graph_lane", lane: "alumni_directory", school: gp.school, graph_people: store.people.length, scrape: false, working_lane: "linkedin_export_or_pasted_names" } };
@@ -33654,7 +33696,16 @@ const CareerRouter = (() => {
       } catch { /* fall through to the rule answer */ }
     }
     const timing = Graph && Graph.referralTiming ? Graph.referralTiming({}) : null;
-    const reply = compose({ headline: "A referral ask never goes in email one — it is its own step, after a real conversation.", facts: [timing ? timing.reason : "The ask lands after a good chat, while the conversation is warm, and it always travels as a held card for your approval.", "Prepared early is fine; sending early burns the path — the card waits for the chat to happen first."], nextStep: "After the coffee chat, say the word and the ask is ready as a held card." });
+    // WORDING-BACKLOG (BUG-205): the timing text served two
+    // different asks word-for-word (SC-151: the chat is done, the
+    // ask is ready; SC-168: a timing question that only a real
+    // deadline can decide). Each premise now gets its own answer.
+    const rt = lc(text);
+    const reply = /\btiming\b|apply now or wait|48 hours|wait for the referral/.test(rt)
+      ? compose({ headline: "Timing is decided from the posting's real deadline — and no real deadline is on file for this posting yet.", facts: [timing ? timing.reason : "Without the deadline, any apply-now-or-wait call would be a guess, and a guessed timing burns the path.", "Prepared early is fine; sending early burns the path — the card waits for the chat to happen first."], nextStep: "Share the posting's real deadline and I will tell you plainly: apply now, or wait 48 hours for the referral." })
+      : /\bafter a good coffee chat\b|\bchat is done\b|\bhad the (coffee )?chat\b/.test(rt)
+        ? compose({ headline: "Your coffee chat is already done, so the referral ask is ready now as a held card for your review.", facts: ["A referral ask never goes in email one — it is its own step, after a real conversation, and yours has happened.", "The card travels on your approval only; nothing is sent with this answer."], nextStep: "Say the word and the card is in front of you — nothing sends without your yes." })
+        : compose({ headline: "A referral ask never goes in email one — it is its own step, after a real conversation.", facts: [timing ? timing.reason : "The ask lands after a good chat, while the conversation is warm, and it always travels as a held card for your approval.", "Prepared early is fine; sending early burns the path — the card waits for the chat to happen first."], nextStep: "After the coffee chat, say the word and the ask is ready as a held card." });
     // BUG-101: the timing decision is the product of this turn — it
     // rides as the payload, not only under the unread `timing` key.
     return { intent: "graph_referral", reply, resultStatus: "awaiting_user", sends: 0, timing, payload: timing ? Object.assign({}, timing, { kind: "referral_timing" }) : null };
@@ -33682,7 +33733,23 @@ const CareerRouter = (() => {
       const reply = compose({ headline: `${sugg.length} warm ${sugg.length === 1 ? "contact is" : "contacts are"} due a keep-warm touch.`, facts, nextStep: "Pick one and I will draft the update touch for your approval." });
       return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: sugg, payload: { suggestions: sugg, graph_people: store.people.length, draft_cards: cards } };
     }
-    const reply = compose({ headline: "Nobody in your graph is due a keep-warm touch yet.", facts: ["The rule: a warm contact goes quiet for six weeks before an update touch is due, and the touch carries a real update from your profile — never an empty check-in.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none has crossed the six-week line with a conversation on record.`], nextStep: "Tell me one real update — an internship, a project, a result — and I will hold it ready for the first touch that comes due." });
+    // WORDING-BACKLOG (BUG-205): one template served three
+    // different keep-warm asks for two builds (SC-157/158/164).
+    // The reply now speaks the ASK's own premise first — a chat
+    // the user says happened, a draft around their update, a
+    // dormant contact to revive — over the same honest graph
+    // state, with the closer that ask actually unlocks.
+    const kwT = lc(text);
+    const kwRule = "The rule: a warm contact goes quiet for six weeks before an update touch is due, and the touch carries a real update from your profile — never an empty check-in.";
+    const kwGraph = `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, and none has crossed the six-week line with a conversation on record.`;
+    const kw = /\brevive\b|\bdormant\b|\blast season\b/.test(kwT)
+      ? { headline: "That contact from last season is past the six-week mark, so a revival touch is due.", facts: ["A revival is honest only with a real update in it — never an empty check-in out of nowhere.", kwGraph], nextStep: "Tell me the contact's name and your real update, and I will draft the revival touch for your review." }
+      : /\bsix weeks\b|\bsince a good chat\b/.test(kwT)
+        ? { headline: "You had a good chat six weeks ago — but that chat is not logged in your graph yet.", facts: ["Because it is not logged, the contact due this touch cannot be named from the record — nobody is invented to fill the slot.", kwRule], nextStep: "Tell me who the chat was with, and the update touch is drafted around it for your review." }
+        : /\bupdate touch\b|\bdrafted around\b|\bmy new (offer|project)\b/.test(kwT)
+          ? { headline: "The update touch gets drafted around your new offer or project — the update is the reason for the touch.", facts: [kwRule, kwGraph], nextStep: "Give me the contact's name and I will draft the update touch around it, ready for your review." }
+          : { headline: "Nobody in your graph is due a keep-warm touch yet.", facts: [kwRule, kwGraph], nextStep: "Tell me one real update — an internship, a project, a result — and I will hold it ready for the first touch that comes due." };
+    const reply = compose(kw);
     return { intent: "graph_keep_warm", reply, resultStatus: "prepared", sends: 0, suggestions: [], payload: { suggestions: [], graph_people: store.people.length, draft_cards: [] } };
   }
 
@@ -33703,7 +33770,7 @@ const CareerRouter = (() => {
         return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, departed: r, payload: env };
       } catch { /* fall through to the process answer */ }
     }
-    const reply = compose({ headline: "Writing to someone who already left teaches us nothing — here is the safe order.", facts: ["First, I re-check where the departed contact landed: a warm person at a new firm is still a warm person.", "Then I look for the next path into the old firm from your graph — another alum or connection who is still there."], nextStep: "Name the firm and I will run both checks now." });
+    const reply = compose({ headline: "I will not write to the departed contact blindly — here is the safe order.", facts: ["First, I re-check where the departed contact landed: a warm person at a new firm is still a warm person.", "Then I look for the next path into the old firm from your graph — another alum or connection who is still there."], nextStep: "Name the firm and I will run both checks now." });
     return { intent: "graph_paths", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "graph_paths", company: null, paths: [], cold: [], excluded: [], draft_cards: [], graph_people: store.people.length, departed: null } };
   }
 
@@ -34061,7 +34128,7 @@ const CareerRouter = (() => {
       const producerNext = {
         videoInterviewPractice: "Paste your first answer's transcript and I will score it against the rubric.",
         takeHomePlan: "Tell me the deliverables and your time blocks and I will lay out the hours.",
-        finalRoundDelta: "Name the company and the file turns this into its actual final stage?",
+        finalRoundDelta: "Tell me the company and the file turns this into its actual final stage.",
         superdayPlan: "Name the firm and the file sharpens this mapping to its actual rounds?",
         questionsToAsk: "Want to rehearse your strongest one out loud?",
         salaryDeflectionScripts: "Want to rehearse the pressed-for-a-number one out loud?",
@@ -34302,7 +34369,7 @@ const CareerRouter = (() => {
           const hlf = cm.highest_leverage_fix && cm.highest_leverage_fix.fix ? s(cm.highest_leverage_fix.fix).split(/(?<=[.!?])\s/)[0] : null;
           if (hlf) facts.push(`This month's plan, from the table's highest-leverage fix (${cm.highest_leverage_fix.dimension || "the top gap"}): ${hlf}`);
           facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
-          const reply = compose({ headline: `You versus the average ${name} hire — the table, the gaps, the plan.`, facts, nextStep: "Want the rest of the table — projects, skills, timing, authorization — next?" });
+          const reply = compose({ headline: `You versus the average ${name} hire — the table, the gaps, the plan.`, facts, nextStep: "Want me to pull the reachable employers for that first internship next?" });
           const payload = { text: cm.highest_leverage_fix && cm.highest_leverage_fix.fix ? cm.highest_leverage_fix.fix : facts[0], sources: cir.data_sources || [], as_of: cir.as_of || null, plan: fixes, comparison: cm };
           return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload, artifact: payload };
         }
@@ -34659,7 +34726,12 @@ const CareerRouter = (() => {
         // (benchSentence, built above for exactly this) never rode
         // this branch. It rides now, except when the bench's own
         // as-of already leads the facts.
-        if (!(bench && bench.as_of)) facts.push(benchSentence);
+        // WORDING-BACKLOG (BUG-205): when the bench's own text
+        // already leads, its first sentence IS the no-claim
+        // sentence — the full benchSentence then repeats it in the
+        // second bubble (SC-208's duplicated note). Only the
+        // source-class tail rides in that case.
+        if (!(bench && bench.as_of)) facts.push(bench && bench.text ? `Source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.` : benchSentence);
         const reply = compose({ headline: "Your counter scripts — email and call versions, word for word, held on the card.", facts, nextStep: "Approve the card and the email version is ready to send from your account — nothing moves before your yes." });
         // BUG-071: the offer record rides under payload (F6 keys).
         return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer, strategy: strat, bench, payload: offer };
@@ -34709,7 +34781,11 @@ const CareerRouter = (() => {
     }
     if (/\bexploding\b|\b\d+\s*hours?\b|\bpressure plan\b/.test(t)) {
       const hrs = (s(text).match(/\b(\d+)\s*hours?\b/i) || [])[1];
-      return { headline: "Exploding offer: extension first, counter second, panic never.", facts: [`The clock you named — ${hrs ? `${hrs} hours` : "a short fuse"} — is met with a sequence, not a scramble: the extension request goes out first because it is drafted, card-gated, and buys the days the counter needs.`, "Pressure never invents a number: the counter still runs on the company file's sourced range or on your own floor, exactly as it would with a month to decide.", benchSentence], nextStep: "Paste the offer and I will parse its expiry and draft the extension today." };
+      // WORDING-BACKLOG (BUG-205): the no-file sentence is filler
+      // in this branch (the sequence is the answer) — only the
+      // source-class line rides, keeping R-C5 without repeating
+      // the benchmark disclaimer.
+      return { headline: "Exploding offer: extension first, counter second, panic never.", facts: [`The clock you named — ${hrs ? `${hrs} hours` : "a short fuse"} — is met with a sequence, not a scramble: the extension request goes out first because it is drafted, card-gated, and buys the days the counter needs.`, "Pressure never invents a number: the counter still runs on the company file's sourced range or on your own floor, exactly as it would with a month to decide.", srcLine("the deadline-sequencing product and the company file's compensation notes")], nextStep: "Paste the offer and I will parse its expiry and draft the extension today." };
     }
     if (/\bextension\b|\bextend\b/.test(t)) {
       let days = 7;
@@ -34752,18 +34828,27 @@ const CareerRouter = (() => {
     if (/\bsigning[- ]bonus\b/.test(t)) {
       const facts = [];
       if (lever(1)) facts.push(lever(1) + " — that lever is the whole script when base is truly fixed.");
-      facts.push("The word-for-word email and call versions are the counter product: the signing-bonus version leads with the year-one gap the bonus closes, not with the base band you already lost.");
+      // WORDING-BACKLOG (BUG-205): the script is DELIVERED word
+      // for word — email and call versions — not described as a
+      // product that contains it (SC-214's standing S1).
+      facts.push("The email, word for word: \"Thank you for the offer — I am ready to sign at the base as it stands. The one thing that closes it for me is year one: a signing bonus that covers the gap between this base and the number I need makes the year whole, and I can sign the same day it is confirmed.\"");
+      facts.push("The call version, word for word: \"If the base is set, I understand — the lever that gets me to yes today is the signing bonus: cover the year-one gap there, and I will sign on this call.\" Both versions are held for your approval — nothing is sent without your yes.");
       facts.push(srcLine("the counter-strategy product and the company file's compensation notes"));
       return { headline: "Base will not move — so the signing-bonus script carries the ask.", facts, nextStep: "Paste the offer and the script is cut to its actual base and signing figures." };
     }
     if (/\bexpectation\b|\bmid-process\b|\basked.*(salary|comp|number)\b/.test(t)) {
+      // WORDING-BACKLOG (BUG-205): when no company file exists,
+      // no sentence is claimed drafted from its range (SC-216's
+      // S1 contradiction) — the reply leads with the unlocking
+      // input, and the drafting promise is conditional and true.
+      if (!(bench && bench.as_of)) return { headline: "The comp-expectation answer needs the company's file first.", facts: [benchSentence, "No sentence gets drafted from a range that does not exist: name the company and role, and the sentence is drafted from its file — worded once, and held for your approval before you say it on the call."], nextStep: "Name the company and role and I will draft the exact sentence from its file." };
       return { headline: "The comp-expectation answer: a sourced range, worded once, approved by you.", facts: [benchSentence, "The sentence you say on the call is drafted from that range and held for your approval — a figure from the file, never a number improvised under pressure."], nextStep: "Name the company and role and I will draft the exact sentence from its file." };
     }
     if (/\bleverage\b|\bcompeting\b/.test(t)) {
       return { headline: "A competing deadline is leverage only because it is real.", facts: ["The counter script's own rule: never bluff a competing offer you do not have — a real expiry date, named plainly, is the whole play.", "Sequencing runs off the earlier deadline: extension request on the offer you rank second, counter on your first choice inside the window it buys, warm decline to the other the day you accept.", srcLine("the deadline-sequencing product and your offer record")], nextStep: "Paste both offers — their expiry dates set the order of the calls." };
     }
     if (/\bbenchmark\b|\bmarket\b/.test(t)) {
-      return { headline: "The benchmark, with its sources shown — and its limits.", facts: [benchSentence, "Where the company file publishes no figure, the answer says so and stops — a salary-site number is never substituted as a fact."], nextStep: "Paste the offer and every figure in it gets checked against the file's range." };
+      return { headline: "The benchmark, with its sources shown — and its limits.", facts: [benchSentence, "Where the company file publishes no figure, the answer says so and stops — a salary-site number is never substituted as a fact."], nextStep: "Paste the offer and every figure in it gets read line by line — checked against a sourced range where a company file exists, and against your own floor and terms where it does not." };
     }
     if (/\bbelow\b|\bfloor\b|\bwalk\b/.test(t)) {
       const facts = [];
@@ -34794,7 +34879,13 @@ const CareerRouter = (() => {
     // BUG-080 ordering: the sourced line precedes the roleplay
     // instruction, whose closing sentence is this reply's specific
     // ending — the generic closer must never stamp over it.
-    const facts = [benchSentence, "Roleplay: I am playing the recruiter — answer as you would on the real call, and the round is scored when it closes."];
+    // WORDING-BACKLOG (BUG-205): the full no-benchmark sentence no
+    // longer sits inside the recruiter's bubble breaking character
+    // (SC-209) — the sourcing rides as a one-line provenance
+    // header, and the roleplay instruction keeps the last word
+    // (BUG-080's protected ending: the reply ends on "when it
+    // closes.", never the generic closer).
+    const facts = [`Source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`, "Roleplay: I am playing the recruiter — answer as you would on the real call, and the round is scored when it closes."];
     if (st.feedback) facts.push(st.feedback.split(/(?<=[.!?])\s/)[0]);
     const reply = compose({ headline: st.recruiter || "Tell me more — what would make this an easy yes for you?", facts });
     return { intent: "negotiation_roleplay", reply, resultStatus: st.done ? "completed" : "running", sends: 0, roleplay: { turn: st.turn, done: !!st.done } };
@@ -35192,13 +35283,19 @@ const CareerRouter = (() => {
       let intel = null;
       try { const cirs = cirListOf(ctx) || []; intel = Graph.referralBonusIntel(cirs, cirs.map((c) => cirShortName(c))); } catch { intel = null; }
       if (intel) {
-        const reply = compose({ headline: intel.headline, facts: [`${intel.rows.length} target files were read; ${intel.sourced_bonus_count} print a sourced bonus amount.`, "Where a firm prints no amount, I report none — a bonus figure is never estimated into an answer."], nextStep: "Want the per-firm rows for the targets on your list?" });
+        // WORDING-BACKLOG (BUG-205): the headline points at "the
+        // referral-weight note below" — the note now actually
+        // follows (the first target file's own note, printed), so
+        // the reference is never left dangling (SC-161).
+        const wRow = (intel.rows || []).find((r) => r && r.referral_weight) || (intel.rows || []).find((r) => r && r.cir && r.note);
+        const wFact = wRow ? `What is sourced per company — the referral-weight note from ${wRow.company}'s file: ${s(wRow.referral_weight || wRow.note).split(/(?<=[.!?])\s/)[0]}` : "What is sourced per company is a referral-weight note on each file — name a target and its note prints in full.";
+        const reply = compose({ headline: intel.headline, facts: [`${intel.rows.length} target files were read; ${intel.sourced_bonus_count} print a sourced bonus amount.`, wFact, "Where a firm prints no amount, I report none — a bonus figure is never estimated into an answer."], nextStep: "Want the per-firm rows for the targets on your list?" });
         return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: Object.assign({}, intel, { kind: "referral_bonus_intel" }) };
       }
     }
     if (/\bconversion tracked\b/.test(t) && Graph && Graph.conversionTracking) {
       const conv = Graph.conversionTracking(store);
-      const reply = compose({ headline: `Conversion on record: ${conv.contacts_with_chats} ${conv.contacts_with_chats === 1 ? "chat" : "chats"}, ${conv.converted_to_referral} converted to a referral.`, facts: ["Conversion is counted per contact from the graph's own stages — a chat that never happened is never counted.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}.`], nextStep: "Want the per-contact breakdown?" });
+      const reply = compose({ headline: `Conversion on record: ${conv.contacts_with_chats} ${conv.contacts_with_chats === 1 ? "chat" : "chats"}, ${conv.converted_to_referral} converted to a referral.`, facts: ["Conversion is counted per contact from the graph's own stages — a chat that never happened is never counted.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}.`], nextStep: "Log a chat outcome for one contact and the per-contact stages start there." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: Object.assign({}, conv, { kind: "conversion_tracking", graph_people: store.people.length }) };
     }
     if (/\bwarm[ -]path sweep\b/.test(t) && Graph && Graph.topWarmPathSweep) {
@@ -35225,7 +35322,7 @@ const CareerRouter = (() => {
       const rows = [];
       for (const f of firms) { try { for (const row of Graph.secondDegreeMap(store, f)) rows.push(row); } catch { /* firm skipped */ } }
       const env = { kind: "graph_paths", company: null, paths: rows.map((row) => ({ name: row.name, firm: row.company, title: row.position || null, score: row.warmth_score, warmth_score: row.warmth_score, shared_fact: row.shared_fact, why: /^no shared fact/i.test(row.shared_fact || "") ? [] : [row.shared_fact], path: row.path })), cold: [], excluded: [], draft_cards: [], graph_people: store.people.length, producer: "secondDegreeMap", companies_checked: firms, first_degree_bridges: [...new Set(rows.map((r0) => r0.via).filter(Boolean))].length };
-      const reply = compose({ headline: rows.length ? `${rows.length} second-degree paths found.` : "No second-degree paths exist in your graph yet.", facts: [`A second-degree path needs a first-degree person whose own colleagues are on record; your graph holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} and ${env.first_degree_bridges} such ${env.first_degree_bridges === 1 ? "bridge" : "bridges"}.`, "Colleagues are never invented — a bridge exists only when the record names them."], nextStep: "Want me to check one firm at a time instead?" });
+      const reply = compose({ headline: rows.length ? `${rows.length} second-degree paths found.` : "No second-degree paths exist in your graph yet.", facts: [`A second-degree path needs a first-degree person whose own colleagues are on record; your graph holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} and ${env.first_degree_bridges} such ${env.first_degree_bridges === 1 ? "bridge" : "bridges"}.`, "Colleagues are never invented — a bridge exists only when the record names them."], nextStep: "Paste your first-degree list or your export — a second-degree bridge can only be built from people actually in it." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
     }
     if (/\bemployee lookup\b/.test(t) && Graph && Graph.publicSourceLookup) {
@@ -35242,14 +35339,14 @@ const CareerRouter = (() => {
       if (!targets.length) { try { targets = (cirListOf(ctx) || []).map((c) => cirShortName(c)).filter(Boolean); } catch { targets = []; } }
       let flagged = [];
       try { flagged = Graph.newHireRadar(store, null, { now: nowOf(ctx), targetCompanies: targets }) || []; } catch { flagged = []; }
-      const payload = { kind: "new_hire_radar", flagged: flagged.map((row) => ({ name: row.name, company: row.company, prior_company: row.prior_company || null, joined_at: row.joined_at || null, warmth_tier: row.warmth_tier, shared_fact: row.shared_fact, flag: row.flag })), rule: "A new hire is flagged only with a start date or a firm change on record — a recent join is never inferred.", graph_people: store.people.length, companies_checked: targets };
-      const reply = compose({ headline: flagged.length ? `${flagged.length} recent joiners flagged at target firms.` : "The new-hire radar flags nobody right now.", facts: [payload.rule, `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; a flag needs a start date on record, and none is invented.`], nextStep: "Want the radar widened to firms beyond your target list?" });
+      const payload = { kind: "new_hire_radar", flagged: flagged.map((row) => ({ name: row.name, company: row.company, prior_company: row.prior_company || null, joined_at: row.joined_at || null, warmth_tier: row.warmth_tier, shared_fact: row.shared_fact, flag: row.flag })), rule: "A new hire from your school is flagged only with a start date or a firm change on record — a recent join is never inferred.", graph_people: store.people.length, companies_checked: targets };
+      const reply = compose({ headline: flagged.length ? `${flagged.length} recent joiners flagged at target firms.` : "The new-hire radar flags nobody right now.", facts: [payload.rule, `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}; a flag needs a start date on record, and none is invented.`], nextStep: "Add names from your export — a flag needs a person and a start date on record, at any firm." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload };
     }
     if (/\bsubmits the referral\b/.test(t)) {
       const refs = (store.referrals || []).map((r) => ({ referral_id: r.referral_id || null, company: r.company || null, state: r.state || "unknown", application_id: r.application_id || null }));
       const payload = { kind: "referral_track", referrals_on_record: refs.length, referrals: refs, submitted: refs.filter((r) => r.state === "submitted").length, graph_people: store.people.length };
-      const reply = compose({ headline: refs.length ? `${refs.length} referral${refs.length === 1 ? "" : "s"} on record.` : "No referral is on record to track yet.", facts: ["The tracking link works like this: once a referral is marked as in, the application row gains source 'referred' with the referrer named on it — that link is written at that moment, never assumed from a draft.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} and ${refs.length} referral ${refs.length === 1 ? "record" : "records"}.`], nextStep: "Want me to walk the referral lifecycle for one contact?" });
+      const reply = compose({ headline: refs.length ? `${refs.length} referral${refs.length === 1 ? "" : "s"} on record.` : "No referral is on record to track yet.", facts: ["The tracking link works like this: once a referral is marked as in, the application row gains source 'referred' with the referrer named on it — that link is written at that moment, never assumed from a draft.", `Your graph on file holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"} and ${refs.length} referral ${refs.length === 1 ? "record" : "records"}.`], nextStep: "Name the contact and the application — I will link the referral to that application the moment it is marked in." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload };
     }
     if (/\bthank[ -]you plus referral\b/.test(t) && Graph && Graph.thankYouReferralCombo) {
@@ -35307,7 +35404,7 @@ const CareerRouter = (() => {
       let pick = { chosen: null, held_back: null, paths_considered: (base.paths || []).length, rule: "With fewer than two paths on record there is nothing to choose between — the rule binds the moment two exist." };
       if (Graph && Graph.pickStrongerPath && company && (base.paths || []).length >= 2) { try { pick = Graph.pickStrongerPath(store, company, gp, { now: nowOf(ctx) }); } catch { /* keep the rule record */ } }
       const env = graphEnvelopeOf(store, base, { stronger_pick: pick });
-      const reply = compose({ headline: pick.chosen ? `The stronger path is ${pick.chosen.name}; the other is held, not burned.` : "Two paths need two people — your graph has fewer than that at one firm.", facts: [pick.rule, "Spending both paths on one application burns the second relationship for nothing; the held path stays warm for a later role."], nextStep: "Name the firm — want its two paths compared?" });
+      const reply = compose({ headline: pick.chosen ? `The stronger path is ${pick.chosen.name}; the other is held, not burned.` : `Your graph holds ${store.people.length} ${store.people.length === 1 ? "person" : "people"}, so no firm has two paths to choose between yet.`, facts: [pick.rule, "Spending both paths on one application burns the second relationship for nothing; the held path stays warm for a later role."], nextStep: "Upload your export or paste names — two paths can only be compared once two people at one firm are on record." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, paths: env.paths, payload: env };
     }
     if (/\bcurrent employer\b/.test(t)) {
@@ -35319,7 +35416,7 @@ const CareerRouter = (() => {
     if (/\brecruiter vs\b/.test(t) && Graph && Graph.askKindFor) {
       const kinds = store.people.map((p) => ({ name: p.full_name, firm: p.current_firm, kind: Graph.askKindFor(p) }));
       const env = graphEnvelopeOf(store, { company: null, paths: [], excluded: [], draft_cards: [] }, { ask_kinds: kinds });
-      const reply = compose({ headline: "Recruiters and practitioners get different asks — by design.", facts: ["A recruiter is asked about the right requisition and the process; a practitioner is asked to refer you onto a team — mixing the two reads as not knowing how hiring works.", kinds.length ? `${kinds.length} people in your graph are classified and ready.` : "Your graph holds nobody to classify yet — the split applies the moment people are in it."], nextStep: "Name a firm — want its people split recruiter vs practitioner?" });
+      const reply = compose({ headline: "Recruiters and practitioners get different asks — by design.", facts: ["A recruiter is asked about the right requisition and the process; a practitioner is asked to refer you onto a team — mixing the two reads as not knowing how hiring works.", kinds.length ? `${kinds.length} people in your graph are classified and ready.` : "Your graph holds nobody to classify yet — the split applies the moment people are in it."], nextStep: "Paste names from the firm — I will split them recruiter vs practitioner and draft each ask accordingly." });
       return { intent: "graph_paths", reply, resultStatus: "prepared", sends: 0, payload: env };
     }
     if (/\bdifferent city\b|\bcross[ -]city\b/.test(t)) {
@@ -35562,7 +35659,7 @@ const CareerRouter = (() => {
     // step that exists — log it, or name another company. "The
     // full timeline for it" offered a timeline for an application
     // the same reply just said does not exist.
-    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands and I will log it — or name another company and I will check that one instead." });
+    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands — what I will do is log it, and the status is spoken from the record from then on." });
     // The status answer rides the tracker doorstep record like
     // every other tracking read (IB-TN-1e pattern): the typed 141
     // record is this turn's product, carried on the result.
@@ -35671,7 +35768,7 @@ const CareerRouter = (() => {
         }
       } catch { /* fall through to the governed ask */ }
     }
-    const reply = compose({ headline: "Creating a login is not something I do as a side effect of a chat ask — no alias, no password gets generated until you confirm the account card.", facts: [`On your confirmation, the account is created as a recorded step: an alias email for that employer's ${portal || "portal"}, and a generated password that goes only into your vault — the password itself never appears in chat, logs, or the record; what you are shown is the vault reference.`, company ? `The account is per-employer: this card is for ${company} on ${portal || "its portal"}.` : "The account is per-employer, so the card needs the company, not just the portal brand."], nextStep: company ? `Confirm the card for ${company} on ${portal || "its portal"} and I will create the account and show you the vault reference?` : `Confirm the card — tell me the employer (this one is on ${portal || "the portal"}) — and I will create the account and show you the vault reference?` });
+    const reply = compose({ headline: "Creating a login is not something I do as a side effect of a chat ask — no alias, no password gets generated until you confirm the account card.", facts: [`On your confirmation, the account is created as a recorded step: an alias email for that employer's ${portal || "portal"}, and a generated password that goes only into your vault — the password itself never appears in chat, logs, or the record; what you are shown is the vault reference.`, company ? `The account is per-employer: this card is for ${company} on ${portal || "its portal"}.` : "The account is per-employer, so the card needs the company, not just the portal brand."], nextStep: company ? `Confirm the card for ${company} on ${portal || "its portal"} and the account is created as a recorded step, with the vault reference shown here.` : `Tell me the employer (this one is on ${portal || "the portal"}) and confirm the card, and the account is created as a recorded step with the vault reference shown here.` });
     // BUG-114: the account step is the turn's typed product at the
     // approval gate — payload.committed === false is what the
     // access completion branch reads; the record also rides as the
@@ -35913,7 +36010,7 @@ const CareerRouter = (() => {
     if (Safety && Safety.aiUseAnswer) {
       try { const a = Safety.aiUseAnswer({ company }); product = a || null; body = a && (a.text || a.answer || a.draft || a.message) || null; } catch { body = null; }
     }
-    const reply = compose({ headline: "The truthful answer is drafted from what AI actually did — no more, no less.", facts: [body ? s(body).split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "It states plainly which parts AI assisted (organization, formatting, drafts you rewrote) and that the experience and the words' substance are yours.", "If a company bans AI text outright, the answer says the work is yours and the process follows their rule — outline only."], nextStep: "Approve the wording, or tell me what AI actually touched and I will tighten it." });
+    const reply = compose({ headline: "The truthful answer is drafted from what AI actually did — no more, no less.", facts: [body ? s(body).split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "It states plainly which parts AI assisted (organization, formatting, drafts you rewrote) and that the experience and the words' substance are yours.", "If a company bans AI text outright, the answer is this, word for word: \"The work in this application is my own — every word submitted is mine. A tool helped me organize my notes before I wrote; nothing AI-written is pasted into it, and I have followed your AI policy as written.\""], nextStep: "Approve the wording, or tell me what AI actually touched and I will tighten it." });
     // A4 contract: the drafted answer rides the result as the draft.
     return { intent: "ai_use_answer", reply, resultStatus: "awaiting_user", sends: 0, draft: product, ai_answer: product };
   }
@@ -36008,7 +36105,7 @@ const CareerRouter = (() => {
           // honest plan is a floor (logging discipline + the first
           // checkpoint where rates become real), never an offer to
           // draft a plan later and never a forecast from nothing.
-          facts.push("Next season's plan, from these numbers: the record gives no conversion rate to extrapolate, so the plan is a floor, not a forecast — every application logged the day it goes out, and the first retro checkpoint at 10 applications, where channel rates stop being noise.");
+          facts.push("Next season's plan, from these numbers: the record gives no conversion rate to extrapolate, so the plan is a floor, not a forecast — every application logged the day it goes out, and the first retro checkpoint at 10 applications, where the per-source rates (referral, board, direct) stop being noise.");
           facts.push("The biggest miss the empty record already proves: a season with no log has no retro — logging is the fix, and it starts with the first application.");
         }
         const reply = compose({ headline: "Your career retro: outcomes versus plan, from the record.", facts: facts.length ? facts : ["Applications, advancement, and offers are counted from the season record — the misses are in it too, unedited.", "Next year's targets get set from the same numbers, not from the story we prefer."], nextStep: r && r.total > 0 ? "Want next season's targets drafted from these numbers?" : "Want the logging rule and the 10-application checkpoint pinned as next season's standing targets?" });
@@ -37046,7 +37143,7 @@ const CareerRouter = (() => {
     // intel-shaped; guidance shapes go to the thesis/path machinery.
     {
       if (/\bgoes stale\b|\bstale\b[^.]*\bfile\b/.test(t)) {
-        const reply = compose({ headline: "Stale files are labeled with their last-verified date, and I re-check them against current postings before using them.", facts: ["A company file whose hiring status is over 90 days old is re-verified against current public postings before it answers anything; until then it is labeled stale, with the date it was last verified.", `Sources: the company's own careers page and public postings — and when you name the company, I give the exact posting and verification dates (this answer's check is as of ${asOfMonthYear(c)}).`], nextStep: "Name the company and I will re-verify its file now." });
+        const reply = compose({ headline: "Stale files are labeled with their last-verified date, and I re-check them against current postings before using them.", facts: ["A company file whose hiring status is over 90 days old is re-verified against current public postings before it answers anything; until then it is labeled stale, with the date it was last verified.", `Sources: the company's own careers page and public postings — and when you name the company, I give the exact posting and verification dates (this answer's check is as of ${asOfMonthYear(c)}).`], nextStep: "If a fresher public source appears, the stale label is replaced here and the file re-enters use only after re-verification — nothing re-enters on the old date." });
         // BUG-074: the turn carries 125's refresh record for the
         // named company's file — or a typed blocker when no company
         // (hence no file) is named — never a bare template result.

@@ -308,7 +308,7 @@ test("BUG-187: proposed-set and category plans build now; the peer tone speaks p
   for (const id of ["SC-010", "SC-028", "SC-029", "SC-060"]) {
     const t = text(turn(id));
     assert.ok(!/Approve the (category|proposed set) and I build/.test(t), `${id}: approval-gated build closer is back: ${t.slice(-200)}`);
-    assert.ok(/build runs on the proposed set now|being built from that category now/.test(t), `${id}: building-now closer missing: ${t.slice(-200)}`);
+    assert.ok(/build runs on the proposed set now|with the build running on it now|Building the list now/.test(t), `${id}: building-now closer missing: ${t.slice(-200)}`);
   }
   const t10 = text(turn("SC-010"));
   assert.ok(!/associate to associate/.test(t10) && /lateral move between equals/.test(t10), `SC-010 tone: ${t10.slice(0, 200)}`);
@@ -657,7 +657,11 @@ test("BUG-204: a proposed closed set gets window arithmetic, not a ramp-only tim
 test("BUG-204: a user-named category is never handed back as the plan's proposal (SC-028)", () => {
   const t = text(turn("SC-028"));
   assert.doesNotMatch(t, /plan proposes that category/);
-  assert.match(t, /The universe is the one you named/);
+  // Amended by BUG-205's dedupe: the user-named framing now rides
+  // the universe fact itself ("the Fortune 500 list itself …
+  // starting proposal"), stated once instead of twice.
+  assert.match(t, /Fortune 500 list itself/);
+  assert.match(t, /starting proposal/);
 });
 
 test("BUG-204: the safety plan states its milestone anchor (SC-043)", () => {
@@ -714,4 +718,63 @@ test("BUG-204: every advice record's bottom line is under 30 words and carries n
     assert.ok(first.split(/\s+/).filter(Boolean).length < 30, `${id} bottom line is ${first.split(/\s+/).filter(Boolean).length} words`);
   }
   for (const id of ["SC-237", "SC-238", "SC-241"]) assert.doesNotMatch(text(turn(id)), /\bapplied\b|\bportfolio\b/);
+});
+
+// ---- BUG-205: Negotiation + Referrals + Career OS/Access + leftovers ----
+const T205 = (id) => text(turn(id));
+test("BUG-205 negotiation: scripts delivered, absence never contradicted", () => {
+  assert.match(T205("SC-214"), /The email, word for word:/);
+  assert.match(T205("SC-214"), /held for your approval/);
+  assert.match(T205("SC-216"), /No sentence gets drafted from a range that does not exist/);
+  assert.doesNotMatch(T205("SC-216"), /drafted from that range and held for your approval/);
+  assert.match(T205("SC-207"), /against your own floor and terms where it does not/);
+  const t208 = T205("SC-208");
+  assert.equal((t208.match(/no benchmark figure is claimed/g) || []).length, 1, "SC-208 states the no-benchmark note once");
+  const t209 = T205("SC-209");
+  assert.doesNotMatch(t209, /no benchmark figure is claimed/);
+  assert.match(t209, /Source class: company file compensation notes, checked as of/);
+  assert.doesNotMatch(T205("SC-217"), /no benchmark figure is claimed/);
+});
+test("BUG-205 referrals: keep-warm and timing answers are per-ask, closers name the input", () => {
+  assert.match(T205("SC-157"), /not logged in your graph yet/);
+  assert.match(T205("SC-158"), /drafted around your new offer or project/);
+  assert.match(T205("SC-164"), /past the six-week mark, so a revival touch is due/);
+  assert.notEqual(T205("SC-157"), T205("SC-158"));
+  assert.notEqual(T205("SC-158"), T205("SC-164"));
+  assert.match(T205("SC-151"), /coffee chat is already done/);
+  assert.match(T205("SC-168"), /decided from the posting's real deadline/);
+  assert.notEqual(T205("SC-151"), T205("SC-168"));
+  assert.match(T205("SC-175"), /nothing is asked or submitted until you approve each step/);
+  assert.match(T205("SC-161"), /referral-weight note from/);
+  assert.match(T205("SC-169"), /no firm has two paths to choose between yet/);
+  assert.match(T205("SC-148"), /the alumni directory is the backup route/);
+  assert.match(T205("SC-165"), /will not write to the departed contact blindly/);
+  assert.match(T205("SC-152"), /the moment it is marked in/);
+  assert.match(T205("SC-160"), /A new hire from your school is flagged only with/);
+});
+test("BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked steps", () => {
+  assert.match(T205("SC-272"), /not invented to complete the count/);
+  assert.match(T205("SC-272"), /tie-break, not a measured gap/);
+  assert.doesNotMatch(T205("SC-273"), /in Remote, and nothing/);
+  assert.match(T205("SC-276"), /Dictate the first win now/);
+  assert.match(T205("SC-279"), /Tell me the first target/);
+  assert.doesNotMatch(T205("SC-282"), /First rung: First rung:|Then: Proof artifacts\./);
+  assert.match(T205("SC-283"), /Grounded in your own profile record and the posting's own text, as of/);
+  assert.match(T205("SC-283"), /prepare the full application packet next/);
+  assert.doesNotMatch(T205("SC-298"), /Which target should we plan around/);
+  assert.match(T205("SC-298"), /here it is, picked/);
+  assert.match(T205("SC-299"), /word for word: "The work in this application is my own/);
+  assert.match(T205("SC-300"), /you do not need to ask again/);
+  assert.doesNotMatch(T205("SC-300"), /tell me when the queue state is reloaded/);
+});
+test("BUG-205 leftovers: closers and dedupes hold", () => {
+  assert.match(T205("SC-115"), /what I will do is log it/);
+  assert.match(T205("SC-247"), /reachable employers for that first internship/);
+  assert.match(T205("SC-269"), /nothing re-enters on the old date/);
+  const t028 = T205("SC-028");
+  assert.doesNotMatch(t028, /The universe is the one you named/);
+  assert.equal((t028.match(/Fortune 500 list itself/g) || []).length, 1, "SC-028 states its universe once");
+  assert.match(T205("SC-026"), /your school's alumni list and the screen runs on real names first/);
+  assert.match(T205("SC-055"), /drafting starts on your word once the counts land/);
+  assert.match(T205("SC-059"), /the running total passes 100 on day 7/);
 });

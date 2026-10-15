@@ -769,7 +769,7 @@ test("BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked ste
   assert.doesNotMatch(T205("SC-300"), /tell me when the queue state is reloaded/);
 });
 test("BUG-205 leftovers: closers and dedupes hold", () => {
-  assert.match(T205("SC-115"), /what I will do is log it/);
+  assert.match(T205("SC-115"), /what I will do, only on your word, is log it/);
   assert.match(T205("SC-247"), /reachable employers for that first internship/);
   assert.match(T205("SC-269"), /nothing re-enters on the old date/);
   const t028 = T205("SC-028");

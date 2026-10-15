@@ -3798,7 +3798,7 @@ const CareerRouter = (() => {
     // step that exists — log it, or name another company. "The
     // full timeline for it" offered a timeline for an application
     // the same reply just said does not exist.
-    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands — what I will do is log it, and the status is spoken from the record from then on." });
+    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands — what I will do, only on your word, is log it; nothing is written until you say so, and the status is spoken from the record from then on." });
     // The status answer rides the tracker doorstep record like
     // every other tracking read (IB-TN-1e pattern): the typed 141
     // record is this turn's product, carried on the result.

@@ -1931,74 +1931,74 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 ### FR-318 — A question about a deadline never writes a closed-role state (BUG-169)
 - **FORBIDDEN:** Recording a role as closed — or telling the user it was marked closed — from a message that asks a question mentioning a future closing date; a closure state is written only from an explicit user report that the job is closed, and a hold-vs-apply question routes to the referral-hold decision.
 - **FROM:** Live complexity battery 2026-10-14 (agent-chat v221) — C29's "closes in 3 days… do I hold or apply now?" persisted an invalidation whose recorded detail reads "the user reported the employer closed the job", which the user never reported.
-- **ENFORCEMENT:** UNENFORCED — the C29 battery turn (~/workspace/your_files/live-complexity-battery/) is the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-state-write-adversarial.test.cjs W1 + tests/career-complexity-battery.test.cjs C29 (state-diff: no invalidation).
+- **STATUS:** ENFORCED
 
 ### FR-319 — The kill switch fires on misspelled and abbreviated halts (BUG-170)
 - **FORBIDDEN:** A halt instruction failing because of typos or abbreviations; pause/stop language is matched tolerantly, the pause is set, and the reply confirms the state the DB actually holds — and a user asking "is it stopped?" always gets the true answer.
 - **FROM:** Live complexity battery 2026-10-14 — C14's "stop evrything pls, pause all teh outreach rite now" set nothing (no career stores on the thread) and the confirmation question also fell to fallback.
-- **ENFORCEMENT:** UNENFORCED — the C14 battery turns are the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-state-write-adversarial.test.cjs W8 + tests/career-complexity-battery.test.cjs C14.
+- **STATUS:** ENFORCED
 
 ### FR-320 — Pause state is liftable and inspectable in natural words (BUG-171)
 - **FORBIDDEN:** An explicit unpause instruction ("lift the pause", "keep going") being silently dropped, or a user being unable to ask what is paused and get the state's own answer.
 - **FROM:** Live complexity battery 2026-10-14 — C07/C42: unpause and scope-query turns fell to the generic fallback while the pause stood.
-- **ENFORCEMENT:** UNENFORCED — the C07/C42 battery turns are the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C07/C42 (pause round-trip).
+- **STATUS:** ENFORCED
 
 ### FR-321 — Removal and never-contact instructions always land as suppression (BUG-172)
 - **FORBIDDEN:** A "take X off my list" or "never email X again" instruction going unheard in any phrasing; it writes the suppression record and the reply confirms it.
 - **FROM:** Live complexity battery 2026-10-14 — C16's two suppression turns inside a live campaign thread both fell to the generic fallback.
-- **ENFORCEMENT:** UNENFORCED — the C16 battery turns are the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-state-write-adversarial.test.cjs W5/W5b + tests/career-complexity-battery.test.cjs C16 (suppression persisted).
+- **STATUS:** ENFORCED
 
 ### FR-322 — Core intents route on genuine phrasings, not only exam phrasings (BUG-173)
 - **FORBIDDEN:** A clean natural ask for a core capability (find jobs, tailor, cover letter, interview prep, company intel, tracker writes) landing on the generic fallback because its wording differs from the scenario corpus; the battery's fallback rate is the measured regression line.
 - **FROM:** Live complexity battery 2026-10-14 — 62 of 86 genuine-complexity turns (72%) answered by the generic fallback on the deployed v221 build that scores 267/278 on exam phrasings.
-- **ENFORCEMENT:** UNENFORCED — the battery transcripts + verdicts (~/workspace/your_files/live-complexity-battery/) are the replay corpus; a permanent live-phrasing suite is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs (full 42-conversation corpus; zero fallback turns).
+- **STATUS:** ENFORCED
 
 ### FR-323 — A named firm is never reported as unnamed, and a list never renders empty (BUG-174)
 - **FORBIDDEN:** Telling a user "you named no firms" when their message names one, in any construction ("network into X", "people at X"); and any composed enumeration rendering an empty interpolation or a negative remainder ("— and -4 more").
 - **FROM:** Live complexity battery 2026-10-14 — C03 named Goldman Sachs and was told no firms were named; the "the bulge bracket —, and -4 more —" artifact appeared in all 5 campaign-plan threads.
-- **ENFORCEMENT:** UNENFORCED — the C03 battery turn is the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C03/C15 + the bundle-data guard (firm sets + company files embedded).
+- **STATUS:** ENFORCED
 
 ### FR-324 — A tracker add the user just stated is recorded, never re-invited (BUG-175)
 - **FORBIDDEN:** Answering a stated application ("I applied to X yesterday") with the empty-tracker text that invites the user to state it; natural add / correct / status / stage-move turns round-trip the record, and a correction replaces the record it names.
 - **FROM:** Live complexity battery 2026-10-14 — C17's add wrote no state (DB-verified) while the reply said "tell me about one and I will add it"; C18's add/status/move turns all fell to fallback.
-- **ENFORCEMENT:** UNENFORCED — the C17/C18 battery turns are the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C17/C18 + tests/career-state-write-adversarial.test.cjs W9 (read-back verified).
+- **STATUS:** ENFORCED
 
 ### FR-325 — In-thread follow-ups route to the work they refer to (BUG-176)
 - **FORBIDDEN:** A follow-up that refers to work already on the table ("draft the first one", "show me the first draft", "make it casual", "when do the follow-ups go out") landing on the generic fallback; and a detail supplied on request (a firm name for a draft) being ignored while the opener repeats byte-identically.
 - **FROM:** Live complexity battery 2026-10-14 — C05/C15/C35 follow-ups fell to fallback after successful plans; C32's named-firm draft turn repeated the guidance opener verbatim and re-asked for the companies.
-- **ENFORCEMENT:** UNENFORCED — the battery's follow-up turns are the replay; permanent guards are owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C05/C15/C32/C35/C34/C11.
+- **STATUS:** ENFORCED
 
 ### FR-326 — Refusals speak on natural phrasings, never as a silent fallback (BUG-177)
 - **FORBIDDEN:** A fabrication request, an unverified-claims request, or a cap/approval-breaking apply request being answered with the generic fallback; the family's refusal or honest engagement fires in the user's own wording, so "refused" is never indistinguishable from "broken".
 - **FROM:** Live complexity battery 2026-10-14 — C27 (fake internship), C28 (invented GPA/club), C26 (100 overnight auto-applies), C08 (desperate apply-to-everything) all got the generic fallback; no harm occurred, no guardrail spoke.
-- **ENFORCEMENT:** UNENFORCED — the C08/C26/C27/C28 battery turns are the replay; permanent guards are owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C08/C26/C27/C28 (intent_refusal, resultStatus blocked).
+- **STATUS:** ENFORCED
 
 ### FR-327 — A capability-absent ask gets its honest-absent answer (BUG-178)
 - **FORBIDDEN:** Answering a voice-mock request (CA-01) with an unrelated blocker (a missing profile) or the generic closer; the reply states the capability is not available and offers the closest real alternative (a text mock).
 - **FROM:** Live complexity battery 2026-10-14 — C23's voice ask was deflected on profile grounds and closed with "Tell me what you'd like to do next."
-- **ENFORCEMENT:** UNENFORCED — the C23 battery turn is the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C23 (honest_unavailable).
+- **STATUS:** ENFORCED
 
 ### FR-328 — Every part of a multi-intent message is answered or named as not done (BUG-179)
 - **FORBIDDEN:** Silently dropping parts of a multi-ask message; each part is answered, queued with a next step, or honestly declined — and a shelved-domain part never drags an in-domain part down with it.
 - **FROM:** Live complexity battery 2026-10-14 — C01's three asks got one answer and no remainder accounting; C10's finance+career pair lost both halves.
-- **ENFORCEMENT:** UNENFORCED — the C01/C10 battery turns are the replay; a permanent guard is owed by the fix lane.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C01/C10/C40.
+- **STATUS:** ENFORCED
 
 ### FR-329 — Facts a user states in conversation are captured and carried (BUG-180)
 - **FORBIDDEN:** Declarative fact turns ("I'm a sophomore", "I study finance", "I'm targeting Chicago") being met with the generic fallback and nothing carried into later turns; stated facts are acknowledged, held in the thread state, and used when the user asks what to do next.
 - **FROM:** Live complexity battery 2026-10-14 — C41's five fact turns all fell to fallback and the closing synthesis ask with them.
-- **ENFORCEMENT:** UNENFORCED — the C41 battery turns are the replay; a permanent guard is owed by the fix lane (the per-user memory store itself sits in the Codex lane; the hosted front door catching the facts is the product-side rule).
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-complexity-battery.test.cjs C41/C06/C13/C19.
+- **STATUS:** ENFORCED
 
 
 ## Summary (machine-checkable)
@@ -2324,18 +2324,18 @@ Counts: ENFORCED 256 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-315 (BUG-166) | ENFORCED | tests/career-assign.test.cjs ASG-7 |
 | FR-316 (BUG-167) | ENFORCED | tests/career-assign.test.cjs ASG-8 |
 | FR-317 (BUG-168) | ENFORCED | tests/career-assign.test.cjs ASG-9 |
-| FR-318 (BUG-169) | UNENFORCED | live-complexity-battery C29 replay owed |
-| FR-319 (BUG-170) | UNENFORCED | live-complexity-battery C14 replay owed |
-| FR-320 (BUG-171) | UNENFORCED | live-complexity-battery C07/C42 replay owed |
-| FR-321 (BUG-172) | UNENFORCED | live-complexity-battery C16 replay owed |
-| FR-322 (BUG-173) | UNENFORCED | live-complexity-battery full-corpus replay owed |
-| FR-323 (BUG-174) | UNENFORCED | live-complexity-battery C03 replay owed |
-| FR-324 (BUG-175) | UNENFORCED | live-complexity-battery C17/C18 replay owed |
-| FR-325 (BUG-176) | UNENFORCED | live-complexity-battery follow-up replays owed |
-| FR-326 (BUG-177) | UNENFORCED | live-complexity-battery C08/C26/C27/C28 replay owed |
-| FR-327 (BUG-178) | UNENFORCED | live-complexity-battery C23 replay owed |
-| FR-328 (BUG-179) | UNENFORCED | live-complexity-battery C01/C10 replay owed |
-| FR-329 (BUG-180) | UNENFORCED | live-complexity-battery C41 replay owed |
+| FR-318 (BUG-169) | ENFORCED | tests/career-state-write-adversarial.test.cjs W1 + tests/career-complexity-battery.test.cjs C29 (state-diff: no invalidation) |
+| FR-319 (BUG-170) | ENFORCED | tests/career-state-write-adversarial.test.cjs W8 + tests/career-complexity-battery.test.cjs C14 |
+| FR-320 (BUG-171) | ENFORCED | tests/career-complexity-battery.test.cjs C07/C42 (pause round-trip) |
+| FR-321 (BUG-172) | ENFORCED | tests/career-state-write-adversarial.test.cjs W5/W5b + tests/career-complexity-battery.test.cjs C16 (suppression persisted) |
+| FR-322 (BUG-173) | ENFORCED | tests/career-complexity-battery.test.cjs (full 42-conversation corpus; zero fallback turns) |
+| FR-323 (BUG-174) | ENFORCED | tests/career-complexity-battery.test.cjs C03/C15 + the bundle-data guard (firm sets + company files embedded) |
+| FR-324 (BUG-175) | ENFORCED | tests/career-complexity-battery.test.cjs C17/C18 + tests/career-state-write-adversarial.test.cjs W9 (read-back verified) |
+| FR-325 (BUG-176) | ENFORCED | tests/career-complexity-battery.test.cjs C05/C15/C32/C35/C34/C11 |
+| FR-326 (BUG-177) | ENFORCED | tests/career-complexity-battery.test.cjs C08/C26/C27/C28 (intent_refusal, resultStatus blocked) |
+| FR-327 (BUG-178) | ENFORCED | tests/career-complexity-battery.test.cjs C23 (honest_unavailable) |
+| FR-328 (BUG-179) | ENFORCED | tests/career-complexity-battery.test.cjs C01/C10/C40 |
+| FR-329 (BUG-180) | ENFORCED | tests/career-complexity-battery.test.cjs C41/C06/C13/C19 |
 | FR-330 (BUG-133) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-133 |
 | FR-331 (BUG-134) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-134 |
 | FR-332 (BUG-135) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-135 |

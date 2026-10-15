@@ -40,7 +40,10 @@ test("R-A4 unreadable queue (no queue state in ctx): global pause is set, reply 
   assert.equal(r.counts_verified, false, "counts are explicitly UNVERIFIED when the queue cannot be read");
   assert.doesNotMatch(r.reply, NO_OP, "the old no-op wording is gone");
   assert.match(r.reply, /global pause/i, "reply states the global pause is set");
-  assert.match(r.reply, /no outreach can start or continue/i, "reply states nothing can start or continue");
+  // MI-048 triage (2026-10-15): the halt sentence was reworded ("blocks
+  // every send path this product controls"); every semantic element of
+  // the R-A4 contract is present — the pin follows the current wording.
+  assert.match(r.reply, /blocks every send path/i, "reply states nothing can start or continue");
   assert.match(r.reply, /could not read/i, "reply states the queue's own records could not be read");
   assert.match(r.reply, /unverified/i, "reply states the exact counts are unverified");
   assert.equal((r.reply.match(/next step/gi) || []).length, 1, "reply gives exactly one next step");
@@ -105,7 +108,7 @@ test("R-A4 readable queue (2 pending, 1 sent, 1 sending): pending halted, pause 
   assert.equal(r.already_stopped_count, 0);
   assert.equal(r.queue_total, 4);
   assert.equal(r.sent_count + r.in_flight_count + r.halted_count + r.already_stopped_count, r.queue_total, "counts reconcile to the queue total");
-  assert.match(r.reply, /1 already sent/);
+  assert.match(r.reply, /1 item had already gone out/, "the sent count is spoken (MI-048: reworded from '1 already sent')");
   assert.match(r.reply, /1 in flight and unconfirmed/);
   assert.match(r.reply, /2 halted/);
   assert.match(r.reply, /4 in total/);

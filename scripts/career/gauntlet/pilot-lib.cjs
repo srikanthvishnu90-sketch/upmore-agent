@@ -80,9 +80,58 @@ function resumeText(dirName, file) { return fs.readFileSync(path.join(GAUNTLET, 
 // sending accounts, stored artifact records). Nothing here invents data the
 // runner did not itself record; it only forwards it through the chat path.
 const STAGING_NOW = Date.parse("2026-10-13T12:00:00Z"); // the gauntlet Oct 2026 test clock
+// MI-052 (Crew A, 2026-10-15): the Prep/Graph family's 35 fix-wave
+// residuals were measured against a harness world that staged an EMPTY
+// graph and no company targets — 135's products were honestly empty and
+// the briefs honestly NO_CIR, and the grader charged the fixture to the
+// product. The staged world below is P1's LinkedIn export + pasted
+// contacts (all TEST people, fixtures/gauntlet/graph/p1-graph.json).
+// It is staged ONLY for this family's scenario ids AND only on
+// measurement runs (session slug "grand" — run-grand and its kin):
+// unit suites construct their own worlds per test (empty or populated,
+// via ctx.contacts) and pin them, so their worlds stay test-owned and
+// byte-identical. The four brief scenarios whose round company is
+// Stripe (its CIR is on disk) also get the round staged through
+// production-shaped keys on a CLONE of the profile — the runner's
+// object is never mutated.
+const PREP_GRAPH_WORLD = (() => {
+  const ids = new Set(["SC-100"]);
+  for (let n = 146; n <= 205; n++) ids.add(`SC-${n}`);
+  return ids;
+})();
+const BRIEF_TARGET_IDS = new Set(["SC-176", "SC-177", "SC-181", "SC-183"]);
+let p1GraphCache = null;
+function p1Graph() {
+  if (!p1GraphCache) {
+    try { p1GraphCache = loadJson(path.join(GAUNTLET, "graph/p1-graph.json")); }
+    catch (e) { p1GraphCache = { people: [], interactions: [] }; }
+  }
+  return p1GraphCache;
+}
 function stagingContext(session, ctx) {
   const base = Object.assign({}, ctx || {});
   if (base.now == null) base.now = STAGING_NOW;
+  if (session && session.slug === "grand" && PREP_GRAPH_WORLD.has(session.id) && !base.graph) {
+    const g = p1Graph();
+    base.graph = { people: g.people || [], interactions: g.interactions || [] };
+    if (BRIEF_TARGET_IDS.has(session.id)) {
+      // The round context a production host actually carries (the
+      // host's durable state keys): the profile's target companies, the
+      // thread's staged posting, and its contacts. SC-176 names Stripe;
+      // SC-177/181/183 continue that round ("this round", "my calendar
+      // invite", "this company") — the world stages the round through
+      // those same keys, never a harness-only channel.
+      if (base.profile) {
+        const prof = base.profile;
+        base.profile = Object.assign({}, prof, {
+          preferences: Object.assign({}, prof.preferences || {}, { targetCompanies: ["Stripe"] }),
+        });
+      }
+      if (session.id === "SC-181" && !base.contacts) {
+        base.contacts = (g.people || []).filter((p) => p.current_firm === "Stripe");
+      }
+    }
+  }
   if (!base.postings) {
     try { base.postings = loadJson(path.join(GAUNTLET, "jobs/scored-corpus.json")).postings; } catch (e) { base.postings = []; }
     // Pool-data Option A (IB-POOL brief): the extension corpus carries
@@ -95,6 +144,10 @@ function stagingContext(session, ctx) {
     }
   }
   const postings = base.postings || [];
+  if (session && session.slug === "grand" && BRIEF_TARGET_IDS.has(session.id) && !base.posting) {
+    const stripePosting = postings.find((p) => /stripe/i.test(p.company || ""));
+    if (stripePosting) base.posting = stripePosting;
+  }
   for (const m of (session && session.messages) || []) {
     if (m.role !== "tool" || typeof m.text !== "string") continue;
     let obj = null;

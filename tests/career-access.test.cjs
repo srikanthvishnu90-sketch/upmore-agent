@@ -142,7 +142,10 @@ test('ACCS-007 audit log: shape {source, at, what}, sorted view, secret fields r
   const bad = A.auditEntry({ source: 'gmail', what: 'x', password: 'mock-value' });
   assert.equal(bad.code, 'secret_in_record');
   assert.ok(!JSON.stringify(bad).includes('mock-value'));
-  assert.equal(A.auditLog([]).text, 'No login-requiring actions yet.');
+  // MI-048 triage (2026-10-15): the empty-state copy was expanded by a
+  // later wave (it now states the count and what will appear); the
+  // contract is an honest empty state, so the pin checks its shape.
+  assert.match(A.auditLog([]).text, /^No access events have been recorded yet \(0 events\)\./);
 });
 
 test('ACCS-001/002/007 chat handlers: connect google / connected / disconnect X / access log — handlers name the edge action, never claim it ran', () => {

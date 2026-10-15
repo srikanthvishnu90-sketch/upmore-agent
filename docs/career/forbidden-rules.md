@@ -8,6 +8,8 @@ Owner order 2026-10-14: every bug becomes a FORBIDDEN rule with permanent enforc
 
 **Maintenance.** The coordinator updates a rule's ENFORCEMENT and status in place when a fix lane lands its guard; a rule is never deleted. A fix without a register update does not count as fixed (the bug law).
 
+**Number allocation (MI-093, standing rule).** FR and BUG numbers are allocated single-writer by the Crew A registry — no other crew or lane allocates a number. Next-free counters are recorded in the header of `docs/bug-ledger.md` and advance with every assignment.
+
 ## 1 · Bug ledger — main table (BUG-001…BUG-049)
 
 Source: `docs/bug-ledger.md`, main table. FR numbers in this section match bug numbers (FR-001 = BUG-001) for easy cross-reference.
@@ -195,8 +197,8 @@ Source: `docs/bug-ledger.md`, main table. FR numbers in this section match bug n
 ### FR-031 — Module 126 vendored twice; dedupe unguarded
 - **FORBIDDEN:** The tree must never carry two copies of module 126; when the upstream branch merges, the vendored copy is dropped and exactly one 126 remains.
 - **FROM:** BUG-031 — Module 126 vendored twice; dedupe unguarded.
-- **ENFORCEMENT:** UNENFORCED — tests/career-graph.test.cjs passes against the vendored copy, but no test or check found that fails if two 126 modules exist. Enforcement should be: a tree check asserting exactly one 126-career-track.js.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-gc-guards.test.cjs FR-031 — a tree check asserting exactly one 126-career-track.js (stood up 2026-10-15, GC pass #1, MI-045; green at standing: exactly one copy, packages/domain/126-career-track.js).
+- **STATUS:** ENFORCED
 
 ### FR-032 — Rejected cold applications counted as 'advanced'
 - **FORBIDDEN:** A season retro must never count Rejected/Ghosted/Withdrawn applications as advanced past confirmation, and its headline must follow the log, not a preset claim.
@@ -2037,7 +2039,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-028 (BUG-028) | ENFORCED | tests/career-graph.test.cjs prep test (raw CIR throws TypeError; adapted Stripe + Datadog briefs OK) |
 | FR-029 (BUG-029) | ENFORCED | tests/career-w11-ext.test.cjs 'BUG-141 adapter' (asserts the raw crash AND the adapted OK compose) |
 | FR-030 (BUG-030) | ENFORCED | tests/career-w11-ext.test.cjs SC-215 BUG-142 guard (quotes 'Senior Software Engineer' + 'NOT your anchor') |
-| FR-031 (BUG-031) | UNENFORCED | UNENFORCED |
+| FR-031 (BUG-031) | ENFORCED | tests/career-gc-guards.test.cjs FR-031 |
 | FR-032 (BUG-032) | ENFORCED | tests/career-graph.test.cjs SC-145 test. |
 | FR-033 (BUG-033) | ENFORCED | tests/career-apply.test.cjs inbox-reconciliation test (failed before, passes after). |
 | FR-034 (BUG-034) | ENFORCED | tests/career-apply.test.cjs BUG-005 replay test + SC-068 (Match pool 0 → 63). |
@@ -2361,7 +2363,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-352 (BUG-195) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-195 |
 | FR-353 (BUG-196) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-196 |
 | FR-354 (BUG-197) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-197 |
-| FR-355 (BUG-198) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-198 |
+| FR-355 (BUG-198) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-198 + tests/career-clock-source-guard.test.cjs (see section) |
 | FR-356 (BUG-199) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-199 |
 | FR-357 (BUG-200) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-200 |
 | FR-358 (BUG-201) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-201 |
@@ -2369,8 +2371,33 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-360 (BUG-203) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 + 3 more (see section) |
 | FR-361 (BUG-204) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-204 (see section) |
 | FR-362 (BUG-205) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-205 (see section) |
+| FR-363 (BUG-206) | UNENFORCED | UNENFORCED (see section) |
+| FR-364 (BUG-207) | ENFORCED | tests/career-portal-submit-integrity.test.cjs (see section) |
+| FR-365 (BUG-209) | ENFORCED | tests/career-portal-submit-integrity.test.cjs (see section) |
+| FR-366 (BUG-208) | ENFORCED | tests/career-portal-submit-integrity.test.cjs (see section) |
+| FR-367 (BUG-210) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-368 (BUG-211) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-369 (BUG-212) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-370 (BUG-214) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-371 (BUG-210…214) | ENFORCED | Lane B full-corpus grade (see section) |
+| FR-372 (BUG-215) | ENFORCED | tests/career-track-events.test.cjs (see section) |
+| FR-373 (BUG-216) | ENFORCED | tests/career-track-events.test.cjs (see section) |
+| FR-374 (BUG-217) | ENFORCED | tests/career-prep-bank.test.cjs (see section) |
+| FR-375 (BUG-218) | ENFORCED | tests/career-prep-bank.test.cjs (see section) |
+| FR-376 (BUG-219) | ENFORCED | tests/career-intel-kb.test.cjs (see section) |
+| FR-377 (BUG-220) | ENFORCED | tests/career-intel-kb.test.cjs (see section) |
+| FR-378 (BUG-221) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-379 (BUG-222, BUG-223) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-380 (BUG-221) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-381 (BUG-223, BUG-224) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-382 (BUG-225) | ENFORCED | tests/career-alert-text-flow.test.cjs (see section) |
+| FR-383 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
+| FR-384 (BUG-226) | ENFORCED | tests/career-tn1a-feed-path.test.cjs |
+| FR-385 (BUG-227) | ENFORCED | tests/career-guidance-entry.test.cjs |
+| FR-386 (BUG-228) | ENFORCED | tests/career-dedupe-clean-copy.test.cjs |
+| FR-387 (BUG-229) | ENFORCED | tests/career-bug229-summer-analyst-band.test.cjs |
 
-<!-- totals: total=362 enforced=257 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=378 enforced=286 guarded_red=0 hard_shut=1 unenforced=91 (updated 2026-10-15, MI-094: FR-387 added ENFORCED at birth; reconciled 2026-10-15, MI-093 merged register: Crew B lineage FR-363…382 stands; Crew A lineage renumbered FR-367…370 → FR-383…386 and BUG-210…212 → BUG-226…228; counted from rule blocks — STATUS line governs, else an ENFORCEMENT naming a standing guard counts ENFORCED) -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2474,7 +2501,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 
 ### FR-355 — A proposal never offers a time that has already passed (BUG-198)
 - **RULE:** Offered times are checked against the turn's own clock. All-past offers are re-evaluated for the next day at the same local times (conflict checks rerun) with the shift disclosed in the reply and recorded in the payload; a past slot is never presented as available.
-- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-198 (SC-143 shape).
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-198 (the emitter staged directly with slots past at the turn clock; corrected 2026-10-15 under MI-001 — the original chat-path form expected the next-day shift, which appeared only because the emitter read the wall clock: the defect itself, see FR-367) + tests/career-clock-source-guard.test.cjs (SC-143 wall-clock invariance at faked morning and afternoon clocks; pass^3 recorded in docs/career/contracts/mi-001-bug-198.md).
 
 ### FR-356 — A status shape asserts only the state it holds (BUG-199)
 - **RULE:** A label is spoken as the name of a pattern unless a write put it on a row this turn; a setting is never "done" before the inputs it depends on exist; every deadline carries its absolute date on first mention; a missing comparison (a plan, a base) is stated as missing, not dropped and not zero; and a retro or dashboard delivers its forward plan from the numbers it has — from zero, an honest floor.
@@ -2583,3 +2610,23 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-382 — An alert carries the posting's own text to the reminder; fit lines cite proven facts or do not print (BUG-225)
 - **RULE:** A job alert record carries the posting's text (jd_text) verbatim from watch to assignment, so a reminder can quote the posting's own deadline — extracted only from that text, never invented; a company-less posting still reminds (TN-1a). A fit line prints only for a skill proven under the strict rule (not unproven AND non-empty evidence), cited to its fact; a skill that cannot be explained is not claimed as a fit.
 - **ENFORCEMENT:** tests/career-alert-text-flow.test.cjs (jd_text flows 151→152→reminder; deadline quoted verbatim; canonical-shape unevidenced skill yields no fit line); Lane A re-run: GT-deadline reminders 0/62 → 62/62, invented deadlines 0, catch and false-alert rates unchanged.
+
+### FR-383 — A clock value is never fed to Date.parse unless it is known to be a string (BUG-198 class)
+- **RULE:** The turn clock arrives as numeric epoch milliseconds (harness and production host alike). Any code that reads a clock value coerces it type-safely — a finite number passes through, a string parses, anything else falls to the caller's explicit default. Date.parse() on a possibly-numeric clock value is forbidden: it returns NaN, and the NaN silently becomes a wall-clock fallback, a thrown RangeError, or a NaN verdict downstream (six sites at discovery: 141 emitCalendarProposal, 128 deadlinePlan, 129 networkUpkeep, 145 pressurePlan, 135 keepWarm, 142->124 draftAndGate). A guard for a clock-sensitive behavior must pin BOTH the turn clock and the wall clock; a guard whose expectation holds at only one time of day is evidence of this defect, not of a fix.
+- **ENFORCEMENT:** tests/career-clock-source-guard.test.cjs (7 tests: SC-143 wall-clock invariance at faked 12:00Z and 21:35Z; past-slot re-proposal staged at the emitter; numeric-vs-ISO identity with no throw and no NaN at 128 deadlinePlan, 129 networkUpkeep, 145 pressurePlan, 135 keepWarm; 142 call-site smoke).
+
+### FR-384 — A board token is never a company (BUG-226, TN-1a feed path)
+- **RULE:** A posting's company comes only from a source that names it: the feed payload's own company name, or the feed descriptor's stated company (the board registry carries one per board). The board token is an address and must never render as a company. When neither source names a company, the posting carries company: null with company_not_stated: true — the TN-1a truth — and flows onward (dedupe, matching, alerts) company-less, never dropped and never dressed in the token.
+- **ENFORCEMENT:** tests/career-tn1a-feed-path.test.cjs (8 tests: all four normalizers silent-payload -> not-stated; payload name wins; descriptor company used via fetchFeed; end-to-end not-stated; dedupe survival + stable job_id).
+
+### FR-385 — Guidance-shaped asks reach the guidance engine; the intent matcher runs last in dispatch (BUG-227)
+- **RULE:** The guidance dispatch gate and the guidance intent matcher must never silently diverge: an ask the intent matcher recognizes as guidance-shaped reaches 144's engine unless another named handler owns it. The matcher admission runs AFTER every named owner in dispatch (an owned ask keeps its owner even when its text matches a guidance shape — SC-113's weak-profile plan is the standing example), and the entry shapes (break into, where/how do I start) belong to plan_paths.
+- **ENFORCEMENT:** tests/career-guidance-entry.test.cjs (7 tests: the flagship ask + 3 sibling entry phrasings route to the guidance answer; the previously working shape unchanged; a non-guidance ask is not captured; SC-113 keeps its weak_profile_plan owner).
+
+### FR-386 — Dedupe never merges across a 14-day posting gap, and the cleaner copy survives (BUG-228)
+- **RULE:** Two postings that share a dedupe key but were posted more than 14 days apart (both dates known) are distinct openings and must both survive dedupe, each with its own job_id — a fresh req of a recurring role is news, and merging it into the old record silences diffNew. When copies do merge, the cleaner copy (JD substance, then department presence) supplies the record's identity regardless of arrival order. AMENDED 2026-10-15 (MI-051/LA-0016): copies merge only when they are the same opening — a shared req id (the employer's own identity, however differently boards render its text), or JD texts that are the same document (normalized-equal, or one containing the other as a truncation, or one side empty). Two boards can carry the same role under different reqs with different text, and merging those lets one copy's requirement text (a license knockout) poison the other's gate verdict.
+- **ENFORCEMENT:** tests/career-dedupe-clean-copy.test.cjs (LA-0016 replay: the 30-day-newer Lever posting survives and diffNew fires; the 1-day cross-post still collapses with both URLs; the clean copy supplies the identity in either arrival order).
+
+### FR-387 — The seasonal-analyst titles are internships: season + analyst-track noun bands intern (BUG-229)
+- **RULE:** A posting title in the seasonal-analyst convention — (summer|winter) followed by analyst, associate, or business analyst — bands "intern" in 121 seniorityBand: those titles ARE the finance/consulting internship postings and carry no intern token, so without the rule they default to "mid" and intern-band watches silently miss them (witness: Lane A seed LA-0043). The analyst-track noun is required — a seasonal title without it is a seasonal job (customer service, housekeeping, retail) and keeps its band; a blanket seasonal rule is forbidden. A title that also names a management role (manager/director/vp/vice president/head of/chief) is the manager's posting and falls through to the seniority checks. Deriving the band from JD program prose is forbidden: full-time postings routinely describe the summer program they mentor or feed.
+- **ENFORCEMENT:** tests/career-bug229-summer-analyst-band.test.cjs (5 tests: the LA-0043 witness and the title family band intern; seasonal jobs, the program-manager title, and frozen seniority verdicts pinned to their bands). Flip audit at landing (MI-094): 21,688 corpus postings 0 flips; 6,600 Lane A postings exactly 1 flip — the witness.

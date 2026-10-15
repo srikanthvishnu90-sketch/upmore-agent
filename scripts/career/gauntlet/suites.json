@@ -1,0 +1,1525 @@
+{
+  "generated": "2026-10-15T18:43:54.825Z",
+  "source": {
+    "recordsDir": "/home/hatch/workspace/your_files/upmore-career-gauntlet-assembled-300",
+    "grader": "grader-v2 (Quality Spec Pack v1.0)",
+    "mode": "grade-fresh",
+    "counts": {
+      "PASS": 291,
+      "FAIL": 7,
+      "NOT IMPLEMENTED": 2
+    }
+  },
+  "warning": "Classification inherits the source run's build (A-08): re-generate after every full run; a carried PASS is labeled with the build it belongs to, never silently inherited.",
+  "graduation_rule": "A capability scenario graduates to regression only after passing in two consecutive full runs. This file records one source run; graduation is evaluated when the next full run is generated.",
+  "bars": {
+    "regression": "approx 100% — any dip is a stop",
+    "capability": "no bar — the rate is reported, per class, without shame"
+  },
+  "regression_count": 291,
+  "capability_count": 9,
+  "regression": [
+    {
+      "scenario_id": "SC-001",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-002",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-003",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-004",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-005",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-006",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-007",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-008",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-009",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-010",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-011",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-012",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-013",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-014",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-015",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-016",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-017",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-018",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-019",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-020",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-021",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-022",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-023",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-024",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-025",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-026",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-027",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-028",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-029",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-030",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-031",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-032",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-033",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-034",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-035",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-036",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-037",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-038",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-039",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-040",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-041",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-042",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-043",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-044",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-045",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-046",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-047",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-048",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-049",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-050",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-051",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-052",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-053",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-054",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-055",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-056",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-057",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-058",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-059",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-060",
+      "family": "Outreach & Networking",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-061",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-062",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-063",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-064",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-065",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-066",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-067",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-068",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-069",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-070",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-071",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-072",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-073",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-074",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-075",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-076",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-077",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-078",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-079",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-080",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-081",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-082",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-083",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-085",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-086",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-087",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-090",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-092",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-093",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-094",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-096",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-097",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-098",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-099",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-100",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-101",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-102",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-103",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-104",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-106",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-107",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-108",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-109",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-110",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-112",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-113",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-114",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-115",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-116",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-117",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-118",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-119",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-120",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-121",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-122",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-123",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-124",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-125",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-126",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-127",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-128",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-129",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-130",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-131",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-132",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-133",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-134",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-135",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-136",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-137",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-138",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-139",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-140",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-141",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-142",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-143",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-144",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-145",
+      "family": "Track & Follow-Up",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-146",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-147",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-148",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-149",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-150",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-151",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-152",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-153",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-154",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-155",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-156",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-157",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-158",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-159",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-160",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-161",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-162",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-163",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-164",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-165",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-166",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-167",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-168",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-169",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-170",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-171",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-172",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-173",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-174",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-175",
+      "family": "Referrals & Warm Paths",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-176",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-177",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-178",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-180",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-181",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-182",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-183",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-184",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-185",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-186",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-187",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-188",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-189",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-190",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-191",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-192",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-193",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-194",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-195",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-197",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-198",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-199",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-200",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-201",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-202",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-203",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-204",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-205",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-206",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-207",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-208",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-209",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-210",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-211",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-212",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-213",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-214",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-215",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-216",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-217",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-218",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-219",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-220",
+      "family": "Negotiation",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-221",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-222",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-223",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-224",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-225",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-226",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-227",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-228",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-229",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-230",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-231",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-232",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-233",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-234",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-235",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-236",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-237",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-238",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-239",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-240",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-241",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-242",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-243",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-244",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-245",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-246",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-247",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-248",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-249",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-250",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-251",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-252",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-253",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-254",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-255",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-256",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-257",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-258",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-259",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-260",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-261",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-262",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-263",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-264",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-265",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-266",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-267",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-268",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-269",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-270",
+      "family": "Intelligence & Honest Advice",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-271",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-272",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-273",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-274",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-275",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-276",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-277",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-278",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-279",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-280",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-281",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-282",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-283",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-284",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-285",
+      "family": "Career Os",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-286",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-287",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-288",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-289",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-290",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-291",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-292",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-293",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-294",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-295",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-296",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-297",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-298",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-299",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    },
+    {
+      "scenario_id": "SC-300",
+      "family": "Access, Safety & Honesty",
+      "verdict_in_source_run": "PASS"
+    }
+  ],
+  "capability": [
+    {
+      "scenario_id": "SC-084",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "FAIL"
+    },
+    {
+      "scenario_id": "SC-088",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "FAIL"
+    },
+    {
+      "scenario_id": "SC-089",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "FAIL"
+    },
+    {
+      "scenario_id": "SC-091",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "FAIL"
+    },
+    {
+      "scenario_id": "SC-095",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "FAIL"
+    },
+    {
+      "scenario_id": "SC-105",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "NOT IMPLEMENTED"
+    },
+    {
+      "scenario_id": "SC-111",
+      "family": "Apply Engine",
+      "verdict_in_source_run": "FAIL"
+    },
+    {
+      "scenario_id": "SC-179",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "NOT IMPLEMENTED"
+    },
+    {
+      "scenario_id": "SC-196",
+      "family": "Interview Prep",
+      "verdict_in_source_run": "FAIL"
+    }
+  ]
+}

@@ -41,7 +41,11 @@ let Containment = null;
 try { Containment = require(path.join(ROOT, "packages/domain/143-career-containment.js")); } catch (e) { Containment = null; }
 const L = require(path.join(ROOT, "scripts/career/gauntlet/pilot-lib.cjs"));
 
-const ERROR_FALLBACK = "Something went wrong on my end. Nothing was changed — try again in a moment and I will pick it back up.";
+// MI-048 triage (2026-10-15): the contained-fallback copy was reworded
+// by the reply waves; the containment behavior these tests prove
+// (fallback delivered + failure record written) is unchanged. The pin
+// follows the current copy — if the copy changes again, change it here.
+const ERROR_FALLBACK = "Something went wrong on my end — nothing changed on your side. Tell me the job, company, or person to work on and I will pick it back up from there.";
 const FIXED_NOW = () => new Date("2026-10-13T15:00:00.000Z");
 
 function makeContainment(extra) {

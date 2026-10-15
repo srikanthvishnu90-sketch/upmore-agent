@@ -1090,7 +1090,7 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate", school: (edu && edu.org) || (profile.basics && profile.basics.school) || "" };
     const candidate = { full_name: named.name, current_firm: named.firm, title: "", schools: user.school ? [user.school] : [], relationship_to_user: "", personalization_facts: [] };
     let gated = null;
-    // CLOCK-SOURCE (BUG-198 class, FR-367): nowOf coerces the turn clock
+    // CLOCK-SOURCE (BUG-198 class, FR-383): nowOf coerces the turn clock
     // type-safely; Date.parse(ctx.now) on the numeric clock was NaN,
     // which silently disabled 124's stale-record check at this call.
     try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now != null ? nowOf(ctx) : undefined }); } catch { gated = null; }
@@ -6557,7 +6557,7 @@ const CareerRouter = (() => {
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls
     // through to 141 when this router returns null or the fallback.
-    // BUG-211 (MI-047, FR-369): the guidance dispatch gate (in the
+    // BUG-227 (MI-047, FR-385): the guidance dispatch gate (in the
     // intel block above) and guidanceIntentFor kept SEPARATE phrase
     // lists, and the flagship entry shapes ("break into investment
     // banking — where do I start?") fell through both into the

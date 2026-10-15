@@ -71,7 +71,7 @@ test("DISC-003 fetchFeed never throws on HTTP error; the failure is recorded", a
   assert.equal(r.status, 404); assert.deepEqual(r.postings, []); assert.match(r.error, /404/);
 });
 test("DISC-003 dedupe: same role cross-posted on two boards collapses, both URLs kept (regression: req ids are source-scoped)", () => {
-  // BUG-210/FR-368 (2026-10-15): the Lever side is staged the way
+  // BUG-226/FR-384 (2026-10-15): the Lever side is staged the way
   // production fetches it — the board descriptor states the company
   // ("Stripe"); a Lever payload never names one, and the board token
   // alone is an address, not a company (TN-1a feed path).

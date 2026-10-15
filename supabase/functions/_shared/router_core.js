@@ -20974,7 +20974,7 @@ const CareerJobs = (() => {
     return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
   }
 
-  // TN-1a FEED PATH (BUG-210, FR-368): a posting's company comes only
+  // TN-1a FEED PATH (BUG-226, FR-384): a posting's company comes only
   // from a source that NAMES it — the payload itself, or the feed
   // descriptor's stated company (registry boards carry one). The board
   // token is an address, never a company: when neither source names a
@@ -21129,7 +21129,7 @@ const CareerJobs = (() => {
   // ---------- dedupe ----------
   // City segment only: "San Francisco, CA" and "San Francisco, California" are the same place to a feed.
   function dedupeKey(p) { return `${normName(p.company)}|${normTitle(p.title)}|${normLoc(s(p.location).split(",")[0])}`; }
-  // BUG-212 (MI-031, FR-370): dedupe identity has a recency bound and a
+  // BUG-228 (MI-031, FR-386): dedupe identity has a recency bound and a
   // quality survivor. Copies posted more than 14 days apart are distinct
   // openings of a recurring role, never one posting — LA-0016's new
   // Lever posting merged into a month-old record, kept the old job_id,
@@ -26602,7 +26602,7 @@ const CareerNegotiation = (() => {
   const DISCLAIMER = "Negotiation support is advice, not a guarantee of outcome. It is not legal or tax advice — have an employment lawyer review any agreement before you sign.";
   const s = (v) => (v == null ? "" : String(v));
   const money = (n) => (n == null || !Number.isFinite(n) ? null : Math.round(n));
-  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
   // numeric epoch ms from the router/host and Date.parse(number) is
   // NaN. Coerce type-safely — a finite number passes through, a
   // string parses, anything else is NaN and the caller defaults.
@@ -26861,7 +26861,7 @@ const CareerOS = (() => {
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
-  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
   // numeric epoch ms from the router/host and Date.parse(number) is
   // NaN. Coerce type-safely — a finite number passes through, a
   // string parses, anything else is NaN and the caller defaults.
@@ -28156,7 +28156,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPath
    fact_ids array). */
 const CareerGraph = (() => {
   "use strict";
-  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
   // numeric epoch ms from the router/host and Date.parse(number) is
   // NaN. Coerce type-safely — a finite number passes through, a
   // string parses, anything else is NaN and the caller defaults.
@@ -29253,7 +29253,7 @@ const DISCLAIMER = "Advice, not a guarantee of outcome. Not legal or tax advice 
 const s = (v) => (v == null ? "" : String(v));
 const card = (kind, title, body, destination) => ({ type: "approval_card", kind, title, body, destination: destination || "recruiter (address confirmed on the card before send)", requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." });
 
-// CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+// CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
 // numeric epoch ms from the router/host and Date.parse(number) is NaN.
 // Coerce type-safely — a finite number passes through, a string parses,
 // anything else is NaN and the caller applies its own default.
@@ -31602,7 +31602,7 @@ const CareerDoorstep = (() => {
     // for the next day (busy and quiet checks rerun) and the card
     // says so; when only some are past, the proposal prefers a
     // future free slot and each past slot's verdict says it passed.
-    // CLOCK-SOURCE (BUG-198 class, FR-367): c.now arrives as numeric
+    // CLOCK-SOURCE (BUG-198 class, FR-383): c.now arrives as numeric
     // epoch ms from the harness/host and Date.parse(number) is NaN —
     // the old line silently fell back to the wall clock, so verdicts
     // flipped between morning and afternoon runs. Parse via isoOf,
@@ -33101,7 +33101,7 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate", school: (edu && edu.org) || (profile.basics && profile.basics.school) || "" };
     const candidate = { full_name: named.name, current_firm: named.firm, title: "", schools: user.school ? [user.school] : [], relationship_to_user: "", personalization_facts: [] };
     let gated = null;
-    // CLOCK-SOURCE (BUG-198 class, FR-367): nowOf coerces the turn clock
+    // CLOCK-SOURCE (BUG-198 class, FR-383): nowOf coerces the turn clock
     // type-safely; Date.parse(ctx.now) on the numeric clock was NaN,
     // which silently disabled 124's stale-record check at this call.
     try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now != null ? nowOf(ctx) : undefined }); } catch { gated = null; }
@@ -38568,7 +38568,7 @@ const CareerRouter = (() => {
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls
     // through to 141 when this router returns null or the fallback.
-    // BUG-211 (MI-047, FR-369): the guidance dispatch gate (in the
+    // BUG-227 (MI-047, FR-385): the guidance dispatch gate (in the
     // intel block above) and guidanceIntentFor kept SEPARATE phrase
     // lists, and the flagship entry shapes ("break into investment
     // banking — where do I start?") fell through both into the

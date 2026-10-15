@@ -1,4 +1,4 @@
-# CONTRACT — MI-030 / BUG-210: the feed path can never produce a company-less posting (TN-1a residue)
+# CONTRACT — MI-030 / BUG-226: the feed path can never produce a company-less posting (TN-1a residue)
 
 **Written:** 2026-10-15, BEFORE the fix (Crew A machinery: contract first).
 **Owner's ruling (2026-10-14, TN-1a):** every detected job gets its record; when the source
@@ -27,7 +27,7 @@ Meanwhile `fetchFeed` discards the one honest source it holds: registry feed des
 3. Not-stated postings survive dedupe with the marker intact; job_id stays stable.
 4. Fail-first guard stands permanently (tests/career-tn1a-feed-path.test.cjs); existing
    121 consumers' suites stay green; full sweep shows no failures beyond the MI-048 set.
-5. Bug law: ledger BUG-210 + register FR-368 in both copies, byte-identical.
+5. Bug law: ledger BUG-226 + register FR-384 in both copies, byte-identical.
 
 ## Results (2026-10-15, Crew A)
 
@@ -40,7 +40,7 @@ Meanwhile `fetchFeed` discards the one honest source it holds: registry feed des
   recorded in the test, the same doctrine as MI-001's guard correction.
 - **Full sweep:** 3,865 / 3,831 / 12 vs the MI-001 sweep's 3,855 / 3,821 / 12 (+10 tests:
   this guard + the staged-size and GC guards; the 12 fails are exactly the MI-048 set).
-- **Paperwork:** ledger BUG-210; register FR-368 (ENFORCED at birth) in both copies,
+- **Paperwork:** ledger BUG-226; register FR-384 (ENFORCED at birth) in both copies,
   byte-identical; totals 368 rules = 273 ENFORCED / 94 UNENFORCED / 1 HARD-SHUT.
 - **Coordination note:** 151 (Crew B in-flight) passes posting.company through untouched
   and builds one ad-hoc Greenhouse descriptor with a token only — after this fix such a

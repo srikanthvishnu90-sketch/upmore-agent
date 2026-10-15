@@ -1250,7 +1250,7 @@ const CareerDoorstep = (() => {
     // for the next day (busy and quiet checks rerun) and the card
     // says so; when only some are past, the proposal prefers a
     // future free slot and each past slot's verdict says it passed.
-    // CLOCK-SOURCE (BUG-198 class, FR-367): c.now arrives as numeric
+    // CLOCK-SOURCE (BUG-198 class, FR-383): c.now arrives as numeric
     // epoch ms from the harness/host and Date.parse(number) is NaN —
     // the old line silently fell back to the wall clock, so verdicts
     // flipped between morning and afternoon runs. Parse via isoOf,

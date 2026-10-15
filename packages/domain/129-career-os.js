@@ -12,7 +12,7 @@ const CareerOS = (() => {
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
-  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
   // numeric epoch ms from the router/host and Date.parse(number) is
   // NaN. Coerce type-safely — a finite number passes through, a
   // string parses, anything else is NaN and the caller defaults.

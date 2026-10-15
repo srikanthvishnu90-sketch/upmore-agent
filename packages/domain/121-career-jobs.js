@@ -436,7 +436,7 @@ const CareerJobs = (() => {
     return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
   }
 
-  // TN-1a FEED PATH (BUG-210, FR-368): a posting's company comes only
+  // TN-1a FEED PATH (BUG-226, FR-384): a posting's company comes only
   // from a source that NAMES it — the payload itself, or the feed
   // descriptor's stated company (registry boards carry one). The board
   // token is an address, never a company: when neither source names a
@@ -591,7 +591,7 @@ const CareerJobs = (() => {
   // ---------- dedupe ----------
   // City segment only: "San Francisco, CA" and "San Francisco, California" are the same place to a feed.
   function dedupeKey(p) { return `${normName(p.company)}|${normTitle(p.title)}|${normLoc(s(p.location).split(",")[0])}`; }
-  // BUG-212 (MI-031, FR-370): dedupe identity has a recency bound and a
+  // BUG-228 (MI-031, FR-386): dedupe identity has a recency bound and a
   // quality survivor. Copies posted more than 14 days apart are distinct
   // openings of a recurring role, never one posting — LA-0016's new
   // Lever posting merged into a month-old record, kept the old job_id,

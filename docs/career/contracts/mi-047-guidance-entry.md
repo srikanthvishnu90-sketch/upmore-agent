@@ -1,4 +1,4 @@
-# CONTRACT — MI-047 / BUG-211: the flagship guidance ask cold-starts to the fallback
+# CONTRACT — MI-047 / BUG-227: the flagship guidance ask cold-starts to the fallback
 
 **Written:** 2026-10-15, BEFORE the fix. **Done-test source:** MI-047 on the master list.
 
@@ -28,7 +28,7 @@ Probe evidence: "how do i get into investment banking?" -> the 144 guidance answ
    a non-guidance ask is NOT captured by the widened gate.
 3. Fail-first guard stands (tests/career-guidance-entry.test.cjs), pass^3; guidance/intel
    consumer suites green; full sweep no worse than the MI-048 set.
-4. Bug law: ledger BUG-211 + register FR-369, both copies byte-identical.
+4. Bug law: ledger BUG-227 + register FR-385, both copies byte-identical.
 
 ## Results (2026-10-15, Crew A)
 
@@ -42,7 +42,7 @@ Probe evidence: "how do i get into investment banking?" -> the 144 guidance answ
 - **Full sweep:** 3,872 / 3,838 / 12 — exactly the MI-048 set (SC-113 green again).
   The flagship ask now returns 144's guidance answer through the harness (tier 2);
   the live half of the done-test lands with the next deploy (owner's tap).
-- **Paperwork:** ledger BUG-211; register FR-369 in both copies (a drift event on the
+- **Paperwork:** ledger BUG-227; register FR-385 in both copies (a drift event on the
   your_files copy — it had reverted to the pre-GC state — was caught by the cmp check
   and repaired by copying the corrected register, per protocol §11; totals 369 rules =
   274 ENFORCED / 94 UNENFORCED / 1 HARD-SHUT).

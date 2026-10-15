@@ -1,4 +1,4 @@
-# CONTRACT — MI-031 / BUG-212: cross-board dedupe eats the clean (and the new) copy
+# CONTRACT — MI-031 / BUG-228: cross-board dedupe eats the clean (and the new) copy
 
 **Written:** 2026-10-15, BEFORE the fix. **Done-test source:** MI-031 on the master list.
 
@@ -27,14 +27,14 @@ first-seen-wins survivor. Two losses follow:
 Twin-pair replay set surfaces the clean copy 100%; LA-0016 replays correct (the new
 posting survives dedupe with its own job_id and diffNew fires); DISC-003's cross-post
 collapse still holds; existing 121 suites green; full sweep no worse than the MI-048
-set; bug law (BUG-212 + FR-370, both register copies byte-identical).
+set; bug law (BUG-228 + FR-386, both register copies byte-identical).
 
 ## Results (2026-10-15, Crew A)
 
 - **Fail-first:** the LA-0016 replay and the clean-copy test red; the cross-post pin green.
 - **Post-fix:** tests/career-dedupe-clean-copy.test.cjs **3/3, pass^3**; 121 consumer
   suites **101/101**; full sweep **3,875 / 3,841 / 12** — exactly the MI-048 set.
-- **Paperwork:** ledger BUG-212; register FR-370 in both copies, byte-identical
+- **Paperwork:** ledger BUG-228; register FR-386 in both copies, byte-identical
   (370 rules = 275 ENFORCED / 94 UNENFORCED / 1 HARD-SHUT).
 - **Boundary kept:** the 14-day bound and the quality rule live entirely in 121's
   dedupe; snapshot/diff semantics (DISC-004) untouched and green.

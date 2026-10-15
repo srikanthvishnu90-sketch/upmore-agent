@@ -17,7 +17,7 @@ reproduced is decoration, not law; the GC cadence now recounts by this method we
 
 1. **Index incomplete:** detail sections FR-363–FR-366 stood in the register with no index
    rows. → Index rows restored (all four UNENFORCED, per their own enforcement texts).
-2. **FR-367 added** (MI-001's clock-source class rule, ENFORCED from birth) — index row +
+2. **FR-383 added** (MI-001's clock-source class rule, ENFORCED from birth) — index row +
    detail section.
 3. **FR-031 CLOSED mechanically:** its enforcement text prescribed "a tree check asserting
    exactly one 126-career-track.js." Stood up as `tests/career-gc-guards.test.cjs` FR-031 —

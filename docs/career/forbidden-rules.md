@@ -8,6 +8,8 @@ Owner order 2026-10-14: every bug becomes a FORBIDDEN rule with permanent enforc
 
 **Maintenance.** The coordinator updates a rule's ENFORCEMENT and status in place when a fix lane lands its guard; a rule is never deleted. A fix without a register update does not count as fixed (the bug law).
 
+**Number allocation (MI-093, standing rule).** FR and BUG numbers are allocated single-writer by the Crew A registry — no other crew or lane allocates a number. Next-free counters are recorded in the header of `docs/bug-ledger.md` and advance with every assignment.
+
 ## 1 · Bug ledger — main table (BUG-001…BUG-049)
 
 Source: `docs/bug-ledger.md`, main table. FR numbers in this section match bug numbers (FR-001 = BUG-001) for easy cross-reference.
@@ -2370,15 +2372,31 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-361 (BUG-204) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-204 (see section) |
 | FR-362 (BUG-205) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-205 (see section) |
 | FR-363 (BUG-206) | UNENFORCED | UNENFORCED (see section) |
-| FR-364 (BUG-207) | UNENFORCED | UNENFORCED (see section) |
-| FR-365 (BUG-209) | UNENFORCED | UNENFORCED (see section) |
-| FR-366 (BUG-208) | UNENFORCED | UNENFORCED (see section) |
-| FR-367 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
-| FR-368 (BUG-210) | ENFORCED | tests/career-tn1a-feed-path.test.cjs |
-| FR-369 (BUG-211) | ENFORCED | tests/career-guidance-entry.test.cjs |
-| FR-370 (BUG-212) | ENFORCED | tests/career-dedupe-clean-copy.test.cjs |
+| FR-364 (BUG-207) | ENFORCED | tests/career-portal-submit-integrity.test.cjs (see section) |
+| FR-365 (BUG-209) | ENFORCED | tests/career-portal-submit-integrity.test.cjs (see section) |
+| FR-366 (BUG-208) | ENFORCED | tests/career-portal-submit-integrity.test.cjs (see section) |
+| FR-367 (BUG-210) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-368 (BUG-211) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-369 (BUG-212) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-370 (BUG-214) | ENFORCED | tests/career-tailor-gaps.test.cjs (see section) |
+| FR-371 (BUG-210…214) | ENFORCED | Lane B full-corpus grade (see section) |
+| FR-372 (BUG-215) | ENFORCED | tests/career-track-events.test.cjs (see section) |
+| FR-373 (BUG-216) | ENFORCED | tests/career-track-events.test.cjs (see section) |
+| FR-374 (BUG-217) | ENFORCED | tests/career-prep-bank.test.cjs (see section) |
+| FR-375 (BUG-218) | ENFORCED | tests/career-prep-bank.test.cjs (see section) |
+| FR-376 (BUG-219) | ENFORCED | tests/career-intel-kb.test.cjs (see section) |
+| FR-377 (BUG-220) | ENFORCED | tests/career-intel-kb.test.cjs (see section) |
+| FR-378 (BUG-221) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-379 (BUG-222, BUG-223) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-380 (BUG-221) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-381 (BUG-223, BUG-224) | ENFORCED | tests/career-conversation-depth.test.cjs (see section) |
+| FR-382 (BUG-225) | ENFORCED | tests/career-alert-text-flow.test.cjs (see section) |
+| FR-383 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
+| FR-384 (BUG-226) | ENFORCED | tests/career-tn1a-feed-path.test.cjs |
+| FR-385 (BUG-227) | ENFORCED | tests/career-guidance-entry.test.cjs |
+| FR-386 (BUG-228) | ENFORCED | tests/career-dedupe-clean-copy.test.cjs |
 
-<!-- totals: total=370 enforced=275 guarded_red=0 hard_shut=1 unenforced=94 (reconciled 2026-10-15, GC pass #1 + FR-368/369/370 added ENFORCED at birth) -->
+<!-- totals: total=377 enforced=285 guarded_red=0 hard_shut=1 unenforced=91 (reconciled 2026-10-15, MI-093 merged register: Crew B lineage FR-363…382 stands; Crew A lineage renumbered FR-367…370 → FR-383…386 and BUG-210…212 → BUG-226…228; counted from rule blocks — STATUS line governs, else an ENFORCEMENT naming a standing guard counts ENFORCED) -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2518,28 +2536,92 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 
 ### FR-364 — A fill counts only when readback finds it (BUG-207)
 - **RULE:** A field value the browser helper reports as "filled" is not evidence the employer's page holds it. Before any doorstep is declared, every filled value must be confirmed in the post-fill readback; a value readback cannot find is a fill failure — counted, named, and treated exactly like a field that was never filled.
-- **ENFORCEMENT:** UNENFORCED — recorded 2026-10-15 from the live submit run (on Arc's form, 17 fills reported success and readback found 3; evidence in submissions/b2-16-arc/{run,diag}-2026-10-15 and submissions/21-labelbox/{run,diag}-2026-10-15). The portal fix lane owes a fail-first replay guard (a Greenhouse-shaped fixture whose form remounts mid-fill, asserting readback-verified fills). The rule flips to ENFORCED only when that guard stands.
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-integrity.test.cjs (D11 family, fail-first red on the pre-fix code): per-field fill-then-readback on a form that remounts every filled node; a delayed board-wide reset restored by the doorstep repair loop; react-select widgets filled by picking the board's own option (country and location alike — the drive keys off the widget, one drive per fill); a vanished resume input reported as a fill failure so the run stops at the gate; a resume input remounted under a fresh id re-discovered at fill time. Live re-drive 2026-10-15: Arc 17/17 verified; every one of the 25 applications' fills either verified or failed by name.
 
 ### FR-365 — No submit click over a payload missing a required value (BUG-209)
 - **RULE:** The submit gate may fire only when the doorstep payload carries a readback value for EVERY required field on the form. A payload missing any required field's value is a typed stop (incomplete payload), never a click — a non-empty payload is not a complete payload, and two always-surviving fields (phone, resume) can never carry a submission by themselves.
-- **ENFORCEMENT:** UNENFORCED — recorded 2026-10-15 from the live submit run (both armed attempts clicked over payloads missing required name/email values; only the employer's own client-side validation prevented an incomplete transmission). The portal fix lane owes a fail-first guard (armed doorstep with a required field absent from the readback payload must refuse to click). The rule flips to ENFORCED only when that guard stands.
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-integrity.test.cjs (D13 family: unit gate cases at doorstep build and at submitDoorstep re-verification, whitespace-counts-as-missing, an end-to-end never-persisting form with zero submit clicks, and the complete-form control submitting exactly once). Live re-drive 2026-10-15: Labelbox stopped INCOMPLETE_PAYLOAD at the gate where the morning build had clicked.
 
 ### FR-366 — A confirmation ID is evidence only in a confirmation context (BUG-208)
 - **RULE:** A confirmation/application ID counts only when the post-submit landing labels it as one (a confirmation view naming the ID as an application/confirmation/reference number). Text from the job posting itself, or any unlabeled ID-shaped token in page prose, can never mint a confirmation, and an extraction alone can never upgrade an outcome to accepted — acceptance requires the labeled ID or unambiguous employer success wording on the confirmation view.
-- **ENFORCEMENT:** UNENFORCED — recorded 2026-10-15 from the live submit run (the extractor minted confirmationId "security" from the Labelbox posting's own prose and the product recorded a SUBMITTED that never happened; disproven by the captured screenshot before it reached any count). The portal fix lane owes adversarial extraction cases (posting prose containing ID-shaped words, incl. "security", must yield no confirmation). The rule flips to ENFORCED only when that guard stands.
+- **ENFORCEMENT:** ENFORCED — tests/career-portal-submit-integrity.test.cjs (D12 family: labeled-context-only extraction with a digit required in the token; the verbatim 'security' mint refused; posting prose, headers and unrelated IDs mint nothing; a still-open form vetoes IDs and success wording alike; end-to-end, an armed submit landing on the still-open form records unknown_outcome, never SUBMITTED; genuinely labeled confirmations still extract).
 
-### FR-367 — A clock value is never fed to Date.parse unless it is known to be a string (BUG-198 class)
+### FR-367 — A tailored packet names what it does not cover (BUG-210)
+- **RULE:** Every tailoring result — delivered, refused, or partial — carries its uncovered-requirement set in the result (`gap_flags.uncovered_requirements`) and in the document the user reads; a scenario whose posting cannot be satisfied from the proven record is flagged, never shipped as if complete.
+- **ENFORCEMENT:** tests/career-tailor-gaps.test.cjs T1 (uncovered requirement listed in result + document, present even on refusal); Lane B UNSATISFIABLE_CLAIMED 102→0.
+
+### FR-368 — A failed knockout is stated, never silently dropped (BUG-211)
+- **RULE:** When a posting's hard requirement (license, certification, clearance, degree, years) is not met by the candidate's record, the output states the mismatch (knockout and eligibility flags on the result AND a visible document section). Silence about a failed knockout is a defect, in delivered packets and in refusals alike.
+- **ENFORCEMENT:** tests/career-tailor-gaps.test.cjs T2 (license-fails-location, degree, level flags asserted with the refusing outcome intact); Lane B KNOCKOUT_SILENT_DROP 68→0.
+
+### FR-369 — Skills that reach the page are named and evidenced; a contentless Skills section fails parse-check (BUG-212, BUG-213)
+- **RULE:** (a) A skill line is built only from facts that yield a real skill name (explicit name field, or the annotation-stripped fact text); nameless rows and ",, " joins are never emitted. (b) A standalone evidenced skill fact is selectable for the Skills line on the same footing as a prose mention. (c) parse-check FAILs any canonical section whose body is present but contentless (no alphanumeric character) — `section_empty:<NAME>` — in both PDF and DOCX render paths.
+- **ENFORCEMENT:** tests/career-tailor-gaps.test.cjs T3 (empty body FAILs, punctuation-only body FAILs, nameless fact yields a named line, standalone skill fact reaches the page); Lane B empty/punctuation-only Skills 307/475 → 0/500 documents.
+
+### FR-370 — An unevidenced fact is named as a gap; it never blocks and never claims (BUG-214)
+- **RULE:** A fact with an empty evidence array (and no unproven flag) is not proven: it is excluded from every claim the resume makes and from the truth audit's contradiction set, listed by name as unevidenced, and it never poisons an unrelated refusal. Eligibility facts (degrees, licenses — what the candidate IS) are judged on the record set, not the claim set, so an evidence-free degree still proves eligibility.
+- **ENFORCEMENT:** tests/career-tailor-gaps.test.cjs T4 (unevidenced Rust: Python resume delivered, Rust unclaimed and named, degree eligibility intact); Lane B WRONGFUL_REFUSAL 25→0 with invention still 0/1,000.
+
+### FR-371 — Tailoring depth is selection, ordering and honest flags — never invented coverage (BUG-210…214)
+- **RULE:** Coverage gains come only from surfacing evidenced material the pipeline already holds (standalone skill facts, recoverable skill names, evidenced claims in better order) and from stating gaps; no requirement may be marked covered, and no skill, credential, date or number may appear, without a proven fact behind it. Invention stays zero — a coverage rise with any invention is a failure of the whole change.
+- **ENFORCEMENT:** Lane B full-corpus grade (invention 0/1,000 before AND after; coverage mean 0.543 → 0.589, median 0.500 → 0.615, PASS 0 → 4, FAIL 674 → 385 with the per-mechanism delta table in the wave report); tests/career-tailor-gaps.test.cjs T5 (level/eligibility mismatch stated from posting fields the product actually receives; ordering case: evidenced skills precede generic ones).
+
+### FR-372 — Plain-words event reports are tracker events; closed is never live after (BUG-215)
+- **RULE:** An inbox-surface message in which the user reports, in their own first-person words, an employer outcome (rejection / interview / online assessment / offer) IS a tracker event: it must be classified by its outcome language (including slang, recruiter-speech and uppercase forms), recorded against the application it plausibly names, and from that moment no tracker view, digest or status may present that application as a live/applied-stage one. Interview/OA signals outrank stray "miss" tokens in the same clause.
+- **ENFORCEMENT:** tests/career-track-events.test.cjs (i)/(ii)/(iv): the 24-genuine-phrasing probe — fail-first 7 failures pre-fix (rejections 5, interview 1, offer 1, misclassification 1), 24/24 post-fix; frozen: 36 lane-C tracker-genuine forms, SC-124..128, battery C29/C36. (Sub-case: a company-less rejection of the ONLY live application binds by the FR-373 ladder; a closed application never renders as live in any digest.)
+
+### FR-373 — Binding is first-person-plausible only; "null" never renders (BUG-216)
+- **RULE:** A reported event binds only where the user's own words make it plausible — a named company binds that company; a company-less report binds a fresh inbound record, the single live application, an explicitly not-stated row, or nothing (needs_company), and NEVER a different company's row by recency, and NEVER a named row for a report that names another or no company while a null-company row exists. Company-less records render as "company not stated" in every user-facing view; the string "null" as a company is a defect.
+- **ENFORCEMENT:** tests/career-track-events.test.cjs (iii)/(iv): adversarial binding cases (company-less interview must not advance a named row; ≥2 live applications → needs_company, nothing written; quoted/conditional/rumor forms write nothing — 12/12 adversarial no-writes) and the digest/status render checks — fail-first 4 failures pre-fix (needs_company ×3, "null" render ×1).
+
+### FR-374 — Prep draws from the cited interview bank, per sector (BUG-217)
+- **RULE:** Interview prep question sets are composed from the product's cited bank data (packages/career-data/interview-banks/, embedded in the bundle like the CIRs) in addition to built-in sets; a sector with bank files (data, law, medicine, and the rest) is never served an empty or silently generic bank, and the DCF drill serves the bank's model-answer text verbatim, not a summary or outline of it.
+- **ENFORCEMENT:** tests/career-prep-bank.test.cjs — per-sector item counts from the bank (data 30 / law 32 / medicine 30), the DCF model answer asserted by its distinctive verbatim fragments through questionBank, dailyDrill and runSession; fail-first: the guard cannot load pre-fix (bank data absent from the product).
+
+### FR-375 — A sector's prep never deals another sector's bank items (BUG-218)
+- **RULE:** Bank items serve only under the sector of the file they came from (checked by file id and sector text); a SWE ask never receives law or medicine items, a law ask never receives finance items, and every bank item served carries its provenance (bankId + source) in the session output.
+- **ENFORCEMENT:** tests/career-prep-bank.test.cjs — sector-isolation probes assert zero out-of-family bank items in mixed sessions; the composition regression this guard caught mid-build (family-less built-ins occupying sector slots) is pinned by the same file's family-gating case.
+
+### FR-376 — A company-intel answer serves the asked role's bar, or says the file has none (BUG-219)
+- **RULE:** Company-intel answers are role-lensed: when a company file carries a bar for the asked role (per-role bars, or the cohort bar when the asked role is the file's cohort role), that bar is the one served; when the file carries no bar for the asked role, the answer says so honestly, naming the role the file's bar actually belongs to — another role's bar is never quoted, paraphrased, or drilled as if it answered the asked role's question, in theses, compare tables, prep, or chat replies.
+- **ENFORCEMENT:** tests/career-intel-kb.test.cjs (FR-376 cases: Snowflake-for-PM serves the fixture's PM bar and never the SWE bar; the shipped Snowflake shape yields the honest no-PM-bar statement through barForRole, answerRoleIntel, and composeThesis's bottom line).
+
+### FR-377 — Intel stats come from the career knowledge library, cited with their n — or are not stated (BUG-220)
+- **RULE:** A role statistic in a product answer comes from the career knowledge library through the 153 read seam (injected live career_kb_* rows when the host provides them, the embedded aggregates otherwise) and is always cited with the sample size the source states ("% of postings (n=...)") and its basis; a role the library does not carry, or whose files state no figure with an n, gets an honest no-data answer — another role's statistics are never substituted, and no percentage is printed without its n.
+- **ENFORCEMENT:** tests/career-intel-kb.test.cjs (FR-377 cases: data-analyst / software-engineer / welder citations match the embedded aggregates' own pct and n across three sectors; injected rows override and extend the embedded set, including raw career_kb_* row shapes; an unknown role yields a no-data answer containing no percentage).
+
+### FR-378 — Negotiation and career-OS asks are claimed by mechanism and answered with a composed product or an honest fact-ask (BUG-221)
+- **RULE:** Negotiation and career-OS phrasings are claimed by their mechanisms (offer/counter/extension product nouns; plan/next-move shapes), not by exam sentences; the reply delivers the composed product (counter or extension email text, offer math, a next-two-moves plan) built from thread facts — and when a needed figure or date is not in the thread, the reply asks for it. A money or timing figure is never invented to complete a draft. Career-OS fallback above the claiming ceiling is a named residual (the fallback adjudicator is the conversation owner's design fork), never papered over.
+- **ENFORCEMENT:** tests/career-conversation-depth.test.cjs (negotiation + career-os probe sets incl. the $85k/Monday composed-email probe and the no-figures fact-ask probe); Lane C fresh-corpus re-grade: negotiation fallback 95.5% → 12.5%, career-os 91.2% → 38.2% (ceiling named in the wave report).
+
+### FR-379 — Thread facts are used where the answer is composed, and remainders are finished (BUG-222, BUG-223)
+- **RULE:** A fact the user stated in the thread (typed, with its source turn) is consumed at the point of composition — addressees, plans, and follow-ups use it; a correction replaces the stored value; a state read at action time (pause/resume above all) comes from the current record, never a stale snapshot; and a multi-part request's remainder is queued from the claim machinery and delivered, on exam shapes and novel phrasings alike.
+- **ENFORCEMENT:** tests/career-conversation-depth.test.cjs (fact-use, correction-replacement, C07 fresh-pause, and multi-intent probes); Lane C fresh-corpus re-grade: memory checks 3.8% → 39.7%, multi-intent parts 15% → 100% (40/40), turn-2+ fallback 62.5% → 21.3%.
+
+### FR-380 — A user's own event report is claimed into the tracker, under the assertion invariant (BUG-221)
+- **RULE:** Plain-words employer-event reports ("they just emailed me a rejection") are claimed as tracking turns and routed to the tracker's ingest (module 126 under TN-1a + the assertion invariant: first-person report = the user's assertion; a question, conditional, quoted, or third-party turn writes nothing). The reply speaks the tracker's own outcome language; the write happens only inside the tracker, never in the router.
+- **ENFORCEMENT:** tests/career-conversation-depth.test.cjs (event-claim probes: rejection/interview/offer reports claimed + routed; rumor/conditional controls unclaimed-for-write); composed with FR-372/373's ingest guard; Lane C track-family fallback 30.5% → 16.8% with 0 non-assertion writes on the adversarial set.
+
+### FR-381 — Proposal sets follow the asked sector; claiming widens without breaking frozen claims (BUG-223, BUG-224)
+- **RULE:** (a) When outreach falls back to proposing a firm set, the set comes from the ASKED sector/family; a sector with no set on file gets an honest no-set answer and a discovery offer — another sector's set (above all the finance wedge set) is never proposed for a non-finance ask. (b) Claiming extensions are scoped: title-word expansions exclude the story family, safety/pause claims keep precedence over generics, and no widened claim may capture a frozen battery shape away from its owner.
+- **ENFORCEMENT:** tests/career-conversation-depth.test.cjs (4-sector set-mapping probes incl. healthcare-consulting ≠ bulge-bracket; SC-196 story-claim probe; claim-order probes); battery guard 42/42 and state-write adversarial 100/100 stay green on the same build.
+
+### FR-382 — An alert carries the posting's own text to the reminder; fit lines cite proven facts or do not print (BUG-225)
+- **RULE:** A job alert record carries the posting's text (jd_text) verbatim from watch to assignment, so a reminder can quote the posting's own deadline — extracted only from that text, never invented; a company-less posting still reminds (TN-1a). A fit line prints only for a skill proven under the strict rule (not unproven AND non-empty evidence), cited to its fact; a skill that cannot be explained is not claimed as a fit.
+- **ENFORCEMENT:** tests/career-alert-text-flow.test.cjs (jd_text flows 151→152→reminder; deadline quoted verbatim; canonical-shape unevidenced skill yields no fit line); Lane A re-run: GT-deadline reminders 0/62 → 62/62, invented deadlines 0, catch and false-alert rates unchanged.
+
+### FR-383 — A clock value is never fed to Date.parse unless it is known to be a string (BUG-198 class)
 - **RULE:** The turn clock arrives as numeric epoch milliseconds (harness and production host alike). Any code that reads a clock value coerces it type-safely — a finite number passes through, a string parses, anything else falls to the caller's explicit default. Date.parse() on a possibly-numeric clock value is forbidden: it returns NaN, and the NaN silently becomes a wall-clock fallback, a thrown RangeError, or a NaN verdict downstream (six sites at discovery: 141 emitCalendarProposal, 128 deadlinePlan, 129 networkUpkeep, 145 pressurePlan, 135 keepWarm, 142->124 draftAndGate). A guard for a clock-sensitive behavior must pin BOTH the turn clock and the wall clock; a guard whose expectation holds at only one time of day is evidence of this defect, not of a fix.
 - **ENFORCEMENT:** tests/career-clock-source-guard.test.cjs (7 tests: SC-143 wall-clock invariance at faked 12:00Z and 21:35Z; past-slot re-proposal staged at the emitter; numeric-vs-ISO identity with no throw and no NaN at 128 deadlinePlan, 129 networkUpkeep, 145 pressurePlan, 135 keepWarm; 142 call-site smoke).
 
-### FR-368 — A board token is never a company (BUG-210, TN-1a feed path)
+### FR-384 — A board token is never a company (BUG-226, TN-1a feed path)
 - **RULE:** A posting's company comes only from a source that names it: the feed payload's own company name, or the feed descriptor's stated company (the board registry carries one per board). The board token is an address and must never render as a company. When neither source names a company, the posting carries company: null with company_not_stated: true — the TN-1a truth — and flows onward (dedupe, matching, alerts) company-less, never dropped and never dressed in the token.
 - **ENFORCEMENT:** tests/career-tn1a-feed-path.test.cjs (8 tests: all four normalizers silent-payload -> not-stated; payload name wins; descriptor company used via fetchFeed; end-to-end not-stated; dedupe survival + stable job_id).
 
-### FR-369 — Guidance-shaped asks reach the guidance engine; the intent matcher runs last in dispatch (BUG-211)
+### FR-385 — Guidance-shaped asks reach the guidance engine; the intent matcher runs last in dispatch (BUG-227)
 - **RULE:** The guidance dispatch gate and the guidance intent matcher must never silently diverge: an ask the intent matcher recognizes as guidance-shaped reaches 144's engine unless another named handler owns it. The matcher admission runs AFTER every named owner in dispatch (an owned ask keeps its owner even when its text matches a guidance shape — SC-113's weak-profile plan is the standing example), and the entry shapes (break into, where/how do I start) belong to plan_paths.
 - **ENFORCEMENT:** tests/career-guidance-entry.test.cjs (7 tests: the flagship ask + 3 sibling entry phrasings route to the guidance answer; the previously working shape unchanged; a non-guidance ask is not captured; SC-113 keeps its weak_profile_plan owner).
 
-### FR-370 — Dedupe never merges across a 14-day posting gap, and the cleaner copy survives (BUG-212)
+### FR-386 — Dedupe never merges across a 14-day posting gap, and the cleaner copy survives (BUG-228)
 - **RULE:** Two postings that share a dedupe key but were posted more than 14 days apart (both dates known) are distinct openings and must both survive dedupe, each with its own job_id — a fresh req of a recurring role is news, and merging it into the old record silences diffNew. When copies do merge, the cleaner copy (JD substance, then department presence) supplies the record's identity regardless of arrival order. AMENDED 2026-10-15 (MI-051/LA-0016): copies merge only when they are the same opening — a shared req id (the employer's own identity, however differently boards render its text), or JD texts that are the same document (normalized-equal, or one containing the other as a truncation, or one side empty). Two boards can carry the same role under different reqs with different text, and merging those lets one copy's requirement text (a license knockout) poison the other's gate verdict.
 - **ENFORCEMENT:** tests/career-dedupe-clean-copy.test.cjs (LA-0016 replay: the 30-day-newer Lever posting survives and diffNew fires; the 1-day cross-post still collapses with both URLs; the clean copy supplies the identity in either arrival order).

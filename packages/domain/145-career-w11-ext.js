@@ -12,7 +12,7 @@ const DISCLAIMER = "Advice, not a guarantee of outcome. Not legal or tax advice 
 const s = (v) => (v == null ? "" : String(v));
 const card = (kind, title, body, destination) => ({ type: "approval_card", kind, title, body, destination: destination || "recruiter (address confirmed on the card before send)", requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." });
 
-// CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+// CLOCK-SOURCE (BUG-198 class, FR-383): the turn clock arrives as
 // numeric epoch ms from the router/host and Date.parse(number) is NaN.
 // Coerce type-safely — a finite number passes through, a string parses,
 // anything else is NaN and the caller applies its own default.

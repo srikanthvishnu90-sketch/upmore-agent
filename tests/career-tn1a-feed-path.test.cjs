@@ -1,5 +1,5 @@
 "use strict";
-// BUG-210 / FR-368 (MI-030, Crew A, 2026-10-15): TN-1a through the FEED
+// BUG-226 / FR-384 (MI-030, Crew A, 2026-10-15): TN-1a through the FEED
 // path. A posting whose payload names no company — and whose feed
 // descriptor states none — must arrive company-less (company: null +
 // company_not_stated: true). The board token is an address, never a
@@ -16,7 +16,7 @@ const LEVER_JOB = { text: "Product Designer", id: "lv-1", categories: { location
 const ASHBY_JOB = { title: "Data Analyst", id: "ab-1", location: "Chicago, IL", jobUrl: "https://jobs.ashbyhq.com/x/1", descriptionPlain: "Analyze things." };
 const SR_JOB = { name: "Support Specialist", id: "sr-1", location: { city: "Austin", region: "TX", country: "US" }, jobAd: { sections: {} } };
 
-test("BUG-210: a Greenhouse payload with no board name yields company-not-stated, never the token", () => {
+test("BUG-226: a Greenhouse payload with no board name yields company-not-stated, never the token", () => {
   const out = Jobs.normalizeGreenhouse({ jobs: [GH_JOB] }, "opaque-board-9");
   assert.equal(out.length, 1);
   assert.equal(out[0].company, null, `company must be null, got ${JSON.stringify(out[0].company)}`);
@@ -24,25 +24,25 @@ test("BUG-210: a Greenhouse payload with no board name yields company-not-stated
   assert.ok(!JSON.stringify(out[0]).includes('"opaque-board-9"') || out[0].url.includes("opaque-board-9"), "the token may appear in a URL, never as the company");
 });
 
-test("BUG-210: a Lever payload (which never names a company) yields company-not-stated without a descriptor company", () => {
+test("BUG-226: a Lever payload (which never names a company) yields company-not-stated without a descriptor company", () => {
   const out = Jobs.normalizeLever([LEVER_JOB], "opaque-board-9");
   assert.equal(out[0].company, null);
   assert.equal(out[0].company_not_stated, true);
 });
 
-test("BUG-210: an Ashby payload with no board name yields company-not-stated", () => {
+test("BUG-226: an Ashby payload with no board name yields company-not-stated", () => {
   const out = Jobs.normalizeAshby({ jobs: [ASHBY_JOB] }, "opaque-board-9");
   assert.equal(out[0].company, null);
   assert.equal(out[0].company_not_stated, true);
 });
 
-test("BUG-210: a SmartRecruiters posting with no company object yields company-not-stated", () => {
+test("BUG-226: a SmartRecruiters posting with no company object yields company-not-stated", () => {
   const out = Jobs.normalizeSmartRecruiters({ content: [SR_JOB] }, "opaque-board-9");
   assert.equal(out[0].company, null);
   assert.equal(out[0].company_not_stated, true);
 });
 
-test("BUG-210: the payload's own company name wins and is stated", () => {
+test("BUG-226: the payload's own company name wins and is stated", () => {
   const gh = Jobs.normalizeGreenhouse({ name: "Acme Corp", jobs: [GH_JOB] }, "acme");
   assert.equal(gh[0].company, "Acme Corp");
   assert.equal(gh[0].company_not_stated, false);
@@ -51,7 +51,7 @@ test("BUG-210: the payload's own company name wins and is stated", () => {
   assert.equal(sr[0].company_not_stated, false);
 });
 
-test("BUG-210: the feed descriptor's stated company is used when the payload is silent (registry boards)", async () => {
+test("BUG-226: the feed descriptor's stated company is used when the payload is silent (registry boards)", async () => {
   const feed = { source: "lever", company_token: "acme", company: "Acme Corp", url: "https://api.lever.co/v0/postings/acme?mode=json" };
   const res = await Jobs.fetchFeed(feed, { fetch: async () => ({ status: 200, json: async () => [LEVER_JOB] }) });
   assert.equal(res.postings.length, 1);
@@ -59,14 +59,14 @@ test("BUG-210: the feed descriptor's stated company is used when the payload is 
   assert.equal(res.postings[0].company_not_stated, false);
 });
 
-test("BUG-210: fetchFeed end to end — a silent payload on a company-less descriptor arrives not-stated", async () => {
+test("BUG-226: fetchFeed end to end — a silent payload on a company-less descriptor arrives not-stated", async () => {
   const feed = { source: "greenhouse", company_token: "opaque-board-9", url: "https://boards-api.greenhouse.io/v1/boards/opaque-board-9/jobs?content=true" };
   const res = await Jobs.fetchFeed(feed, { fetch: async () => ({ status: 200, json: async () => ({ jobs: [GH_JOB] }) }) });
   assert.equal(res.postings[0].company, null);
   assert.equal(res.postings[0].company_not_stated, true);
 });
 
-test("BUG-210: not-stated postings survive dedupe with the marker and a stable job_id", () => {
+test("BUG-226: not-stated postings survive dedupe with the marker and a stable job_id", () => {
   const a = Jobs.normalizeGreenhouse({ jobs: [GH_JOB] }, "opaque-board-9");
   const b = Jobs.normalizeGreenhouse({ jobs: [GH_JOB] }, "opaque-board-9");
   assert.equal(a[0].job_id, b[0].job_id, "job_id must be stable across identical fetches");

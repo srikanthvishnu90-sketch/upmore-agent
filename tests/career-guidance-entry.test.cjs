@@ -1,5 +1,5 @@
 "use strict";
-// BUG-211 / FR-369 (MI-047, Crew A, 2026-10-15): the flagship guidance
+// BUG-227 / FR-385 (MI-047, Crew A, 2026-10-15): the flagship guidance
 // ask cold-starts to the contained fallback because two hand-kept
 // phrase lists diverge — the router's guidance dispatch gate and
 // 142's guidanceIntentFor. The gate now admits whatever the intent
@@ -25,7 +25,7 @@ for (const ask of [
   "what's the path into investment banking?",
   "where do I start if I want to work in investment banking?",
 ]) {
-  test(`BUG-211: guidance entry ask routes to the guidance engine — ${ask}`, () => {
+  test(`BUG-227: guidance entry ask routes to the guidance engine — ${ask}`, () => {
     const { handler, reply } = coldReply(ask);
     assert.equal(handler, "142-career-router.handleChat");
     assert.ok(!FALLBACK.test(reply), `must not land on the contained fallback: ${reply.slice(0, 160)}`);
@@ -33,18 +33,18 @@ for (const ask of [
   });
 }
 
-test("BUG-211: the previously working shape still routes (no regression)", () => {
+test("BUG-227: the previously working shape still routes (no regression)", () => {
   const { reply } = coldReply("how do i get into investment banking?");
   assert.ok(!FALLBACK.test(reply));
   assert.match(reply, /Two plausible paths/);
 });
 
-test("BUG-211: the widened gate does not capture non-guidance asks", () => {
+test("BUG-227: the widened gate does not capture non-guidance asks", () => {
   const { reply } = coldReply("can you book me a flight to Chicago for tomorrow?");
   assert.ok(!/Two plausible paths/.test(reply), `a flight ask must not receive the guidance answer: ${reply.slice(0, 160)}`);
 });
 
-test("BUG-211: an ask another handler owns keeps its owner (the admission runs last in dispatch)", () => {
+test("BUG-227: an ask another handler owns keeps its owner (the admission runs last in dispatch)", () => {
   // SC-113's text matches plan_paths' quant...path shape, but its
   // owner is handleWeakProfile — the admission must not intercept it.
   const profile = L.gauntletProfile("p1-early-career-swe");

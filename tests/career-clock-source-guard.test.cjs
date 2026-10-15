@@ -1,5 +1,5 @@
 "use strict";
-// CLOCK-SOURCE GUARD (bug law: BUG-198 class / FR-367, MI-001).
+// CLOCK-SOURCE GUARD (bug law: BUG-198 class / FR-383, MI-001).
 // The turn clock reaches the domain modules as numeric epoch ms (the
 // harness pins it; the production host passes a number). Any site that
 // feeds it to Date.parse() gets NaN and silently falls back to the

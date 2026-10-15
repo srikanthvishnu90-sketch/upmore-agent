@@ -437,7 +437,7 @@ test("BUG-197: no deadline or expiry is claimed without a value on the record; t
 // SC-143 through the chat path and expected the next-day shift —
 // but through the chat path the slots are proposed FROM the turn
 // clock, so the shift appeared only because 141 judged them
-// against the wall clock (the defect itself; FR-367). The behavior
+// against the wall clock (the defect itself; FR-383). The behavior
 // under test — slots past at the turn clock re-proposed for the
 // next day, disclosed — is staged directly at the emitter with the
 // turn clock at the ledger's delivery instant (Wed Oct 14, 8:35 PM

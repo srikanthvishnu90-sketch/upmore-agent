@@ -32385,7 +32385,7 @@ const CareerRouter = (() => {
     } else if (/\bliving resume\b|\bpromotion\b|\bvariants refreshed\b/.test(at)) {
       // Before the variants branch: a living-resume rebuild that
       // mentions variants is a rebuild ask first.
-      savedFact = `The refreshed cut is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}; the rebuild re-cuts from your master profile as it stands today, and a new title is never invented onto the page.`;
+      savedFact = `The refreshed cut is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}; a new title is never invented onto the page, and the rebuild re-cuts only from your master profile.`;
       // WORDING-BACKLOG (BUG-205): the living-resume branch lost
       // its dated grounding line and its packet closer in an
       // earlier pass (SC-283's R-C5/H-12 loss) — the groundedFact

@@ -41,8 +41,8 @@ const CareerOutreach = (() => {
 
   // ---------- OUTE-001: target-spec parser ----------
   const SET_ALIASES = [
-    ["bulge_bracket", /\bbulge brackets?\b|\bbb banks?\b/], ["elite_boutique", /\belite boutique|\bboutique\b/],
-    ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b(?! capital)|\bbcg\b|\bboston consulting\b/],
+    ["bulge_bracket", /\bbulge brackets?\b|\bbb banks?\b|\bbb\b/], ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/],
+    ["elite_boutique", /\belite boutique|\bboutique\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b(?! capital)|\bbcg\b|\bboston consulting\b/],
     ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
     ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
     ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
@@ -120,6 +120,19 @@ const CareerOutreach = (() => {
       if (!hits.some((h) => h.name === sh.name)) hits.push(sh);
     }
     for (const [abbr, full] of Object.entries(FIRM_ABBREV)) if (w.includes(" " + abbr + " ") && !hits.some((h) => h.name === full)) hits.push({ name: full, idx: w.indexOf(" " + abbr + " "), nn: norm(full) });
+    // WORDING-BACKLOG (BUG-189): a comma list the user spells out at
+    // a firm slot ("at Stripe, Ramp, Plaid, Datadog") names every
+    // firm in it — the lexicon is a recognizer for sets, not a gate
+    // that may silently drop a named firm it does not contain.
+    const listM = raw.match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s*,\s*(?:and\s+)?[A-Z][A-Za-z0-9&.'-]+){1,5})(?=\s+(?:who|that|to|for|in|on)\b|[,.;]|$)/);
+    if (listM) {
+      for (const part of listM[1].split(/\s*,\s*/)) {
+        const name = part.replace(/^and\s+/, "").trim();
+        if (!name || name.length < 3 || FIRM_TOKEN_STOP.has(norm(name))) continue;
+        if (!hits.some((h) => norm(h.name) === norm(name))) hits.push({ name, idx: raw.indexOf(part), nn: norm(name) });
+      }
+      hits.sort((a, b) => a.idx - b.idx);
+    }
     // A shorter name that is the opening phrase of a longer hit at
     // the same spot (KKR inside "KKR Real Estate") is that hit, not
     // a second firm.
@@ -140,6 +153,7 @@ const CareerOutreach = (() => {
     [/pe associates?\s*\/?\s*principals?|pe associates? and principals?/, "PE associates and principals"],
     [/product designers?/, "product designers"],
     [/civil engineers?/, "civil engineers"],
+    [/ai ml engineers?/, "AI/ML engineers"],
     [/ml engineers?/, "ML engineers"],
     [/software engineers?/, "software engineers"],
     [/\bswes?\b/, "software engineers"],
@@ -150,6 +164,7 @@ const CareerOutreach = (() => {
     [/named people/, "people"],
     [/students?\b/, "students"],
     [/interns?\b/, "interns"],
+    [/analysts? and first[- ]year associates?/, "analysts and first-year associates"],
     [/associates?\b/, "associates"],
     [/principals?\b/, "principals"],
     [/analysts?\b/, "analysts"],
@@ -167,7 +182,19 @@ const CareerOutreach = (() => {
     profile = profile || {};
     const raw = String(text || ""); const w = " " + norm(raw) + " ";
     const q = { industry: null, firm_set: null, firms: [], firms_named: false, firms_source: null, role_family: null, seniority_band: null, geography: null, school_filter: null, background_filters: {}, exclusions: [], count: null, vague: false, proposed_default: null };
-    const num = raw.match(/\b(\d{1,4})\b/); q.count = num ? Number(num[1]) : null;
+    // WORDING-BACKLOG (BUG-189): a year is not a headcount. The first
+    // bare number in the ask used to win, so a cohort window
+    // ("2023–25 analysts") parsed as 2,023 people. Year-like numbers
+    // (1900–2099) and the head of a year range never count.
+    let num = null;
+    for (const m of raw.matchAll(/\b(\d{1,4})\b/g)) {
+      const n = Number(m[1]);
+      if (n >= 1900 && n <= 2099) continue;
+      if (/^\s*[-–]\s*\d/.test(raw.slice(m.index + m[1].length))) continue;
+      if (/(?:19|20)\d\d\s*[-–]\s*$/.test(raw.slice(0, m.index))) continue; // the tail of a year range ("2023–25")
+      num = m; break;
+    }
+    q.count = num ? Number(num[1]) : null;
     // BUG-128: a count the user never stated is the product default,
     // and no reply may present it as the size of a population the
     // user described ("every founder in the latest YC batch").
@@ -207,7 +234,15 @@ const CareerOutreach = (() => {
     if (/shares? (my|your) major|same major|my major/.test(w)) q.background_filters.major_match = true;
     if (/finance club/.test(w)) q.background_filters.finance_club = true;
     if (/competition math|math competition/.test(w)) q.background_filters.competition_math = true;
-    if (/same hometown|hometown first|warmth/.test(w)) q.background_filters.warmth_hometown = true;
+    if (/same hometown|hometown first|warmth|from my hometown|my hometown/.test(w)) q.background_filters.warmth_hometown = true;
+    // WORDING-BACKLOG (BUG-189): the ask's remaining named facets —
+    // a class-year cohort window, an M&A desk, a freshman/non-target
+    // standing — are extracted so the plan can speak them instead of
+    // dropping them.
+    const cohM = raw.match(/\b(20\d\d)\s*[-–]\s*(\d{2,4})\b/);
+    if (cohM) q.background_filters.cohort_span = `${cohM[1]}–${cohM[2].length === 2 ? cohM[2] : cohM[2].slice(2)}`;
+    if (/m&a/i.test(raw)) q.background_filters.mna = true;
+    if (/\bfreshman\b|\bnon[- ]target\b/.test(w)) q.background_filters.early_standing = true;
     if (/everyone i know|people i know|then second degree|second degree connections?/.test(w)) q.background_filters.sequence_known_first = true;
     if (/\bhiring engineers?\b/.test(w)) q.background_filters.hiring_role = "engineers";
     if (/consumer startups?/.test(w)) q.background_filters.consumer_startups = true;
@@ -241,7 +276,15 @@ const CareerOutreach = (() => {
     const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|LA|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
     if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : /^la$/i.test(geo[1]) ? "Los Angeles" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
-    else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
+    else {
+      // WORDING-BACKLOG (BUG-189): the school capture must stop at
+      // the school's own words — the old open character class ran on
+      // into the rest of the sentence ("CMU or are from my
+      // hometown") and spliced a second filter into the school.
+      const sm = raw.match(/\bwent to\s+((?:[A-Z][A-Za-z&.'-]*)(?:\s+(?:[A-Z][A-Za-z&.'-]*|University|College|Institute|School|Tech))*)/);
+      if (sm) q.school_filter = sm[1].replace(/\s+(?:or|and|who|from|in)$/i, "").trim();
+      else { const st = raw.match(/\b(?:freshman|sophomore|junior|senior) at\s+([A-Z][A-Za-z&.'-]{2,25}?)(?=:|,|\s+and\b|$)/i); if (st) q.school_filter = st[1].trim(); }
+    }
     const stage = raw.match(/series\s+([A-Z])(?:\s*[-–]\s*([A-Z]))?/i);
     if (stage) { const A = "ABCDEFGH"; const a = A.indexOf(stage[1].toUpperCase()); const b = stage[2] ? A.indexOf(stage[2].toUpperCase()) : a; q.background_filters.startup_stage = A.slice(a, b + 1).split(""); q.industry = q.industry || "startups"; }
     // BUG-110: "seed" is a stage too — a seed-stage founder ask used
@@ -1557,7 +1600,7 @@ const CareerOutreach = (() => {
   function safetyPlan(_campaign, plan, opts) {
     opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
     const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
-    return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
+    return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep} every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
       per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
       scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
       stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],

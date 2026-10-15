@@ -296,3 +296,170 @@ test("BUG-140: track summaries speak their records", () => {
   const t137 = text(turn("SC-137"));
   assert.ok(!/Something went wrong/.test(t137) && /no other live applications to withdraw/.test(t137), `SC-137: ${t137.slice(0, 140)}`);
 });
+
+// ================= OUTREACH PASS 2 (BUG-187..BUG-191) =================
+// The wordingfix judge's new rows: closers that contradicted the
+// building-now headline, cap timelines that did not reconcile,
+// parse-level facet drops, a question credited as a decision, and
+// deliverables deferred instead of computed in the reply.
+
+// ---- BUG-187: no approval-gated build closers; peer tone at the user's level ----
+test("BUG-187: proposed-set and category plans build now; the peer tone speaks peer to peer", () => {
+  for (const id of ["SC-010", "SC-028", "SC-029", "SC-060"]) {
+    const t = text(turn(id));
+    assert.ok(!/Approve the (category|proposed set) and I build/.test(t), `${id}: approval-gated build closer is back: ${t.slice(-200)}`);
+    assert.ok(/build runs on the proposed set now|being built from that category now/.test(t), `${id}: building-now closer missing: ${t.slice(-200)}`);
+  }
+  const t10 = text(turn("SC-010"));
+  assert.ok(!/associate to associate/.test(t10) && /lateral move between equals/.test(t10), `SC-010 tone: ${t10.slice(0, 200)}`);
+});
+
+// ---- BUG-188: the timeline reconciles with the per-firm cap ----
+test("BUG-188: closed/named firm sets get window arithmetic, not a ramp-only timeline", () => {
+  const cases = [["SC-012", /4 monthly windows/], ["SC-017", /5 monthly windows/], ["SC-022", /3 monthly windows/], ["SC-027", /4 monthly windows/], ["SC-030", /2 monthly windows/]];
+  for (const [id, re] of cases) {
+    const t = text(turn(id));
+    assert.ok(re.test(t), `${id}: expected ${re} — got: ${t.slice(0, 260)}`);
+    assert.ok(!/first emails take at least \d+ days of sending/.test(t), `${id}: ramp-only timeline survives: ${t.slice(0, 260)}`);
+  }
+});
+
+// ---- BUG-189: parse facets — years are not counts, listed firms all named, sets and phrases un-narrowed ----
+test("BUG-189: cohort years never parse as a headcount; every listed firm is named; the school capture stops at the school", () => {
+  const t8 = text(turn("SC-008"));
+  assert.ok(!/2023 associates|2,?023 first emails/.test(t8), `SC-008: year-as-count is back: ${t8.slice(0, 200)}`);
+  assert.ok(/2023–25 classes/.test(t8) && /M&A/.test(t8) && /\(Wharton\)/.test(t8), `SC-008 facets: ${t8.slice(0, 260)}`);
+  const t9 = text(turn("SC-009"));
+  assert.ok(/Stripe, Ramp, Plaid, Datadog/.test(t9), `SC-009 firms: ${t9.slice(0, 160)}`);
+  assert.ok(/\(CMU\)/.test(t9) && !/CMU or are from my hometown/.test(t9), `SC-009 school splice: ${t9.slice(0, 200)}`);
+  const t7 = text(turn("SC-007"));
+  assert.ok(/middle-market and boutique set/.test(t7) && /freshman at a non-target/.test(t7), `SC-007: ${t7.slice(0, 200)}`);
+  const t55 = text(turn("SC-055"));
+  assert.ok(/95 AI\/ML engineers/.test(t55), `SC-055: ${t55.slice(0, 120)}`);
+  const t21 = text(turn("SC-021"));
+  assert.ok(/only people at Google who interned at a startup first/.test(t21), `SC-021: ${t21.slice(0, 200)}`);
+});
+
+// ---- BUG-190: a question is not a decision; the safety card states its cap once and dates its ramp ----
+test("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap reads one way with dated finish arithmetic", () => {
+  const t50 = text(turn("SC-050"));
+  assert.ok(!/exactly as you set it/.test(t50), `SC-050: question credited as a decision: ${t50.slice(0, 160)}`);
+  assert.ok(/Hold Tier C back, or release it/.test(t50) && /372 Tier A and B/.test(t50), `SC-050: ${t50.slice(0, 260)}`);
+  const t43 = text(turn("SC-043"));
+  assert.ok(/rises \+5 every 3 days, never above 30/.test(t43) && !/\+5\/day/.test(t43), `SC-043 ramp: ${t43.slice(0, 200)}`);
+  assert.ok(/Finish date, from the ramp itself: the first 87 first-emails clear by/.test(t43), `SC-043 finish: ${t43.slice(0, 300)}`);
+});
+
+// ---- BUG-191: waves, surgery counts, and the bounce check are computed in the reply ----
+test("BUG-191: empty-record deliverables state their zero with the arithmetic shown", () => {
+  const t36 = text(turn("SC-036"));
+  assert.ok(/day-6 wave: 0 drafts/.test(t36) && /sent, minus replies, minus bounces/.test(t36), `SC-036: ${t36.slice(0, 200)}`);
+  assert.ok(!/Want the wave drafted against/.test(t36), "SC-036: draft-it-later closer is back");
+  const t41 = text(turn("SC-041"));
+  assert.ok(/zero on both sides/.test(t41) && !/Open the current list and I will show/.test(t41), `SC-041: ${t41.slice(0, 200)}`);
+  const t34 = text(turn("SC-034"));
+  assert.ok(/pattern check ran over this session's record/.test(t34) && !/Say the word and I run the pattern check/.test(t34), `SC-034: ${t34.slice(0, 200)}`);
+});
+
+// ================= APPLY (BUG-181..BUG-186) =================
+// The doorstep/policy replies DELIVER their products (the saved
+// answer printed, the audit's result, the diff lines, the check run
+// against the named role); headlines state the finding; tailor
+// replies speak their sets; no internal tokens are spoken.
+
+// ---- BUG-181: policy replies deliver, not describe ----
+test("BUG-181: the saved sponsorship answer is printed word for word", () => {
+  const t = text(turn("SC-072"));
+  assert.ok(/exactly as stored: "[^"]+"/.test(t), `SC-072: ${t.slice(0, 200)}`);
+});
+
+test("BUG-181: referral stacking runs against the named role and states the no-invention rule in user terms", () => {
+  const t = text(turn("SC-066"));
+  assert.ok(/checked for Palantir FDSE/.test(t), `SC-066: ${t.slice(0, 140)}`);
+  assert.ok(/no referral will be claimed that does not exist/.test(t), "SC-066: D6 line in user terms");
+  assert.ok(!/Name the role and I will run the check/.test(t), "SC-066: re-ask-the-named-role closer gone");
+});
+
+test("BUG-181: the truth audit reports its result; the diff is shown line by line", () => {
+  const t71 = text(turn("SC-071"));
+  assert.ok(/The truth audit ran/.test(t71), `SC-071: ${t71.slice(0, 120)}`);
+  const t97 = text(turn("SC-097"));
+  assert.ok(/Changed 4 bullets/.test(t97) && /Moved Projects up/.test(t97) && /Added Kubernetes \(Project X\)/.test(t97), `SC-097: ${t97.slice(0, 200)}`);
+});
+
+test("BUG-181: the knockout the user named is named as the reason; the cooldown headline never claims an uncomputed date", () => {
+  const t75 = text(turn("SC-075"));
+  assert.ok(/knockout is real: 5 years of Java/.test(t75), `SC-075: ${t75.slice(0, 140)}`);
+  const t80 = text(turn("SC-080"));
+  assert.ok(!/^The reapply cooldown holds, with its exact lift date\./.test(t80), "SC-080: uncomputed-date headline gone");
+  assert.ok(/lift date is computed from the application on your tracker/.test(t80), `SC-080: ${t80.slice(0, 160)}`);
+});
+
+test("BUG-181: an empty-log autopsy asks for the user's applications first", () => {
+  const t = text(turn("SC-116"));
+  assert.ok(/needs your 34 applications in the log first/.test(t), `SC-116: ${t.slice(0, 140)}`);
+  assert.ok(/Paste your 34 applications here/.test(t), "SC-116: closer asks for the import");
+});
+
+// ---- BUG-182: headlines state the finding, never outrun the record ----
+test("BUG-182: essay headline leads with the missing-theme gap; hold headline drops the unshown math; gap headline states the finding", () => {
+  const t96 = text(turn("SC-096"));
+  assert.ok(/outlines are built — from the 3 experiences on file, and none of them is clinical or research/.test(t96), `SC-096: ${t96.slice(0, 160)}`);
+  assert.ok(!/essay packet is ready/.test(t96), "SC-096: 'ready' headline over a missing-theme record is gone");
+  const t99 = text(turn("SC-099"));
+  assert.ok(/neither time is on record/.test(t99) && !/deadline math shown/.test(t99), `SC-099: ${t99.slice(0, 140)}`);
+  const t98 = text(turn("SC-098"));
+  assert.ok(/^Gap callout:/.test(t98), `SC-098: ${t98.slice(0, 120)}`);
+});
+
+// ---- BUG-183: tailor/batch replies speak their sets ----
+test("BUG-183: the review set is tailored whole; variants are delivered as named cuts; bucket reasons are spoken", () => {
+  const r68 = turn("SC-068");
+  const t68 = text(r68);
+  assert.ok(/review set is tailored — the first 3/.test(t68) && /of the 17 you named/.test(t68), `SC-068: ${t68.slice(0, 200)}`);
+  assert.ok(((r68.result || {}).artifacts || []).length >= 3, "SC-068: three tailored artifacts ride the result");
+  const t70 = text(turn("SC-070"));
+  assert.ok(/Three variants from one master profile: backend, full-stack, infra/.test(t70) && /Backend cut:/.test(t70) && /Full-stack cut:/.test(t70) && /Infra cut:/.test(t70), `SC-070: ${t70.slice(0, 220)}`);
+  const t69 = text(turn("SC-069"));
+  assert.ok(/— Reach: skills match/.test(t69), `SC-069: per-role reasons spoken: ${t69.slice(0, 200)}`);
+  assert.ok(!/Want the Match bucket tailored first\?/.test(t69), "SC-069: closer must not point at the empty Match bucket");
+  const t94 = text(turn("SC-094"));
+  assert.ok(/leads with StudyBoard/.test(t94), `SC-094: builder lead is a specific built thing: ${t94.slice(0, 240)}`);
+});
+
+// ---- BUG-184: no internal tokens or binding jargon; packet rules answered from the packet ----
+test("BUG-184: graph rule speaks plain caps; packet document line is plain words; one-page and ATS rules are answered", () => {
+  const t100 = text(turn("SC-100"));
+  assert.ok(!/\(124 CAPS\)/.test(t100) && /15 sends to one firm in 30 days/.test(t100), `SC-100: ${t100.slice(0, 200)}`);
+  const t101 = text(turn("SC-101"));
+  assert.ok(/One-page rule:/.test(t101) && !/no stored version was supplied to bind/.test(t101), `SC-101: ${t101.slice(0, 200)}`);
+  const t102 = text(turn("SC-102"));
+  assert.ok(/ATS render: single column/.test(t102), `SC-102: ${t102.slice(0, 200)}`);
+  const t93 = text(turn("SC-093"));
+  assert.ok(/It leads with your shipped product and metrics/.test(t93) && !/your stack —/.test(t93), `SC-093: garbled lead gone: ${t93.slice(0, 200)}`);
+  assert.ok(/One mismatch, named:/.test(t93), "SC-093: Frontend-for-full-stack mismatch named");
+});
+
+// ---- BUG-185: restatements and closers carry the ask's own terms ----
+test("BUG-185: autopilot rule restated in full; watch carries the window and the hour; triage uses the user's flags", () => {
+  const t78 = text(turn("SC-078"));
+  assert.ok(/no Reach roles/.test(t78) && /nightly summary/.test(t78), `SC-078: ${t78.slice(0, 220)}`);
+  const t63 = text(turn("SC-063"));
+  assert.ok(/only roles posted in the last 48 hours qualify/.test(t63), `SC-063: ${t63.slice(0, 200)}`);
+  const t106 = text(turn("SC-106"));
+  assert.ok(/applied within the hour it posts/.test(t106), `SC-106: ${t106.slice(0, 200)}`);
+  const t114 = text(turn("SC-114"));
+  assert.ok(/clearance-blocked/.test(t114), `SC-114: ${t114.slice(0, 200)}`);
+  const t79 = text(turn("SC-079"));
+  assert.ok(/Say 'track it' and I will follow this application and report its status\./.test(t79), `SC-079: ${t79.slice(-140)}`);
+  const t61 = text(turn("SC-061"));
+  assert.ok(!/Tell me what you'd like to do next\./.test(t61) && /say the word to send it from the doorstep/.test(t61), `SC-061: ${t61.slice(0, 200)}`);
+});
+
+// ---- BUG-186: a status question about MY application is answered from the log + inbox ----
+test("BUG-186: 'What happened with my Stripe application?' reaches the application-status answer, not the company file", () => {
+  const r = turn("SC-115");
+  assert.equal((r.result || {}).intent, "tracking_status", `SC-115 intent: ${JSON.stringify(r.result || {}).slice(0, 120)}`);
+  const t = text(r);
+  assert.ok(/No Stripe application on record|Your Stripe application status/.test(t) && /application log and inbox/.test(t), `SC-115: ${t.slice(0, 200)}`);
+});

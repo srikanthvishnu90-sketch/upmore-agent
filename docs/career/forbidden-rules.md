@@ -1232,11 +1232,11 @@ Source: `docs/bug-ledger.md`, 'Integrator wave 2026-10-14' table.
 - **ENFORCEMENT:** tests/career-pool-coverage.test.cjs (merged pool ≥2 PM + ≥2 Data/ML; pinned corpus still 0 PM).
 - **STATUS:** ENFORCED
 
-### FR-199 — Company-less canonical asks vs 141's company-required log write (spec conflict)
-- **FORBIDDEN:** A company must never be fabricated to satisfy a log write, and 141's typed missing_company refusal must never be edited away; the five company-less canonical asks stay red until the TN lane rules (asks gain companies, or tests accept the blocked shape).
+### FR-199 — Company-less canonical asks vs 141's company-required log write (spec conflict — RULED + CLOSED 2026-10-14)
+- **FORBIDDEN:** A detected job event must never lose its tracking record because its source names no company, and a company must never be fabricated to satisfy a log write. Ruled semantics (owner, 2026-10-14, delegated in his words: "just make up an answer for the tracking rule, as long as ur able to get every single job reporting"): a tracking/reporting write of a detected job event is NEVER refused for a missing company — every detected job gets its record, carrying company: null with a company_not_stated marker, never invented, never guessed. The typed missing_company refusal survives ONLY where a write attributes an action to a company (a submission record, an unmarked manual stage move, the application packet, an outreach draft).
 - **FROM:** BUG-2026-10-14-TN1A-CONFLICT — Company-less canonical asks vs 141's company-required log write (spec conflict).
-- **ENFORCEMENT:** GUARDED-RED — tests/career-ibtn-integration.test.cjs: 5 tests red by design as the standing record, pending the TN lane's ruling.
-- **STATUS:** GUARDED-RED
+- **ENFORCEMENT:** tests/career-tn1a-not-stated.test.cjs 13/13 (fail-first: 10 red before the fix — the five signal classes company-less at 141, the 126-shaped marker record, the no-hijack pin, 126 ingest end-to-end; the action-attribution refusal pins, the named-company pin, and the marketing-noise pin green throughout) + tests/career-ibtn-integration.test.cjs 32/32 (the five chat-path tests green) + fresh run-grand records SC-122/123/124/126/127 PASS, safety SAFE, rescore v2 PASS.
+- **STATUS:** ENFORCED
 
 ### FR-200 — Cross-turn suppression persistence has no fix and no guard (standing safety gap)
 - **FORBIDDEN:** A suppression recorded in one session must never be assumed durable across sessions when no durable store exists; the gap is named, never papered over. Twin of FR-089 (DD-11). Within tonight's build the exposure is bounded: G4 drafting reads suppression within the turn and FR-165 hard-shuts sending.
@@ -1928,9 +1928,82 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 - **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-132 (both offered times named with absolute dates; no generic closer).
 - **STATUS:** ENFORCED
 
+### FR-318 — A question about a deadline never writes a closed-role state (BUG-169)
+- **FORBIDDEN:** Recording a role as closed — or telling the user it was marked closed — from a message that asks a question mentioning a future closing date; a closure state is written only from an explicit user report that the job is closed, and a hold-vs-apply question routes to the referral-hold decision.
+- **FROM:** Live complexity battery 2026-10-14 (agent-chat v221) — C29's "closes in 3 days… do I hold or apply now?" persisted an invalidation whose recorded detail reads "the user reported the employer closed the job", which the user never reported.
+- **ENFORCEMENT:** UNENFORCED — the C29 battery turn (~/workspace/your_files/live-complexity-battery/) is the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-319 — The kill switch fires on misspelled and abbreviated halts (BUG-170)
+- **FORBIDDEN:** A halt instruction failing because of typos or abbreviations; pause/stop language is matched tolerantly, the pause is set, and the reply confirms the state the DB actually holds — and a user asking "is it stopped?" always gets the true answer.
+- **FROM:** Live complexity battery 2026-10-14 — C14's "stop evrything pls, pause all teh outreach rite now" set nothing (no career stores on the thread) and the confirmation question also fell to fallback.
+- **ENFORCEMENT:** UNENFORCED — the C14 battery turns are the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-320 — Pause state is liftable and inspectable in natural words (BUG-171)
+- **FORBIDDEN:** An explicit unpause instruction ("lift the pause", "keep going") being silently dropped, or a user being unable to ask what is paused and get the state's own answer.
+- **FROM:** Live complexity battery 2026-10-14 — C07/C42: unpause and scope-query turns fell to the generic fallback while the pause stood.
+- **ENFORCEMENT:** UNENFORCED — the C07/C42 battery turns are the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-321 — Removal and never-contact instructions always land as suppression (BUG-172)
+- **FORBIDDEN:** A "take X off my list" or "never email X again" instruction going unheard in any phrasing; it writes the suppression record and the reply confirms it.
+- **FROM:** Live complexity battery 2026-10-14 — C16's two suppression turns inside a live campaign thread both fell to the generic fallback.
+- **ENFORCEMENT:** UNENFORCED — the C16 battery turns are the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-322 — Core intents route on genuine phrasings, not only exam phrasings (BUG-173)
+- **FORBIDDEN:** A clean natural ask for a core capability (find jobs, tailor, cover letter, interview prep, company intel, tracker writes) landing on the generic fallback because its wording differs from the scenario corpus; the battery's fallback rate is the measured regression line.
+- **FROM:** Live complexity battery 2026-10-14 — 62 of 86 genuine-complexity turns (72%) answered by the generic fallback on the deployed v221 build that scores 267/278 on exam phrasings.
+- **ENFORCEMENT:** UNENFORCED — the battery transcripts + verdicts (~/workspace/your_files/live-complexity-battery/) are the replay corpus; a permanent live-phrasing suite is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-323 — A named firm is never reported as unnamed, and a list never renders empty (BUG-174)
+- **FORBIDDEN:** Telling a user "you named no firms" when their message names one, in any construction ("network into X", "people at X"); and any composed enumeration rendering an empty interpolation or a negative remainder ("— and -4 more").
+- **FROM:** Live complexity battery 2026-10-14 — C03 named Goldman Sachs and was told no firms were named; the "the bulge bracket —, and -4 more —" artifact appeared in all 5 campaign-plan threads.
+- **ENFORCEMENT:** UNENFORCED — the C03 battery turn is the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-324 — A tracker add the user just stated is recorded, never re-invited (BUG-175)
+- **FORBIDDEN:** Answering a stated application ("I applied to X yesterday") with the empty-tracker text that invites the user to state it; natural add / correct / status / stage-move turns round-trip the record, and a correction replaces the record it names.
+- **FROM:** Live complexity battery 2026-10-14 — C17's add wrote no state (DB-verified) while the reply said "tell me about one and I will add it"; C18's add/status/move turns all fell to fallback.
+- **ENFORCEMENT:** UNENFORCED — the C17/C18 battery turns are the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-325 — In-thread follow-ups route to the work they refer to (BUG-176)
+- **FORBIDDEN:** A follow-up that refers to work already on the table ("draft the first one", "show me the first draft", "make it casual", "when do the follow-ups go out") landing on the generic fallback; and a detail supplied on request (a firm name for a draft) being ignored while the opener repeats byte-identically.
+- **FROM:** Live complexity battery 2026-10-14 — C05/C15/C35 follow-ups fell to fallback after successful plans; C32's named-firm draft turn repeated the guidance opener verbatim and re-asked for the companies.
+- **ENFORCEMENT:** UNENFORCED — the battery's follow-up turns are the replay; permanent guards are owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-326 — Refusals speak on natural phrasings, never as a silent fallback (BUG-177)
+- **FORBIDDEN:** A fabrication request, an unverified-claims request, or a cap/approval-breaking apply request being answered with the generic fallback; the family's refusal or honest engagement fires in the user's own wording, so "refused" is never indistinguishable from "broken".
+- **FROM:** Live complexity battery 2026-10-14 — C27 (fake internship), C28 (invented GPA/club), C26 (100 overnight auto-applies), C08 (desperate apply-to-everything) all got the generic fallback; no harm occurred, no guardrail spoke.
+- **ENFORCEMENT:** UNENFORCED — the C08/C26/C27/C28 battery turns are the replay; permanent guards are owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-327 — A capability-absent ask gets its honest-absent answer (BUG-178)
+- **FORBIDDEN:** Answering a voice-mock request (CA-01) with an unrelated blocker (a missing profile) or the generic closer; the reply states the capability is not available and offers the closest real alternative (a text mock).
+- **FROM:** Live complexity battery 2026-10-14 — C23's voice ask was deflected on profile grounds and closed with "Tell me what you'd like to do next."
+- **ENFORCEMENT:** UNENFORCED — the C23 battery turn is the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-328 — Every part of a multi-intent message is answered or named as not done (BUG-179)
+- **FORBIDDEN:** Silently dropping parts of a multi-ask message; each part is answered, queued with a next step, or honestly declined — and a shelved-domain part never drags an in-domain part down with it.
+- **FROM:** Live complexity battery 2026-10-14 — C01's three asks got one answer and no remainder accounting; C10's finance+career pair lost both halves.
+- **ENFORCEMENT:** UNENFORCED — the C01/C10 battery turns are the replay; a permanent guard is owed by the fix lane.
+- **STATUS:** UNENFORCED
+
+### FR-329 — Facts a user states in conversation are captured and carried (BUG-180)
+- **FORBIDDEN:** Declarative fact turns ("I'm a sophomore", "I study finance", "I'm targeting Chicago") being met with the generic fallback and nothing carried into later turns; stated facts are acknowledged, held in the thread state, and used when the user asks what to do next.
+- **FROM:** Live complexity battery 2026-10-14 — C41's five fact turns all fell to fallback and the closing synthesis ask with them.
+- **ENFORCEMENT:** UNENFORCED — the C41 battery turns are the replay; a permanent guard is owed by the fix lane (the per-user memory store itself sits in the Codex lane; the hosted front door catching the facts is the product-side rule).
+- **STATUS:** UNENFORCED
+
+
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 215 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 308
+Counts: ENFORCED 243 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 348
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2132,7 +2205,7 @@ Counts: ENFORCED 215 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 3
 | FR-196 (BUG-2026-10-14-SUBMIT-CLAIM) | UNENFORCED | Composer-table re-measurement (rows 21/22 same class) |
 | FR-197 (BUG-2026-10-14-TOTAL-STOP-CLAIM) | UNENFORCED | UNENFORCED as a test |
 | FR-198 (BUG-2026-10-14-POOL-DATA) | ENFORCED | tests/career-pool-coverage.test.cjs (merged pool ≥2 PM + ≥2 Data/ML; pinned corpus still 0 PM). |
-| FR-199 (BUG-2026-10-14-TN1A-CONFLICT) | GUARDED-RED | GUARDED-RED |
+| FR-199 (BUG-2026-10-14-TN1A-CONFLICT) | ENFORCED | tests/career-tn1a-not-stated.test.cjs 13/13 + ibtn 32/32 — owner-ruled 2026-10-14: detected-event reports never refuse for a missing company (company: null + company_not_stated); action-attribution writes keep missing_company. |
 | FR-200 (BUG-2026-10-14-DD11-PERSIST) | UNENFORCED | UNENFORCED |
 | FR-201 (BUG-2026-10-14-BUG030-WRAP) | UNENFORCED | UNENFORCED at engine level |
 | FR-202 (BUG-2026-10-14-GMAIL-SCOPE) | UNENFORCED | UNENFORCED |
@@ -2242,5 +2315,121 @@ Counts: ENFORCED 215 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 91 · TOTAL 3
 | FR-306 (BUG-130) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-130 |
 | FR-307 (BUG-131) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-131 |
 | FR-308 (BUG-132) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-132 |
+| FR-309 (BUG-160) | ENFORCED | tests/career-assign.test.cjs ASG-1 |
+| FR-310 (BUG-161) | ENFORCED | tests/career-assign.test.cjs ASG-2 |
+| FR-311 (BUG-162) | ENFORCED | tests/career-assign.test.cjs ASG-3 |
+| FR-312 (BUG-163) | ENFORCED | tests/career-assign.test.cjs ASG-4 |
+| FR-313 (BUG-164) | ENFORCED | tests/career-assign.test.cjs ASG-5 |
+| FR-314 (BUG-165) | ENFORCED | tests/career-assign.test.cjs ASG-6 |
+| FR-315 (BUG-166) | ENFORCED | tests/career-assign.test.cjs ASG-7 |
+| FR-316 (BUG-167) | ENFORCED | tests/career-assign.test.cjs ASG-8 |
+| FR-317 (BUG-168) | ENFORCED | tests/career-assign.test.cjs ASG-9 |
+| FR-318 (BUG-169) | UNENFORCED | live-complexity-battery C29 replay owed |
+| FR-319 (BUG-170) | UNENFORCED | live-complexity-battery C14 replay owed |
+| FR-320 (BUG-171) | UNENFORCED | live-complexity-battery C07/C42 replay owed |
+| FR-321 (BUG-172) | UNENFORCED | live-complexity-battery C16 replay owed |
+| FR-322 (BUG-173) | UNENFORCED | live-complexity-battery full-corpus replay owed |
+| FR-323 (BUG-174) | UNENFORCED | live-complexity-battery C03 replay owed |
+| FR-324 (BUG-175) | UNENFORCED | live-complexity-battery C17/C18 replay owed |
+| FR-325 (BUG-176) | UNENFORCED | live-complexity-battery follow-up replays owed |
+| FR-326 (BUG-177) | UNENFORCED | live-complexity-battery C08/C26/C27/C28 replay owed |
+| FR-327 (BUG-178) | UNENFORCED | live-complexity-battery C23 replay owed |
+| FR-328 (BUG-179) | UNENFORCED | live-complexity-battery C01/C10 replay owed |
+| FR-329 (BUG-180) | UNENFORCED | live-complexity-battery C41 replay owed |
+| FR-330 (BUG-133) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-133 |
+| FR-331 (BUG-134) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-134 |
+| FR-332 (BUG-135) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-135 |
+| FR-333 (BUG-136) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-136 |
+| FR-334 (BUG-137) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-137 |
+| FR-335 (BUG-138) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-138 |
+| FR-336 (BUG-139) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-139 |
+| FR-337 (BUG-140) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-140 |
+| FR-338 (BUG-181) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-181 |
+| FR-339 (BUG-182) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-182 |
+| FR-340 (BUG-183) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-183 |
+| FR-341 (BUG-184) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-184 |
+| FR-342 (BUG-185) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-185 |
+| FR-343 (BUG-186) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-186 |
+| FR-344 (BUG-187) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-187 |
+| FR-345 (BUG-188) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-188 |
+| FR-346 (BUG-189) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-189 |
+| FR-347 (BUG-190) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-190 |
+| FR-348 (BUG-191) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-191 |
 
-<!-- totals: total=308 enforced=215 guarded_red=1 hard_shut=1 unenforced=91 -->
+<!-- totals: total=348 enforced=243 guarded_red=1 hard_shut=1 unenforced=103 -->
+
+### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
+- **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-133 (SC-183/186/187/188 shapes).
+
+### FR-331 — Story matching is spoken from the record, never promised past it (BUG-134)
+- **RULE:** A question-bank or brief reply names the story matched to each question from the bank's own record, or states plainly that no story is matched and why. An empty STAR bank is answered as an empty bank — the ask's count carried as the build target — never with a generic brief wearing the bank's name.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-134 (SC-177, SC-180).
+
+### FR-332 — A producer's reply speaks its own record, once, with its own next step (BUG-135)
+- **RULE:** Every prep producer's chat reply speaks the content of its own typed record (prompts, framework, changes, scripts, questions, patterns, schedule terms) — a shared grounding sentence may appear at most once in a reply and never as the body; no two producer shapes share a closing next step. Scaffold and checklist content is spoken in plain words: signposts named, fixture labels never in prose, the record's gap text spoken in user words (the composer strips internal tokens — a fact that names one is rewritten before composing, never dropped silently). A mock's posed question is the last line of its opener.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-135 (SC-178/184/189/191/192/193/194/195/197/198/199/200/201 shapes).
+
+### FR-333 — A brief reply speaks the brief record: bar, loop, signals, story state (BUG-136)
+- **RULE:** An interview-brief reply speaks, in order, the record's bar, its loop stages, its screening signals, its story-mapping state (a named match or the honest no-story line), and its likely questions, under a headline naming the ask's shape (night-before, hiring-manager, walkthrough). A coffee-chat brief speaks its talking points and questions, and states when no company file grounds it.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-136 (SC-176/182/190/195/200/203 shapes).
+
+### FR-334 — A stage announcement speaks the event, its true source, and its own next step (BUG-137)
+- **RULE:** A tracker stage announcement names the event kind and the company when the record carries one; its provenance sentence names the actual source (the specific email kind, or the user's own chat message when they reported it — never "the email itself" for a chat report). A company-less event states the TN-1a truth in the reply: the row is carried as company not stated, and the closer asks for the identifying line that binds it. Each event kind closes with the step it unlocks (prep pack, tighten note, offer terms) — never a shared detail tease.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-137 (SC-122/123/124/126/127/138 shapes).
+
+### FR-335 — An empty tracker answers in the shape of the ask (BUG-138)
+- **RULE:** When the tracker is empty, the reply takes the ask's shape: an expiring offer is answered as a daily escalation starting now; a long silence after a final round is answered with the ghosted label and the user's options; a quiet-hours ask is answered as the setting, confirmed with its break-through rule; only a plain status ask gets the plain empty-tracker answer, and its next step logs an already-sent application first.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-138 (SC-121/134/139/140 shapes).
+
+### FR-336 — A draft is shown, or its missing input is named — never described as if it existed (BUG-139)
+- **RULE:** A reply about a draft quotes the draft's own line (with the record's exact role and date) when the draft is aimed at a record row; when it is not, the reply states that it cannot be written yet and names the input that writes it. "Drafted from your note" is spoken only when a note from the user is on the record and carried into the draft. A classification is spoken as a plain-language read, never as a raw label fragment.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-139 (SC-125/128/129 shapes).
+
+### FR-337 — Track summaries speak their records' numbers (BUG-140)
+- **RULE:** A digest speaks its own lines with the record's true counts (zero included) in the ask's period. A season dashboard speaks applications by week against the plan. A retro speaks its computed numbers — channel split, what converted, what did not, the plan step derived from them — and on an empty log states the zero instead of comparing empty rates. A logged assessment speaks the record's own prep adjustment; an announced score with no value asks for the number and company. An accept-offer reply names the withdrawal drafts on record or states there are none. An interview brief for a named appointment speaks it with its absolute date.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-140 (SC-131/133/135/136/137/141/144/145 shapes).
+
+### FR-338 — A policy reply delivers its product; it never describes it (BUG-181)
+- **RULE:** When a producer's product exists on the turn (a window list, a saved answer, an audit result, a diff, a referral check, a cooldown date), the reply speaks that product — the windows with their deadlines, the saved answer word for word, the dropped bullet with its reason or the true clean audit, the diff lines, the check run against the role the user named, the computed lift date. A reply that describes the deliverable, or offers to produce it later, or asks the user to re-supply what they already named, is forbidden. When the product cannot exist (no registry, no tracker row, an empty log), the reply states that plainly and asks for the one input that unlocks it.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-181 (SC-066/071/072/075/080/097/116 shapes).
+
+### FR-339 — A headline states the finding; it never outruns the record (BUG-182)
+- **RULE:** A headline may only claim what the same reply's record shows: no "math shown" over two missing times, no "callout" over a no-gap finding, no "ready" over a packet whose asked-for material the same reply admits is absent. When part of the ask cannot be carried by the record, the headline leads with that gap and the caveat runs as one clean pass.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-182 (SC-096/098/099 shapes).
+
+### FR-340 — A set ask is answered with its set (BUG-183)
+- **RULE:** When the ask names a set (a ranked list, a review batch, resume variants, fit buckets, a role family), the reply speaks the set itself: the ranked roles with a fit call each, the whole named review set tailored in the turn, every named variant as a cut with its own lead from the user's real facts, the top roles' bucket reasons on the reply. Closing on a bucket the reply itself reports empty is forbidden, as is naming one member while claiming the set is named.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-183 (SC-068/069/070/094 shapes).
+
+### FR-341 — No internal token, binding jargon, or garbled lead is spoken (BUG-184)
+- **RULE:** Internal identifiers and mechanism jargon never reach the user: module references like "(124 CAPS)" are spoken as the rule itself in plain words; packet contents are described in plain words, never in binding language; a lead phrase is parsed on real separators and can never come out garbled; when the served record differs from the ask on a named axis (stack, flavor), the mismatch is named in the reply.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-184 (SC-093/100/101/102 shapes).
+
+### FR-342 — A restatement carries every term the user set (BUG-185)
+- **RULE:** When the reply echoes a rule, watch, or plan back to the user, every element the user dictated rides in the echo — thresholds, sets, caps, exclusions, summaries, windows, commitments — and closers offer the user's own next step (their command, their doorstep action), never the composer's generic fallback.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-185 (SC-061/063/078/079/106/114 shapes).
+
+### FR-343 — A question about the user's own application is answered from their log and inbox (BUG-186)
+- **RULE:** "What happened with my application" is a status question about the user's own record, answered from the application log cross-checked with the inbox, with the proving entry — or the honest absence when the record holds none. It is never answered from the company's public file, and no company name sitting inside the question may route it away from the status answer.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-186 (SC-115 shape).
+
+### FR-344 — A headline and its closer may not contradict (BUG-187)
+- **RULE:** If a reply says the work is building now, no later sentence in the same reply may gate that same work behind an approval or hand the specification back to the user as homework. Approval gates belong to the outward step (drafting, sending), never to a build the headline claims has started. Tone lines speak at the user's own stated level.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-187 (SC-010/028/029/060 shapes).
+
+### FR-345 — The numbers inside one reply must reconcile (BUG-188)
+- **RULE:** When a reply states a cap and a timeline, the timeline is computed under that cap: for a named or closed firm set, the per-firm window arithmetic (firms × cap per window, windows needed) is the timeline, and a ramp-only figure that the stated cap makes impossible is forbidden.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-188 (SC-012/017/022/027/030 shapes).
+
+### FR-346 — A parse may never invent a count or drop a named facet (BUG-189)
+- **RULE:** Years and year ranges are never headcounts. Every firm the user spells in a list is named in the plan. A captured filter value contains only its own words. Set resolution never narrows a combined universe to one half of it, a role phrase is never silently narrowed, and every facet the ask carries (cohort, desk, standing, school) is extracted so the reply can speak it.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-189 (SC-007/008/009/021/055 shapes).
+
+### FR-347 — A question is never credited as a decision; a value is stated once, one way (BUG-190)
+- **RULE:** When the user asks whether something should happen, the reply asks or answers that question — it never reports the decision as already made by the user. A governed value (a cap, a ramp) is stated once, in one arithmetic, with its dated consequences computed, never paraphrased twice in one reply. Every offered option (a time slot) carries its own verdict, in order.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-190 (SC-031/043/050 shapes).
+
+### FR-348 — A deliverable is computed in the reply, even when the answer is zero (BUG-191)
+- **RULE:** A wave, a re-count, or a diagnosis the user asked for is produced in the reply from the record that exists: the count with its arithmetic, or the check reported as run with its true result. Describing the deliverable and offering to produce it later is forbidden; an empty record yields a stated zero, never an estimate and never a deferral.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-191 (SC-034/036/041 shapes).

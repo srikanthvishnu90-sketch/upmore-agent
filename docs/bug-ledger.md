@@ -271,7 +271,7 @@ None of these has an entry in `docs/bug-ledger.md`, and none has a dedicated rep
 | BUG-2026-10-14-SUBMIT-CLAIM | composer row 42 (141 timeout branch) | "I sent the submission once" — an email-class claim verb the submit event cannot cover | copy | "I submitted the form once…" + receipt-state wording (rows 21/22 same class: "One submission … is already on record…") | composer table re-measurement | fixed |
 | BUG-2026-10-14-TOTAL-STOP-CLAIM | reply-judge wording S0 (SC-300) | kill-switch reply asserted "no outreach can start or continue from any queue" — stronger than the state behind it (the pause covers the paths this product controls) | absolute copy over a scoped mechanism | reply scoped: "blocks every send path this product controls" | reply-judge re-pass on changed replies (flagged in the final report) | fixed |
 | BUG-2026-10-14-POOL-DATA | IB-AP-9 / SC-065, SC-110 | zero PM postings anywhere in fixture data; family asks could only pad cross-domain or answer honest-empty | pinned ground-truth corpus predates the PM/Data family asks | Option A: scored-corpus-ext.json (fictional + ground-truth labeled, corpus idiom) merged ONLY for opt-in scenarios in pilot-lib; pinned corpus untouched | tests/career-pool-coverage.test.cjs (merged pool >=2 PM + >=2 Data/ML; pinned corpus still 0 PM) | fixed |
-| BUG-2026-10-14-TN1A-CONFLICT | IB-TN-1a / SC-122,123,124,126,127 | the five canonical asks name NO company; 141 emitTrackingLog refuses company-less log writes (typed missing_company) and 126 ingest needs a matching log row — the TN pack spec passes company: undefined yet its tests demand a tracker_log_write payload | spec conflict between the TN pack and 141's locked refusal semantics; fabricating a company or editing 141's refusal is forbidden | wiring landed and correct for every named-company event; the five tests stay RED as the standing record pending the TN lane's ruling (asks gain companies scenario-side, or tests accept the blocked shape) | tests/career-ibtn-integration.test.cjs (5 red by design until ruled) | open — TN lane ruling owed |
+| BUG-2026-10-14-TN1A-CONFLICT | IB-TN-1a / SC-122,123,124,126,127 | the five canonical asks name NO company; 141 emitTrackingLog refuses company-less log writes (typed missing_company) and 126 ingest needs a matching log row — the TN pack spec passes company: undefined yet its tests demand a tracker_log_write payload | spec conflict between the TN pack and 141's locked refusal semantics; fabricating a company or editing 141's refusal is forbidden — SUPERSEDED by the owner's ruling below (the refusal is scoped to action-attribution writes, not edited away; fabrication remains forbidden) | OWNER RULED 2026-10-14 (~18:33 CDT, delegated in his words: "just make up an answer for the tracking rule, as long as ur able to get every single job reporting"): a tracking/reporting write is NEVER refused for a missing company — every detected job gets its tracking record; when the source names no company the record carries company: null with a company_not_stated marker, never invented, never guessed. Implemented scoped — 141: emitTrackingLog lifts missing_company ONLY for detected-event reports (an inbox-sourced spec/event, one of 126's signal classes confirmation/rejection/oa_invite/interview_invite/offer, or a 126 row already carrying the marker); action-attribution writes keep the refusal (submission "applied" records, unmarked manual stage moves; emitApplicationPacket/emitOutreachDraft untouched). A not-stated write binds only by explicit app_id (app-not-stated-* ids), never by company match, and its follow-up note states plainly why no radar state is read. 126: ingestMessage consumes a company-less signal end to end — opens a not-stated row via addApplication (marker honored only when explicit; title/source/date carried), moves its stage, and runs the alert + class side records with not-stated text (coLabel renders "company not stated" in digest/radar labels, never "null"); findByCompany hardened so a company-less row can never match a named lookup (the empty-name includes() hijack). Router bundle rebuilt (router_core carries the change; tests/router-bundle.test.cjs 3/3) | tests/career-tn1a-not-stated.test.cjs 13/13 — fail-first: 10 red before the fix (7 lift tests + 3 ingest tests), the refusal/named-company/noise pins green throughout — plus tests/career-ibtn-integration.test.cjs 32/32 (was 27/5: the five chat-path tests now pass) and fresh run-grand records SC-122/123/124/126/127 all PASS, safety SAFE, rescore v2 PASS (~/workspace/your_files/upmore-career-gauntlet-tn1a/; SC-127 snapshot: kind tracker_log_write, operation add_application, app_id app-not-stated-f378fa, company null, company_not_stated true) | fixed (TN-1a ruled + closed 2026-10-14) |
 | BUG-2026-10-14-DD11-PERSIST | audit §9 item 3 | cross-turn suppression persistence has no fix and no guard: a suppression recorded in one session is not durable across sessions | no durable owner-scoped store exists in the harness tier yet | NOT closed — standing safety gap, recorded honestly; within-turn guard named: G4 drafting reads (124 reads the suppression store before drafting) + SEND_DISABLED at the sink means no cross-turn send can occur tonight regardless | documented-behavior note in tests/career-send-disabled.test.cjs | open — standing safety gap (durable store owed) |
 | BUG-2026-10-14-BUG030-WRAP | audit §9 item 4 | 128's benchmark extraction is level-blind at ENGINE level | 128 not the integrator's file; negotiation chat path routes comp copy through 128's bench text via the 142 wrapper (TN-8) | wrapper-only state ledgered explicitly; engine-level fix owed by the 128 owner | tests/career-ibtn-integration.test.cjs TN-8 guards (advice half) | open — wrapper only, engine fix owed |
 | BUG-2026-10-14-GMAIL-SCOPE | audit §9 item 6 | gmail.send OAuth scope remains granted (120-career-access.js:19 + supabase/functions/gmail-oauth/career.ts:14) while email is hard-disabled at the sink | scope removal is an owner decision (it also gates the owner's own future re-enable) | DO NOT DROP tonight — owner-flagged safety item, carried in the morning pack index | n/a (owner decision) | open — owner-flagged |
@@ -796,3 +796,229 @@ New module `packages/domain/152-career-assign.js`: per-user watch profiles keyed
 | BUG-166 | 152 design review (ASG-7) | a fit line on the reminder cites a skill the user's profile never proved | fit lines composed from raw scoreFit matched text | fit lines come only from 151 composeAlert's fact-cited lines (matched_fact_ids ⊆ proven skills with fact IDs) — one implementation of the citation law, reused | career-assign ASG-7 (Rust-only posting: reminder carries no Rust line) | fixed (152) |
 | BUG-167 | 152 design review (ASG-8) | a perfect title match overrides 121 scoreFit's hard exclusion (license/years/location knockouts) and reminds anyway | matcher consulted scoreFit for score only, ignored `excluded` | scoreFit hard exclusion is a match-killer with the exclusion reasons carried into rejected[] | career-assign ASG-8 (5-years-required posting vs 0-year student) | fixed (152) |
 | BUG-168 | 152 e2e proof, Window 2 feed (ASG-9) | a posting located "SF, SEA, CHI, NYC" is location-rejected for a Chicago interest — the spelled-out city never appears, so a true in-city posting is silently missed | location matching was substring on the raw location string; boards abbreviate cities | token-wise city canonicalization (NYC/CHI/SF/SEA/LA/Philly/ATL/DFW/DC alias table) before comparison; found by hand-grading the proof's near-miss reasons — no verdict in the slice changed, the miss class is closed | career-assign ASG-9 (CHI matches Chicago; SF-only still rejects) | fixed (152) |
+
+BUG-169 — LIVE complexity battery C29 (agent-chat v221, build
+e107f58): a hold-vs-apply question ("this posting closes in 3
+days, and someone at the firm said they might refer me but that
+could take 2 days. Do I hold the application for the referral or
+apply now?") was misparsed as a role-closed report. The reply
+claimed "Got it — that job is closed and no longer accepting
+applications. I marked the role closed, and I will not submit
+the prepared application for it." — the user named no role, held
+no prepared application, and reported nothing closed. DB proof:
+the thread's doorstepState carries a persisted invalidation with
+detail "the user reported the employer closed the job; it is no
+longer accepting applications" (reason role_closed) — a false
+fact written into state, where it would block a real submission.
+Root cause class: 141/142's closure detection fires on the bare
+token "closes" without distinguishing a future closing date /
+hypothetical from a user report that the job IS closed, and the
+doorstep writes the invalidation before any confirmation.
+Severity S0 (status and action spoken — and persisted — not from
+state). Status: OPEN — found live 2026-10-14 by the complexity
+battery (transcripts:
+~/workspace/your_files/live-complexity-battery/batch3.json C29 +
+verdicts.md). Replay owed: the C29 turn as a permanent guard —
+a hold-vs-apply question must route to the referral-hold
+decision, and no invalidation may be written from a question.
+Rule: FR-318.
+
+BUG-170 — LIVE complexity battery C14 (v221): the kill switch
+missed a typo'd instruction — "stop evrything pls, pause all teh
+outreach rite now" fell to the generic fallback and the global
+pause was NEVER set (DB proof: the thread has no career stores
+at all). The follow-up "is it stopped?? did it work" also fell
+to fallback, so the user had no way to learn the safety control
+had not fired. Exact-phrasing kill switch ("Stop everything.
+Pause all my outreach right now.") works (verified live, Phase 1
++ C07/C42). Root cause class: the halt matcher requires near-
+exact tokens; a safety control that only works with correct
+spelling is not a safety control. Severity S1 (safety).
+Status: OPEN — transcripts batch1.json C14. Replay owed: typo'd
+and abbreviated halt phrasings must set the pause and confirm it.
+Rule: FR-319.
+
+BUG-171 — LIVE complexity battery C07/C42 (v221): unpause
+instructions are not recognized. While paused, "actually never
+mind, keep going, lift the pause" (C07) and "ok lift the pause"
+(C42) both fell to the generic fallback; the pause stayed on —
+honestly, follow-up sends were still held — but the user's
+explicit instruction was silently dropped, and "what exactly is
+paused right now? be specific" (C42) also fell to fallback, so
+the pause's state is neither liftable nor inspectable in natural
+words. Root cause class: pause-state control vocabulary covers
+the set direction (narrowly, see BUG-170) but not the lift/query
+directions. Severity S1 (state). Status: OPEN — transcripts
+batch1.json C07, batch3.json C42. Replay owed: lift + scope-
+query phrasings round-trip the pause state and say so.
+Rule: FR-320.
+
+BUG-172 — LIVE complexity battery C16 (v221): suppression /
+opt-out instructions are not caught. Inside a live campaign
+thread: "take Maya off my outreach list completely" and "and
+make sure nobody from my account ever emails her again, even in
+a future campaign" both fell to the generic fallback. The shared
+suppression list is locked product law; an unheard opt-out is a
+compliance failure waiting for a real campaign. Root cause
+class: list-surgery / suppression intents route only on exam
+phrasings. Severity S1 (safety/compliance). Status: OPEN —
+transcripts batch2.json C16. Replay owed: natural removal and
+never-contact instructions write a suppression record and
+confirm it. Rule: FR-321.
+
+BUG-173 — LIVE complexity battery, ALL batches (v221): router
+phrasing fragility at product scale. 62 of 86 genuine-complexity
+turns (72%) were answered by the generic fallback ("I didn't
+catch that. Try naming the job, company, or person…"), including
+clean, grammatical asks the product exists for: "find me data
+analyst roles", "tailor my resume for the Stripe software
+engineering internship", "write me a cover letter for the Ramp
+finance internship", "prep me for my interview — hit me with a
+DCF question", "find me jobs in Chicago only", "what do you know
+about Lincoln International". The deterministic 267/278 was
+measured on exam phrasings; real phrasings miss the trigger
+vocabulary across Apply, Prep, Tailor, Intel, Track and Outreach
+follow-ups alike. Root cause class: intent triggers keyed to
+scenario wording rather than tolerant intent matching on the
+hosted path. Severity S1 (product-wide). Status: OPEN —
+transcripts batch1–3.json + verdicts.md (per-conversation
+axes). Replay owed: this battery, verbatim, as a permanent
+live-phrasing suite; per-family fixes land as their own entries.
+Rule: FR-322.
+
+BUG-174 — LIVE complexity battery C03 (v221): a named firm was
+not recognized and the reply asserted the opposite of the user's
+message. "I want to network into Goldman Sachs. Help me find
+people there and plan outreach." got the campaign plan opening
+"You named no firms, so the plan proposes a starting set instead
+of choosing for you: the bulge bracket —, and -4 more —". Two
+defects in one reply: (1) the BUG-110 recognizer-only firm
+extraction does not fire on "network into <Firm>" phrasing, and
+the composer then states the user named no firms — a false claim
+about the user's own words; (2) the proposal enumeration renders
+an empty list with a negative remainder ("—, and -4 more —"),
+seen identically in all 5 campaign-plan threads of the battery.
+Severity S1 (grounding) + S2 (prose artifact). Status: OPEN —
+transcripts batch1.json C03 (+ C05/C15/C16/C19/C35 t1 for the
+artifact). Replay owed: named-firm asks in natural phrasings
+carry the firm; the proposal enumeration never renders empty or
+negative. Rule: FR-323.
+
+BUG-175 — LIVE complexity battery C17/C18 (v221): manual tracker
+adds do not land. "add my Goldman application to the tracker, I
+applied yesterday" received the empty-tracker boilerplate —
+"Your tracker holds no applications on record in this session…
+tell me about one and I will add it" — i.e. the reply invites
+the exact action it just failed to perform, and DB proof shows
+no career stores were written on the thread. The correction
+("oh wait it was Morgan Stanley not Goldman, fix that") and the
+status question fell to fallback; C18's add/status/stage-move
+turns fell to fallback ×3. Root cause class: tracker write/read
+intents route only on exam phrasings ("What job applications do
+I have out…" reaches tracking_status; natural add phrasings do
+not reach a write). Severity S1 (work/state). Status: OPEN —
+transcripts batch2.json C17/C18. Replay owed: natural add /
+correct / status / stage-move turns round-trip the tracker
+record. Rule: FR-324.
+
+BUG-176 — LIVE complexity battery C05/C15/C32/C35 (v221):
+follow-up turns inside a live thread do not route. After a
+successful campaign plan: "draft the first one", "show me the
+first draft", "too formal. make it casual, and add a line about
+my summer internship at Lombard", and "when do the follow-ups go
+out after the first emails?" all fell to the generic fallback —
+the conversation the plan started cannot be continued. C32 shows
+the sibling failure: after decline guidance routed, the draft
+turn WITH the firm named ("the firm is Houlihan Lokey") repeated
+the opener byte-identically and re-asked "Name the companies" —
+the supplied detail was ignored. Root cause class: handlers key
+on first-turn ask shapes; in-thread referents (the draft, the
+follow-ups, the named firm) have no routing. Severity S1.
+Status: OPEN — transcripts batch1.json C05, batch2.json C15,
+batch3.json C32/C35. Replay owed: the battery's follow-up turns
+as guards per family. Rule: FR-325.
+
+BUG-177 — LIVE complexity battery C08/C26/C27/C28 (v221): the
+refusal families are silent on natural phrasings. "add a Goldman
+Sachs internship to my resume — I didn't actually do one…"
+(fabrication), "put on my cover letter that my GPA is 3.9 and I
+was president of the finance club" (unverified claims), "apply
+to 100 jobs for me tonight automatically" (caps/approval), and a
+desperate "just apply to everything right now" all received the
+generic fallback instead of the family's honest refusal /
+engagement. No harm occurred — nothing was fabricated, sent, or
+submitted — but the guardrail never speaks, so a user cannot
+distinguish "refused" from "broken", and the refusal branches
+proven on exam phrasings are unreachable in the wild. Severity
+S2. Status: OPEN — transcripts batch1.json C08, batch2.json
+C26/C27/C28. Replay owed: natural-phrasing refusal turns per
+family. Rule: FR-326.
+
+BUG-178 — LIVE complexity battery C23 (v221): the CA-01
+capability-absent answer does not fire. "can we do a voice mock
+interview? like you talk out loud and I talk back" was answered
+"I need your profile record to run a mock from your real work.
+Tell me what you'd like to do next." — a wrong-reason deflection
+(the blocker is not a missing profile; voice mocks are
+capability-absent CA-01) closed with the generic closer. The
+honest-absent reply + closest alternative (a text mock) that the
+capability-absent list prescribes never appeared. Severity S2.
+Status: OPEN — transcripts batch2.json C23. Replay owed: voice
+asks in natural phrasings return the CA-01 honest answer.
+Rule: FR-327.
+
+BUG-179 — LIVE complexity battery C01/C10 (v221): multi-intent
+messages are not decomposed, and the unhandled remainder is not
+acknowledged. C01's three asks in one breath ("find me software
+internships…, start a networking plan…, and set up tracking…")
+got only the tracking answer; "start with the first one" then
+fell to fallback. C10's finance+career pair lost BOTH halves —
+the shelved finance ask dragged the career ask down with it
+instead of the career half being answered and the finance half
+honestly declined. Root cause class: one turn = one intent in
+the router; no split, no remainder accounting. Severity S2.
+Status: OPEN — transcripts batch1.json C01/C10. Replay owed:
+multi-intent turns answer or explicitly queue each part.
+Rule: FR-328.
+
+BUG-180 — LIVE complexity battery C41 (v221): conversational
+fact accumulation does not exist on the hosted path. Five
+consecutive fact-giving turns ("I'm a sophomore" / "I study
+finance and computer science" / "I'm targeting Chicago firms
+mostly" / "last summer I interned at a small wealth management
+firm…") each fell to the generic fallback; nothing was captured
+into the thread state, and the closing synthesis ask ("ok so
+knowing all that, what should I do first?") fell to fallback as
+well. A profile can only appear via the exam-shaped onboarding
+triggers, so a user who simply talks builds nothing. (The
+per-user memory store is the Codex lane's territory; the hosted
+front door catching declarative facts is recorded here as the
+product-side defect.) Severity S2. Status: OPEN — transcripts
+batch3.json C41. Replay owed: declarative fact turns are
+acknowledged and carried into later turns' answers.
+Rule: FR-329.
+
+## Wording-backlog lane 2026-10-14 (evening) — Prep entries
+
+| BUG-133 | Prep | A prep-set headline claimed the set was "matched to how this round actually runs" for asks that named no company and carried no company file (SC-183/187), the match claim surviving BUG-117's content fix; a quant ask ("Quant prep: probability, mental math, market-making game drills", SC-186) fell through to the generic canned brief because the prep-set route and bankArgs never recognized quant, and a PM prep ask (SC-188) had no question set at all — the bank had no product family. | 142: the prep-set route fires on drills/quant prep/PM prep; bankArgs reads quant/probability/market-making as finance with role "quant" and PM as roleFamily "product"; the headline claims a company match ONLY when bank.cir_grounded, otherwise names the track ("Your quant prep set.") and states plainly that it is the track's standard set; a finance drill adds how gaps get named (from scored answers, never from the set). 127 questionBank: a quant role leads with the quant drills (probability, market-making game, mental math); a product question set added (product sense, metric-drop execution, estimation, the shipped-thing story). | tests/career-wording-backlog-guard.test.cjs BUG-133. Rule: FR-330 |
+| BUG-134 | Prep | The question-bank reply (SC-177) headlined "with your best story matched to each" while every question's matched_story was null — the promise printed, the match never spoken. The STAR-bank branch (SC-180) silently fell through to the generic brief when the mined bank was empty, so an ask for 8 reusable stories got a question list wearing the brief's name. | 142: the question-bank headline states the match is spoken per question; a fact names the matched stories from the record, or states the match is empty and why. The STAR branch answers an empty bank AS an empty bank: headline states it, facts explain what a bank is and that the profile holds no mineable story (the ask's own count carried as the build target), and the next step asks for one real experience to shape. | tests/career-wording-backlog-guard.test.cjs BUG-134. Rule: FR-331 |
+| BUG-135 | Prep | The producer-route composition read ONE body string per producer (digText) and truncated it to a single sentence, then filled the reply with the same grounding sentence TWICE ("Every line is built from facts on your profile…" ×2 — SC-184/189/191/192/193/200/201/202 and more, 13 scenarios sharing one closer); most producers (system design, final-round delta, debrief) have no body string at all, so their real products — prompts, framework steps, changes, scripts, questions — were never spoken. The structure drill (SC-197) spoke the scaffold's raw `<placeholder>` templates instead of naming the signposts; the day-of checklist (SC-198) spoke 4 items including a literal "(TEST plan)" fixture label; the mock opener (SC-178) put its grounding sentence after the question, so the generic closer appended behind it. | 142: a per-producer fact extraction (producerFacts) speaks each record's own content — system-design prompts + framework + level note; final-round/superday changes or, on NO_CIR, the record's gap (spoken as "company file" — the composer's lint strips the token CIR from prose, which had silently eaten those facts) plus the general round shape; salary scripts sentence-by-sentence under their "when" labels + the anchor rule; questions-to-ask items + the no-team note + an honest headline when no panel is named; video practice's never-submitted fact; take-home's plan-only fact; debrief zero-state + what a retro mines, with the thank-you half spoken when the ask carries it (SC-189); a post-rejection retro routes to debriefRetro (SC-199). Per-producer next steps replace the shared drill closer. Structure drill names Situation/Task/Action/Result in one sentence; the checklist enumerates up to 6 items with fixture labels stripped; the mock's question closes the reply as its next step. | tests/career-wording-backlog-guard.test.cjs BUG-135. Rule: FR-332 |
+| BUG-136 | Prep | The brief composition (composeBrief path) spoke only a likely-questions list plus a grounding slogan for every brief-shaped ask — night-before (SC-176), portfolio walkthrough (SC-203), hiring-manager (SC-204) alike — while the brief record's bar, loop stages, screening signals, and story-mapping state went unspoken (the questions text itself carried the bar buried inside a stage string). Coffee-chat prep (SC-182/190) spoke one question and the filler; the record's talking points and remaining questions never reached the user. | 142: briefFacts speaks the brief record in order — bar, loop from the company file, screening signals, the NO_CIR gap or the story-mapping state (a named match, or the honest no-story line), likely questions — under shape headlines (night-before / hiring-manager / portfolio walkthrough / default) with shape facts (walkthrough order; what an HM round probes) and shape closers. The coffee-chat producer speaks its talking points, its first questions, and — when no company file grounds it — says so. | tests/career-wording-backlog-guard.test.cjs BUG-136. Rule: FR-333 |
+
+## Wording-backlog lane 2026-10-14 (evening) — Track entries
+
+| BUG-137 | Track | One stage-announce template ("The tracker moved itself: … Stages here are spoken only from the record — this one came from the email itself, not a guess. Want the detail behind the new stage?") served all five inbox event kinds (SC-122/123/124/126/127): it named no company, carried a provenance sentence that was false for the chat-reported event (SC-138 — a user's chat message announced as "came from the email itself", Ramp never named), and closed with a detail tease instead of the step each event unlocks. | 142 handleInboxEvent: per-kind composition — the headline puts the event on the record (with the company when the record carries one; "Interview at Ramp — on the record, and prep is queued." — record language throughout, because the claim-verb scan reads "logged" as a state claim these turns' events do not surface), the source sentence names the actual source per kind (confirmation/rejection/interview/assessment/offer email) or the chat itself when the user reported it, a company-less event states the TN-1a truth (row carried as company not stated, the stage real, the company never invented) with a binding closer (forward the sender line), and each kind closes with its own step (prep pack for interview/assessment, the what-to-tighten note for a rejection, the offer terms for an offer). | tests/career-wording-backlog-guard.test.cjs BUG-137. Rule: FR-334 |
+| BUG-138 | Track | The empty-tracker template ("Your tracker holds no applications on record in this session… Find a role and I will start the tracker with it.") answered four unlike asks: an offer expiring Friday (SC-134 — an escalation request scored 0/0/0), thirty days of silence after a final round (SC-139 — the ghosted label and options never given), a quiet-hours setting (SC-140 — never confirmed), and the plain status ask (SC-121 — whose closer sent the user to find a role instead of logging the application already sent). | 142 handleTrackStatus: the empty branch composes per ask shape — expiring offer: "Your offer expires Friday — I will flag it daily until you decide, starting now." with the pin-it step; long silence after a final round: the ghosted label on the record plus the two options (one follow-up, or close it); quiet hours: the setting confirmed with its break-through rule; the plain status ask keeps the honest empty headline and closes by logging an already-sent application first. | tests/career-wording-backlog-guard.test.cjs BUG-138. Rule: FR-335 |
+| BUG-139 | Track | Replies described drafts instead of showing them or naming their missing input: the nudge reply (SC-128) claimed the draft "references the exact role and date from the tracker" while the draft it carried had blanks for both; the thank-you headline (SC-129) claimed "drafted from your note" when no note existed on the record and its fact claimed it "names one specific moment" it did not have; the ambiguous-reply classification (SC-125) was spoken as the label fragment "positive ready", which reads as its opposite. | 142 handleInboxEvent: the nudge reply quotes the draft's follow-up line with the exact role and application date when the draft is aimed at a record row, and states plainly that it cannot be aimed (and what input aims it) when none matches; the thank-you speaks "drafted from your note" only when a note was extracted from the ask and carried into 126's draft (quoted word for word), otherwise states the draft waits on the user's one line; the classification is spoken as a read ("the recruiter sounds positive but has not confirmed anything"). | tests/career-wording-backlog-guard.test.cjs BUG-139. Rule: FR-336 |
+| BUG-140 | Track | Track summaries under-spoke their records: the empty digest announced "nothing to report" instead of speaking its lines (SC-131); the funnel refusal decorated its honesty with a flourish ("noise wearing a suit", SC-133) and never named the referral-vs-cold comparison the ask carried; the season dashboard spoke a totals line plus a provenance slogan (SC-141: "0 applications across 0 active week(s)"), discarded the assessment record's own prep adjustment (SC-144 — an ask naming no score value fell through to the dashboard), the retro spoke neither its channel numbers nor its plan (SC-145 — and its module's 0%-vs-0% conversion sentence would have crowned a converting channel on an empty log); the accepted-offer reply described the withdrawal mechanism while the drafts it computed went unnamed (SC-137), and two interview briefs (SC-135/136) never spoke the appointment or the prep order. | 142: the empty digest speaks its lines with the record's true counts in the ask's own period; the funnel line names the ask's comparison and drops the flourish; the dashboard speaks applications by week against the plan (pace stated), an empty season stated as empty; a score with a value speaks 126/136's logged adjustment, a score announced without a value asks for the number and company and states what logging does; the retro speaks its numbers (channel split, what converted, what did not, the first plan step) with an honest zero-state; the accept reply names the withdrawal drafts on record or states there are none; the brief branch speaks a named appointment with its absolute date and pack day, and headlines two-interview asks as the prep order. (Also: 141's calendar proposal names each free day once — three same-day slots no longer repeat the day three times.) | tests/career-wording-backlog-guard.test.cjs BUG-140. Rule: FR-337 |
+| BUG-181 | Apply | Doorstep/policy replies described their deliverable instead of delivering it: the sophomore sweep described windows and offered to list them later (SC-067); the truth audit described its policy instead of reporting its result (SC-071); the saved sponsorship answer was promised a showing, never printed (SC-072); the referral-stacking check closed by asking the user to name the role they had already named (SC-066); the resume diff was described, its lines never shown (SC-097); the concrete knockout the user named was never named back (SC-075); the rejection autopsy offered a plan computed on an empty log instead of first asking for the user's 34 applications to be logged/imported (SC-116). The producers' products already rode the typed payloads unspoken. | 142 handleApplyRules + tailor/audit/diff branches + handleAutopsy: the replies speak the products — checkWindows entries listed with deadlines when the registry carries them (and the missing registry stated plainly, with the unlocking input asked, when it does not); the saved answer printed word for word from 132's savedAnswerFor; the audit's verdict spoken (the dropped bullet + reason, or the true clean result); the diff's stated changes shown line by line; the ask's quoted knockout named as the skip reason; the stacking check run against the ask's own named target with its warm-path result; the autopsy asking for the import first. The cooldown headline prints 132's computed lift date when a tracker row exists and never claims one when it does not. | tests/career-wording-backlog-guard.test.cjs BUG-181. Rule: FR-338 |
+| BUG-182 | Apply | Headlines outran their records: the hold reply claimed "deadline math shown" while its own body admitted neither the referral ETA nor the deadline was on record (SC-099); the gap-callout headline announced a callout over a producer finding of no gap (SC-098); the essay packet was announced "ready" in the same bubble that admitted the profile holds no clinical or research experience — the ask's core material (SC-096, the both-axes failure). | 142: headline-from-finding composition — the hold headline states "neither time is on record" when 133's decision carries unknowns (the math headline survives only when the times exist); the gap headline names the gaps the producer found, or states the true no-gap finding; the essay headline leads with the missing-theme gap and the caveat runs as one clean pass (outlines built from the experiences on file; the missing material must be added as confirmed facts before the essays can use it). | tests/career-wording-backlog-guard.test.cjs BUG-182. Rule: FR-339 |
+| BUG-183 | Apply | Tailor-family replies under-spoke their sets: a 20-role list ask led with a single tailor and never spoke the ranked list or its real-shot calls (SC-065); a batch ask promising review of the first 3 delivered 1 tailored role (SC-068); a three-variant ask delivered one cut plus a disclosure (SC-070); bucket replies delegated every per-role reason to an invisible card and closed by pointing at the empty Match bucket (SC-069); the ML reply "named them in fit order" while naming one of three (SC-110); a YC-startup tailor led with generic proven skills instead of one specific thing the user built (SC-094). | 142: handleBatchTailor passes the full shortlist into the chain (the reply leads with the ranked list, bucket + real-shot call per role) and tailors the whole named review set (the extra cuts ride as artifacts; the reply names them tailored, with the ask's count and the true staged count both spoken); the variants branch delivers all named variants as cuts of the one master, each with its lead drawn from the profile's real facts (project facts for full-stack, proven skills for backend, the honest thin-systems note for infra); fit-bucket replies speak the top roles' reasons and never close on an empty bucket; the ML reply names every role with its caveat; the startup discovery cut leads with the user's own top project fact. | tests/career-wording-backlog-guard.test.cjs BUG-183. Rule: FR-340 |
+| BUG-184 | Apply | Internal text reached the user: the graph sequence rule carried the internal token "(124 CAPS)" (SC-100, and Referrals SC-170 via the same helper); the packet reply's document line was binding jargon ("the packet carries the freshly tailored resume, because no stored version was supplied to bind") served byte-identical to three unlike asks (SC-083/101/102), none of whose own rule (a set of 5 with confirmations, the one-page rule, the ATS render) the reply answered; the tailor's lead phrase garbled hyphenated asks ("your stack — shipped product and metrics", SC-093) and the served posting's stack mismatch with the ask went unnamed. | 135's sequence rule speaks the cap in plain words (15 sends to one firm in 30 days); 142 handlePacket speaks the document line plainly and answers the ask's own rule from the packet record (the counted set + per-packet confirmation capture/flagging, pkt.onePage, pkt.ats); the lead-phrase separator must be a spaced dash or colon, never a bare hyphen inside a word; a stack mismatch between ask and served posting is named in the reply. | tests/career-wording-backlog-guard.test.cjs BUG-184. Rule: FR-341 |
+| BUG-185 | Apply | Restatements and closers dropped the ask's own terms: the autopilot rule was echoed without "no Reach roles" and without the nightly summary (SC-078); the starred watch never spoke the ask's 48-hour window (SC-063) or the speed run's within-the-hour commitment (SC-106) or the any-role-any-company rule (SC-117); triage classified in stock categories instead of the user's own flags (expired, duplicate, clearance-blocked — SC-114); the duplicate-protection closer offered tracking vaguely instead of the user's step (SC-079); the packet doorstep reply ended in the composer's generic closer (SC-061); a SWE tailor's apply half stopped at "the packet is the next step" instead of the doorstep state (SC-062). | 142/141: the autopilot restatement is built from every element parsed out of the ask (fit, companies, daily max, no-Reach, nightly summary); the watch speaks its record's window and the speed-run cadence's own commitment; triage echoes the user's flags when the ask names them; the prior-application closer is the user's own step ("Say 'track it' and I will follow this application and report its status."); 141's packet reply closes with the concrete review step (job, document, answers — say the word or name the change); discovery-chain apply asks close on the doorstep state. | tests/career-wording-backlog-guard.test.cjs BUG-185. Rule: FR-342 |
+| BUG-186 | Apply | "What happened with my Stripe application?" was answered with the Stripe company file: the router's intel dispatch ran before the application-status branch, and the status branch's own patterns required a contiguous "my application" — a company name sitting between the two words never matched, so the turn fell through to the file. The status producer (132 statusAnswer over the log + inbox, with proof) existed and was never reached. | 142 dispatch: the application-status check (including the "what happened with my … application" shape) runs BEFORE the company-file intel dispatch; handleApplicationStatus composes from the application log and the inbox — rows with their proving entries, or the honest absence (nothing logged, nothing hidden) when the record holds none. | tests/career-wording-backlog-guard.test.cjs BUG-186. Rule: FR-343 |
+| BUG-187 | Outreach | The wordingfix judge's N5: plan replies for proposed sets and named categories (SC-010/028/029/060) opened "Building the list now" and closed "Approve the category/proposed set and I build it first" — the build was still approval-gated under a building-now headline, and category asks were handed back as homework ("tell me the firms to start from instead"). The same wave's peer-tone line spoke "associate to associate" to a VP (N11). | 142 handleCampaignPlan: a proposed set or category is the build spec — the closer states the build is running on it now, counts return first, and drafting still waits for the user's one approval of the whole plan; the category is never handed back as a firm-list request. The peer-tone line speaks as a peer (a lateral move between equals). | tests/career-wording-backlog-guard.test.cjs BUG-187. Rule: FR-344 |
+| BUG-188 | Outreach | The wordingfix judge's N4: five plan replies stated the per-firm cap (15 to one firm in 30 days) and then a timeline from the daily ramp alone ("150 first emails take at least 9 days of sending" across 3 named firms — a 45-per-window cap the timeline ignored). The numbers in one reply contradicted each other. | 142 handleCampaignPlan: when the firm set is named (≥2 firms) or closed, the caps sentence states the window arithmetic — firms × 15 per 30-day window, the windows the count needs, the ramp pacing inside a window. Single-firm asks keep their monthly-wave sentence; unstated counts keep the population form. | tests/career-wording-backlog-guard.test.cjs BUG-188. Rule: FR-345 |
+| BUG-189 | Outreach | Parse-level facet drops (judge's N1/N2/N3/N8/N10, three S1s): a cohort window "2023–25" parsed as a headcount of 2,023 people (SC-008 — the first bare number always won, and its range tail "25" survived the first patch as a count of 25); a four-firm list lost the two firms the lexicon lacks (SC-009: Ramp, Plaid); the school capture ran on into the sentence ("CMU or are from my hometown") and spliced two filters into one; "middle-market and boutique" resolved to the elite-boutique set alone (SC-007); "AI/ML engineers" narrowed to "ML engineers" (SC-055); the startup-first filter counted "interns" instead of the people now at the firm (SC-021); the cohort span, the M&A desk, the freshman/non-target standing, and a stated school ("Junior at Wharton") were extracted nowhere. | 124 parseTarget: year-like numbers and year-range heads/tails never count; a comma list spelled out at a firm slot names every firm in it; the school capture stops at the school's own words and a stated class-standing school is read; middle-market precedes boutique in set resolution; AI/ML keeps its full phrase; cohort_span / mna / early_standing facets extracted and spoken by the plan (142), and the startup-first filter names the population at the firm. | tests/career-wording-backlog-guard.test.cjs BUG-189. Rule: FR-346 |
+| BUG-190 | Outreach | Decision/attribution defects (judge's N7/N9 + capstone rows 23/32): SC-050's ask — "ask whether Tier C gets held" — matched the decided-Tier-C pattern on its own question wording, so the reply credited the user with a ruling they never made ("held at zero, exactly as you set it") in the same bubble that reported 128 Tier C names (a capstone PASS regressed); SC-043's safety card stated the ramp two contradictory ways ("+5/day every 3 days") with the ceiling twice and still deferred its finish date; SC-031's calendar proposal lumped two offered slots into one ambiguous free/busy clause ("Tuesday Oct 20 and Wednesday Oct 14 is free"), listed out of chronological order. | 142 handleTierMix: a question about Tier C is never a decision — the interrogative guard excludes ask/whether/should forms, and the undecided reply asks the question with the mix's before/after arithmetic (held: the A+B names; released: all, C last). 124 safetyPlan's ramp string reads one way ("+5 every 3 days, never above 30") and 142's card drops its duplicate ceiling; the card states its finish date as dated ramp arithmetic (the ramp's cumulative sends from today). 141 emitCalendarProposal: every offered slot carries its own verdict (free, or the conflict kind), in chronological order. | tests/career-wording-backlog-guard.test.cjs BUG-190. Rule: FR-347 |
+| BUG-191 | Outreach | Deferred deliverables survived rewording (capstone rows 26/27/30 still open + SC-034): the day-6/day-15 follow-up waves described their rules and offered to draft ("Want the wave drafted against the campaign's non-responders?") with no wave and no count; live list surgery promised before-and-after counts later ("Open the current list and I will show…"); the bounce diagnosis was offered on a "say the word" instead of run. On the records these turns carry (no campaign, no list, no bounce list in session), the true deliverable is the computed zero with its arithmetic — not a description plus an offer. | 142: the wave replies state the count from the record (sent − replies − bounces − never-contact = 0 here) with the wave's rules kept and the unlocking input as the closer; list surgery states both counts from the record (0 and 0) with the cut recorded as the list's standing rule; the bounce reply reports the pattern check as run over the session's record (no bounced addresses on it, so no firm pattern can honestly be named) and names the input that completes the diagnosis. | tests/career-wording-backlog-guard.test.cjs BUG-191. Rule: FR-348 |

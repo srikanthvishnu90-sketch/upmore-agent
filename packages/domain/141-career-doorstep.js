@@ -1279,16 +1279,18 @@ const CareerDoorstep = (() => {
       } catch { return String(e.start || "the offered time"); }
     };
     const offered = evaluations.map((e) => fmtSlot(e)).join(" or ");
-    // Distinct free DAYS, named once each — three slots on one morning
-    // are one free day, not the same day repeated per slot.
-    const freeDays = [...new Set(evaluations.filter((e) => !e.conflict).map((e) => fmtSlot(e).split(" at ")[0]))];
-    const freePhrase = freeDays.length > 1 ? `${freeDays.slice(0, -1).join(", ")} and ${freeDays[freeDays.length - 1]} are free` : freeDays.length === 1 ? `${freeDays[0]} is free` : "the proposed time is free";
+    // WORDING-BACKLOG (BUG-190): every offered slot gets its OWN
+    // verdict, in chronological order — "Tuesday Oct 20 and
+    // Wednesday Oct 14 is free" lumped two slots into one ambiguous
+    // clause and left the user unable to tell which time was free.
+    const byTime = [...evaluations].sort((a, b) => (Date.parse(a.utc || a.start_iso || a.start) || 0) - (Date.parse(b.utc || b.start_iso || b.start) || 0));
+    const verdicts = byTime.map((e) => `${fmtSlot(e)} — ${e.conflict ? `not free: ${e.conflicts.map((x) => x.kind).join(", ")}` : "free on the calendar in context and outside quiet hours"}`).join("; ");
     return {
       intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
       ...art,
       reply: proposed.conflict
         ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the offered times are ${offered}, and ${freePhrase} on the calendar in context and outside quiet hours. Nothing has been booked or sent: approve the card and that time goes to them as the proposal — nothing is booked until they confirm.`,
+        : `Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}. Nothing has been booked or sent: approve the card and the proposed time (${fmtSlot(proposed)}) goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 
@@ -1399,7 +1401,7 @@ const CareerDoorstep = (() => {
     return {
       intent: "application_packet", family: "application", resultStatus: "awaiting_user",
       packet, binding, review, ...art,
-      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted.`,
+      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`,
     };
   }
 

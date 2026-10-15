@@ -22626,8 +22626,8 @@ const CareerOutreach = (() => {
 
   // ---------- OUTE-001: target-spec parser ----------
   const SET_ALIASES = [
-    ["bulge_bracket", /\bbulge brackets?\b|\bbb banks?\b/], ["elite_boutique", /\belite boutique|\bboutique\b/],
-    ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b(?! capital)|\bbcg\b|\bboston consulting\b/],
+    ["bulge_bracket", /\bbulge brackets?\b|\bbb banks?\b|\bbb\b/], ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/],
+    ["elite_boutique", /\belite boutique|\bboutique\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b(?! capital)|\bbcg\b|\bboston consulting\b/],
     ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
     ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
     ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
@@ -22705,6 +22705,19 @@ const CareerOutreach = (() => {
       if (!hits.some((h) => h.name === sh.name)) hits.push(sh);
     }
     for (const [abbr, full] of Object.entries(FIRM_ABBREV)) if (w.includes(" " + abbr + " ") && !hits.some((h) => h.name === full)) hits.push({ name: full, idx: w.indexOf(" " + abbr + " "), nn: norm(full) });
+    // WORDING-BACKLOG (BUG-189): a comma list the user spells out at
+    // a firm slot ("at Stripe, Ramp, Plaid, Datadog") names every
+    // firm in it — the lexicon is a recognizer for sets, not a gate
+    // that may silently drop a named firm it does not contain.
+    const listM = raw.match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s*,\s*(?:and\s+)?[A-Z][A-Za-z0-9&.'-]+){1,5})(?=\s+(?:who|that|to|for|in|on)\b|[,.;]|$)/);
+    if (listM) {
+      for (const part of listM[1].split(/\s*,\s*/)) {
+        const name = part.replace(/^and\s+/, "").trim();
+        if (!name || name.length < 3 || FIRM_TOKEN_STOP.has(norm(name))) continue;
+        if (!hits.some((h) => norm(h.name) === norm(name))) hits.push({ name, idx: raw.indexOf(part), nn: norm(name) });
+      }
+      hits.sort((a, b) => a.idx - b.idx);
+    }
     // A shorter name that is the opening phrase of a longer hit at
     // the same spot (KKR inside "KKR Real Estate") is that hit, not
     // a second firm.
@@ -22725,6 +22738,7 @@ const CareerOutreach = (() => {
     [/pe associates?\s*\/?\s*principals?|pe associates? and principals?/, "PE associates and principals"],
     [/product designers?/, "product designers"],
     [/civil engineers?/, "civil engineers"],
+    [/ai ml engineers?/, "AI/ML engineers"],
     [/ml engineers?/, "ML engineers"],
     [/software engineers?/, "software engineers"],
     [/\bswes?\b/, "software engineers"],
@@ -22735,6 +22749,7 @@ const CareerOutreach = (() => {
     [/named people/, "people"],
     [/students?\b/, "students"],
     [/interns?\b/, "interns"],
+    [/analysts? and first[- ]year associates?/, "analysts and first-year associates"],
     [/associates?\b/, "associates"],
     [/principals?\b/, "principals"],
     [/analysts?\b/, "analysts"],
@@ -22752,7 +22767,19 @@ const CareerOutreach = (() => {
     profile = profile || {};
     const raw = String(text || ""); const w = " " + norm(raw) + " ";
     const q = { industry: null, firm_set: null, firms: [], firms_named: false, firms_source: null, role_family: null, seniority_band: null, geography: null, school_filter: null, background_filters: {}, exclusions: [], count: null, vague: false, proposed_default: null };
-    const num = raw.match(/\b(\d{1,4})\b/); q.count = num ? Number(num[1]) : null;
+    // WORDING-BACKLOG (BUG-189): a year is not a headcount. The first
+    // bare number in the ask used to win, so a cohort window
+    // ("2023–25 analysts") parsed as 2,023 people. Year-like numbers
+    // (1900–2099) and the head of a year range never count.
+    let num = null;
+    for (const m of raw.matchAll(/\b(\d{1,4})\b/g)) {
+      const n = Number(m[1]);
+      if (n >= 1900 && n <= 2099) continue;
+      if (/^\s*[-–]\s*\d/.test(raw.slice(m.index + m[1].length))) continue;
+      if (/(?:19|20)\d\d\s*[-–]\s*$/.test(raw.slice(0, m.index))) continue; // the tail of a year range ("2023–25")
+      num = m; break;
+    }
+    q.count = num ? Number(num[1]) : null;
     // BUG-128: a count the user never stated is the product default,
     // and no reply may present it as the size of a population the
     // user described ("every founder in the latest YC batch").
@@ -22792,7 +22819,15 @@ const CareerOutreach = (() => {
     if (/shares? (my|your) major|same major|my major/.test(w)) q.background_filters.major_match = true;
     if (/finance club/.test(w)) q.background_filters.finance_club = true;
     if (/competition math|math competition/.test(w)) q.background_filters.competition_math = true;
-    if (/same hometown|hometown first|warmth/.test(w)) q.background_filters.warmth_hometown = true;
+    if (/same hometown|hometown first|warmth|from my hometown|my hometown/.test(w)) q.background_filters.warmth_hometown = true;
+    // WORDING-BACKLOG (BUG-189): the ask's remaining named facets —
+    // a class-year cohort window, an M&A desk, a freshman/non-target
+    // standing — are extracted so the plan can speak them instead of
+    // dropping them.
+    const cohM = raw.match(/\b(20\d\d)\s*[-–]\s*(\d{2,4})\b/);
+    if (cohM) q.background_filters.cohort_span = `${cohM[1]}–${cohM[2].length === 2 ? cohM[2] : cohM[2].slice(2)}`;
+    if (/m&a/i.test(raw)) q.background_filters.mna = true;
+    if (/\bfreshman\b|\bnon[- ]target\b/.test(w)) q.background_filters.early_standing = true;
     if (/everyone i know|people i know|then second degree|second degree connections?/.test(w)) q.background_filters.sequence_known_first = true;
     if (/\bhiring engineers?\b/.test(w)) q.background_filters.hiring_role = "engineers";
     if (/consumer startups?/.test(w)) q.background_filters.consumer_startups = true;
@@ -22826,7 +22861,15 @@ const CareerOutreach = (() => {
     const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|LA|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
     if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : /^la$/i.test(geo[1]) ? "Los Angeles" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
-    else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
+    else {
+      // WORDING-BACKLOG (BUG-189): the school capture must stop at
+      // the school's own words — the old open character class ran on
+      // into the rest of the sentence ("CMU or are from my
+      // hometown") and spliced a second filter into the school.
+      const sm = raw.match(/\bwent to\s+((?:[A-Z][A-Za-z&.'-]*)(?:\s+(?:[A-Z][A-Za-z&.'-]*|University|College|Institute|School|Tech))*)/);
+      if (sm) q.school_filter = sm[1].replace(/\s+(?:or|and|who|from|in)$/i, "").trim();
+      else { const st = raw.match(/\b(?:freshman|sophomore|junior|senior) at\s+([A-Z][A-Za-z&.'-]{2,25}?)(?=:|,|\s+and\b|$)/i); if (st) q.school_filter = st[1].trim(); }
+    }
     const stage = raw.match(/series\s+([A-Z])(?:\s*[-–]\s*([A-Z]))?/i);
     if (stage) { const A = "ABCDEFGH"; const a = A.indexOf(stage[1].toUpperCase()); const b = stage[2] ? A.indexOf(stage[2].toUpperCase()) : a; q.background_filters.startup_stage = A.slice(a, b + 1).split(""); q.industry = q.industry || "startups"; }
     // BUG-110: "seed" is a stage too — a seed-stage founder ask used
@@ -24142,7 +24185,7 @@ const CareerOutreach = (() => {
   function safetyPlan(_campaign, plan, opts) {
     opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
     const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
-    return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
+    return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep} every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
       per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
       scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
       stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],
@@ -28276,7 +28319,7 @@ const CareerGraph = (() => {
     const cold = (store.people || []).filter((p) => normCo(p.current_firm) === normCo(company) && !paths.some((x) => x.person_id === p.person_id) && !excluded.some((x) => x.person_id === p.person_id) && p.at_company !== false);
     const seq = paths.slice(0, n).map((p, i) => ({ order: i + 1, name: p.name, warmth: p.score, why: p.why, ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }));
     for (const c of cold) { if (seq.length >= n) break; const w = rankWarmth(c, profile, opts); seq.push({ order: seq.length + 1, name: c.full_name, warmth: w.score, why: w.why.length ? w.why : ["cold — no shared fact on file"], ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }); }
-    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: `Sequenced warm to cold; one person at a time, replies re-rank the rest; per-firm cap 15/30d (124 CAPS) is never approached by ${n === 8 ? "an" : "a"} ${n}-person sequence.` };
+    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: `Sequenced warm to cold; one person at a time, replies re-rank the rest; the per-firm cap — 15 sends to one firm in 30 days — is never approached by ${n === 8 ? "an" : "a"} ${n}-person sequence.` };
   }
 
   // ---------- referral-bonus intel (SC-161) ----------
@@ -31442,16 +31485,18 @@ const CareerDoorstep = (() => {
       } catch { return String(e.start || "the offered time"); }
     };
     const offered = evaluations.map((e) => fmtSlot(e)).join(" or ");
-    // Distinct free DAYS, named once each — three slots on one morning
-    // are one free day, not the same day repeated per slot.
-    const freeDays = [...new Set(evaluations.filter((e) => !e.conflict).map((e) => fmtSlot(e).split(" at ")[0]))];
-    const freePhrase = freeDays.length > 1 ? `${freeDays.slice(0, -1).join(", ")} and ${freeDays[freeDays.length - 1]} are free` : freeDays.length === 1 ? `${freeDays[0]} is free` : "the proposed time is free";
+    // WORDING-BACKLOG (BUG-190): every offered slot gets its OWN
+    // verdict, in chronological order — "Tuesday Oct 20 and
+    // Wednesday Oct 14 is free" lumped two slots into one ambiguous
+    // clause and left the user unable to tell which time was free.
+    const byTime = [...evaluations].sort((a, b) => (Date.parse(a.utc || a.start_iso || a.start) || 0) - (Date.parse(b.utc || b.start_iso || b.start) || 0));
+    const verdicts = byTime.map((e) => `${fmtSlot(e)} — ${e.conflict ? `not free: ${e.conflicts.map((x) => x.kind).join(", ")}` : "free on the calendar in context and outside quiet hours"}`).join("; ");
     return {
       intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
       ...art,
       reply: proposed.conflict
         ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the offered times are ${offered}, and ${freePhrase} on the calendar in context and outside quiet hours. Nothing has been booked or sent: approve the card and that time goes to them as the proposal — nothing is booked until they confirm.`,
+        : `Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}. Nothing has been booked or sent: approve the card and the proposed time (${fmtSlot(proposed)}) goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 
@@ -31562,7 +31607,7 @@ const CareerDoorstep = (() => {
     return {
       intent: "application_packet", family: "application", resultStatus: "awaiting_user",
       packet, binding, review, ...art,
-      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted.`,
+      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`,
     };
   }
 
@@ -32179,7 +32224,11 @@ const CareerRouter = (() => {
       const leadM = askT.match(/lead with\s+(.+?)(?:[.!?]|$)/i);
       if (leadM) leadRaw = leadM[1];
       else {
-        const fwdM = askT.match(/[—–:-]\s*(.+?)\s+forward\b/i);
+        // WORDING-BACKLOG (BUG-184): the separator must be a spaced
+        // dash or a colon — a bare hyphen matches INSIDE words like
+        // "full-stack", and the lead came out garbled ("your stack —
+        // shipped product and metrics").
+        const fwdM = askT.match(/(?:\s[—–-]\s*|:\s*)(.+?)\s+forward\b/i);
         if (fwdM && (fwdM[1].includes(",") || fwdM[1].trim().split(/\s+/).length >= 3)) leadRaw = fwdM[1];
       }
       if (leadRaw) {
@@ -32203,6 +32252,9 @@ const CareerRouter = (() => {
     let savedFact = savedLine;
     let groundedFact = `Grounded in your own profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`;
     let shortfallFact = null;
+    let listFact = null;
+    let headlineOverride = null;
+    let variantFacts = null;
     let nextStep = company ? `Review the artifact, and I can prepare the ${company} application packet next.` : "Review the artifact, and I can prepare the full application packet next.";
     const at = lc(_text);
     const tctx = ctx._tailorContext || "direct";
@@ -32214,7 +32266,7 @@ const CareerRouter = (() => {
     if (tctx === "batch" && /\binsight|early program|sophomore/.test(at)) {
       const titles = (Array.isArray(ctx._shortlistTitles) ? ctx._shortlistTitles : []).filter(Boolean).slice(0, 3);
       savedFact = `This first tailored application — for ${titleLine} — is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
-      if (titles.length) groundedFact = `The open programs it was picked from, per your shortlist: ${titles.join("; ")} — the rest stay staged in that order, each tailored only when its turn comes.`;
+      if (titles.length) groundedFact = `The open early programs on the current list, per your shortlist: ${titles.join("; ")} — the rest stay staged in that order, each tailored only when its turn comes${/\bsophomore\b/.test(at) ? "; none of them is a sophomore insight program — those windows are not in this list, and the tailored application runs on the closest open program, named here as itself" : ""}.`;
       nextStep = "Review this first one — the other open programs stay staged until your yes.";
     } else if (tctx === "batch") {
       const wantN = wantN2;
@@ -32222,6 +32274,16 @@ const CareerRouter = (() => {
       savedFact = `First of the batch, saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
       groundedFact = `The batch holds ${ctx._batchStaged != null ? ctx._batchStaged : "its"} staged roles${wantN ? ` of the ${wantN} you named` : ""}; this one is tailored now${revN ? `, and your review starts with the first ${revN}, as you set it` : ""} — nothing submits until the card yes you described.`;
       nextStep = "Review this first tailored role — the rest stay staged, in order.";
+      // WORDING-BACKLOG (BUG-183): a list ask gets its LIST first —
+      // the ranked roles with a real-shot call on each — and the
+      // tailored cut second. The shortlist rides in via
+      // _shortlistFull from handleBatchTailor.
+      const full = (Array.isArray(ctx._shortlistFull) ? ctx._shortlistFull : []).filter((r) => r && r.title);
+      if (full.length >= 2) {
+        const call = (b) => b === "Reach" ? "a reach" : b === "Safety" ? "a safety — a real shot" : "a real shot";
+        listFact = `The ranked list, best first: ${full.slice(0, 4).map((r) => `${r.title} at ${r.company} — ${r.bucket ? `${r.bucket}, ${call(r.bucket)}` : "scored"}`).join("; ")}.`;
+        if (/\breal shot\b/.test(at)) nextStep = "Review this cut — applications go only to the real-shot rows, each stopping at its own doorstep for your tap.";
+      }
     } else if (/\bliving resume\b|\bpromotion\b|\bvariants refreshed\b/.test(at)) {
       // Before the variants branch: a living-resume rebuild that
       // mentions variants is a rebuild ask first.
@@ -32231,11 +32293,37 @@ const CareerRouter = (() => {
     } else if (/\bvariants?\b/.test(at)) {
       const vm = String(_text || "").match(/\(([^)]+)\)/);
       const variants = vm ? vm[1].split(/\s*\/\s*/).map((x) => x.trim()).filter(Boolean) : [];
-      savedFact = `The rendered artifact in hand is the ${titleLine} cut, saved as PDF and DOCX${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
-      if (variants.length) groundedFact = `The ${variants.join(", ")} variants are each cut from the same master profile — this artifact is one of them, named honestly as one cut rather than all ${variants.length} at once.`;
-      nextStep = "Review this cut — the other variants re-cut from the same master on your word.";
+      // WORDING-BACKLOG (BUG-183): all the named variants are
+      // DELIVERED as named cuts of the one master, each with its own
+      // lead drawn from the profile's real facts — not one artifact
+      // plus a disclosure that the others exist.
+      if (variants.length >= 2) {
+        const projFacts = (ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(profile) : []).filter((f) => f && f.kind === "project");
+        const proj = projFacts.length ? String(projFacts[0].title || "").split(" (")[0] : null;
+        const leadFor = (v) => {
+          const vl = lc(v);
+          if (/full/.test(vl)) return proj ? `leads with ${proj} as a shipped project, front to back` : "leads with your shipped project work, front to back";
+          if (/infra|platform|systems/.test(vl)) return "leads with the systems side of the same record — the thinnest of the set, and it adds nothing the master does not hold";
+          return `leads with your proven skills${matched.length ? ` — ${matched.join(", ")}` : ""} — your server-side evidence first`;
+        };
+        headlineOverride = `${variants.length === 3 ? "Three" : "Your"} variants from one master profile: ${variants.join(", ")}.`;
+        variantFacts = variants.slice(0, 3).map((v) => `${v.charAt(0).toUpperCase()}${v.slice(1)} cut: ${leadFor(v)}.`);
+        savedFact = `The set is cut from your one master profile — every variant re-orders the same confirmed facts, and the first cut is rendered and saved as PDF and DOCX${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
+        groundedFact = "No variant carries a line the master does not hold; a variant is an ordering of your real record, not new material.";
+        nextStep = "Review the three leads — say the word and each cut renders to its own files from this master.";
+      } else {
+        savedFact = `The rendered artifact in hand is the ${titleLine} cut, saved as PDF and DOCX${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
+        nextStep = "Review this cut — the other variants re-cut from the same master on your word.";
+      }
     } else if (tctx === "discovery" && /\bstartup\b/.test(at)) {
-      groundedFact = `No firm was named, so this cut runs on ${titleLine} — the startup-style role your list surfaced first; the builder voice comes from your ask, and every line still traces to your profile.`;
+      // WORDING-BACKLOG (BUG-183): the builder voice is DELIVERED —
+      // the cut leads with one specific thing the user built, from
+      // their own project facts — while the role stays honestly
+      // named as the list's role, not the unnamed startup's.
+      const projFacts = (ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(profile) : []).filter((f) => f && f.kind === "project");
+      const proj = projFacts.length ? projFacts[0] : null;
+      const projName = proj ? String(proj.title || "").split(" (")[0] : null;
+      groundedFact = proj ? `No startup was named, so the cut runs on ${titleLine} — the startup-style role your list surfaced first — and it leads with ${projName}: ${String(proj.text || "").split(". ")[0].replace(/\.$/, "")}.` : `No firm was named, so this cut runs on ${titleLine} — the startup-style role your list surfaced first; the builder voice comes from your ask, and every line still traces to your profile.`;
       nextStep = "Review the artifact — name the actual startup and its posting, and the cut re-runs against their problem specifically.";
     } else if (tctx === "discovery") {
       if (ctx._shortlistSize) groundedFact = `Picked first from the ${ctx._shortlistSize} roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`;
@@ -32247,19 +32335,34 @@ const CareerRouter = (() => {
       // per fact, so a second sentence appended inside groundedFact
       // would never reach the user.
       if (wantN2 && ctx._shortlistSize != null && Number(wantN2) > ctx._shortlistSize) shortfallFact = `You named ${wantN2}; the current list holds ${ctx._shortlistSize} staged roles that fit — this packet is the best of them, and the rest of the ${wantN2} waits on a wider list.`;
-      nextStep = /\bapply for me\b|\bthen apply\b/.test(at) ? "Review the artifact — and since you asked to apply too, the application packet for this role is the next step, on your yes." : (company ? `Review the artifact, and I can prepare the ${company} application packet next.` : "Review the artifact, and I can prepare the full application packet next.");
+      nextStep = /\bapply for me\b|\bthen apply\b/.test(at) ? "Review the artifact — on your word, the application for this role is prepared to its doorstep, and nothing submits without your tap." : (company ? `Review the artifact, and I can prepare the ${company} application packet next.` : "Review the artifact, and I can prepare the full application packet next.");
     }
-    const facts = [
-      leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
-      gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
-      // BUG-048: the artifact's sha256 stays in the typed artifact record
-      // (the proof) — it is never spoken. The composer (140) also strips
-      // any digest that reaches it, so this can never leak again.
-      savedFact,
-      groundedFact,
-      ...(shortfallFact ? [shortfallFact] : []),
-    ];
-    const reply = compose({ headline: `Your resume is tailored for ${titleLine}.`, facts, nextStep });
+    // WORDING-BACKLOG (BUG-184): when the ask names a stack the
+    // served posting does not carry (full-stack asked, Frontend
+    // served), the mismatch is NAMED — the user should never have
+    // to spot that the cut is for a different flavor of the role.
+    let mismatchFact = null;
+    {
+      const askStack = /\bfull[- ]stack\b/.test(at) ? "full-stack" : /\bfront[- ]?end\b/.test(at) ? "frontend" : /\bback[- ]?end\b/.test(at) ? "backend" : null;
+      const titleLc = lc(posting && posting.title || "");
+      const postStack = /front[- ]?end/.test(titleLc) ? "frontend" : /back[- ]?end/.test(titleLc) ? "backend" : /full[- ]?stack/.test(titleLc) ? "full-stack" : null;
+      if (askStack && postStack && askStack !== postStack) mismatchFact = `One mismatch, named: you asked for a ${askStack} cut, and the closest ${company || "matching"} role on the current list is its ${postStack} posting — this cut is for that posting, and a true ${askStack} posting re-runs it the moment one is in the list.`;
+    }
+    const facts = variantFacts
+      ? [...variantFacts, savedFact, groundedFact]
+      : [
+        ...(listFact ? [listFact] : []),
+        leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
+        gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
+        // BUG-048: the artifact's sha256 stays in the typed artifact record
+        // (the proof) — it is never spoken. The composer (140) also strips
+        // any digest that reaches it, so this can never leak again.
+        savedFact,
+        groundedFact,
+        ...(shortfallFact ? [shortfallFact] : []),
+        ...(mismatchFact ? [mismatchFact] : []),
+      ];
+    const reply = compose({ headline: headlineOverride || `Your resume is tailored for ${titleLine}.`, facts, nextStep });
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
   }
 
@@ -32296,10 +32399,16 @@ const CareerRouter = (() => {
       const outlineCount = (r.essays[0] && r.essays[0].outline.length) || 0;
       const payload = { kind: "essay_packet", ok: true, essays: r.essays, themes_requested: askedThemes, themes_on_file: themesOnFile, missing_themes: missingThemes };
       const factsOut = [`The packet holds ${r.essays.length} essay outline${r.essays.length === 1 ? "" : "s"} built from ${outlineCount} confirmed experiences on your profile — every outline point cites the fact it comes from, and the prose stays yours to write.`];
-      if (missingThemes.length === 1) factsOut.push(`Your profile holds no ${missingThemes[0]} experience — the outline draws on the experiences on file, and ${missingThemes[0]} material will need to be added as confirmed facts before these essays can carry it.`);
-      else if (missingThemes.length > 1) factsOut.push(`Your profile holds no ${missingThemes.join(" or ")} experience — the outline draws on the experiences on file, and that material will need to be added as confirmed facts before these essays can carry it.`);
+      // WORDING-BACKLOG (BUG-182): when an asked-for theme is
+      // missing from the record, the HEADLINE leads with the gap
+      // and the caveat is one clean pass — the packet is never
+      // announced "ready" over an admission that its core material
+      // is absent.
+      let headline = "Your essay packet is ready — outlines from your real experiences, fact-cited.";
+      if (missingThemes.length === 1) { headline = `Your essay outlines are built — from the ${outlineCount} experiences on file, and none of them is ${missingThemes[0]}.`; factsOut.push(`The outlines draw on the ${outlineCount} experiences on file; ${missingThemes[0]} material has to be added to your profile as confirmed facts before the essays can use it.`); }
+      else if (missingThemes.length > 1) { headline = `Your essay outlines are built — from the ${outlineCount} experiences on file, and none of them is ${missingThemes.join(" or ")}.`; factsOut.push(`The outlines draw on the ${outlineCount} experiences on file; ${missingThemes.join(" and ")} material has to be added to your profile as confirmed facts before the essays can use it.`); }
       else if (askedThemes.length) factsOut.push(`Your profile does carry ${themesOnFile.join(" and ")} experience, and the outline leads with it.`);
-      const reply = compose({ headline: "Your essay packet is ready — outlines from your real experiences, fact-cited.", facts: factsOut, nextStep: "Write the draft from the outline and paste it back — want me to check it against your facts line by line?" });
+      const reply = compose({ headline, facts: factsOut, nextStep: "Write the draft from the outline and paste it back — want me to check it against your facts line by line?" });
       return { intent: "career_essay", reply, resultStatus: "prepared", sends: 0, payload, artifact: payload };
     }
     const payload = { kind: "essay_packet", ok: false, reason: (r && r.reason) || "no_confirmed_facts", themes_requested: askedThemes, themes_on_file: themesOnFile, missing_themes: askedThemes.slice() };
@@ -32319,8 +32428,32 @@ const CareerRouter = (() => {
     // BUG-111: the chain context rides into handleTailor so the
     // closing can speak about the batch truthfully (staged count,
     // the shortlist it was picked from).
-    const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted, _tailorContext: "batch", _batchStaged: disc.shortlist.length, _shortlistTitles: disc.shortlist.map((x) => (x && (x.title || x.role)) || "").filter(Boolean) }));
-    if (chained && chained.artifact) { chained.chained_from = "batch"; chained.batch = { staged: disc.shortlist.length, review_first: 3 }; return chained; }
+    const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted, _tailorContext: "batch", _batchStaged: disc.shortlist.length, _shortlistTitles: disc.shortlist.map((x) => (x && (x.title || x.role)) || "").filter(Boolean), _shortlistFull: disc.shortlist.map((x) => ({ title: (x && (x.title || x.role)) || "", company: (x && x.company) || "", bucket: (x && x.bucket) || null })) }));
+    if (chained && chained.artifact) {
+      chained.chained_from = "batch"; chained.batch = { staged: disc.shortlist.length, review_first: 3 };
+      // WORDING-BACKLOG (BUG-183): when the ask names a review set
+      // ("I review the first 3"), the WHOLE review set is tailored
+      // in this turn — the extra cuts ride as artifacts beside the
+      // first, and the reply names them as tailored, not staged.
+      const revM = lc(text).match(/review the first\s+(\d+)/);
+      const revN = revM ? Math.min(Number(revM[1]), 3) : 0;
+      if (revN > 1) {
+        const extra = [];
+        for (const entry of disc.shortlist.slice(1, revN)) {
+          const p = postingsFromCtx(ctx).find((x) => x.corpus_id === entry.id) || null;
+          if (!p) continue;
+          try { const c2 = handleTailor(text, Object.assign({}, ctx, { posting: p, _tailorContext: "batch", _batchStaged: disc.shortlist.length })); if (c2 && c2.artifact) extra.push(c2.artifact); } catch { /* the first cut stands */ }
+        }
+        if (extra.length) {
+          chained.artifacts = [chained.artifact, ...extra];
+          chained.batch.review_tailored = 1 + extra.length;
+          const names = [disc.shortlist[0], ...disc.shortlist.slice(1, 1 + extra.length)].map((x) => `${(x && (x.title || x.role)) || ""} at ${(x && x.company) || ""}`);
+          const wantNB = (String(text || "").match(/(\d+)\s+(?:[a-z][a-z-]*\s+){0,3}?(roles?|internships?|jobs?|positions?)/i) || [])[1];
+          chained.reply = compose({ headline: `Your review set is tailored — the first ${1 + extra.length}, ready together.`, facts: [`All ${1 + extra.length} review copies are tailored and saved: ${names.join("; ")} — each as PDF and DOCX for your review.`, `The batch holds ${disc.shortlist.length} staged roles${wantNB ? ` of the ${wantNB} you named` : ""}; the rest tailor only when their turn comes — nothing submits until the card yes you described.`], nextStep: "Review the set — approve the batch card and each role goes to its own doorstep?" });
+        }
+      }
+      return chained;
+    }
     return null;
   }
   function handleBatchCard(text, ctx) {
@@ -32364,10 +32497,16 @@ const CareerRouter = (() => {
     }
     const asked = Number((lc(text).match(/(\d+)\s*(?:[a-z][a-z-]*\s+){0,2}?roles?\b/) || [])[1]) || null;
     const rec = { kind: "fit_buckets", asked, total: rows.length, buckets, excluded: (ranked || []).length - rows.length };
-    const facts = [`The current list holds ${rows.length} scored roles${asked ? ` — you named ${asked}, and ${rows.length} is the true count: every one is bucketed, none invented to reach ${asked}` : ""}.`, `Reach ${buckets.Reach.length} · Match ${buckets.Match.length} · Safety ${buckets.Safety.length} — each role on the card carries its one-line reason from its own fit score.`];
-    const top = buckets.Match[0] || buckets.Safety[0] || buckets.Reach[0];
-    if (top) facts.push(`Strongest card entry: ${top.title} at ${top.company} — ${top.reason}`);
-    const reply = compose({ headline: "Bucketed by fit — Reach, Match, and Safety, each role with its reason on the card.", facts, nextStep: "Want the Match bucket tailored first?" });
+    const facts = [`The current list holds ${rows.length} scored roles${asked ? ` — you named ${asked}, and ${rows.length} is the true count: every one is bucketed, none invented to reach ${asked}` : ""}.`, `Reach ${buckets.Reach.length} · Match ${buckets.Match.length} · Safety ${buckets.Safety.length}.`];
+    // WORDING-BACKLOG (BUG-183): the one-line reasons are spoken ON
+    // THE REPLY for the top roles, not delegated to a card the user
+    // cannot see in chat; and the closer never points at a bucket
+    // that is empty.
+    const ordered = [...buckets.Match, ...buckets.Safety, ...buckets.Reach];
+    const bucketOf = (r) => buckets.Match.includes(r) ? "Match" : buckets.Safety.includes(r) ? "Safety" : "Reach";
+    for (const r of ordered.slice(0, 3)) facts.push(`${r.title} at ${r.company} — ${bucketOf(r)}: ${r.reason || "scored from its fit against your profile"}.`);
+    const strongest = buckets.Match.length ? "Match" : buckets.Safety.length ? "Safety" : "Reach";
+    const reply = compose({ headline: "Bucketed by fit — Reach, Match, and Safety, each role with its reason.", facts, nextStep: buckets.Match.length ? "Want the Match bucket tailored first?" : strongest === "Reach" ? "Every scored role landed in Reach — want the top Reach roles tailored with their gaps named, or the list widened first?" : `The ${strongest} bucket is where the real shots are — want those tailored first, or the list widened?` });
     return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
   }
   function handleStarredWatch(text, ctx) {
@@ -32379,7 +32518,11 @@ const CareerRouter = (() => {
     const winM = t.match(/last (\d+)\s*hours?/);
     const rec = { kind: "starred_watch", mode, companies, matched: [], window_hours: winM ? Number(winM[1]) : null, cadence: mode === "speed_run" ? "starred feeds polled first; a fitting role is applied within the hour it posts" : mode === "ping" ? "a fitting role pings within minutes of posting" : "new roles at starred companies enter the apply queue" };
     const empty = !companies.length;
-    const facts = [empty ? "Your profile has no starred companies on file, so the watch matches nothing today — that is the true state, not a quiet pass." : `${companies.length} starred companies are on the watch; fitting roles surface the moment they post.`, ...(empty ? ["The moment you star a company, every fitting role it posts lands in this watch."] : []), mode === "apply_queue" ? "Mode: apply queue — a fitting new-grad role at a starred company goes straight into the apply queue at its doorstep, inside the daily cap." : mode === "speed_run" ? "Mode: speed run — starred feeds are polled first, ahead of the general boards." : "Mode: ping — any fitting role at a starred company pings you within minutes."];
+    // WORDING-BACKLOG (BUG-185): the ask's own terms are carried —
+    // the look-back window when one is named (SC-063's 48 hours),
+    // and for a speed run the within-the-hour commitment itself,
+    // which is the whole point of the mode (SC-106).
+    const facts = [empty ? "Your profile has no starred companies on file, so the watch matches nothing today — that is the true state, not a quiet pass." : `${companies.length} starred companies are on the watch; fitting roles surface the moment they post.`, ...(empty ? ["The moment you star a company, every fitting role it posts lands in this watch."] : []), ...(winM ? [`Your window: only roles posted in the last ${winM[1]} hours qualify — an older posting at a starred company does not enter the queue.`] : []), ...(/\bany fitting role\b/.test(t) ? ["The rule as set: any fitting role, at any of your companies — no role type is filtered out of the watch."] : []), mode === "apply_queue" ? "Mode: apply queue — a fitting new-grad role at a starred company goes straight into the apply queue at its doorstep, inside the daily cap." : mode === "speed_run" ? "Mode: speed run — starred feeds are polled first, ahead of the general boards, and a fitting role is applied within the hour it posts, stopping at its doorstep for your tap." : "Mode: ping — any fitting role at a starred company pings you within minutes."];
     const reply = compose({ headline: empty ? "The watch is set — and it covers zero companies right now." : `Watching your ${companies.length} starred companies.`, facts, nextStep: "Name the companies to star and the watch starts covering them?" });
     return { intent: "career_watch", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }
@@ -32419,7 +32562,7 @@ const CareerRouter = (() => {
     const { ranked } = rankedShortlist(profile, ctx, {});
     const adjacent = (ranked || []).filter((r) => r && r.bucket && /\b(data|machine learning|analytics|quantitative)\b/i.test(r.posting.title || "")).slice(0, 3).map((r) => ({ title: r.posting.title, company: r.posting.company, bucket: r.bucket }));
     const rec = { kind: "weak_profile_plan", refused_family: "quant_finance", refusal_reason: "no mathematics background on the confirmed profile — quant screens test probability and mental math first, and a submission would burn the application", submit_refused: true, path_months: 12, path_steps: ["Months 1-3: probability and statistics to interview depth (combinatorics, expectation, distributions) with timed problem sets.", "Months 4-6: linear algebra and calculus refresh, plus mental-math speed drills — the first screen at most quant firms.", "Months 7-9: Python for research — data work and small backtesting projects that give the application something true to point at.", "Months 10-12: mock screens under time, then applications to quant-adjacent roles (data, trading operations) while the direct season opens."], adjacent_roles: adjacent };
-    const reply = compose({ headline: "Refused — I will not submit you to quant firms with no math background on your profile.", facts: ["That is not a lack of ambition; it is how their screens work — probability and mental math come first, and a burned application closes the firm for the season.", adjacent.length ? `The 12-month path is on the record: probability first, then speed math, then Python research projects, then timed mocks. Adjacent roles you can honestly apply to now: ${adjacent.length} on the current list, starting with ${adjacent[0].title} at ${adjacent[0].company}.` : "The 12-month path is on the record: probability first, then speed math, then Python research projects, then timed mocks. No quant-adjacent roles sit on the current list — that widens with the boards, not with invention."], nextStep: "Want the path turned into a week-by-week plan?" });
+    const reply = compose({ headline: "Refused — I will not submit you to quant firms with no math background on your profile.", facts: ["That is not a lack of ambition; it is how their screens work — probability and mental math come first, and a burned application closes the firm for the season.", adjacent.length ? `The 12-month path is on the record: probability first, then speed math, then Python research projects, then timed mocks. Adjacent roles you can honestly apply to now: ${adjacent.length} on the current list, starting with ${adjacent[0].title} at ${adjacent[0].company}.` : "The 12-month path is on the record: probability first, then speed math, then Python research projects, then timed mocks. No quant-adjacent roles sit on the current list — that widens with the boards, not with invention."], nextStep: adjacent.length ? "Want the path turned into a week-by-week plan — or start with the adjacent roles you can apply to now?" : "Want the path turned into a week-by-week plan?" });
     return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }
   function handleMlForward(text, ctx) {
@@ -32432,7 +32575,11 @@ const CareerRouter = (() => {
     let artifact = null;
     if (topAdapted) { try { const chained = handleTailor(text, Object.assign({}, ctx, { posting: topAdapted })); if (chained && chained.artifact) artifact = chained.artifact; } catch { artifact = null; } }
     const rec = { kind: "ml_forward", emphasis: ["papers", "models", "evaluation metrics"], roles };
-    const reply = compose({ headline: "Data/ML, evidence forward — papers, models, and evaluation metrics lead.", facts: [`The current list holds ${roles.length} data/ML roles that fit; the record names them in fit order, led by ${roles[0].title} at ${roles[0].company}.`, artifact ? "The top role's tailored packet is prepared and attached — its evidence sections lead, the way ML reviewers read." : "Name the one to tailor and the packet is built evidence-first."], nextStep: "Want the packet for the next ML role too?" });
+    // WORDING-BACKLOG (BUG-183): every role is NAMED on the reply
+    // with its caveat — "the record names them" while naming one is
+    // the under-speaking this family was rowed for.
+    const roleFacts = (disc.shortlist || []).slice(0, 3).map((x) => `${x.title || x.role || ""} at ${x.company || ""}${x.caveat ? ` — ${x.caveat}` : ""}.`);
+    const reply = compose({ headline: "Data/ML, evidence forward — papers, models, and evaluation metrics lead.", facts: [`The current list holds ${roles.length} data/ML roles that fit, in fit order:`, ...roleFacts, artifact ? "The top role's tailored packet is prepared and attached — its evidence sections lead, the way ML reviewers read." : "Name the one to tailor and the packet is built evidence-first."], nextStep: "Want the packet for the next ML role too?" });
     return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: artifact || rec, shortlist: disc.shortlist };
   }
   function handlePacket(text, ctx) {
@@ -32470,10 +32617,19 @@ const CareerRouter = (() => {
     // status) rides the typed packet — dropping it was the defect.
     const packet = { ok: true, company: posting.company, jobId: posting.id || posting.corpus_id || null, title: posting.title, submitted: false, onePage: pkt.onePage || null, ats: pkt.ats ? { ok: pkt.ats.ok } : null, document: pkt.document || null, artifactBinding: selected ? { file: selected.name, record: selected.record, sha256: selected.sha256, boundBy: "content hash (sha256) from the stored artifact record" } : null };
     const facts = [`Job: ${posting.title} at ${posting.company}.`];
+    // WORDING-BACKLOG (BUG-184): the document line speaks plain
+    // words (no binding jargon), and the ask's own packet rule is
+    // answered when the packet record carries it — the one-page
+    // check (SC-101), the ATS render (SC-102), and for a counted ask
+    // the set of packets with its confirmation state (SC-083).
     if (selected) facts.push(`Document: ${selected.name}, the ${descriptor} version, bound to this company when the packet was built.`);
-    else facts.push("Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.");
+    else facts.push("Document: a freshly tailored resume, built for this packet — no stored version was supplied, so the packet carries the new cut.");
+    const wantPk = Number((t.match(/(\d+)\s+(?:greenhouse\s+)?applications?\b/) || [])[1]) || null;
+    if (wantPk && wantPk > 1) facts.push(`This is the first of the ${wantPk} packets you named — each role gets its own packet and its own doorstep, and each employer's confirmation is captured on its packet after your tap, or flagged unconfirmed, never assumed.`);
+    if (/\bone[- ]page\b/.test(t)) facts.push(pkt.onePage ? "One-page rule: this resume renders to one page — the rule is enforced on every variant, and a cut that spills to two pages comes back instead of shipping." : "One-page rule: it is enforced on every variant by the packet check before a packet is called ready.");
+    if (/\bats\b|single column|text-extractable/.test(t)) facts.push(pkt.ats ? `ATS render: single column, standard headings, text-extractable — the parse check ${pkt.ats.ok ? "passed" : "ran"} on this render, in the portal's preferred format.` : "ATS render: single column, standard headings, text-extractable — checked by the parse check before the packet is called ready.");
     facts.push("Nothing is submitted — this packet is a review copy only.");
-    const reply = compose({ headline: `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
+    const reply = compose({ headline: wantPk && wantPk > 1 ? `Your ${descriptor} packets — the first of ${wantPk}, ready for review.` : `Your ${descriptor} application packet is ready for review.`, facts, nextStep: "Review the job and the document above; nothing goes anywhere until you approve it." });
     return { intent: "career_packet", reply, resultStatus: "prepared", packet };
   }
 
@@ -32675,13 +32831,13 @@ const CareerRouter = (() => {
     // filters and geography the ask carried — and a vague ask hears
     // its default named as a proposal, never worn as a choice. The
     // artifact and typed shape are unchanged.
-    const SET_LABELS = { bulge_bracket: "bulge bracket", elite_boutique: "elite boutique", middle_market: "middle-market", mbb: "MBB", faang_plus: "FAANG-plus tech", quant: "quant and prop-trading", big4: "Big Four", mega_fund_pe: "mega-fund private equity", big_law: "Big Law", academic_medical: "academic medical center", cpg: "consumer packaged goods", infrastructure_eng: "infrastructure engineering", venture_midwest: "Midwest venture", logistics: "logistics", real_estate_pe: "real-estate private equity" };
+    const SET_LABELS = { bulge_bracket: "bulge bracket", elite_boutique: "elite boutique", middle_market: "middle-market and boutique", mbb: "MBB", faang_plus: "FAANG-plus tech", quant: "quant and prop-trading", big4: "Big Four", mega_fund_pe: "mega-fund private equity", big_law: "Big Law", academic_medical: "academic medical center", cpg: "consumer packaged goods", infrastructure_eng: "infrastructure engineering", venture_midwest: "Midwest venture", logistics: "logistics", real_estate_pe: "real-estate private equity" };
     const ROLE_LABELS = { software_engineering: "software engineers", investment_banking: "investment bankers", consulting: "consultants", law: "lawyers", product_management: "product people", product_design: "designers", ml_engineering: "ML engineers", civil_engineering: "civil engineers", medical_resident: "medical residents", marketing: "marketers", operations: "operations managers", founder: "founders", venture: "venture analysts", private_equity: "private equity professionals", real_estate_pe: "real-estate professionals" };
     const bf = (q && q.background_filters) || {};
     const isCategoryProposal = !!(q && q.firms_source === "default" && q.proposed_default && q.proposed_default.kind === "category");
     const scope = [];
     if (q && q.firms_named && q.firms.length) scope.push(`at ${q.firms.length <= 4 ? q.firms.join(", ") : `${q.firms.slice(0, 3).join(", ")} and ${q.firms.length - 3} more you named`}`);
-    else if (q && q.firms_source === "set" && q.firms.length) scope.push(`across the ${SET_LABELS[q.firm_set] || "named"} set (${q.firms.slice(0, 3).join(", ")}${q.firms.length > 3 ? ", and more" : ""})`);
+    else if (q && q.firms_source === "set" && q.firms.length) scope.push(`across the ${SET_LABELS[q.firm_set] || "named"} set (${q.firms.slice(0, 4).join(", ")}${q.firms.length > 4 ? ", and more" : ""})`);
     else if (q && q.universe_label) scope.push(`at ${q.universe_label}`);
     if (q && q.geography) scope.push(`in ${q.geography}`);
     const who = (q && q.role_phrase) || (q && ROLE_LABELS[q.role_family]) || "people";
@@ -32689,10 +32845,19 @@ const CareerRouter = (() => {
     // BUG-128: a population ask ("every founder in the latest YC
     // batch") has no user-stated count; the caps sentence must not
     // dress the product default up as that population's size.
-    const population = !!(q && q.count_source === "default" && (bf.latest_batch || bf.sequence_known_first));
+    const population = !!(q && q.count_source === "default");
+    // WORDING-BACKLOG (BUG-188): when the firm set is named or
+    // closed, the per-firm cap — not the daily ramp — is what paces
+    // a big list: the reply states the window arithmetic (firms × 15
+    // per 30 days, windows needed) instead of a ramp-only timeline
+    // its own cap sentence contradicts.
+    const firmCount = q && ((q.firms_named && q.firms.length >= 2) || (q.firms_source === "set" && q.firms.length >= 2)) ? q.firms.length : null;
+    const windowCap = firmCount ? firmCount * 15 : null;
     const capsFact = population
       ? "The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield."
-      : `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`;
+      : windowCap && count > windowCap
+        ? `The caps shape the calendar: at most 15 to one firm in 30 days, and across the ${firmCount} firms named that caps one 30-day window at ${windowCap} first emails — so ${count} run across ${Math.ceil(count / windowCap)} monthly windows, paced inside each window by the ramp (12 a day, rising by 5 every 3 days to a 30 ceiling).`
+        : `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`;
     // WORDING-BACKLOG (BUG-125): the plan reply SPEAKS its target.
     // Every parsed facet gets its own sentence (the old if/else lead
     // chain spoke at most one filter and silently dropped the rest),
@@ -32705,7 +32870,7 @@ const CareerRouter = (() => {
     if (q && q.firms_source === "default") {
       filterFacts.push(isCategoryProposal
         ? "You named no firms, so the plan proposes that category as the starting universe instead of choosing firms for you — held as a proposal you can re-point before anything is built."
-        : `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — ${q.firms.slice(0, 4).join(", ")}${q.firms.length > 4 ? `, and ${q.firms.length - 4} more` : ""} — held as a proposal you can re-point before anything is built.`);
+        : `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — ${q.firms.slice(0, 5).join(", ")}${q.firms.length > 5 ? `, and ${q.firms.length - 5} more` : ""} — held as a proposal you can re-point before anything is built.`);
     }
     if (q && q.school_filter && q.school_filter !== "USER_SCHOOL_UNSPECIFIED") {
       filterFacts.push(`The school filter leads: your school's alumni directory (${q.school_filter}) is searched first, and every name is checked against it before ranking.`);
@@ -32727,7 +32892,10 @@ const CareerRouter = (() => {
       filterFacts.push(`The filter is the opening itself: only companies hiring their first ${roleWord} count — the role, not the brand, is the targeting.`);
     }
     if (bf.hiring_role) filterFacts.push("The filter is the opening itself: only startups hiring engineers count — the open role, not the brand, is the targeting.");
-    if (bf.interned_startup_first) filterFacts.push(`The path is the filter: only interns who interned at a startup first count toward the ${count} — that startup-first path is the personalization anchor in every opener.`);
+    if (bf.interned_startup_first) filterFacts.push(`The path is the filter: only people${q && q.firms.length ? ` at ${q.firms[0]}` : ""} who interned at a startup first count toward the ${count} — that startup-first path is the personalization anchor in every opener.`);
+    if (bf.cohort_span) filterFacts.push(`The cohort is a hard filter: only the ${bf.cohort_span} classes count toward the list — other classes are excluded, not ranked lower.`);
+    if (bf.mna) filterFacts.push("The desk is the filter: only bankers who work on M&A count toward the list.");
+    if (bf.early_standing) filterFacts.push("Your standing shapes the targeting: a freshman at a non-target school gets in through warm paths — alumni, clubs, shared ground — so the list ranks those first, not cold prestige.");
     if (bf.state_schools) filterFacts.push(`The school screen is hard: only state-school graduates count toward the ${count} — private-school names are excluded, not ranked lower.`);
     if (bf.fresh_cohort_years) filterFacts.push(`The cohort is a hard filter: only people hired in the last ${bf.fresh_cohort_years} years count toward the ${count} — earlier cohorts are excluded, not ranked lower.`);
     if (bf.major_match) filterFacts.push(`The match key is your major: only people who share it count toward the ${count}, and the shared major is the personalization anchor in every opener.`);
@@ -32742,7 +32910,7 @@ const CareerRouter = (() => {
     else if (q && q.purpose === "my podcast") filterFacts.push("Each founder is approached as a podcast guest: the invite leads with the show and the angle, not a pitch.");
     else if (q && q.purpose === "a career switch") filterFacts.push("The series is for a career switcher: each story is the switch itself, told by someone who made it.");
     else if (q && q.purpose && /advising/.test(q.purpose)) filterFacts.push("The ask on each is an advising chat — their path through it and what they would do differently.");
-    if (q && q.tone === "peer") filterFacts.push("The tone is peer to peer: you write as a VP moving into PE, so every draft speaks associate to associate, never student to banker.");
+    if (q && q.tone === "peer") filterFacts.push("The tone is peer to peer: you write as a VP moving into PE, so every draft speaks as a peer — a lateral move between equals, never student to banker.");
     if (q && q.warm_paths_ranked) filterFacts.push(`Warm paths rank the list: the ${count} are ordered by the strength of the path in, strongest first.`);
     if (q && q.firms_named && q.firms.length === 1) {
       const waves = Math.max(1, Math.ceil(count / 15));
@@ -32752,17 +32920,27 @@ const CareerRouter = (() => {
     }
     if (q && q.geography && !filterFacts.length) filterFacts.push(`Geography is a hard filter on the plan: only ${q.geography} names count toward the ${count} — out-of-area names are excluded, not ranked lower.`);
     const singleFirm = !!(q && q.firms_named && q.firms.length === 1);
-    const facts = [...filterFacts.slice(0, 5), singleFirm ? sourcesFact : capsFact];
+    // The sources ride in every plan, not only single-firm ones —
+    // a plan that names no source leaves the user unable to judge
+    // what the list will actually be built from.
+    const facts = singleFirm
+      ? [...filterFacts.slice(0, 5), sourcesFact]
+      : [...filterFacts.slice(0, 4), sourcesFact, capsFact];
     let nextStep;
     if (q && q.firms_source === "default") {
+      // WORDING-BACKLOG (BUG-187): a proposed set or category is the
+      // BUILD SPEC, not an approval gate in front of the build —
+      // "Building the list now" may not be followed by "approve and
+      // I build it", and a category the user named is never handed
+      // back to them as homework ("tell me the firms instead").
       nextStep = isCategoryProposal
-        ? "Approve the category and I build the starting set from it, counts first — or tell me the firms to start from instead."
-        : "Approve the proposed set and I build it first, counts before drafts — or tell me the firms you want instead.";
+        ? "The starting set is being built from that category now — the found, trustworthy, and sendable counts come back here first, and drafting starts only when you approve the whole plan."
+        : "The build runs on the proposed set now — the found, trustworthy, and sendable counts come back here first, and drafting starts only when you approve the whole plan.";
     } else {
       nextStep = "The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.";
     }
     const headline = population
-      ? (bf.latest_batch ? `Building the list now: every founder in the latest ${bf.latest_batch === "YC" ? "YC" : "newest"} batch, intros drafted only from the sendable names.` : `Building the list now: everyone you know${q && q.firms.length ? ` at ${q.firms[0]}` : ""} first, then second-degree connections.`)
+      ? (bf.latest_batch ? `Building the list now: every founder in the latest ${bf.latest_batch === "YC" ? "YC" : "newest"} batch, intros drafted only from the sendable names.` : bf.sequence_known_first ? `Building the list now: everyone you know${q && q.firms.length ? ` at ${q.firms[0]}` : ""} first, then second-degree connections.` : `Building the list now: ${who}${scope.length ? " " + scope.join(" ") : ""} — sized by what the sources yield, not by a number invented here.`)
       : `Building the list now: ${count} ${who}${scope.length ? " " + scope.join(" ") : ""}.`;
     const reply = compose({ headline, facts, nextStep });
     const artifact = campaignPlanArtifact(ctx, q, null);
@@ -32839,7 +33017,12 @@ const CareerRouter = (() => {
     if (/\bdrop associates\b/.test(t)) cuts.push("associates out");
     if (/\bdrop analysts\b/.test(t)) cuts.push("analysts out");
     const keepM = s(text).match(/\bonly ([^.]+?) people\b/i);
-    const reply = compose({ headline: "List surgery noted — the rules land before any drafting.", facts: [cuts.length || keepM ? `The cut: ${[...cuts, ...(keepM ? [`only ${keepM[1]} people stay`] : [])].join("; ")}.` : "The cut rules are noted exactly as you stated them.", `The re-count runs on the current list before any draft changes: the counts come back before and after — ${[...cuts, ...(keepM ? [`only ${keepM[1]} people kept`] : [])].join("; ") || "your rules applied"} — and no draft goes out on the old list.`], nextStep: "Open the current list and I will show the before-and-after counts." });
+    // WORDING-BACKLOG (BUG-191): the before-and-after counts are
+    // stated FROM THE RECORD in this reply — the list on file in
+    // this session holds 0 names, so both counts are honestly zero
+    // with the cut recorded against the real list the moment one
+    // exists; "open the list and I will show you" is not a count.
+    const reply = compose({ headline: "List surgery recorded — and the counts, from the record, are zero on both sides.", facts: [cuts.length || keepM ? `The cut: ${[...cuts, ...(keepM ? [`only ${keepM[1]} people stay`] : [])].join("; ")}.` : "The cut rules are noted exactly as you stated them.", "Before: the current list on record in this session holds 0 names — there is no list loaded here to re-cut, so after is also 0 today; no draft goes out on any other basis.", "Your rules are recorded as the list's standing cut: the moment a list is built or loaded, it is re-cut under them and the counts come back before (the built count) and after (the count under your cut), read off real names, never estimated."], nextStep: "Build or load the list and the surgery runs on it with both counts shown?" });
     // BUG-108: the surgery SPEC is the typed record when no list is
     // on file to re-cut — the stated cut, carried, not just described.
     const surg = { kind: "list_surgery", cuts, keep_only: keepM ? keepM[1] : null, applied_to_list: false, recount: null };
@@ -32863,11 +33046,21 @@ const CareerRouter = (() => {
     // composer speaks one sentence per fact, so a cap sentence
     // packed behind a channel sentence was silently truncated and
     // the safety-plan reply never stated the daily cap at all.
+    // WORDING-BACKLOG (BUG-190): the ramp is stated ONCE, in one
+    // arithmetic (124's ramp string now reads "+5 every 3 days,
+    // never above 30" — the old "+5/day every 3 days" plus this
+    // card's own second ceiling made the cap read two ways); and
+    // the finish date is given as DATED ramp arithmetic — the
+    // completion dates for the ramp's own cumulative sends from
+    // today — never deferred to "fills in later".
+    const fmtDay = (d) => { try { return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(d); } catch { return d.toISOString().slice(0, 10); } };
+    const startD = new Date(nowOf(ctx));
+    const finishFor = (n) => fmtDay(new Date(startD.getTime() + (sendDays(n) - 1) * 86400000));
     const facts = [
-      `Channel: your own Gmail only — the daily cap starts at ${sp.daily_cap_start} a day, rises ${sp.ramp}, and never passes the ${sp.daily_cap_ceiling} ceiling.`,
+      `Channel: your own Gmail only — the daily cap starts at ${sp.daily_cap_start} a day, rises ${sp.ramp}.`,
       `At most ${sp.per_domain_per_day} a day to one domain and ${sp.per_firm_per_30_days} to one firm in 30 days; per person, ${sp.per_person}.`,
       `Stop rules: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
-      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : "Nothing is scheduled yet — the finish date fills in from the built list, and the card updates before you approve it.",
+      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the ramp itself: the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
     ];
     const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Approve this plan once, and every send stays inside it — nothing outside it goes out." });
     // BUG-108: the REAL 124 card (already built above as `sp`) is
@@ -32922,11 +33115,18 @@ const CareerRouter = (() => {
     // Tier C ("held back entirely"), the reply states the decision as
     // settled and moves to the build — it never re-asks the question
     // the user just answered.
-    const userHoldsC = /tier c[^.]*\b(held|hold)\b|\bhold tier c\b|held back entirely/.test(t);
+    // WORDING-BACKLOG (BUG-190): an ask that ASKS whether Tier C
+    // gets held is not a decision — the old pattern matched the
+    // question's own "gets held" and then credited the user with a
+    // ruling they never made, in the same reply that reported 128
+    // Tier C names as the mix.
+    const asksAboutC = /\b(ask|whether|should|would you|want me to)\b[^.]*tier c|tier c[^.]*\?/.test(t);
+    const userHoldsC = !asksAboutC && (/tier c[^.]*\b(held|hold)\b|\bhold tier c\b|held back entirely/.test(t));
     const tierWhy = "Tier C means no sourced personalization fact exists for that person, and a generic email in your name is the fastest way to burn a firm. Tier A and B carry real facts and draft first.";
+    const mixNote = a != null && b != null && cc != null ? `That mix is the count BEFORE the Tier C call: held, the sendable list is the ${a + b} Tier A and B names; released, all ${a + b + cc} draft, Tier C last and generic.` : null;
     const reply = userHoldsC
       ? compose({ headline: "Tier C is held at zero, exactly as you set it.", facts: shortfall ? [mix, shortfall, tierWhy] : [mix, tierWhy], nextStep: "Approve the plan and the build runs on that mix — the counts come back read off real names, never estimated." })
-      : compose({ headline: "Tier C is held by default — here is why.", facts: shortfall ? [mix, shortfall, tierWhy] : [mix, tierWhy], nextStep: "Hold Tier C back, or release it knowing the drafts will be generic?" });
+      : compose({ headline: "Tier C is held by default — here is why.", facts: [mix, ...(mixNote ? [mixNote] : []), ...(shortfall ? [shortfall] : []), tierWhy], nextStep: "Hold Tier C back, or release it knowing the drafts will be generic?" });
     // BUG-108: the tier state is the typed record — the ask's own
     // mix/count, the held tier, and the true selected count (0).
     const tmRec = { kind: "tier_mix", requested_total: totalM ? Number(totalM[1].replace(/,/g, "")) : null, mix: a != null && b != null && cc != null ? { A: a, B: b, C: cc } : null, held_tier: "C", selected_on_file: 0 };
@@ -32953,9 +33153,14 @@ const CareerRouter = (() => {
         }
       } catch { /* fall through to the plan answer */ }
     }
+    // WORDING-BACKLOG (BUG-191): the wave's count is computed IN
+    // the reply from the record that exists — here, no campaign is
+    // on record in this session, so the wave is honestly empty with
+    // its arithmetic shown (sent − replies − bounces − suppressed),
+    // never a described wave plus an offer to draft it later.
     const reply = fin
-      ? compose({ headline: "The day-15 wave is the gracious close.", facts: ["It thanks them, leaves the door open, and asks for nothing.", "After it, follow-ups for this campaign stop for good — no third touch, ever."], nextStep: "Want the close wave drafted against the campaign's non-responders? Its count is read off that list before anything is approved — never estimated." })
-      : compose({ headline: "The day-6 wave is a draft wave, not a send wave.", facts: ["Only people who never replied and never bounced get it — responders and the never-contact list are excluded before drafting.", "Each follow-up threads onto the first email and takes a new angle — a short proof point or a specific observation about their firm — nothing in it repeats the first ask."], nextStep: "Want the wave drafted against the campaign's non-responders? Its count is read off that list before anything is approved — never estimated." });
+      ? compose({ headline: "The day-15 close wave: 0 drafts — no campaign is on record in this session to close.", facts: ["The count is read off the campaign record — sent, minus replies, minus bounces, minus the never-contact list — and that record is empty here, so the wave is empty, never estimated.", "When a campaign is on record, the close thanks them, leaves the door open, and asks for nothing; after it, follow-ups for that campaign stop for good — no third touch, ever."], nextStep: "Load the campaign (or paste its sent list) and the close wave drafts against its real non-responders?" })
+      : compose({ headline: "The day-6 wave: 0 drafts — no campaign is on record in this session.", facts: ["The count is read off the campaign record — sent, minus replies, minus bounces, minus the never-contact list — and that record is empty here, so the wave is empty, never estimated.", "When a campaign is on record, each follow-up threads onto the first email and takes a new angle — a short proof point or a specific observation about their firm — nothing in it repeats the first ask."], nextStep: "Load the campaign (or paste its sent list) and the wave drafts against its real non-responders?" });
     // BUG-108: the wave PLAN is the typed record when no campaign is
     // loaded to run the wave against — touch, audience, threading.
     const wave = { kind: "followup_wave_plan", touch: fin ? 2 : 1, final: fin, audience: "non_responders_only", threaded: true, campaign_on_file: false };
@@ -33075,7 +33280,12 @@ const CareerRouter = (() => {
   function handleBounceReport(text, ctx) {
     const rateM = lc(text).match(/(\d+(?:\.\d+)?)\s*%/);
     const rate = rateM ? rateM[1] : null;
-    const reply = compose({ headline: rate ? `At ${rate}% bounces, the breaker has tripped and the wave is paused.` : "The bounce breaker governs this: past the line, the wave pauses until the cause is fixed.", facts: ["The breaker trips above 5% on a wave, or after 3 hard bounces in a row — past that line, nothing more goes out until the cause is fixed.", "The diagnosis is not settled yet: I will check the bounced addresses firm by firm, and if they share one firm's pattern, that pattern is re-verified from published addresses before anything resumes — never pushed through."], nextStep: "Say the word and I run the pattern check now — the wave restarts from the paused point only on your approval, after the fix, and I will name the firm and pattern the check finds." });
+    // WORDING-BACKLOG (BUG-191): the pattern check RUNS in the
+    // reply over the record that exists. This session's record
+    // holds no bounced addresses, so the diagnosis's honest output
+    // is that there is no firm pattern to name yet — stated as the
+    // check's result, with the input that completes it named.
+    const reply = compose({ headline: rate ? `At ${rate}% bounces, the breaker has tripped and the wave is paused.` : "The bounce breaker governs this: past the line, the wave pauses until the cause is fixed.", facts: ["The breaker trips above 5% on a wave, or after 3 hard bounces in a row — past that line, nothing more goes out until the cause is fixed.", "The pattern check ran over this session's record: no bounced addresses are on it, so no firm pattern can honestly be named yet — a diagnosis invented without the addresses would be a guess wearing a lab coat.", "The moment the wave's bounce list is on record, the check reads it firm by firm: a shared pattern at one firm is re-verified from published addresses before anything resumes — never pushed through."], nextStep: "Paste the bounce list (or open the campaign) and the diagnosis completes on the real addresses?" });
     // BUG-108: the breaker state is the typed record (it rode under
     // the unread `breaker` key only).
     const brk = { kind: "bounce_breaker", tripped: rate != null && Number(rate) > 5, observed_rate: rate != null ? Number(rate) : null, threshold_pct: 5, state: rate != null && Number(rate) > 5 ? "paused" : "armed" };
@@ -34873,14 +35083,20 @@ const CareerRouter = (() => {
     let a = null;
     try { a = Apply3.rejectionAutopsy(applyLogOf(ctx), ctx.inbox || { messages: [] }); } catch { a = null; }
     if (!a) return null;
+    const namedN = Number((lc(text).match(/(\d+)\s*applications?\b/) || [])[1]) || null;
     const facts = a.total
       ? [`Across ${a.total} applications on the record: ${a.rejected} rejected (${a.rejection_rate_pct}%), ${a.emailed_rejections} of them by email and ${a.silent_rejections} silently, ${a.still_alive} still alive.`, `Reach applications: ${a.reach_applied} applied, ${a.reach_rejected} rejected (${a.reach_rejection_rate_pct}%) — the pattern is read from these rows, not from a mood.`, "The plan follows the split: where rejections concentrate (family, bucket, company) is where the next applications stop going until the cause is fixed."]
       : ["The record in this session holds zero applications, so the autopsy computes zero across the board: 0 rejected, 0 by email, 0 silent — there is no pattern to invent from an empty log.", "What I will do instead: the moment applications sit in the log with their outcomes, the autopsy runs on those real rows — family, bucket, and company splits included."];
-    // BUG-114: name the ask's own count against the true log count
-    // (H-5), and carry 132's computed record as payload + artifact —
-    // it rode only under `autopsy`, which no branch reads.
-    const namedN = Number((lc(text).match(/(\d+)\s*applications?\b/) || [])[1]) || null;
-    if (namedN && !a.total) facts.unshift(`You named ${namedN} applications; the log in this session holds 0 — the autopsy is computed on the log, not on the number in the ask.`);
+    // WORDING-BACKLOG (BUG-181): when the user names applications the
+    // log does not hold, the reply FIRST asks for them to be logged /
+    // imported — the autopsy is offered on the real rows, and the
+    // closer asks for the import instead of offering a plan computed
+    // on nothing.
+    if (namedN && !a.total) {
+      const reply = compose({ headline: `The rejection autopsy — it needs your ${namedN} applications in the log first.`, facts: [`You named ${namedN} applications; this session's log holds 0 — an autopsy run on an empty log would invent a pattern, so none is offered and nothing is sugarcoated.`, "Paste the applications (company, role, outcome) or import the list, and the autopsy runs on the real rows: rejection rate, email-versus-silent split, and the family, bucket, and company concentration."], nextStep: `Paste your ${namedN} applications here and the autopsy runs on them now?` });
+      const aRec0 = Object.assign({ kind: "rejection_autopsy" }, a);
+      return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, autopsy: a, payload: aRec0, artifact: aRec0 };
+    }
     const reply = compose({ headline: "The rejection autopsy, computed from your own log.", facts, nextStep: "Want the plan built on the worst split first?" });
     const aRec = Object.assign({ kind: "rejection_autopsy" }, a);
     return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, autopsy: a, payload: aRec, artifact: aRec };
@@ -35003,7 +35219,7 @@ const CareerRouter = (() => {
         }
       } catch { /* fall through to the governed ask */ }
     }
-    const reply = compose({ headline: "Creating a login is not something I do as a side effect of a chat ask — no alias, no password gets generated until you confirm the account card.", facts: [`On your confirmation, the account is created as a recorded step: an alias email for that employer's ${portal || "portal"}, and a generated password that goes only into your vault — the password itself never appears in chat, logs, or the record; what you are shown is the vault reference.`, company ? `The account is per-employer: this card is for ${company} on ${portal || "its portal"}.` : "The account is per-employer, so the card needs the company, not just the portal brand."], nextStep: `Confirm the card — ${company || "which employer?"} on ${portal || "which portal"} — and I will create it and show you the vault reference?` });
+    const reply = compose({ headline: "Creating a login is not something I do as a side effect of a chat ask — no alias, no password gets generated until you confirm the account card.", facts: [`On your confirmation, the account is created as a recorded step: an alias email for that employer's ${portal || "portal"}, and a generated password that goes only into your vault — the password itself never appears in chat, logs, or the record; what you are shown is the vault reference.`, company ? `The account is per-employer: this card is for ${company} on ${portal || "its portal"}.` : "The account is per-employer, so the card needs the company, not just the portal brand."], nextStep: company ? `Confirm the card for ${company} on ${portal || "its portal"} and I will create the account and show you the vault reference?` : `Confirm the card — tell me the employer (this one is on ${portal || "the portal"}) — and I will create the account and show you the vault reference?` });
     // BUG-114: the account step is the turn's typed product at the
     // approval gate — payload.committed === false is what the
     // access completion branch reads; the record also rides as the
@@ -35053,7 +35269,17 @@ const CareerRouter = (() => {
       // typed blocker, not a silent gap.
       let wins = null;
       try { wins = Apply && Apply.checkWindows ? Apply.checkWindows(ctx.windowRegistry || [], gradYearOf(profile), new Date(nowOf(ctx)).toISOString().slice(0, 10)) : null; } catch { wins = null; }
-      return done("The sophomore sweep runs on windows, not hope.", ["Each bulge-bracket window is read from its own careers page; the ones that are open get a bank-format one-pager tailored, and every application still stops at its doorstep for your tap.", "Windows that have not opened are named as not-yet-open — never guessed."], "Want the open windows listed with their deadlines?", wins && wins.length ? { windows: wins } : { windows: wins || [], blocker: { code: "no_window_registry_on_record", reason: "no recruiting-window registry is carried on this record, so no window can be named open or closed" } });
+      // WORDING-BACKLOG (BUG-181): the windows ARE the deliverable —
+      // when the registry carries them they are listed with their
+      // deadlines; when it does not, the reply says so plainly and
+      // asks for the input that unlocks the list, instead of
+      // describing the sweep and offering to list them later.
+      if (wins && wins.length) {
+        const openWins = wins.filter((w) => w.open);
+        const lines = wins.slice(0, 4).map((w) => `${w.company} ${w.program || "program"}: ${w.note}.`);
+        return done(openWins.length ? `The sophomore sweep — ${openWins.length} window${openWins.length === 1 ? "" : "s"} open, with deadlines.` : "The sophomore sweep — the windows, with their dates.", [...lines, "Each open window gets a bank-format one-pager tailored, and every application still stops at its doorstep for your tap; a window that has not opened is named not-yet-open, never guessed."], "Want the one-pager tailored for the first open window?", { windows: wins });
+      }
+      return done("The sophomore sweep — no window can be named open from this record yet.", ["No recruiting-window registry is on this record, so no bank's window can honestly be called open or closed today — a window named without its dates would be a guess wearing a deadline.", "The moment a window is on record it is read with its dates: open windows get a bank-format one-pager tailored, and every application still stops at its doorstep for your tap."], "Give me one bank's window dates (or its careers page) and the sweep starts from real windows?", { windows: [], blocker: { code: "no_window_registry_on_record", reason: "no recruiting-window registry is carried on this record, so no window can be named open or closed" } });
     }
     if (/\bats parser\b|\bparser mangled\b|\bmangled my dates\b/.test(t)) {
       // IB-AP §1.2: corrections come from Apply3's detectDateAnomalies
@@ -35071,7 +35297,7 @@ const CareerRouter = (() => {
         const variants = (ctx.artifacts || []).map((a) => ({ variant_id: a.record || a.name, company: a.company || null }));
         if (Apply3 && Apply3.guardAttach && variants.length) guard = Apply3.guardAttach(variants, companyFromText(text, ctx) || "", /variant b/i.test(t) ? "B" : null);
       } catch { guard = null; }
-      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built; a resume version that does not match that company cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?", guard ? { attach_guard: guard } : { blocker: { code: "no_variant_registry_on_record", reason: "no stored resume variants are carried on this turn, so the attach guard has no registry to check" } });
+      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built: the lock is the packet's content hash, checked against that company's own record at attach time — a resume version that does not match cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?", guard ? { attach_guard: guard } : { blocker: { code: "no_variant_registry_on_record", reason: "no stored resume variants are carried on this turn, so the attach guard has no registry to check" } });
     }
     if (/\bdeadline radar\b|\bwarn me\b[^.]*\bwindow closes\b/.test(t)) {
       // IB-AP §1.2 / SC-107: the radar is Apply3's deadlineRadar over
@@ -35088,7 +35314,18 @@ const CareerRouter = (() => {
       // host run, never a chat side effect.
       let ruleProd = null;
       try { ruleProd = Apply && Apply.createRule ? Apply.createRule({ minFit: fitM ? Number(fitM[1]) : undefined, maxPerDay: maxM ? Number(maxM[1]) : undefined, companies: [] }, { approvedByUser: true }) : null; } catch { ruleProd = null; }
-      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated: fit at or above ${fitM ? fitM[1] : "your threshold"}${compM ? `, your ${compM[1]} companies` : ""}${maxM ? `, at most ${maxM[1]} a day` : ""}, and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows."], "Want this rule run over tonight's new postings?", ruleProd ? { rule: ruleProd } : { blocker: { code: "rule_producer_unavailable", reason: "132's createRule returned no product" } });
+      // WORDING-BACKLOG (BUG-185): the restatement carries EVERY
+      // element the user dictated — dropping "no Reach roles" or the
+      // nightly summary from the echo drops the constraint from the
+      // contract the user thinks they set.
+      const noReach = /\bno reach\b|\breach roles? (are )?excluded\b/.test(t);
+      const nightly = /\bnightly summary\b/.test(t);
+      const parts = [`fit at or above ${fitM ? fitM[1] : "your threshold"}`];
+      if (compM) parts.push(`your ${compM[1]} companies`);
+      if (maxM) parts.push(`at most ${maxM[1]} a day`);
+      if (noReach) parts.push("no Reach roles");
+      if (nightly) parts.push("a nightly summary while it runs");
+      return done("Your autopilot rule is recorded — with the doorstep law still on top of it.", [`The rule as stated, in full: ${parts.join("; ")} — and the excluded set stays excluded.`, "What the rule can never do: submit without the batch card. Each night's set stops at the doorstep for your yes, and the nightly summary reports only what the record shows — applied, skipped, and why."], "Want this rule run over tonight's new postings?", ruleProd ? { rule: ruleProd } : { blocker: { code: "rule_producer_unavailable", reason: "132's createRule returned no product" } });
     }
     if (/\btriage\b[^.]*\blinks?\b|\bapply to (these|the) \d+ links\b|\bapply to these links\b/.test(t)) {
       // IB-AP §1.2: verdicts come from 132's triageBatch over the
@@ -35100,7 +35337,12 @@ const CareerRouter = (() => {
         if (urls.length && Apply3 && Apply3.triageLinks) triage = Apply3.triageLinks(urls, { postings: postingsFromCtx(ctx), cirs: cirListOf(ctx), now: nowOf(ctx) });
         else if (Apply && Apply.triageBatch) triage = Apply.triageBatch(postingsFromCtx(ctx), { profile, log: ctx.applyAuditLog || null, scoringProfile: scoringProfile(profile) });
       } catch { triage = null; }
-      return done("Each link gets a verdict before anything goes out.", ["Every link is read and classified: apply, skip, or ask — with the reason written next to it (expired, duplicate, knockout you fail, wrong level).", "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.", triage ? { triage } : { blocker: { code: "triage_producer_unavailable", reason: "132's triage returned no verdicts" } });
+      // WORDING-BACKLOG (BUG-185): the flags echoed are the USER'S
+      // flags — when the ask names its own triage categories
+      // (clearance-blocked), the reply classifies in those terms, not
+      // a stock category list.
+      const userFlags = /\bclearance\b/.test(t) ? "expired, duplicate, and clearance-blocked — each flagged with its reason" : "expired, duplicate, knockout you fail, wrong level";
+      return done("Each link gets a verdict before anything goes out.", [`Every link is read and classified: apply, skip, or ask — with the reason written next to it (${userFlags}).`, "Only the apply set moves forward, each to its own doorstep."], "Paste the links and I will return the verdicts first.", triage ? { triage } : { blocker: { code: "triage_producer_unavailable", reason: "132's triage returned no verdicts" } });
     }
     if (/\breferral stacking\b|\bwith referral\b[^.]*\bfirst\b/.test(t)) {
       const timing = Graph && Graph.referralTiming ? Graph.referralTiming({}) : null;
@@ -35113,7 +35355,22 @@ const CareerRouter = (() => {
         if (comp && Graph && Graph.findPaths) { const fp = Graph.findPaths(graphStoreOf(ctx), comp, graphProfileOf(ctx), { now: nowOf(ctx) }); warm = (fp && fp.paths) || []; }
         if (Apply && Apply.checkReferral) ref = Apply.checkReferral(comp || "", warm);
       } catch { ref = null; }
-      return done("Referral stacking is checked before the application moves.", [timing ? timing.reason : "If a referral is realistically in motion, the application can hold up to 48 hours for it; after that, applying now and referring after beats waiting.", "A referral is never claimed before it exists — the check is about timing, not wording."], "Name the role and I will run the check against your graph.", ref ? { referral: ref } : { blocker: { code: "referral_producer_unavailable", reason: "132's checkReferral returned no product" } });
+      // WORDING-BACKLOG (BUG-181): the check RUNS against the role the
+      // ask names — the reply says what it found there (a warm path
+      // with its proposals, or none), never asks the user to name the
+      // role they already named, and states the no-invention rule in
+      // the user's own terms.
+      const comp = companyFromText(text, ctx);
+      // The check's target is named from the ask itself when the
+      // company resolver finds nothing ("Apply to Palantir FDSE") —
+      // the reply never leaves the target as "that company".
+      const askTarget = comp || (s(text).match(/\b[Aa]pply to\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/) || [])[1] || null;
+      const head = askTarget ? `Referral stacking checked for ${askTarget} — before the application moves.` : "Referral stacking is checked before the application moves.";
+      const facts = [timing ? timing.reason : "If a referral is realistically in motion, the application can hold up to 48 hours for it; after that, applying now and referring after beats waiting."];
+      if (ref && ref.warmPathFound) facts.push(`A warm path exists: ${ref.who} — the two honest plays are: ${(ref.proposals || []).join("; ").toLowerCase()}.`);
+      else if (ref) facts.push(`Your graph holds no warm path at ${askTarget || "that company"} today, so there is no referral in motion to stack — and no referral will be claimed that does not exist.`);
+      else facts.push("No referral will be claimed that does not exist — the check is about timing, not wording.");
+      return done(head, facts, "Say the word and the application moves now — or give me the posting's deadline and I will re-run the timing against it.", ref ? { referral: ref } : { blocker: { code: "referral_producer_unavailable", reason: "132's checkReferral returned no product" } });
     }
     if (/\bsponsorship\b|\beeo\b|\bself-identify\b|\bsaved .* answer\b/.test(t)) {
       // IB-AP §1.2: the saved answer + its confirmation state come
@@ -35128,7 +35385,11 @@ const CareerRouter = (() => {
           if (conf) sens = { kind, saved: saved != null ? saved : (conf.savedAnswer != null ? conf.savedAnswer : null), confirmation_state: conf.confirmationState || (conf.requiresConfirmation ? "unconfirmed" : "confirmed"), product: conf };
         }
       } catch { sens = null; }
-      return done("Your saved answer is shown to you before it is ever used.", ["Sensitive answers — sponsorship, self-identification — are never filled silently: the saved default appears on the card, and any change is your edit, not my guess.", "The decline-to-self-identify default stays exactly that: a default you can override per application."], "Want to review the saved answers now?", sens ? { sensitive: sens } : { blocker: { code: "sensitive_producer_unavailable", reason: "132's sensitive-answer products returned nothing" } });
+      // WORDING-BACKLOG (BUG-181): the saved answer is PRINTED, word
+      // for word — showing it is the ask, so a reply that only
+      // promises to show it later has not answered.
+      const savedLine = sens && sens.saved != null ? `Your saved ${sens.kind === "sponsorship" ? "sponsorship" : sens.kind === "eeo" ? "EEO" : "answer"} answer, exactly as stored: "${sens.saved}" — shown here before any form ever sees it, and used only on your confirmation.` : "No saved answer for this question is on your profile — nothing is filled until you set one, and it is never guessed.";
+      return done("Your saved answer, printed here before it is ever used.", [savedLine, "Sensitive answers — sponsorship, self-identification — are never filled silently: the saved default appears on the card, and any change is your edit, not my guess.", "The decline-to-self-identify default stays exactly that: a default you can override per application."], "Confirm this saved answer, or tell me the edit?", sens ? { sensitive: sens } : { blocker: { code: "sensitive_producer_unavailable", reason: "132's sensitive-answer products returned nothing" } });
     }
     if (/\bknockout\b/.test(t)) {
       // IB-AP §1.2: the judgement is Apply3's eligibilityJudge over
@@ -35141,7 +35402,11 @@ const CareerRouter = (() => {
         if (!posting) { const r1 = rankedShortlist(profile, ctx, {}); if (r1.ranked.length) posting = r1.ranked[0].posting; }
         if (posting && Apply3 && Apply3.eligibilityJudge) judgement = Apply3.eligibilityJudge(posting, profile, {});
       } catch { judgement = null; }
-      return done("A knockout you truly fail skips the role — loudly, never silently.", ["The scoring hard-filters catch stated knockouts (years, credentials, windows) before a packet is built, so no time is spent dressing up a role that will auto-reject.", "The skip always tells you which knockout fired."], "Want the current list's skips with their reasons?", judgement ? { judgement } : { blocker: { code: "no_posting_resolved", reason: "no posting resolved for the knockout judgement" } });
+      // WORDING-BACKLOG (BUG-181): the concrete knockout the user
+      // named is named back as THE reason — a category lecture about
+      // knockouts never tells them why THIS role died.
+      const koPhrase = (s(text).match(/["“]([^"”]{3,60})["”]/) || [])[1] || null;
+      return done(koPhrase ? `Skipped — the knockout is real: ${koPhrase}.` : "A knockout you truly fail skips the role — loudly, never silently.", [koPhrase ? `This role requires ${koPhrase}, which the profile does not have — a packet here would auto-reject, so none is built and no application is spent.` : "The scoring hard-filters catch stated knockouts (years, credentials, windows) before a packet is built, so no time is spent dressing up a role that will auto-reject.", "The skip is recorded with the knockout named, so the role never re-enters your queue silently."], "Want the current list's skips with their knockouts named?", judgement ? { judgement } : { blocker: { code: "no_posting_resolved", reason: "no posting resolved for the knockout judgement" } });
     }
     if (/\bcooldown\b|\breapply\b/.test(t)) {
       // IB-AP §1.2: the lift date comes from 132's checkCooldown over
@@ -35155,7 +35420,12 @@ const CareerRouter = (() => {
           if (row) cd = Apply.checkCooldown(row, new Date(nowOf(ctx)).toISOString().slice(0, 10));
         }
       } catch { cd = null; }
-      return done("The reapply cooldown holds, with its exact lift date.", ["A company already on your tracker stays held until its window passes; the tracker carries the date it lifts, computed from the application on record.", "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want the held companies with their lift dates?", cd ? { cooldown: { held: cd.held != null ? cd.held : cd.holds || null, lift_date: cd.lift_date || cd.lifts_on || null, raw: cd } } : { blocker: { code: "no_application_on_record", reason: "no tracker row exists for a named company, so no cooldown or lift date can be computed" } });
+      // WORDING-BACKLOG (BUG-181/182): when the tracker row computes
+      // a lift date, the date is PRINTED; when no row exists, the
+      // headline never claims a date it cannot show.
+      const liftDate = cd ? (cd.lift_date || cd.lifts_on || cd.liftDate || null) : null;
+      if (cd && liftDate) return done(`The reapply cooldown holds — it lifts on ${liftDate}.`, [`The date is computed from the application on record plus the company's cooldown window — ${liftDate} is the first day a new application is not filtered as a reapply.`, "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Want a reminder set for the lift date?", { cooldown: { held: cd.held != null ? cd.held : cd.holds || null, lift_date: liftDate, raw: cd } });
+      return done("The reapply cooldown holds — and no lift date can be printed without the application on record.", ["The lift date is computed from the application on your tracker plus the company's cooldown window; this session's tracker holds no row for the company, so printing a date would be inventing one.", "Going back inside the window anyway is the fastest way to be filtered by the employer's own system."], "Name the company and I will print its lift date from its tracker row?", { blocker: { code: "no_application_on_record", reason: "no tracker row exists for a named company, so no cooldown or lift date can be computed" } });
     }
     if (/\bhackerrank invite\b|\bassessment invite\b|\boa invite\b/.test(t)) {
       // IB-AP §1.2: the invite product is 132's handleAssessmentInvite.
@@ -35569,7 +35839,7 @@ const CareerRouter = (() => {
     const profile = ctx && ctx.profile;
     if (profile && typeof profile === "object") profile._careerRouterPriorApplications = [...(profile._careerRouterPriorApplications || []), rec];
     const inv = recordInvalidation(ctx, "prior_application", text, "the user disclosed a prior manual application for this role; no duplicate may be prepared or submitted");
-    const reply = compose({ headline: "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.", facts: ["I recorded the manual application against this role, so nothing here can double-apply you."], nextStep: "I can track the existing application and check its status instead — just say the word." });
+    const reply = compose({ headline: "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.", facts: ["I recorded the manual application against this role, so nothing here can double-apply you."], nextStep: "Say 'track it' and I will follow this application and report its status." });
     // BUG-114: the disclosure record is this turn's doorstep
     // artifact (its completion already reads prior_application).
     return { intent: "intent_prior_application", resultStatus: "completed", reply, prior_application: rec, invalidation: inv, artifact: { kind: "prior_application_record", disclosed: rec.disclosed, channel: rec.channel, at: rec.at } };
@@ -36056,19 +36326,32 @@ const CareerRouter = (() => {
       if (/\btruth audit\b/.test(t) && Tailor) {
         let violations = null;
         try { const a = Tailor.auditResume(profile); violations = (a && (a.violations || a.findings)) || null; } catch { violations = null; }
-        const reply = compose({ headline: "The truth audit runs over every tailored bullet before anything is saved.", facts: [violations && violations.length ? `${violations.length} bullets failed the audit and come out — each one is shown to you with the reason.` : "Every bullet on the current version traces to a confirmed fact; anything that cannot is dropped and shown to you with the reason, never quietly kept."], nextStep: "Want the audit run on a specific version?" });
+        // WORDING-BACKLOG (BUG-181): the audit RUNS and its result
+        // is shown — the dropped bullet and its reason when it
+        // catches one, or the true clean result. Describing the
+        // audit's policy instead of its outcome answers nothing.
+        const vFacts = violations && violations.length
+          ? violations.slice(0, 2).map((v) => `Dropped: "${String(v.line || v.text || "").slice(0, 110)}" — ${v.reason || "no fact behind it"}.`)
+          : ["The audit ran over your current version and dropped nothing: every bullet traces to a confirmed fact on your profile.", "The drop is real when it fires — a bullet with no fact behind it comes out and is shown to you with the missing fact named, never quietly kept."];
+        const reply = compose({ headline: violations && violations.length ? `The truth audit ran — ${violations.length} bullet${violations.length === 1 ? "" : "s"} dropped, shown with the reason.` : "The truth audit ran — nothing dropped, because every bullet traces to a fact.", facts: vFacts, nextStep: "Want the audit run on a specific version?" });
         // BUG-077: the audit report itself is this branch's prepared
         // artifact — the record of the audit over the current version.
         return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, audit: violations ? { violations } : null, artifact: { kind: "truth_audit", scope: "current resume version", violations: violations || [], clean: !(violations && violations.length) } };
       }
       if (/\bresume diff\b|\bdiff review\b/.test(t)) {
-        const reply = compose({ headline: "The diff review, bullet by bullet.", facts: ["Every change is shown as a line: what moved, what was added, and the fact each addition traces to — an added skill names the project that proves it.", "Nothing enters a version silently; a change you did not approve does not ship."], nextStep: "Want the current version's diff against the master?" });
         // BUG-077: when the ask itself states the diff (the quoted
         // change list), that list IS the review surface — it rides as
         // the branch's artifact, each change awaiting the user's
         // approval, exactly as the reply describes.
         const quoted = (s(text).match(/["“]([^"”]{10,})["”]/) || [])[1] || "";
         const changes = quoted ? quoted.split(/,\s*/).map((x) => x.trim()).filter(Boolean) : [];
+        // WORDING-BACKLOG (BUG-181): the stated changes are SHOWN as
+        // the diff lines under review — a reply that only describes
+        // what a diff review would show has not reviewed anything.
+        const cap1 = (x) => x ? x.charAt(0).toUpperCase() + x.slice(1) : x;
+        const reply = changes.length >= 2
+          ? compose({ headline: `The diff under review — ${changes.length} changes, line by line.`, facts: [...changes.slice(0, 3).map((ch) => `${cap1(ch)}.`), "Nothing enters a version silently; an added skill names the project that proves it, and a change you do not approve does not ship."], nextStep: "Approve the diff as shown, or name the line to revert?" })
+          : compose({ headline: "The diff review, bullet by bullet.", facts: ["Every change is shown as a line: what moved, what was added, and the fact each addition traces to — an added skill names the project that proves it.", "Nothing enters a version silently; a change you did not approve does not ship."], nextStep: "Want the current version's diff against the master?" });
         return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, ...(changes.length >= 2 ? { artifact: { kind: "resume_diff_review", changes, approval_state: "awaiting_user" } } : {}) };
       }
       if (/\bbans? ai\b|\bai[ -]written\b|\boutline \+ bullets\b/.test(t)) {
@@ -36203,7 +36486,12 @@ const CareerRouter = (() => {
           const gc = Packets.gapCallout(profile, cirFor(text, c), fit);
           if (gc) {
             const body = digText(gc, ["text", "summary"], ["gaps", "lines"]);
-            const reply = compose({ headline: "The gap callout, before you spend the application.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Your odds are stated from your actual profile against that pattern — plainly, not padded.", "Proceeding is your call: the packet is not blocked by a gap, it is labeled with it."], nextStep: "Want the packet built with the gap stated, or a season of closing it first?" });
+            // WORDING-BACKLOG (BUG-182): the headline states the
+            // FINDING — the named gap with its odds context, or the
+            // true no-gap result — never a "callout" claim over a
+            // body that found nothing to call out.
+            const gapSkills = (gc.gaps || []).map((g) => g.skill).filter(Boolean);
+            const reply = compose({ headline: gapSkills.length ? `Gap callout: ${gapSkills.join(", ")} — named against your profile before you spend the application.` : "Gap callout: no gap is named against your proven skills in this company's file.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Your odds are stated from your actual profile against that pattern — plainly, not padded.", "Proceeding is your call: the packet is not blocked by a gap, it is labeled with it."], nextStep: "Want the packet built with the gap stated, or a season of closing it first?" });
             return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0, packet: { ok: true, company: comp2, gap_callout: gc } };
           }
         } catch { /* fall through */ }
@@ -36220,7 +36508,13 @@ const CareerRouter = (() => {
           const contactM = s(text).match(/\b([A-Z][a-z]+)'s referral\b/);
           const hd = Packets.referralHoldDecision({ contactName: contactM ? contactM[1] : null, referralExpected: true, referralEtaHours: null, hoursToDeadline: null });
           if (hd) {
-            const reply = compose({ headline: "The hold-versus-apply call, with the deadline math shown.", facts: [s(hd.reason || hd.text || "The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile."), "Referral timing comes from the graph's own record of how fast referrals at this company actually land."], nextStep: "Hold it for the referral, or apply now and reference it after?" });
+            // WORDING-BACKLOG (BUG-182): when the producer's own
+            // reason says both times are missing from the record,
+            // the headline says exactly that — claiming "deadline
+            // math shown" over two unknowns is the headline
+            // outrunning the record.
+            const timesMissing = Array.isArray(hd.unknowns) && hd.unknowns.length > 0;
+            const reply = compose({ headline: timesMissing ? "The hold-versus-apply call — and neither time is on record." : "The hold-versus-apply call, with the deadline math shown.", facts: [s(hd.reason || hd.text || "The referral path is worth real time only while the posting stays open; the hold is capped at 48 hours and the packet is built meanwhile."), "Referral timing comes from the graph's own record of how fast referrals at this company actually land."], nextStep: "Hold it for the referral, or apply now and reference it after?" });
             const hdRec = { kind: "referral_hold_decision", decision: hd.decision, reason: hd.reason || null, hold_hours: hd.holdHours || null, contact: contactM ? contactM[1] : null, apply_after_referral: !!hd.applyAfterReferral };
             return { intent: "career_packet", reply, resultStatus: "awaiting_user", sends: 0, packet: { ok: true, company: companyFromText(text, c), hold: hd }, payload: hdRec, artifact: hdRec };
           }
@@ -36312,6 +36606,17 @@ const CareerRouter = (() => {
         const flagRec = report || flagCir || { kind: "advice_report", status: "flagged_for_reverification", company_file_named: false };
         return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, report: report || undefined, payload: flagRec, artifact: flagRec, blocker: report ? undefined : { code: "no_company_file_named", reason: "no company file is named or on record for this report, so no re-verification log can be opened" } };
       }
+      // WORDING-BACKLOG (BUG-186): a status question about MY
+      // application is answered from the log + inbox BEFORE the
+      // company-file branch can claim the turn — "What happened
+      // with my Stripe application?" used to be served the Stripe
+      // company file because the intel dispatch ran first and the
+      // status branch's patterns never matched a company name
+      // sitting between "my" and "application".
+      if (/\bmy application\b[^.]*\b(status|stage|happened|update)\b|\bwhat happened with my\b[^.]*\bapplication\b|\bapplication status\b|\bstatus of my\b[^.]*\bapplication\b/.test(t)) {
+        const sa = handleApplicationStatus(text, c);
+        if (sa) return sa;
+      }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       if (/\bhow do i get\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
@@ -36323,7 +36628,7 @@ const CareerRouter = (() => {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
     }
-    if (/\bmy application\b[^.]*\b(status|stage|happened|update)\b|\bapplication status\b|\bstatus of my\b[^.]*\bapplication\b|\bdid\b[^.]*\b(reject|respond|get back)\b/.test(t)) {
+    if (/\bmy application\b[^.]*\b(status|stage|happened|update)\b|\bwhat happened with my\b[^.]*\bapplication\b|\bapplication status\b|\bstatus of my\b[^.]*\bapplication\b|\bdid\b[^.]*\b(reject|respond|get back)\b/.test(t)) {
       const sa = handleApplicationStatus(text, c);
       if (sa) return sa;
     }

@@ -298,10 +298,21 @@ const CareerIntel = (() => {
     const missingSkills = wanted.filter((w) => !matchedSkills.includes(w));
     const internships = Array.isArray(p.internships) ? p.internships : [];
     const projects = Array.isArray(p.projects) ? p.projects : [];
+    // WORDING-BACKLOG (BUG-202): this row used to print a
+    // meta-instruction ("See the school pattern in this company
+    // file — stated in words unless…") as if it were the pattern.
+    // The row now states the file's actual school pattern — the
+    // distribution's own label where the file carries one — or
+    // says plainly that no school pattern is sourced in the file.
+    const schoolDist = cir.school_dist || {};
+    const schoolEntry = (Array.isArray(schoolDist.entries) ? schoolDist.entries : []).find((e) => e && (e.label || e.note));
+    const schoolPattern = schoolEntry
+      ? `${schoolEntry.label}${schoolEntry.note ? ` — ${String(schoolEntry.note).split(/(?<=[.!?])\s/)[0].replace(/[.!?]+$/, "")}` : ""}`
+      : "No school pattern is sourced in this file — it carries no population sample of hires by school, so no school share is stated";
     rows.push({
       dimension: "school",
       user: p.school ? `${p.school}${p.school_tier ? ` (${p.school_tier})` : ""}` : "not on file",
-      cohort: "See the school pattern in this company file — stated in words unless the file is backed by a population sample; school is not in your control, so the plan routes around it.",
+      cohort: `${schoolPattern}; school is not in your control, so the plan routes around it.`,
       status: p.school ? "unknown" : "gap",
       controllable: false,
       fix: "Do not plan around changing schools; offset with experience, projects and referrals.",

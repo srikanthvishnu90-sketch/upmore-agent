@@ -22713,8 +22713,15 @@ const CareerOutreach = (() => {
     if (listM) {
       for (const part of listM[1].split(/\s*,\s*/)) {
         const name = part.replace(/^and\s+/, "").trim();
-        if (!name || name.length < 3 || FIRM_TOKEN_STOP.has(norm(name))) continue;
-        if (!hits.some((h) => norm(h.name) === norm(name))) hits.push({ name, idx: raw.indexOf(part), nn: norm(name) });
+        const partN = norm(name);
+        if (!name || name.length < 3 || FIRM_TOKEN_STOP.has(partN)) continue;
+        // A list item that is the short form (or an abbreviation)
+        // of a firm the recognizer already hit canonically is
+        // THAT firm, not a second one (BUG-110's pin: "McKinsey,
+        // Bain, BCG" is three firms, not five).
+        if (FIRM_ABBREV[partN]) continue;
+        if (hits.some((h) => h.nn === partN || h.nn.startsWith(partN + " ") || partN.startsWith(h.nn + " "))) continue;
+        hits.push({ name, idx: raw.indexOf(part), nn: partN });
       }
       hits.sort((a, b) => a.idx - b.idx);
     }
@@ -24684,10 +24691,21 @@ const CareerIntel = (() => {
     const missingSkills = wanted.filter((w) => !matchedSkills.includes(w));
     const internships = Array.isArray(p.internships) ? p.internships : [];
     const projects = Array.isArray(p.projects) ? p.projects : [];
+    // WORDING-BACKLOG (BUG-202): this row used to print a
+    // meta-instruction ("See the school pattern in this company
+    // file — stated in words unless…") as if it were the pattern.
+    // The row now states the file's actual school pattern — the
+    // distribution's own label where the file carries one — or
+    // says plainly that no school pattern is sourced in the file.
+    const schoolDist = cir.school_dist || {};
+    const schoolEntry = (Array.isArray(schoolDist.entries) ? schoolDist.entries : []).find((e) => e && (e.label || e.note));
+    const schoolPattern = schoolEntry
+      ? `${schoolEntry.label}${schoolEntry.note ? ` — ${String(schoolEntry.note).split(/(?<=[.!?])\s/)[0].replace(/[.!?]+$/, "")}` : ""}`
+      : "No school pattern is sourced in this file — it carries no population sample of hires by school, so no school share is stated";
     rows.push({
       dimension: "school",
       user: p.school ? `${p.school}${p.school_tier ? ` (${p.school_tier})` : ""}` : "not on file",
-      cohort: "See the school pattern in this company file — stated in words unless the file is backed by a population sample; school is not in your control, so the plan routes around it.",
+      cohort: `${schoolPattern}; school is not in your control, so the plan routes around it.`,
       status: p.school ? "unknown" : "gap",
       controllable: false,
       fix: "Do not plan around changing schools; offset with experience, projects and referrals.",
@@ -32437,15 +32455,18 @@ const CareerRouter = (() => {
     if (r && r.ok) {
       const outlineCount = (r.essays[0] && r.essays[0].outline.length) || 0;
       const payload = { kind: "essay_packet", ok: true, essays: r.essays, themes_requested: askedThemes, themes_on_file: themesOnFile, missing_themes: missingThemes };
-      const factsOut = [`The packet holds ${r.essays.length} essay outline${r.essays.length === 1 ? "" : "s"} built from the ${outlineCount} experiences on your profile — every outline point cites the fact it comes from, and the prose stays yours to write.`];
+      const factsOut = [`The packet holds ${r.essays.length} essay outline${r.essays.length === 1 ? "" : "s"} built from the ${outlineCount} usable facts on your profile — every outline point cites the fact it comes from, and the prose stays yours to write.`];
       // WORDING-BACKLOG (BUG-182): when an asked-for theme is
       // missing from the record, the HEADLINE leads with the gap
       // and the caveat is one clean pass — the packet is never
       // announced "ready" over an admission that its core material
-      // is absent.
+      // is absent. (BUG-203: the count spoken is the packet's real
+      // shape — N usable facts behind M outlines — never a
+      // "variation set" the record does not contain, and the gap
+      // is stated in the plain words: no <theme> experience.)
       let headline = "Your essay packet is ready — outlines from your real experiences, fact-cited.";
-      if (missingThemes.length === 1) { headline = `Your essay outlines are built — from the ${outlineCount} experiences on file, and none of them is ${missingThemes[0]}.`; factsOut.push(`The outlines draw on the ${outlineCount} experiences on file; ${missingThemes[0]} material has to be added to your profile as confirmed facts before the essays can use it.`); }
-      else if (missingThemes.length > 1) { headline = `Your essay outlines are built — from the ${outlineCount} experiences on file, and none of them is ${missingThemes.join(" or ")}.`; factsOut.push(`The outlines draw on the ${outlineCount} experiences on file; ${missingThemes.join(" and ")} material has to be added to your profile as confirmed facts before the essays can use it.`); }
+      if (missingThemes.length === 1) { headline = `Your essay outline${r.essays.length === 1 ? " is" : "s are"} built — from your ${outlineCount} usable facts, and it holds no ${missingThemes[0]} experience: that theme is not on your profile.`; factsOut.push(`The outline draws on those same facts; ${missingThemes[0]} material has to be added to your profile as confirmed facts before an essay can use it.`); }
+      else if (missingThemes.length > 1) { headline = `Your essay outline${r.essays.length === 1 ? " is" : "s are"} built — from your ${outlineCount} usable facts, and it holds no ${missingThemes.join(" or ")} experience: neither theme is on your profile.`; factsOut.push(`The outline draws on those same facts; ${missingThemes.join(" and ")} material has to be added to your profile as confirmed facts before an essay can use it.`); }
       else if (askedThemes.length) factsOut.push(`Your profile does carry ${themesOnFile.join(" and ")} experience, and the outline leads with it.`);
       const reply = compose({ headline, facts: factsOut, nextStep: "Write the draft from the outline and paste it back — want me to check it against your facts line by line?" });
       return { intent: "career_essay", reply, resultStatus: "prepared", sends: 0, payload, artifact: payload };
@@ -34167,8 +34188,13 @@ const CareerRouter = (() => {
         if (cm && Array.isArray(cm.rows)) {
           const fixes = cm.rows.filter((r) => r && r.fix).slice(0, 5).map((r) => r.fix);
           const facts = cm.rows.slice(0, 2).map((r) => `${r.dimension}: you — ${r.user}; the typical hire — ${r.cohort}`.split(/(?<=[.!?])\s/)[0]);
+          // WORDING-BACKLOG (BUG-202): the plan the ask names is
+          // DELIVERED in the reply — the table's highest-leverage
+          // fix as this month's plan — not offered as a next step.
+          const hlf = cm.highest_leverage_fix && cm.highest_leverage_fix.fix ? s(cm.highest_leverage_fix.fix).split(/(?<=[.!?])\s/)[0] : null;
+          if (hlf) facts.push(`This month's plan, from the table's highest-leverage fix (${cm.highest_leverage_fix.dimension || "the top gap"}): ${hlf}`);
           facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
-          const reply = compose({ headline: `You versus the average ${name} hire — the table, the gaps, the plan.`, facts, nextStep: "Want the highest-leverage fix turned into this month's plan?" });
+          const reply = compose({ headline: `You versus the average ${name} hire — the table, the gaps, the plan.`, facts, nextStep: "Want the rest of the table — projects, skills, timing, authorization — next?" });
           const payload = { text: cm.highest_leverage_fix && cm.highest_leverage_fix.fix ? cm.highest_leverage_fix.fix : facts[0], sources: cir.data_sources || [], as_of: cir.as_of || null, plan: fixes, comparison: cm };
           return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload, artifact: payload };
         }
@@ -34216,15 +34242,57 @@ const CareerRouter = (() => {
       .replace(/\bapplied economics\b/gi, "economics") : t);
     const firstSent = (v) => { const t = voiceText(v); return t ? t.split(/(?<=[.!?])\s/)[0] : null; };
     const sections = [];
-    const addSec = (key, label, offerName, text) => { if (text) sections.push({ key, label, offerName, text }); };
+    // WORDING-BACKLOG (BUG-202): a section whose text ends without
+    // terminal punctuation runs into the next labeled section when
+    // the facts are joined (SC-256's "…related fields Cadence:").
+    // Every section is punctuated at composition.
+    const addSec = (key, label, offerName, text) => { if (text) { const t2 = s(text).trim(); sections.push({ key, label, offerName, text: /[.!?]$/.test(t2) ? t2 : `${t2}.` }); } };
     addSec("bar", "The bar", "the hiring bar", firstSent(cir.hiring_bar_summary));
     const routeRows = (Array.isArray(cir.entry_routes) ? cir.entry_routes : []).filter((r) => r && (r.route || r.accessibility_note));
     if (routeRows.length) {
-      const r0 = routeRows.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99))[0];
-      const note = r0.accessibility_note ? fieldVoice(s(voiceText(r0.accessibility_note)).split(/(?<=[.!?])\s/)[0]) : null;
-      addSec("routes", "Entry routes", "the entry routes", `${routeRows.length} on file — the front door is ${s(r0.route)}${note ? ` — ${note}` : ""}`);
+      const sorted = routeRows.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99));
+      const r0 = sorted[0];
+      // WORDING-BACKLOG (BUG-202): the routes section used to end
+      // "— See route details." because many files carry that exact
+      // placeholder as the front door's accessibility_note — a
+      // pointer at details the reply never printed, although the
+      // file holds them (the route's own details / evidence). The
+      // section now speaks the detail the file holds and names
+      // every route on file; a placeholder note is never spoken.
+      const detailOf = (r) => {
+        // File prose sometimes names its own fields in snake_case
+        // ("see compensation_notes") — spoken, those tokens fail
+        // the reply lint and take the whole bubble down with them;
+        // they are voiced as words.
+        const deSnake = (x) => x ? x.replace(/\b([a-z][a-z0-9]*_[a-z0-9_]+)\b/g, (m) => m.replace(/_/g, " ")) : x;
+        const d = r.details ? deSnake(s(r.details).split(/(?<=[.!?])\s/)[0]) : null;
+        if (d) return fieldVoice(d);
+        const ev = Array.isArray(r.evidence) && r.evidence[0] && r.evidence[0].claim ? deSnake(s(r.evidence[0].claim).split(/(?<=[.!?])\s/)[0]) : null;
+        if (ev) return fieldVoice(ev);
+        const note = r.accessibility_note && !/^see route details\.?$/i.test(s(r.accessibility_note).trim()) ? fieldVoice(s(voiceText(r.accessibility_note)).split(/(?<=[.!?])\s/)[0]) : null;
+        return note;
+      };
+      // The section is built as ONE sentence (semicolon-joined):
+      // a fact is truncated to its first sentence downstream, so
+      // every part of the routes answer must live inside it.
+      const clause = (x) => s(x).trim().replace(/[.!?]+$/, "");
+      const detail = detailOf(r0);
+      const others = sorted.slice(1, 3).map((r) => s(r.route)).filter(Boolean);
+      // SC-259's flag: an entry-level file whose front door is
+      // labeled an experienced-cohort posting — the tension is
+      // stated in the same section, never smoothed over.
+      const flag = /entry/i.test(s((cir.cohort || {}).level || "")) && /experienced cohort/i.test(s(r0.route))
+        ? "; one flag on that front door — the route is labeled an experienced-cohort posting although this file's bar is entry-level, so read the bar as the screen for the entry routes and that door as written for experienced hires" : "";
+      addSec("routes", "Entry routes", "the entry routes", `${routeRows.length} on file — the front door is ${s(r0.route)}${detail ? ` — ${clause(detail)}` : ""}${others.length ? `; also on file: ${others.map(clause).join("; ")}` : ""}${flag}`);
     }
-    addSec("cadence", "Cadence", "the hiring cadence", firstSent(cir.hiring_cadence));
+    // WORDING-BACKLOG (BUG-202): when the file holds dated cadence
+    // windows, the cadence section speaks the windows themselves —
+    // never only the file's summary sentence about them.
+    const cadWindows = (cir.hiring_cadence && Array.isArray(cir.hiring_cadence.dated_windows)) ? cir.hiring_cadence.dated_windows : [];
+    const cadenceText = cadWindows.length
+      ? cadWindows.slice(0, 2).map((w) => s(w.window || w.text || "").split(/(?<=[.!?])\s/)[0].trim().replace(/[.!?]+$/, "")).filter(Boolean).join("; ") + "."
+      : firstSent(cir.hiring_cadence);
+    addSec("cadence", "Cadence", "the hiring cadence", cadenceText);
     addSec("comp", "Comp", "the comp notes", firstSent(cir.compensation_notes || cir.comp_band || cir.comp_notes));
     addSec("culture", "Culture", "the culture signals", firstSent(cir.values_culture_signals || cir.culture_notes));
     addSec("interview", "Interviews", "the interview process", firstSent(cir.interview_styles));
@@ -34246,6 +34314,14 @@ const CareerRouter = (() => {
         const ob = voiceText(other.hiring_bar_summary);
         if (ob) facts.push(`${cirShortName(other)}'s bar: ${ob.split(/(?<=[.!?])\s/)[0]}`);
         if (byKey.cadence) facts.push(`Cadence: ${byKey.cadence.text}`);
+      } else if (/\bboutique\b/.test(t)) {
+        // WORDING-BACKLOG (BUG-202): an unnamed boutique side is
+        // compared as what it is — an archetype, labeled as such —
+        // across the dimensions the ask names (brand, exits,
+        // hiring volume, fit), not refused with "nothing quoted".
+        if (byKey.cadence) facts.push(`Cadence: ${byKey.cadence.text}`);
+        facts.push("The boutique side, as an archetype (no single firm's file, and none borrowed): boutiques hire tiny classes into sector teams — brand that travels less far than Goldman's, thinner formal training, and responsibility earlier than any large platform allows.");
+        facts.push("Exits and fit: boutique analysts exit to the same private-equity and hedge-fund seats, often with more live deal reps per person; the volume trade is Goldman's large global class and structured training against a boutique's handful of seats per office — the fit question is whether you want the brand's insurance or the reps.");
       } else {
         if (byKey.cadence) facts.push(`Cadence: ${byKey.cadence.text}`);
         facts.push("The other side of this comparison has no company file of its own, so nothing is quoted for it — firms of that kind differ too much to borrow one file's numbers.");
@@ -34253,7 +34329,7 @@ const CareerRouter = (() => {
       facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed.`);
       // BUG-121 (six-flip lane): the no-other-file closer carried none
       // of the H-12 next-step forms; it takes the tell-me form.
-      const reply = compose({ headline: `${name} against the alternative you named — what its file supports.`, facts, nextStep: other ? "Want your gaps against both files next?" : "Tell me the other firm's name and I will pull its file for the two-sided read." });
+      const reply = compose({ headline: `${name} against the alternative you named — what its file supports.`, facts, nextStep: other ? "Want your gaps against both files next?" : /\bboutique\b/.test(t) ? "Want your gaps read against Goldman's file and the boutique archetype next?" : "Tell me the other firm's name and I will pull its file for the two-sided read." });
       return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir, artifact: cir };
     }
     if (/\bhow do i get\b|\bget a job\b|\bthesis\b/.test(t)) { chosen = pick(["thesis", "routes", "bar"]); headline = `How hiring at ${name} works, from its file.`; }
@@ -34807,16 +34883,30 @@ const CareerRouter = (() => {
           // shape, and still declines shapeless ok:false records.
           if (rec && rec.text && (rec.ok !== false || (Array.isArray(rec.sources) && rec.sources.length && Array.isArray(rec.plan) && rec.plan.length >= 3))) {
             const src = Array.isArray(rec.sources) && rec.sources.length ? rec.sources[0] : null;
-            const srcLine = src ? `Source: ${src.label || src.type || "sourced record"}${src.as_of ? `, as of ${src.as_of}` : ""}.` : sourceLine;
-            // BUG-115: the dated grounding line (sourceLine) used to
-            // be SHADOWED whenever the record's first source lacked
-            // its own as_of — the reply then carried a source label
-            // with no date and failed the R-C5 floor (source class +
-            // as-of on every advice answer). It now rides as its
-            // own fact (140 keeps one sentence per fact).
-            const facts = [s(rec.text).split(/(?<=[.!?])\s/).slice(0, 2).join(" "), srcLine];
-            if (src) facts.push(sourceLine);
-            const reply = compose({ headline: "Here is the honest shape of that, from the record.", facts, nextStep: rec.nextStep || "Name the target and I will pull its file next." });
+            // WORDING-BACKLOG (BUG-201): this rendering used to (a)
+            // headline every guidance answer with the same opener,
+            // (b) speak only the record's first TWO sentences — the
+            // answer's substance never reached the user — (c) print
+            // "Source: <the user's own degree>" whenever the record
+            // anchored on a profile fact, and (d) append a blanket
+            // "Grounded in the company files and their population
+            // data on hand" line that was false for most of these
+            // asks. Now: the headline is the record's own (per
+            // topic) or the intent's; the first FOUR sentences
+            // speak (each is one fact under 140's rule); and the
+            // one source line names what actually supports the
+            // answer — a labeled source's own label + as-of where
+            // the record carries one, and profile-anchored answers
+            // cite the profile record + the guidance knowledge
+            // base, never a single fact's title as "the source".
+            const srcLine = !src ? sourceLine
+              : src.type === "profile_fact" || src.type === "profile_record"
+                ? `Source: your own profile record and the career guidance knowledge base, as of ${rec.as_of || "2026-10-13"}.`
+                : `Source: ${src.label || src.type || "sourced record"}${src.as_of ? `, as of ${src.as_of}` : rec.as_of ? `, as of ${rec.as_of}` : ""}.`;
+            const sentences = s(rec.text).split(/(?<=[.!?])\s/).filter(Boolean);
+            const facts = [...sentences.slice(0, 4), srcLine];
+            const HEADLINES = { plan_paths: "Two plausible paths, and a cheap way to tell them apart.", honest_evidence: "What the evidence honestly supports.", graduation_window: "The window, checked against the record.", odds_request: "The honest odds answer — no invented number.", skill_gap_plan: "The gap, stated accurately — and the plan to close it.", thin_sample: "What that sample can and cannot say.", trend_scope: "That trend, read at its actual scope.", work_authorization: "Work authorization — the sourced general picture.", interest_change: "The plan, re-aimed at the new field." };
+            const reply = compose({ headline: rec.headline || HEADLINES[g] || "Here is the honest answer, from the record.", facts, nextStep: rec.nextStep || "Name the target and I will pull its file next." });
             return { intent: g === "plan_paths" ? "path_plan" : "company_intel", reply, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec, artifact: rec };
           }
         } catch { /* fall through to the templates */ }
@@ -35496,7 +35586,7 @@ const CareerRouter = (() => {
         const variants = (ctx.artifacts || []).map((a) => ({ variant_id: a.record || a.name, company: a.company || null }));
         if (Apply3 && Apply3.guardAttach && variants.length) guard = Apply3.guardAttach(variants, companyFromText(text, ctx) || "", /variant b/i.test(t) ? "B" : null);
       } catch { guard = null; }
-      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built: the lock is the packet's content hash, checked against that company's own record at attach time — a resume version that does not match cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?", guard ? { attach_guard: guard } : { blocker: { code: "no_variant_registry_on_record", reason: "no stored resume variants are carried on this turn, so the attach guard has no registry to check" } });
+      return done("Caught before anything went out — the wrong variant never reached the portal.", ["Every packet is locked to its company when it is built: the lock is the packet's binding to that company, checked against the company's own record at attach time — a resume version that does not match cannot be attached, and the mismatch stops everything.", "Nothing went out under the wrong resume — the failure is reported here precisely because the guard fired."], "Want the per-company variant bindings listed for a final check?", guard ? { attach_guard: guard } : { blocker: { code: "no_variant_registry_on_record", reason: "no stored resume variants are carried on this turn, so the attach guard has no registry to check" } });
     }
     if (/\bdeadline radar\b|\bwarn me\b[^.]*\bwindow closes\b/.test(t)) {
       // IB-AP §1.2 / SC-107: the radar is Apply3's deadlineRadar over
@@ -36784,7 +36874,7 @@ const CareerRouter = (() => {
     // intel-shaped; guidance shapes go to the thesis/path machinery.
     {
       if (/\bgoes stale\b|\bstale\b[^.]*\bfile\b/.test(t)) {
-        const reply = compose({ headline: "Stale files get labeled, never silently served.", facts: ["A company file whose hiring status is over 90 days old is re-verified against current public postings before it answers anything; until then it is labeled stale, with the date it was last verified.", `Source class: the company's own careers page and public postings, checked as of ${asOfMonthYear(c)}.`], nextStep: "Name the company and I will re-verify its file now." });
+        const reply = compose({ headline: "Stale files are labeled with their last-verified date, and I re-check them against current postings before using them.", facts: ["A company file whose hiring status is over 90 days old is re-verified against current public postings before it answers anything; until then it is labeled stale, with the date it was last verified.", `Sources: the company's own careers page and public postings — and when you name the company, I give the exact posting and verification dates (this answer's check is as of ${asOfMonthYear(c)}).`], nextStep: "Name the company and I will re-verify its file now." });
         // BUG-074: the turn carries 125's refresh record for the
         // named company's file — or a typed blocker when no company
         // (hence no file) is named — never a bare template result.
@@ -36805,7 +36895,7 @@ const CareerRouter = (() => {
         // BUG-116: the outcome sentence names no bare claim verb —
         // "the advice withdrawn" read as a completed withdrawal
         // (H-7) for what is a conditional future step.
-        const reply = compose({ headline: "Flagged for re-verification — thank you for catching it.", facts: ["The claim will be checked against its labeled sources; if it does not hold, the company file is put right and the advice stops being served, and the case joins the eval set so the same error is caught automatically next time.", `Source class: the file's own labeled public sources, checked as of ${asOfMonthYear(c)}.`], nextStep: "Tell me which claim it was and I will re-verify it now." });
+        const reply = compose({ headline: "Taken — tell me the exact claim and I will check it against its labeled source now and show you the result.", facts: ["If the claim does not hold, the company file is put right and the advice stops being served, and the case joins the eval set so the same error is caught automatically next time.", `Source class: the file's own labeled public sources, checked as of ${asOfMonthYear(c)}.`], nextStep: "Tell me the exact claim, and the check runs now." });
         // BUG-074: 125's reportOutdated log record rides the result
         // when a company file is named; otherwise a typed blocker.
         // BUG-116: the no-company shape carries the flag record

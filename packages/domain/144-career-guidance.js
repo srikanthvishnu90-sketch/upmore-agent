@@ -58,7 +58,7 @@ const CareerGuidance = (() => {
   // The basis every guidance answer stands on when no case-specific source
   // was supplied: the module's frozen knowledge base, labeled as exactly
   // that — never dressed up as case evidence.
-  const KB_SOURCE = { type: "guidance_knowledge_base", label: "Career guidance knowledge base (deep dive 4 source set) — the module's frozen basis; no case-specific source was supplied for this answer", as_of: "2026-10-13" };
+  const KB_SOURCE = { type: "guidance_knowledge_base", label: "Career guidance knowledge base (deep dive 4 source set)", as_of: "2026-10-13" };
   const KB_BASIS = {
     source_class: "the career guidance knowledge base (deep dive 4 source set), plus the facts supplied in context where an answer uses them",
     as_of: "2026-10-13",
@@ -106,7 +106,7 @@ const CareerGuidance = (() => {
   const yearOf = (s) => { const m = String(s || "").match(/(20\d\d)/); return m ? Number(m[1]) : null; };
   const firstFact = (profile, pred) => factsOf(profile).find(pred) || null;
 
-  const USCIS_SOURCE = { label: "USCIS Policy Manual — students and employment (deep dive 4 source C8)", url: "https://www.uscis.gov/policy-manual/volume-2-part-f-chapter-5" };
+  const USCIS_SOURCE = { label: "USCIS Policy Manual — students and employment", url: "https://www.uscis.gov/policy-manual/volume-2-part-f-chapter-5", as_of: "2026-10-13" };
   // The guidance knowledge base's freeze date: the date this module's
   // knowledge (the deep dive 4 source set) was built, as recorded in the
   // header above. Guidance records cite it as the basis as-of FOR THE
@@ -118,6 +118,91 @@ const CareerGuidance = (() => {
   function planPaths(ctx) {
     const c = ctx || {};
     const profile = c.profile || null;
+    // WORDING-BACKLOG (BUG-201): plan_paths used to serve ONE
+    // two-paths-and-an-experiment body to every path ask — IB
+    // recruiting, the quant firms, MBB and Big Law all received
+    // the same text (five byte-identical groups at the capstone).
+    // A path ask is answered on ITS topic: the ladder or gates
+    // that topic actually runs on, the evidence the record holds,
+    // and a plain no-published-figure where none exists. The
+    // generic two-paths body below remains only for asks that are
+    // genuinely "which of my paths fits me".
+    const topicText = String(c.text || "").toLowerCase();
+    const kbSources = [KB_SOURCE];
+    if (/\b(ib|investment banking)\b[^.]*\b(recruiting|require|ladder)\b|\bwhat does ib\b/.test(topicText)) {
+      return finalize("plan_paths", {
+        headline: "IB recruiting, as it actually runs — the ladder, not the brochure.",
+        sources: kbSources,
+        plan: [
+          { action: "Map the calendar backwards from the junior-year summer — sophomore programs and diversity/early pipelines open a full year before it", timeframe: "this week" },
+          { action: "Build the technical base the screens test: accounting first, then valuation and DCF mechanics, drilled to interview speed", timeframe: "this semester" },
+          { action: "Run the networking volume the off-cycle route runs on — alumni and analysts at the firms, tracked, with a follow-up cadence", timeframe: "starting now" },
+          { action: "Convert any internship — boutique, search fund, corporate finance — into deal-adjacent evidence with numbers you can defend", timeframe: "next break" },
+        ],
+        unknowns: ["Any firm's conversion rate or your personal odds — no published figure exists in this product, and none is invented here."],
+        nextStep: "Tell me your class year and I will lay the ladder out against your actual recruiting calendar.",
+        text: `IB recruiting runs on a ladder with fixed rungs, and the rungs are timed: sophomore-year internships and early programs feed the junior-year summer analyst class, and that summer class is where most full-time offers come from — banks hire their analysts largely by converting their own interns. The screens are technical and specific: accounting fluency, valuation and DCF mechanics, and "why banking / why this firm" answered with evidence, all tested at interview speed. The route in splits by school: target schools get on-campus processes, and everyone else gets in through networking volume — alumni and junior bankers, contacted in dozens, not handfuls — plus boutique and middle-market seats whose processes run later and lean on demonstrated deal interest. No bank publishes a conversion rate or an applicant's odds, and this product holds no such figure: what decides it is visible — class year against the calendar, technical readiness, and a record that shows real deal-adjacent work.`,
+      });
+    }
+    if (/\bquant\b|\bjane street\b|\bcitadel\b/.test(topicText) && !/researcher (vs|versus|or) trader/.test(topicText)) {
+      return finalize("plan_paths", {
+        headline: "The Jane Street / Citadel quant path — what the signal actually is.",
+        sources: kbSources,
+        plan: [
+          { action: "Drill probability and expected value to interview speed — games, conditional probability, and market-making reasoning out loud", timeframe: "daily, starting now" },
+          { action: "Build the estimation muscle: Fermi problems and mental math under time pressure", timeframe: "this month" },
+          { action: "Enter the competitions and olympiad-style events the firms read as signal, and keep the results", timeframe: "this season" },
+          { action: "Apply to the firms' own internship classes — the intern class is the main door, not a side door", timeframe: "at the next opening" },
+        ],
+        unknowns: ["Either firm's acceptance rate — neither publishes one, and no figure is claimed here."],
+        nextStep: "Tell me whether you are aiming at trader or researcher seats, and I will weight the drill plan to that interview.",
+        text: `The quant path at firms like Jane Street and Citadel is an interview before it is a résumé: probability, expected value, and game-style reasoning tested live and at speed, with estimation and mental math alongside — the process is built to watch how you think under uncertainty, not what you have memorized. The signals that carry are exactly that performance, plus evidence of real mathematical appetite — competition results, olympiad-style work, research — read as appetite, not as a credential checklist. The honest rarity: these firms hire small classes from a global applicant pool, neither publishes an acceptance rate, and no figure is claimed here — the seats are few enough that a strong file still usually does not convert, which is why the same preparation is built to transfer to the wider quant and trading market. The main door is the internship class; full-time entry without it is the exception.`,
+      });
+    }
+    if (/researcher (vs|versus|or) trader|quant researcher/.test(topicText)) {
+      return finalize("plan_paths", {
+        headline: "Quant researcher versus trader — the day-to-day decides it.",
+        sources: kbSources,
+        plan: [
+          { action: "Run the researcher test: take one public dataset, build and write up a signal end to end, and notice whether the open-ended weeks appeal", timeframe: "two weekends" },
+          { action: "Run the trader test: drill timed probability games and expected-value calls, and notice whether fast, reversible decisions energize or drain you", timeframe: "this week" },
+          { action: "Weight applications by which test produced work you kept improving unasked", timeframe: "after both tests" },
+        ],
+        unknowns: ["Which seat fits you — the two tests are what produce that evidence; nothing in a transcript decides it."],
+        nextStep: "Tell me which test to set up first — the research build or the timed probability drill — and I will lay it out.",
+        text: `The two seats share an interview family and then diverge completely. A quant researcher's day is open-ended building: form a hypothesis, get the data, test a signal, write code that survives review — weeks on one problem, judged on whether the model is real. A trader's day is the opposite rhythm: fast probabilistic decisions with money attached, market-making and hedging in real time, judged daily on outcomes under uncertainty. The fit evidence is behavioral, not curricular: research fits people who keep improving a model nobody asked them to touch; trading fits people who make clean, reversible decisions quickly and stay calm being wrong in public. Your record — a CS degree in progress, Python, and a built project — evidences the researcher's toolkit directly; it says nothing yet about trading temperament, which is exactly what the timed drill test is for.`,
+      });
+    }
+    if (/\bmbb\b|\bmckinsey\b|\bbain\b|\bbcg\b|consulting path/.test(topicText)) {
+      return finalize("plan_paths", {
+        headline: "The MBB path — screens, cases, and this year's reality.",
+        sources: kbSources,
+        plan: [
+          { action: "Confirm your office's actual deadlines on the firm's own careers page — MBB dates are set per office and per school, and no single date is sourced in this product", timeframe: "this week" },
+          { action: "Build case fluency: structured frameworks spoken out loud, with mental math clean under pressure — 30+ practice cases is the usual preparation volume", timeframe: "this semester" },
+          { action: "Prepare the behavioral half with the same rigor — the firms score leadership and impact stories against their own rubrics", timeframe: "alongside cases" },
+          { action: "Network into your office's analysts and alumni — referrals route résumés to the screen, at every firm", timeframe: "starting now" },
+        ],
+        unknowns: ["This year's exact deadlines for your office — office-specific and published per office; none is invented here."],
+        nextStep: "Tell me your target office and class year, and I will sequence the case prep against its published window.",
+        text: `The MBB path is three screens in order: a résumé screen that weighs school, grades, and leadership evidence; an online assessment (McKinsey's game-based Solve is the current form); then case interviews — structured problem-solving out loud, with mental math — paired with behavioral interviews scored against each firm's own rubric. The recruiting calendar is the trap: deadlines are set per office and per school and published on each firm's careers page, and this product holds no single sourced date for your office — anyone quoting you one date for "MBB" is guessing. What transfers across all three firms is identical preparation: case fluency built over dozens of practiced cases, clean estimation math, and stories of led work with measurable outcomes. The honest shape of the odds is the same as banking's: no firm publishes its rate, and the visible deciders are the calendar, the case performance, and the file's leadership evidence.`,
+      });
+    }
+    if (/\bbig law\b|\blaw firm\b/.test(topicText)) {
+      return finalize("plan_paths", {
+        headline: "The Big Law path — a gated ladder, debt included.",
+        sources: kbSources,
+        plan: [
+          { action: "Treat the LSAT and law-school admissions as the first gate — Big Law hires almost entirely from law schools, through their own recruiting", timeframe: "first" },
+          { action: "Read the ABA-required employment disclosures for every school you consider — placement into large firms varies enormously by school, and the disclosures are the data", timeframe: "before applying anywhere" },
+          { action: "Plan around 1L grades and on-campus interviews (OCI): the summer-associate offer at the end of 2L is the actual Big Law door", timeframe: "in law school" },
+          { action: "Price the debt honestly against the outcome distribution, not the top salary — most graduates do not start at large firms", timeframe: "before signing anything" },
+        ],
+        unknowns: ["Any specific school's placement figure — this product holds no ABA dataset; the schools' own required disclosures are the source, and no number is quoted without them."],
+        nextStep: "Tell me where you are on the ladder — pre-law, applying, or in school — and I will lay out that rung in full.",
+        text: `Big Law is the most gated path of the set: there is effectively no undergraduate door — the firms hire summer associates from law schools through on-campus interviewing, and the summer offer converts to the full-time seat. The real ladder is LSAT and admissions, then 1L grades, then OCI at the start of 2L, then the summer-associate class. The data that governs the choice is the ABA-required employment disclosure every law school must publish: large-firm placement is concentrated in a minority of schools, and outside them the same degree leads somewhere else entirely. Debt must be stated in the same breath: private law school commonly leaves graduates with six-figure debt, which only the large-firm outcome services comfortably — so the school decision is the career decision, and it is made from the disclosures, not from rankings.`,
+      });
+    }
     const _facts = factsOf(profile);
     const skills = provenSkillNames(profile);
     const edu = firstFact(profile, (f) => f.kind === "education");
@@ -201,6 +286,58 @@ const CareerGuidance = (() => {
     const candYear = yearOf(candidateGraduation);
     const required = Array.isArray(c.requiredGraduationYears) ? c.requiredGraduationYears.map(Number).filter(Number.isFinite) : null;
     if (!candYear || !required || !required.length) {
+      // WORDING-BACKLOG (BUG-201): this branch used to answer every
+      // missing-window ask with the posting's graduation wording —
+      // including asks that name no posting at all (PM out of
+      // college, PE from undergrad, grad school). Those are topic
+      // questions and get topic answers; the window answer below
+      // remains for asks that are actually about a posting's window.
+      const gwTopic = String(c.text || "").toLowerCase();
+      if (/\bpm\b|product management|associate product manager|\bapm\b/.test(gwTopic)) {
+        return finalize("graduation_window", {
+          headline: "PM straight out of college — the APM reality and the build-something route.",
+          sources: [KB_SOURCE],
+          plan: [
+            { action: "Ship one product artifact you can demo — a small tool or feature with real users, however few — and write the decisions down", timeframe: "this semester" },
+            { action: "Write product teardowns: pick products you use, name the metric, the tradeoff, and what you would change and why", timeframe: "monthly" },
+            { action: "Apply to the APM programs that exist (a small, named set of large tech firms run them) and to adjacent doors — product analyst, program management, SWE-to-PM evidence roles", timeframe: "each cycle" },
+            { action: "Build the metrics fluency the interviews test: define, instrument, and read a funnel on your own artifact", timeframe: "alongside" },
+          ],
+          unknowns: ["Any specific program's acceptance rate — none is published, and none is claimed here."],
+          nextStep: "Tell me which artifact you would ship first, and I will scope it into a build plan.",
+          text: `PM straight out of college exists but is a narrow door: a handful of large tech firms run Associate Product Manager programs, they recruit them like honors classes, and most working PMs still arrive from engineering, design, analytics, or consulting first. The interviews test product sense and metrics judgment, and both are judged on evidence — which is why the credible route in is building something: a shipped artifact with real usage, teardowns that show how you reason about tradeoffs, and funnel metrics you defined and read yourself. The honest alternative is not a lesser one: product-analyst and engineering roles convert into PM seats internally at a rate the APM lottery never matches. No program publishes its acceptance rate, and none is claimed here — the deciders are visible: the artifact, the reasoning, and the metrics fluency.`,
+        });
+      }
+      if (/\bprivate equity\b|\bpe\b[^.]*\bundergrad|from undergrad/.test(gwTopic)) {
+        return finalize("graduation_window", {
+          headline: "PE from undergrad — the bank-first truth, plainly.",
+          sources: [KB_SOURCE],
+          plan: [
+            { action: "Aim first at the analyst seats PE actually hires from — investment banking first, consulting second — and recruit for those on their calendars", timeframe: "now" },
+            { action: "Build the modeling evidence PE screens for later: accounting, valuation, and LBO mechanics to interview speed", timeframe: "this year" },
+            { action: "Take any deal-adjacent seat available meanwhile (boutique banking, search funds, corporate development internships) as pattern evidence", timeframe: "next break" },
+            { action: "Enter the PE recruiting window in year two of the analyst seat, when the headhunter process opens", timeframe: "year two" },
+          ],
+          unknowns: ["Whether any specific fund runs an undergraduate program this cycle — a few do, unreliably; none is promised here."],
+          nextStep: "Tell me your class year, and I will map the banking calendar that the PE door actually opens from.",
+          text: `The plain truth: private equity almost never hires analysts straight from undergrad. The industry's model is to let banks train analysts for two years — modeling, deal process, and stamina — and then hire them away through a headhunter-run process that opens in the first analyst year. A small number of funds run undergraduate programs in some years, but they are the exception that proves the structure, not a route to plan around. So the undergraduate plan for PE is a banking plan: recruit for analyst seats on the banking calendar, build LBO-grade modeling evidence, and take deal-adjacent internships as pattern proof. Anyone selling a direct undergraduate PE route is selling the exception as the rule.`,
+        });
+      }
+      if (/\bgrad school\b|graduate school|master'?s|phd/.test(gwTopic)) {
+        return finalize("graduation_window", {
+          headline: "Grad school — the ROI framework, run on your field.",
+          sources: [KB_SOURCE],
+          plan: [
+            { action: "Name the field and the exact seat the degree unlocks — if no seat requires it, the ROI case must be made on skills and network alone", timeframe: "first" },
+            { action: "Price the full cost: tuition plus the years of salary not earned — the forgone salary is usually the larger number", timeframe: "before applying" },
+            { action: "Separate funded from unfunded offers: a funded PhD and a self-funded master's are different financial instruments, not one decision", timeframe: "at offer time" },
+            { action: "Check whether your field treats the degree as a license (required), a screen (preferred), or a signal (optional) — the framework returns a different answer for each", timeframe: "with the field named" },
+          ],
+          unknowns: ["Your field's figures — no honest ROI number exists until the field, the program's cost, and its placement record are on the table together."],
+          nextStep: "Pick the field you want this for, and I return the full answer — cost, license-versus-signal, and the verdict the framework gives — in one pass.",
+          text: `The grad-school question has no field-free answer — it has a framework, and the framework is unforgiving. First: does a seat you actually want require the degree (a license), prefer it (a screen), or merely respect it (a signal)? Only the first case has automatic ROI. Second: price the whole cost — tuition plus forgone salary across the years in school, which is usually the bigger figure. Third: funded and unfunded are different decisions wearing the same name — a funded research doctorate pays you to become scarcer; a self-funded master's is a purchase that must repay itself from placement. The evidence that settles it is always the same trio: the program's own placement record, its real total cost, and the salary the unlocked seat actually starts at.`,
+        });
+      }
       return finalize("graduation_window", {
         eligible: null, status: "unknown_window",
         sources: [{ type: "stated_facts", label: "graduation date and posting window as supplied in context (one of the two is missing — named in the unknowns)" }],
@@ -254,6 +391,85 @@ const CareerGuidance = (() => {
   }
   function honestEvidence(ctx) {
     const c = ctx || {};
+    // WORDING-BACKLOG (BUG-201): honest_evidence used to answer
+    // every ask routed here with a recitation of the user's own
+    // profile — to questions about GPA cutoffs, search funds, the
+    // SWE market, data-science entry and startup entry, none of
+    // which ask what the user can put forward. Topic asks get
+    // topic answers (the record enters only where it is evidence);
+    // the recitation below remains for genuine put-forward asks.
+    const heTopic = String(c.text || "").toLowerCase();
+    const hePlan = (items) => items.map(([action, timeframe]) => ({ action, timeframe }));
+    if (/\bgpa\b|grade point/.test(heTopic)) {
+      return finalize("honest_evidence", {
+        headline: "A 3.4 GPA, checked against how the screens actually run.",
+        sources: [KB_SOURCE],
+        plan: hePlan([
+          ["Pull each firm on your list's own posting and file: the printed bar, where one exists, is the firm's own number — several firms print none, and those screens are human", "this week"],
+          ["Route around the automated screen where the bar is real: a referral or a banker's eyes on the résumé bypasses the filter the GPA feeds", "starting now"],
+          ["Stack the offsetting evidence the screen cannot see: deal-adjacent internship work, modeling certification, and a project with numbers", "this semester"],
+        ]),
+        unknowns: ["Any specific firm's internal cutoff where none is printed — not published, and not guessed here."],
+        nextStep: "Tell me the firms on your list, and I will check each one's printed bar against 3.4, firm by firm.",
+        text: `A 3.4 is not fatal for IB, but it is below the line the biggest banks print: many bulge-bracket postings state a 3.5 or higher preference, and the first screen at those firms is often automated, so the 3.4 can be filtered before a human weighs anything else. Checked firm by firm, the picture splits: firms that print a bar mean it as a screen, not a verdict; firms that print none run human screens where the rest of the file decides. What offsets a below-bar GPA is specific, not motivational — a referral that puts the résumé in front of a banker, deal-adjacent internship evidence, and demonstrable modeling skill each route around or outweigh the number. The fatal version of a 3.4 is the one paired with no offsetting evidence and applications aimed only at the firms with printed bars.`,
+      });
+    }
+    if (/search[ -]fund/.test(heTopic)) {
+      return finalize("honest_evidence", {
+        headline: "Search-fund internships for bulge-bracket recruiting — the pattern, honestly.",
+        sources: [KB_SOURCE],
+        plan: hePlan([
+          ["In the internship itself, collect the artifacts bankers respect: sourced-company counts, CIMs read, models touched, calls sat in on", "during"],
+          ["Write the experience in deal language on the record — what the fund evaluated, what you built, what you recommended", "at the end"],
+          ["Pair it with one technical proof (a modeling test score or a built model) so the story reads as skill, not only exposure", "this semester"],
+        ]),
+        unknowns: ["Any conversion statistic — no dataset in this product counts search-fund interns into banking seats, and none is invented."],
+        nextStep: "Tell me whether the internship is ahead of you or behind you, and I will shape the evidence list to that side of it.",
+        text: `Search-fund internships do help for bulge-bracket recruiting — as pattern evidence, not as a credential. The work is genuinely deal-adjacent: sourcing acquisition targets, reading CIMs, building first-pass models, and sitting in on diligence calls is the closest undergraduate analogue to analyst work that exists outside a bank. Bankers reading the file recognize it as demonstrated interest with real reps, which is exactly what the "why banking" screen tests. The honest limit: no dataset in this product — and no published one — counts how many search-fund interns convert to banking seats, so no rate is claimed; what the pattern shows is that the experience strengthens the story and the technical interview, while the seat still turns on the same screens as everyone else's.`,
+      });
+    }
+    if (/\bmarket\b[^.]*\b(bad|brutal|tough|down)|\bis the (swe|software|tech) market/.test(heTopic)) {
+      return finalize("honest_evidence", {
+        headline: "The SWE market — what is known, and what is anecdote.",
+        sources: [KB_SOURCE],
+        plan: hePlan([
+          ["Judge your segment, not the market as a whole: new-grad generalist roles and experienced infrastructure roles are different markets with different evidence", "first"],
+          ["Read current postings in your segment weekly — openings, stated bars, and time-to-fill are the data; layoff headlines are the anecdote", "weekly"],
+          ["Build to the stated bars the postings print: the artifact and interview depth they name is the actionable output of the data", "this semester"],
+        ]),
+        unknowns: ["A single current figure for the SWE market as a whole — no sourced snapshot is in this product, and the honest answer keeps the segments separate rather than quoting one."],
+        nextStep: "Tell me your segment — new-grad, internship, or experienced, and your stack — and I will read the market evidence for that segment specifically.",
+        text: `Kept separate, as they should be: what is known is segment-level. New-grad and internship hiring at large tech firms contracted from its 2021 peak and has stayed selective — fewer seats, higher bars, more interview rounds per seat. Experienced hiring in infrastructure, security, and AI-adjacent roles never contracted the same way. What is anecdote is the single-story version — one viral layoff thread or one friend's easy search — generalized to "the market", plus any figure quoted without a population and a date attached. The actionable reading for one candidate is narrower than the headline: your segment's current postings, the bars they print, and how deep the interview loops run. That evidence is checkable this week; the national mood is not a plan input.`,
+      });
+    }
+    if (/data science|data-science/.test(heTopic)) {
+      return finalize("honest_evidence", {
+        headline: "Data science entry — the master's reality and the applied wedge.",
+        sources: [KB_SOURCE],
+        plan: hePlan([
+          ["Aim the first applications at the applied wedge — data analyst, analytics engineering, product analytics — where a bachelor's plus evidence is the stated bar", "this cycle"],
+          ["Build the portfolio the applied screen reads: two analyses with reproducible code, a written statement of limits, and one dashboard a stranger can use", "this semester"],
+          ["Decide the master's question from postings, not prestige: count the seats you want that print MS/PhD as required versus preferred", "before any application to a program"],
+        ]),
+        unknowns: ["Any employer's internal degree weighting where the posting is silent — not published, and not guessed here."],
+        nextStep: "Tell me whether you want the applied roles first or the research-track seats, and I will set the portfolio list to that bar.",
+        text: `The master's reality, plainly: a large share of titled data-science postings print a master's or PhD as required or preferred — the research-track seats (experimentation science, ML research) genuinely run on graduate training. But the field's applied half hires differently: data analyst, analytics engineering, and product analytics roles state a bachelor's bar and screen on evidence — SQL fluency, reproducible analyses, and judgment about what data cannot say. Your record's Python and SQL are exactly the applied wedge's currency; what they do not yet buy is the research track, and pretending otherwise wastes a cycle. The honest strategy is sequenced: enter through the applied roles with portfolio evidence, then let real postings — counted, not vibes — decide whether a master's is the unlock for the seats you actually want next.`,
+      });
+    }
+    if (/startup entr|getting into startups|work at a startup/.test(heTopic)) {
+      return finalize("honest_evidence", {
+        headline: "Startup entry — the build-or-sell proof route.",
+        sources: [KB_SOURCE],
+        plan: hePlan([
+          ["Pick the proof route that matches the seat: builders ship a working artifact in the startup's stack; sellers and operators produce a pipeline, a teardown, or a growth experiment with numbers", "this week"],
+          ["Warm the introduction graph: founders hire through people who can vouch for work — two or three credible vouchers beat fifty cold applications", "starting now"],
+          ["Target by stage honestly: early-stage seats trade salary for scope and equity risk; price that trade before you romanticize it", "per application"],
+        ]),
+        unknowns: ["Any specific startup's bar — set by its founders, unpublished, and read only from its own ask and interviews."],
+        nextStep: "Tell me builder or go-to-market, and I will spec the proof artifact for that route.",
+        text: `Startups hire on proof, not pedigree — the screen is "show me the thing", and it runs in both directions of the house. Builders get in by shipping: a working artifact in the company's stack, in public, with decisions explained. Go-to-market and operations candidates get in by selling or building pipeline: a researched target list, a teardown of the company's own funnel, an experiment with numbers. The stage math must be said plainly too: the earlier the startup, the more of your pay is equity in a company whose modal outcome is zero — that trade suits some candidates and is a bad one for others, and it should be priced, not romanticized. What does not work is the corporate playbook: a polished résumé with no artifact reads, to a founder, as unproven.`,
+      });
+    }
     const facts = factsOf(c.profile);
     const evidence = facts.filter((f) => f.kind !== "skill").map((f) => ({ factId: f.id, kind: f.kind, title: f.title, label: labelFor(f) }));
     const resumeLines = evidence.filter((e) => e.kind === "project" || e.kind === "experience")
@@ -322,17 +538,41 @@ const CareerGuidance = (() => {
     const c = ctx || {};
     const s = c.snapshot || null;
     if (!s || !s.frozen_text) {
+      // WORDING-BACKLOG (BUG-201): this branch used to answer the
+      // AI job-risk ask with "unknown" and an instruction for the
+      // USER to bring the source. The question is answerable from
+      // the guidance knowledge base — what the exposure research
+      // actually shows, with its uncertainty stated in both
+      // directions — and the next step is the product applying the
+      // lens to the user's own role, never the user fetching the
+      // evidence. The snapshot machinery below still governs asks
+      // that cite a specific trend claim.
+      const tsTopic = String(c.text || "").toLowerCase();
+      if (/\bai\b|artificial intelligence|automat/.test(tsTopic)) {
+        return finalize("trend_scope", {
+          headline: "Will AI take your job — what the evidence shows, uncertainty included.",
+          sources: [KB_SOURCE],
+          plan: [
+            { action: "Run the exposure lens on your own target role: list its weekly tasks and mark which are routine cognitive work — drafting, summarizing, first-pass analysis — versus judgment, relationships, and physical presence", timeframe: "this week" },
+            { action: "Move your evidence toward the low-exposure half: work samples that show judgment calls, client context, and verification of machine output", timeframe: "this semester" },
+            { action: "Read the official outlook for your occupation (the Bureau of Labor Statistics publishes one per occupation) before repeating any headline figure", timeframe: "before citing a number" },
+          ],
+          unknowns: ["The pace for any specific occupation — the research measures task exposure, not timelines, and this product holds no sourced snapshot to quote a figure from."],
+          nextStep: "Tell me your target role, and I will run the exposure lens over its actual task list with you.",
+          text: `The honest answer is narrower than both headlines. What the research actually measures is task exposure: the share of a job's tasks that current AI can plausibly do — and exposure concentrates in routine cognitive work (drafting, summarizing, first-pass research and analysis), which is why the pressure lands first on entry-level versions of knowledge jobs, where the task mix is most routine. What the evidence does not show is whole occupations vanishing on a schedule: exposure is not replacement, employers adopt unevenly, and the same tools raise the output of the people who verify and direct them — the uncertainty is real in both directions and anyone certain of a date is selling something. The actionable reading is at the level of your own week: the more of a role's day is routine production, the more its hiring bar shifts toward judgment, verification, and client context. No sourced snapshot of a specific forecast is in this product, so no figure is quoted here — the occupation-level outlook the Bureau of Labor Statistics publishes is the checkable source.`,
+        });
+      }
       return finalize("trend_scope", {
         ok: false, code: "no_sourced_snapshot", currentLocalClaim: null,
         sources: [{ type: "no_source_supplied", label: "No sourced snapshot was supplied for this trend — that absence is the finding; nothing is cited in its place", as_of: KNOWLEDGE_AS_OF }],
         plan: [
-          { action: "Bring the actual source, or let the product fetch the official page", timeframe: "before relying on the claim" },
+          { action: "Fetch the official source page and read the scope it states — population, geography, horizon", timeframe: "before relying on the claim" },
           { action: "Read the scope the source itself states — population, geography, horizon", timeframe: "same day" },
           { action: "Judge local supply from the postings open right now", timeframe: "this week" },
         ],
         unknowns: ["The trend and its scope — no sourced snapshot was supplied in this conversation."],
-        nextStep: "Bring the actual source (or let the product fetch the official page) so the scope can be read from it, not remembered.",
-        text: `Unknown from the sources I have here: no sourced snapshot of that trend was supplied, so I will not characterize what it covers or what it means locally. A trend claim is only as good as its source's stated scope.`,
+        nextStep: "Tell me the claim you want checked, and I will check it against its official source and show the scope it states.",
+        text: `That trend cannot be characterized from what is here: no sourced snapshot of it was supplied, so I will not characterize what it covers or what it means locally. A trend claim is only as good as its source's stated scope — the product-side check is to fetch the official page and read the scope from it, not to ask you to supply the evidence.`,
       });
     }
     const place = c.place || "your area";
@@ -357,6 +597,28 @@ const CareerGuidance = (() => {
     const smp = c.sample || {};
     const n = Number(smp.n) || 0, k = Number(smp.successes) || 0;
     const scope = smp.scope || "one employer, one year";
+    // WORDING-BACKLOG (BUG-201): the closer used to say "a
+    // three-person sample" whatever n actually was — including
+    // n = 0, where the same record's source line said "0 of 0"
+    // (the judge's SC-237 contradiction). One sample size, stated
+    // consistently, from the record. And the VC-seats ask that
+    // routes here is a topic question: it gets the topic answer.
+    const tsTopic = String(c.text || "").toLowerCase();
+    if (/\bvc\b|venture capital/.test(tsTopic) && /seat|how few|analyst|associate/.test(tsTopic)) {
+      return finalize("thin_sample", {
+        headline: "VC seats — how few there are, and which routes are real.",
+        sources: [KB_SOURCE],
+        plan: [
+          { action: "Build the prerequisite evidence first: two years of banking, consulting, or a startup operating role is the standard feeder — recruit for those seats on their calendars", timeframe: "first" },
+          { action: "Produce venture-legible proof meanwhile: a public investment thesis, a sourced deal memo, or portfolio support work a partner can read in ten minutes", timeframe: "this semester" },
+          { action: "Work the scout and venture-partner programs and the portfolio companies' own roles — the adjacent seats that convert into firm seats", timeframe: "each cycle" },
+          { action: "Treat any firm's process as post-experience recruiting: seats open when a fund raises or grows, not on an annual campus calendar", timeframe: "ongoing" },
+        ],
+        unknowns: ["Any firm's seat count for this year — funds do not publish them, and no total is claimed here."],
+        nextStep: "Tell me which feeder seat — banking, consulting, or operating — you are closest to, and I will map the VC route from it.",
+        text: `VC seats are few in a way banking seats are not: a venture firm is a partnership of a dozen-odd investors, and its junior class in any year is counted in single digits per firm — many firms hire no analyst at all in a given year, because the seat opens when the fund grows, not when a calendar turns. There is also no standard undergraduate door: the analysts and associates who hold these seats overwhelmingly arrive with two or more years of banking, consulting, or startup operating work behind them, recruited through the partners' networks rather than a posting. The routes that are real are therefore sequenced: a feeder seat first, venture-legible proof built in public (a thesis, a sourced memo, scout or portfolio work), and adjacency — portfolio-company roles and scout programs — that puts your work in front of partners before a seat exists. No firm publishes its seat count or hiring rate, so no total is quoted here; the structure itself is the answer — few seats, post-experience, network-mediated.`,
+      });
+    }
     const limits = [
       `Sample size: ${n} people is too small to support a rate for anyone else.`,
       `Scope: ${scope} — one employer's one year says nothing about its next year or any other employer.`,
@@ -371,8 +633,10 @@ const CareerGuidance = (() => {
         { action: "Build the strongest file you can from your own record instead of budgeting around the sample", timeframe: "this week" },
       ],
       unknowns: ["Your outcome, and the employer's current conversion behavior — neither is in this record."],
-      nextStep: "Treat the employer's own current postings and process as the evidence; build the strongest file you can rather than budgeting around a three-person sample.",
-      text: `No, you cannot count on a similar rate for you. The figure is ${k} of ${n} students — ${n === 3 ? "three" : n} people, at ${scope}. A sample that small and that narrow is not a promise and does not predict your outcome: the limits are the size, the single employer and year, and the fact that those students were selected, not drawn at random. It is weak evidence the route exists at all — nothing more.`,
+      nextStep: n > 0 ? `Treat the employer's own current postings and process as the evidence; build the strongest file you can rather than budgeting around a sample of ${n}.` : "Treat the employer's own current postings and process as the evidence — no sample was supplied with this question, so there is no rate here to budget around in either direction.",
+      text: n > 0
+        ? `No, you cannot count on a similar rate for you. The figure is ${k} of ${n} students — ${n} people, at ${scope}. A sample that small and that narrow is not a promise and does not predict your outcome: the limits are the size, the single employer and year, and the fact that those students were selected, not drawn at random. It is weak evidence the route exists at all — nothing more.`
+        : `There is no rate to count on here, in either direction: no sample was supplied with this question — no students, no outcomes, no scope — so any percentage would be invented from nothing. What can be read is the employer's own current postings and process; build the strongest file you can from your own record, and let the employer's stated bar, not an absent sample, set the expectation.`,
     });
   }
 
@@ -396,7 +660,29 @@ const CareerGuidance = (() => {
   }
 
   // ------------------------------------------- CG12: CPT/OPT, DSO route
-  function workAuthorizationGuidance(_ctx) {
+  function workAuthorizationGuidance(ctx) {
+    const c = ctx || {};
+    // WORDING-BACKLOG (BUG-201): the international-student realism
+    // ask (sponsors from H-1B filing data, cap-exempt options) used
+    // to receive only the CPT/OPT explainer. The realism picture
+    // is the answer; the CPT/OPT machinery below still governs
+    // asks that are about starting a specific internship.
+    const waTopic = String(c.text || "").toLowerCase();
+    if (/realism|sponsor|h-1b|cap-exempt|filing/.test(waTopic)) {
+      return finalize("work_authorization", {
+        headline: "International-student realism — the cap, the exempt doors, and where the sponsor data lives.",
+        sources: [USCIS_SOURCE],
+        plan: [
+          { action: "Check any target employer against the USCIS H-1B Employer Data Hub — the public filing record of who actually petitioned, by employer and year, which is the sponsor evidence that counts", timeframe: "per employer" },
+          { action: "Weight cap-exempt employers into the search from the start: universities, their affiliated nonprofits, and nonprofit or government research organizations are exempt from the cap entirely", timeframe: "this cycle" },
+          { action: "Use the OPT runway as the bridge it is: work authorization after graduation, with the STEM extension for eligible degrees, while an employer decides on sponsorship", timeframe: "final year" },
+          { action: "Ask every employer the sponsorship question directly and early — a firm's filing history is evidence, and its answer for this role is the fact", timeframe: "first conversation" },
+        ],
+        unknowns: ["Any named firm's sponsorship decision for your role — the filing record shows history, and only the employer can state its current intent; this product holds no filing dataset of its own."],
+        nextStep: "Tell me the employers on your list, and I will check each one's filing history against the Data Hub record with you.",
+        text: `The realistic picture, without sugarcoating: the H-1B route runs through a capped annual lottery with far more registrations than visas, so a cap-subject employer's willingness to sponsor is only half the battle — the lottery is the other half. Two structural facts work in your favor: cap-exempt employers — institutions of higher education, their affiliated nonprofits, and nonprofit or government research organizations — can petition year-round outside the cap entirely, and OPT (with the STEM extension for eligible degrees) gives you a work-authorized runway after graduation during which an employer can sponsor from evidence of your work. On sponsors: the checkable record is the USCIS H-1B Employer Data Hub, the public filing data showing which employers actually petitioned and how often — this product holds no filing dataset of its own, so no sponsor list is quoted from memory; a firm's history there plus its direct answer about your role is the evidence. And the case-specific floor stays: your own status questions go to your DSO, because the general picture is not a decision about your case.`,
+      });
+    }
     return finalize("work_authorization", {
       canStartNextWeek: "unknown_requires_authorization", individualDetermination: null,
       sources: [USCIS_SOURCE],
@@ -492,17 +778,56 @@ const CareerGuidance = (() => {
   // ------------------------------------------- CG13: skill-gap evidence plan
   function skillGapPlan(ctx) {
     const c = ctx || {};
-    const skill = c.skill || "the named skill";
+    // WORDING-BACKLOG (BUG-201): this function also catches the
+    // pre-med and government/intel path asks (they match on
+    // "prereqs" / "clearance" in the router) — and used to answer
+    // them with the skill-gap frame and an unsubstituted
+    // placeholder, "the named skill", in the user's face. Topic
+    // asks get topic answers; and where no skill is actually
+    // named, the user-facing text says "the skill the posting
+    // names" — the placeholder never reaches a reply.
+    const sgTopic = String(c.text || "").toLowerCase();
+    if (/pre-med|premed|mcat|medical school/.test(sgTopic)) {
+      return finalize("skill_gap_plan", {
+        headline: "The pre-med path — prereqs, the MCAT, and the timeline that is actually verified.",
+        sources: [KB_SOURCE],
+        plan: [
+          { action: "Sequence the prereq ladder: general chemistry and biology first, then physics, organic chemistry, and biochemistry, with psychology/sociology for the MCAT's fourth section", timeframe: "by semester" },
+          { action: "Build the clinical ladder in parallel: shadowing, then sustained clinical volunteering or a clinical job (scribe, EMT, medical assistant) — schools read duration and reflection, not a single summer", timeframe: "starting now" },
+          { action: "Take the MCAT when the prereqs are done, not by the calendar — typically spring of the application year for direct entry", timeframe: "application year" },
+          { action: "Apply in the summer a full cycle ahead: medical admissions are rolling and the cycle opens the June before the fall you would start", timeframe: "application summer" },
+        ],
+        unknowns: ["Any school's acceptance rate or your competitiveness figure — schools publish class profiles, not personal odds, and none is invented here."],
+        nextStep: "Tell me your year and which prereqs are already done, and I will sequence the rest semester by semester.",
+        text: `The pre-med path is a ladder with verified rungs, and it runs on two tracks at once. The academic track: the prereq sequence — general chemistry, biology, physics, organic chemistry, biochemistry, plus psychology and sociology for the MCAT — then the MCAT itself, taken when the coursework is finished rather than on a fixed date. The clinical track matters as much: admissions committees read sustained clinical exposure — shadowing, then real patient-contact work as a scribe, EMT, or medical assistant — as the evidence you know what the job is. The timeline most direct-entry students run: prereqs across the first two to three years, MCAT in the spring of junior year, applications the following summer, a full year before matriculation — and gap years are common enough that they are a normal variant, not a defeat. No school publishes a personal probability for you, and this product holds no figure to quote; the deciders are the GPA in the prereq sciences, the MCAT, and the clinical record's depth.`,
+      });
+    }
+    if (/clearance|government|intelligence|\bintel\b|federal/.test(sgTopic)) {
+      return finalize("skill_gap_plan", {
+        headline: "The government and intel path — citizenship gates and clearance timelines, honestly.",
+        sources: [KB_SOURCE],
+        plan: [
+          { action: "Check the citizenship gate first: security clearances require US citizenship, and most agency roles state it in the posting — it is a hard filter, not a preference", timeframe: "first" },
+          { action: "Enter through the student programs (agency internships and cooperative education) — they start the clearance clock while you are still in school and are the main student door", timeframe: "each cycle" },
+          { action: "Keep the record clearance-clean and documentable: finances, foreign contacts, and travel get investigated, and candor is the currency — issues disclosed early are survivable, surprises are not", timeframe: "always" },
+          { action: "Budget the timeline honestly: investigations run in months and the senior clearances commonly past a year; offers are contingent on adjudication", timeframe: "at offer" },
+        ],
+        unknowns: ["Any current processing-time figure for a specific clearance level — the agencies publish changing statistics, and none is frozen into this answer."],
+        nextStep: "Tell me the agency family you are aiming at, and I will map its student programs and stated gates.",
+        text: `The government and intelligence path runs on gates the private sector does not have, and the first is absolute: security clearances require US citizenship, so for cleared roles citizenship is a hard filter stated in the posting, not a preference to argue with. The second gate is time: a background investigation is measured in months, and the higher clearances commonly run past a year, with offers contingent on adjudication — which is why the agencies run student internship and co-op programs that begin the process while you are still in school. The third gate is the record itself: finances, foreign contacts, drug history, and candor are investigated, and the standard that decides cases is honesty — disclosed issues are routinely adjudicated favorably; discovered ones are not. The work is real and the pipeline is slow by design, and anyone quoting you a precise current processing time is quoting a statistic that changes quarterly.`,
+      });
+    }
+    const skill = c.skill || "that skill";
     const proven = provenSkillNames(c.profile);
     const alreadyHasSkill = proven.some((s) => s.toLowerCase() === String(skill).toLowerCase());
     const hours = Number(c.hoursPerWeek) || 2;
     const total = Math.round(hours * 60);
     const phases = allocate([
-      { id: "learn-basics", task: `Work through the official ${skill} basics by building, not just reading`, weight: 3 },
-      { id: "build-artifact", task: `Build the artifact below in ${skill}`, weight: 4 },
+      { id: "learn-basics", task: `Work through the official basics of ${skill} by building, not just reading`, weight: 3 },
+      { id: "build-artifact", task: `Build the artifact below with ${skill}`, weight: 4 },
       { id: "document-review", task: "Write the README, finish the tests, and get one review from someone who knows the stack", weight: 2 },
     ], total);
-    const artifact = `a small ${skill} service or tool, in a public repo, with a README that explains what it does and one design tradeoff, plus tests that a reviewer can run`;
+    const artifact = `a small service or tool built with ${skill}, in a public repo, with a README that explains what it does and one design tradeoff, plus tests that a reviewer can run`;
     const levelText = c.requirementLevel === "required"
       ? `the posting states ${skill} as a requirement`
       : `the posting names ${skill} as preferred, expressly not required — so this is an advantage gap, not a wall`;
@@ -665,6 +990,43 @@ const CareerGuidance = (() => {
   // ------------------------------------------- CG16: interest-change replanning
   function replanForInterestChange(ctx) {
     const c = ctx || {};
+    // WORDING-BACKLOG (BUG-201): a career-switch ask with no
+    // structured interest fields used to be answered by inventing
+    // a switch INTO data analytics (the transferable filter's
+    // shape) plus a content-free opener, "Updated — visibly, not
+    // quietly." A switcher ask gets the transferable-skills map
+    // from the record itself, the honest account of where
+    // switchers actually win, and — when the ask names the target
+    // (nurse to data analyst) — the map aimed at that target.
+    const icTopic = String(c.text || "").toLowerCase();
+    if (!c.newInterest && (/career switch|switcher|switching (careers|fields|to)|to data analyst|into data|nurse/.test(icTopic) || !c.previousInterest)) {
+      const recFacts = factsOf(c.profile);
+      const skillNames = provenSkillNames(c.profile);
+      const expFact = recFacts.find((f) => f.kind === "experience");
+      const projFact = recFacts.find((f) => f.kind === "project");
+      const eduFact = recFacts.find((f) => f.kind === "education");
+      const targetM = icTopic.match(/(?:to|into)\s+(data analyst|data analytics|software|engineering|product|finance|design|marketing|operations)/);
+      const target = targetM ? targetM[1] : null;
+      const mapBits = [
+        skillNames.length ? `your proven skills (${skillNames.join(" and ")}) transfer as tools of the new trade, not as the old job's leftovers` : null,
+        expFact ? `your ${expFact.title} experience evidences the unglamorous half every field screens for — working inside a real organization, on real deadlines, with real stakeholders` : null,
+        projFact ? `your built project (${String(projFact.title || "on file").replace(/\s*\((?:TEST)[^)]*\)/g, "")}) is inspectable proof you can produce the new field's artifacts, which is the evidence switchers are usually missing` : null,
+        eduFact ? `your ${eduFact.title} underwrites the quantitative floor` : null,
+      ].filter(Boolean);
+      return finalize("interest_change", {
+        headline: target ? `The switch to ${target} — your transferable map, from your own record.` : "Switching careers — your transferable map, from your own record.",
+        sources: recFacts.length ? recFacts.slice(0, 3).map((f) => ({ type: "profile_fact", fact_id: f.id, label: f.title || f.text, source: f.source || "profile record" })) : [KB_SOURCE],
+        plan: [
+          { action: "Name the target seat precisely — switchers win adjacent moves (same skills, new field) far more often than total reinventions", timeframe: "first" },
+          { action: "Produce one artifact in the new field's own format, judged by its standards — the single strongest counter to 'no experience in the field'", timeframe: "this month" },
+          { action: "Recruit translators: people who made the same switch and can name what actually transferred — their map is evidence, not encouragement", timeframe: "starting now" },
+          { action: "Price the switch honestly: a lateral or one-step-down entry with a steeper slope beats holding out for a title match that never interviews", timeframe: "at offer" },
+        ],
+        unknowns: ["Which specific seat fits — the artifact and the first applications produce that evidence; nothing in a past record decides it."],
+        nextStep: target ? `Tell me the seat inside ${target} you want first, and I will spec the artifact that proves the switch.` : "Tell me the field you are switching into, and I will aim this map at its actual seats.",
+        text: `Here is the transferable map, drawn only from your real record: ${mapBits.length ? mapBits.join("; ") + "." : "your record's skills and experience, labeled as what they are."} What does not transfer is equally plain: seniority, titles, and field-specific networks do not cross over, and any plan pretending otherwise collapses at the first screen. Where switchers actually win is adjacency — the move that keeps two-thirds of your evidence in play while the field changes around it — plus one artifact built to the new field's standards, which converts "career changer" from a risk flag into a demonstrated bet. At 32 the math is on your side in one specific way: the switch is early enough that the compounding years belong to the new field, provided the entry is lateral-or-better and the slope is steep.`,
+      });
+    }
     const newInterest = c.newInterest || "the new field";
     const previousInterest = c.previousInterest || null;
     const transferable = factsOf(c.profile).filter((f) => {
@@ -707,7 +1069,65 @@ const CareerGuidance = (() => {
   }
 
   // ------------------------------------------- odds request: honest refusal
-  function oddsRefusal(_ctx) {
+  function oddsRefusal(ctx) {
+    const c = ctx || {};
+    // WORDING-BACKLOG (BUG-201): the bare refusal ("I cannot give
+    // you that number…") used to be the WHOLE answer to asks that
+    // also name their real question — is IB realistic from a
+    // non-target, can a state-school student reach FAANG, is there
+    // hope at a 3.0 with no internship. The refusal of a fabricated
+    // personal probability stays (it is the honest core), but it
+    // rides inside the substantive answer each ask actually wants:
+    // the routes, the offsets, the plan.
+    const oTopic = String(c.text || "").toLowerCase();
+    const oPlan = (items) => items.map(([action, timeframe]) => ({ action, timeframe }));
+    if (/\bib\b|investment banking|banking/.test(oTopic) && /freshman|non-target|nontarget|realistic/.test(oTopic)) {
+      return finalize("odds_request", {
+        personalOdds: null,
+        headline: "IB from a non-target school as a freshman — realistic, on three routes.",
+        sources: [{ type: "no_source_supplied", label: "No sourced data in this product can produce a personal probability — that absence is the finding; no number is cited in its place", as_of: KNOWLEDGE_AS_OF }],
+        plan: oPlan([
+          ["Route one — the early programs: sophomore internships and early-insight programs exist precisely to widen the funnel beyond target schools; apply to every one whose window includes your year", "each cycle"],
+          ["Route two — the regional and boutique ladder: middle-market and boutique banks hire outside the target-school machine, and their analysts lateral to larger banks with deal evidence in hand", "sophomore year"],
+          ["Route three — networking volume: alumni in banking, contacted personally and in dozens, with technical fluency already built — the route that replaces the on-campus process you do not have", "starting now"],
+        ]),
+        unknowns: ["Your personal outcome — no sourced data in this product can produce it, and none is invented."],
+        nextStep: "Tell me which route to build first — the early-program calendar, the boutique list, or the networking plan — and I will lay it out week by week.",
+        text: `Realistic — and here is the honest version of why. No source in this product can produce your personal probability, and you should distrust anyone who quotes you one; but the question underneath it has a real answer: non-target students do get IB seats, and they get them on three visible routes, not on luck. The early programs come first: sophomore internships and insight programs exist to widen the funnel, and your freshman year is exactly when applying to them is the job. The boutique ladder is second: regional and middle-market banks run their own recruiting, and their analysts move up with deal evidence. Networking volume is third — the target-school student has a process arrive on campus; you replace it with alumni and analysts contacted in dozens, with the technical skills already built so the conversations land. Your freshman standing is not the handicap it feels like: you have more runway than anyone else in the funnel, and the routes above are what the runway is for.`,
+      });
+    }
+    if (/faang|state school|big tech/.test(oTopic)) {
+      return finalize("odds_request", {
+        personalOdds: null,
+        headline: "FAANG from a state school — what offsets the brand gap, and the 90 days.",
+        sources: [{ type: "no_source_supplied", label: "No sourced data in this product can produce a personal probability — that absence is the finding; no number is cited in its place", as_of: KNOWLEDGE_AS_OF }],
+        plan: oPlan([
+          ["Days 1–30: the referral graph — alumni from your school inside the FAANG firms are findable and contactable; a referral moves your file past the screen the school brand feeds", "days 1–30"],
+          ["Days 1–60: the offsetting artifact — one substantial project in public, with a README and decisions explained; for these screens, inspectable work is the currency brand usually substitutes for", "days 1–60"],
+          ["Days 30–90: interview depth at hiring-bar level — data structures and algorithms drilled to the firms' own stated patterns, plus system-design basics for new-grad loops", "days 30–90"],
+          ["Day 90: applications out across the set, through referrals where they exist, inside the new-grad windows", "day 90"],
+        ]),
+        unknowns: ["Your personal outcome — the screens are pass/fail events no source can pre-compute, and none is invented."],
+        nextStep: "Tell me your school and your strongest project, and I will turn the 90 days into your dated plan.",
+        text: `Yes — FAANG hires state-school graduates every cycle, and the mechanism is visible: the school brand matters most at the résumé screen, and the screen is the one stage a candidate can route around. What offsets the brand gap is specific: a referral from an alum inside the firm (state schools have large alumni bases inside every FAANG company), an inspectable artifact that does the brand's signaling work, and interview performance — which is school-blind by design once you are in the loop. No personal probability exists for this, and none is quoted; what exists is the 90-day version of the levers: thirty days on the referral graph, sixty on the artifact, ninety on hiring-bar interview depth, applications out through every referral the graph produced. The students who fail this route usually fail it at the screen, silently, with no artifact and no referral — both of which are buildable, starting now.`,
+      });
+    }
+    if (/3\.0|no internship|any hope/.test(oTopic)) {
+      return finalize("odds_request", {
+        personalOdds: null,
+        headline: "A 3.0 and no internship — the honest plan is picking the right game.",
+        sources: [{ type: "no_source_supplied", label: "No sourced data in this product can produce a personal probability — that absence is the finding; no number is cited in its place", as_of: KNOWLEDGE_AS_OF }],
+        plan: oPlan([
+          ["Pick the right game first: roles and firms whose screens are portfolio-first (startups, applied analytics, smaller firms with human screens) over the printed-GPA automated funnels", "this week"],
+          ["Build the substitute for the missing internship: one artifact with a README and real usage, or a campus/ freelance role with a named responsibility — evidence an interviewer can open", "this month"],
+          ["Raise the number that is still movable: the major-GPA and the most recent semesters are what human screeners actually read when the cumulative line is weak", "this semester"],
+          ["Network into the human screens: alumni and operators who can put the artifact in front of a person", "starting now"],
+        ]),
+        unknowns: ["Your personal outcome at any specific firm — no source can produce it, and none is invented."],
+        nextStep: "Tell me the field you want, and I will set the artifact and the target list to its portfolio-first screens.",
+        text: `Yes, there is hope — and it is not a pep talk, it is a routing fact. A 3.0 with no internship loses one specific game: the automated funnels at the largest firms, where a printed GPA bar and an experience keyword do the first cut. It does not lose the others — portfolio-first screens at startups and applied roles, smaller firms where a human reads the file, and any door a referral opens. The plan is to stop spending applications on the game your file cannot win yet, and build the one asset that changes screens everywhere: inspectable evidence — an artifact a stranger can open, or a role with a named responsibility — while the movable numbers (recent semesters, major GPA) trend up. Your file's weakness is real and it is also specific, which means it has specific counters; the students it beats are the ones still feeding the automated funnel and calling the silence a verdict.`,
+      });
+    }
     return finalize("odds_request", {
       personalOdds: null,
       sources: [{ type: "no_source_supplied", label: "No sourced data in this product can produce a personal probability — that absence is the finding; no number is cited in its place", as_of: KNOWLEDGE_AS_OF }],

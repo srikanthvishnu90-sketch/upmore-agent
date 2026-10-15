@@ -2003,7 +2003,7 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 252 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 357
+Counts: ENFORCED 255 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 360
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2364,8 +2364,11 @@ Counts: ENFORCED 252 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-355 (BUG-198) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-198 |
 | FR-356 (BUG-199) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-199 |
 | FR-357 (BUG-200) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-200 |
+| FR-358 (BUG-201) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-201 |
+| FR-359 (BUG-202) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-202 |
+| FR-360 (BUG-203) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 + 3 more (see section) |
 
-<!-- totals: total=357 enforced=252 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=360 enforced=255 guarded_red=1 hard_shut=1 unenforced=103 -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2478,3 +2481,15 @@ Counts: ENFORCED 252 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-357 — A named appointment is fully specified, and every ask shape is its own (BUG-200)
 - **RULE:** A stated time carries its timezone; a named deliverable the record cannot support (an interviewer brief with no interviewer named) states its gap and unlocking input instead of passing silently; and two different asks never receive byte-identical payloads — a shape that differs (two interviews in one day) carries its own typed marker and its own spoken treatment.
 - **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-200 (SC-135/136 shapes).
+
+### FR-358 — An advice answer answers its own topic and cites its true source (BUG-201)
+- **RULE:** A guidance answer is composed for the ask's actual topic — the ladder, gates, screens, or framework that topic runs on — never a shared body template under a shared opener; the spoken reply carries the answer's substance (not a two-sentence truncation), exactly one source line naming what actually supports it with its as-of date (a profile fact's title is never "the source"), and no grounding claim the answer's own evidence contradicts. Placeholders never reach a reply; a sample is stated at one size, consistently, and an absent sample is stated as absent.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-201 (SC-112 + SC-222..SC-246 shapes).
+
+### FR-359 — A file reply prints the details the file holds (BUG-202)
+- **RULE:** A company-file reply never points at its own contents ("see route details"): it speaks the routes with their details, the cadence windows the file holds (every cycle), and both sides of a comparison — an unnamed side as a labeled archetype, never one firm's data wearing a comparison's clothes, and never a meta-instruction printed as data. A tension inside the file (an experienced-cohort door on an entry-level file) is stated, not smoothed.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-202 (SC-225/247/254/256/257/259/269/270 shapes).
+
+### FR-360 — Verification repairs keep every older pin standing (BUG-203)
+- **RULE:** A fix that breaks an older lane's guard is itself a bug: named-firm extraction stays a recognizer (short forms and abbreviations of a canonical hit are that hit, never extra firms); user-facing copy names bindings and outcomes, never internal mechanics (hashes, field names); a packet's spoken shape is its real shape (facts behind outlines, counted as what they are); and where a judge-mandated reroute supersedes a pin, the pin is amended to the new contract in the open, in the same commit — never silently dropped.
+- **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-110; tests/career-hash-leak-guard.test.cjs BUG-048; tests/career-essay-tailor.test.cjs BUG-104; tests/career-apply-completion.test.cjs BUG-114.

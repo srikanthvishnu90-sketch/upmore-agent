@@ -215,9 +215,17 @@ test("SC-116: autopsy record + named count stated + no bare 'logged' claim (BUG-
 });
 
 test("SC-112/SC-115: intel answers carry their record as the artifact too (BUG-114)", () => {
-  for (const id of ["SC-112", "SC-115"]) {
-    const { r } = drive(id, A[id]);
-    assert.equal(r.intent, "company_intel", id);
-    assert.ok(r.payload && r.artifact, `${id}: payload + artifact present`);
-  }
+  // SC-112 stays an intel answer. SC-115 was rerouted by the
+  // wording lane (BUG-186, on the capstone judge's S1 row: "What
+  // happened with my Stripe application?" is the user's own
+  // application status, not the Stripe file) — it now answers from
+  // the tracker and carries the 141 doorstep record instead; the
+  // BUG-114 carriage rule it must satisfy is payload + artifact on
+  // the turn, under its own intent.
+  const { r } = drive("SC-112", A["SC-112"]);
+  assert.equal(r.intent, "company_intel", "SC-112");
+  assert.ok(r.payload && r.artifact, "SC-112: payload + artifact present");
+  const s115 = drive("SC-115", A["SC-115"]);
+  assert.equal(s115.r.intent, "tracking_status", "SC-115: the status ask is answered from the log, not the company file");
+  assert.ok(s115.r.payload || s115.r.doorstep, "SC-115: the tracking record rides the turn");
 });

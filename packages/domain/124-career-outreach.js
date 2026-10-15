@@ -128,8 +128,15 @@ const CareerOutreach = (() => {
     if (listM) {
       for (const part of listM[1].split(/\s*,\s*/)) {
         const name = part.replace(/^and\s+/, "").trim();
-        if (!name || name.length < 3 || FIRM_TOKEN_STOP.has(norm(name))) continue;
-        if (!hits.some((h) => norm(h.name) === norm(name))) hits.push({ name, idx: raw.indexOf(part), nn: norm(name) });
+        const partN = norm(name);
+        if (!name || name.length < 3 || FIRM_TOKEN_STOP.has(partN)) continue;
+        // A list item that is the short form (or an abbreviation)
+        // of a firm the recognizer already hit canonically is
+        // THAT firm, not a second one (BUG-110's pin: "McKinsey,
+        // Bain, BCG" is three firms, not five).
+        if (FIRM_ABBREV[partN]) continue;
+        if (hits.some((h) => h.nn === partN || h.nn.startsWith(partN + " ") || partN.startsWith(h.nn + " "))) continue;
+        hits.push({ name, idx: raw.indexOf(part), nn: partN });
       }
       hits.sort((a, b) => a.idx - b.idx);
     }

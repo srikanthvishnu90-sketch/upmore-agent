@@ -361,6 +361,57 @@ test("BUG-191: empty-record deliverables state their zero with the arithmetic sh
   assert.ok(/pattern check ran over this session's record/.test(t34) && !/Say the word and I run the pattern check/.test(t34), `SC-034: ${t34.slice(0, 200)}`);
 });
 
+// ================= INTELLIGENCE (BUG-201 / BUG-202) =================
+// The advice half (SC-222..246) was served by five shared body
+// templates under one opener, with the user's degree printed as
+// the source and a blanket "population data on hand" grounding
+// line. Every topic ask now answers on its topic; the rendering
+// speaks the record's own headline, four sentences, and one true
+// source line.
+
+// ---- BUG-201: advice answers are topic-shaped, truly sourced, and complete ----
+test("BUG-201: no advice reply carries the shared opener, the degree-as-source, or the population grounding line; topics answer on topic", () => {
+  for (const id of ["SC-222", "SC-223", "SC-224", "SC-226", "SC-228", "SC-229", "SC-230", "SC-231", "SC-232", "SC-233", "SC-234", "SC-235", "SC-236", "SC-237", "SC-238", "SC-239", "SC-240", "SC-241", "SC-242", "SC-243", "SC-245", "SC-246"]) {
+    const t = text(turn(id));
+    assert.ok(!/Here is the honest shape of that/.test(t), `${id}: shared opener survives`);
+    assert.ok(!/Source: B\.S\. Computer Science/.test(t), `${id}: degree printed as source`);
+    assert.ok(!/Grounded in the company files and their population data/.test(t), `${id}: blanket grounding line survives`);
+    assert.ok(!/the named skill/.test(t), `${id}: unsubstituted placeholder survives`);
+    assert.ok(!/Tell me what you'd like to do next\./.test(t), `${id}: generic closer survives`);
+  }
+  assert.ok(/sophomore-year internships and early programs feed the junior-year summer analyst class/.test(text(turn("SC-222"))), "SC-222: the IB ladder is the answer");
+  assert.ok(/three visible routes/.test(text(turn("SC-223"))) && /boutique ladder is second/.test(text(turn("SC-223"))), "SC-223: three routes delivered");
+  assert.ok(/below the line the biggest banks print/.test(text(turn("SC-224"))), "SC-224: the 3.4 answer is about screens");
+  assert.ok(/90-day version of the levers/.test(text(turn("SC-228"))), "SC-228: the 90-day plan is delivered");
+  assert.ok(/an interview before it is a résumé/.test(text(turn("SC-230"))), "SC-230: the quant answer is about the interview signal");
+  assert.ok(/three screens in order/.test(text(turn("SC-233"))), "SC-233: the MBB screens are the answer");
+  assert.ok(/ABA-required employment disclosure/.test(text(turn("SC-234"))), "SC-234: the ABA disclosures are named as the data");
+  assert.ok(/prereq sequence/.test(text(turn("SC-235"))) && /clinical track/.test(text(turn("SC-235"))), "SC-235: prereqs + clinical ladder delivered");
+  assert.ok(/almost never hires analysts straight from undergrad/.test(text(turn("SC-236"))), "SC-236: the bank-first truth");
+  assert.ok(/counted in single digits per firm/.test(text(turn("SC-237"))) && !/three-person sample/.test(text(turn("SC-237"))), "SC-237: VC seat structure; no phantom sample");
+  assert.ok(/task exposure/.test(text(turn("SC-242"))), "SC-242: the AI answer is the exposure evidence");
+  assert.ok(/Source: USCIS Policy Manual — students and employment, as of 2026-10-13\./.test(text(turn("SC-245"))), "SC-245: exact prescribed source line");
+  const t246 = text(turn("SC-246"));
+  assert.ok(/transferable map, drawn only from your real record/.test(t246) && !/Updated — visibly, not quietly/.test(t246), "SC-246: the map, not the content-free update line");
+  const t112 = text(turn("SC-112"));
+  assert.ok(/The switch to data analyst/.test(t112) && /transferable map/.test(t112), "SC-112: the map is aimed at the named target");
+});
+
+// ---- BUG-202: company-file replies print the details the file holds ----
+test("BUG-202: route details and cadence windows are spoken, comparisons are two-sided, the cohort school row states the pattern or its absence", () => {
+  for (const id of ["SC-254", "SC-257", "SC-259"]) assert.ok(!/See route details/.test(text(turn(id))), `${id}: the route pointer survives`);
+  assert.ok(/also on file: Intern \/ new-grad pipeline/.test(text(turn("SC-254"))), "SC-254: all routes named");
+  assert.ok(/applications open September 8, 2026, close November 15, 2026/.test(text(turn("SC-257"))) && /January 1 – February 1, 2026 window/.test(text(turn("SC-257"))), "SC-257: both cycles' windows spoken");
+  assert.ok(/one flag on that front door/.test(text(turn("SC-259"))), "SC-259: the experienced-cohort tension is stated");
+  const t225 = text(turn("SC-225"));
+  assert.ok(/The boutique side, as an archetype/.test(t225) && /Exits and fit:/.test(t225), "SC-225: the comparison is two-sided");
+  const t247 = text(turn("SC-247"));
+  assert.ok(/No school pattern published/.test(t247) && /This month's plan, from the table's highest-leverage fix/.test(t247) && !/Want the highest-leverage fix turned into/.test(t247), "SC-247: pattern stated, plan delivered");
+  assert.ok(/Stale files are labeled with their last-verified date/.test(text(turn("SC-269"))), "SC-269: prescribed stale line");
+  assert.ok(/Taken — tell me the exact claim/.test(text(turn("SC-270"))), "SC-270: prescribed opener");
+  assert.ok(!/related fields Cadence:/.test(text(turn("SC-256"))), "SC-256: no run-on into the cadence section");
+});
+
 // ================= TRACK PASS 2 (BUG-197..BUG-200) =================
 // The Track wording judge's new defects: announce claims the
 // record didn't carry, past calendar slots, status shapes that

@@ -33351,7 +33351,19 @@ const CareerRouter = (() => {
   // router applies its own location/graduation handling around scoreFit.
   function scoringProfile(profile) {
     const p = profile || {};
-    const skills = ((p.facts) || []).filter((f) => f.kind === "skill").map((f) => ({ name: f.name || f.title, proven: !f.unproven }));
+    // BUG-232: the citation rides the adaptation. The fit-line law (151's
+    // provenSkillFacts, the strict rule) prints a proven-skill line only
+    // for a skill cited to its fact — a skill entry with no fact_id is
+    // dropped there — so stripping fact_id/evidence here silently
+    // removed every fact-cited fit line from every consumer of this
+    // profile (a chat-created watch's reminders carried match-basis
+    // lines only, matched_fact_ids always []). Carry both through.
+    const skills = ((p.facts) || []).filter((f) => f.kind === "skill").map((f) => {
+      const o = { name: f.name || f.title, proven: !f.unproven };
+      if (f.fact_id || f.id) o.fact_id = f.fact_id || f.id;
+      if (Array.isArray(f.evidence)) o.evidence = f.evidence;
+      return o;
+    });
     const edu = ((p.facts) || []).find((f) => f.kind === "education");
     return {
       skills: skills.length ? skills : (p.skills || []),

@@ -63,6 +63,14 @@ create table public.career_watch_kv (
 Until that table exists the Supabase adapter honestly reports
 `NOT_WIRED` (it refuses to construct without an injected PostgREST
 client, and its status object names the missing migration). The
+adapter was wired against the table in MI-032 step 2 (Crew A,
+branch `work/crewa-mi032-host`): the migration file now exists at
+`supabase/migrations/20261015020000_career_watch_kv.sql` (owner-run,
+NOT applied), `probeSupabaseStore()` resolves WIRED / NOT_WIRED
+against a live-shaped client, and any operation against a database
+where the table is absent fails `NOT_WIRED` naming the table and
+the pending migration — never a raw PostgREST error, never a fake
+write. The
 host-tier proof uses the file-backed adapter
 (`createFileStore(path)`: one JSON file, whole-map read/write, the
 same pattern as `alert-watch-runner.mjs`) — durable across processes
@@ -182,10 +190,12 @@ with this precedence:
 2. `ctx.alertWatchState` — a plain JSON object carried on ctx,
    created lazily on first write. **This only becomes durable when
    the host adds `"alertWatchState"` to `career_host.js`'s
-   `STATE_KEYS`** (a one-line host change, named in §5). Until then
-   the intents work fully within a thread whose host persists ctx by
-   reference (the harness does; the deployed handler persists only
-   whitelisted keys).
+   `STATE_KEYS`** (a one-line host change, named in §5). DONE in
+   MI-032 step 2 (Crew A, branch `work/crewa-mi032-host`): the key
+   is whitelisted, and tests/career-alerts-host-wiring.test.cjs
+   proves a watch created through the host seam in one thread is
+   listed from a fresh thread restored from the snapshot. (The
+   deployed function picks the change up at the step-5 deploy.)
 
 The watch profile is keyed by `ctx.userId` (the handler sets it from
 the authenticated user; the `"user-1"` fallback matches 142's
@@ -208,14 +218,23 @@ views onto one per-user record, never separate profiles.
    (step aside) when 152 is absent from the bundle.
 2. Host: add `"alertWatchState"` to `career_host.js` `STATE_KEYS`
    (or inject a sync `ctx.alertStore`) so chat-created watches persist
-   across threads in the deployed product.
+   across threads in the deployed product. **DONE — MI-032 step 2
+   (Crew A, branch `work/crewa-mi032-host`), with the Supabase adapter
+   wired and the tier-2 E2E green (14/14); rides the step-5 deploy.**
 3. Migration: create `public.career_watch_kv` (§1) — owner-run.
+   The SQL file is written (`supabase/migrations/20261015020000_career_watch_kv.sql`,
+   additive only); the owner runs it.
 4. Host: run the scheduler (`alerts-host.mjs`'s `runUserAlertCycle`
    per user on the 15/60 cadence) as a deployed cron/edge trigger
    with the Supabase store — this is the step that turns recorded
    watches into delivered reminders in the real product.
 5. Deploy the `agent-chat` edge function with the rebuilt bundle.
 
-Until 2–5 land, a watch created in the live chat does not poll and a
+Until 3–5 land, a watch created in the live chat does not poll and a
 reminder cannot reach a real user's product state — the tier-1
 attempt (§ "Proof" in the W4 report) stops exactly at that doorstep.
+Step 2 also surfaced BUG-232 / FR-390: a chat-created watch's stored
+record stated no gate leg and no skill citations, so the cycle could
+never alert it — the host now bridges the gate's watched occupations
+from the record's interests (`watchCycleProfile` in alerts-host.mjs)
+and 142's scoringProfile carries fact_id + evidence through.

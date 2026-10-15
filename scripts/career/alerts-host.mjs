@@ -18,11 +18,17 @@
 //
 // Stores (121's KV contract {get,set}, keys exactly as 152 defines):
 //   createFileStore(path)      durable on one host; the host-tier proof store
-//   createSupabaseStore(opts)  the deployed shape, behind the same interface;
-//                              honestly NOT_WIRED without an injected
-//                              PostgREST client + the career_watch_kv table
-//                              (migration is owner/coordinator work — §1 of
-//                              the design note). Never fakes a write.
+//   createSupabaseStore(opts)  the deployed shape, behind the same interface
+//                              (MI-032 step 2, Crew A: wired against
+//                              public.career_watch_kv). Honestly NOT_WIRED
+//                              without an injected PostgREST client, and —
+//                              because the table is created by an OWNER-RUN
+//                              migration — any operation against a database
+//                              where the table is absent fails NOT_WIRED
+//                              naming the table and the pending migration,
+//                              instead of leaking a raw PostgREST error or
+//                              faking a write. probeSupabaseStore() resolves
+//                              the table's existence up front.
 //
 // Delivery channel at this tier: "host_record" — the delivered record is
 // appended to a JSONL delivered-log when deps.deliveredLogPath is given and
@@ -67,14 +73,71 @@ export function createMemoryStore() { return Watch.createMemoryStore(); }
 // .eq("key",k).maybeSingle() and .upsert(row, {onConflict:"user_id,key"}).
 // Without a client this is NOT_WIRED by construction — the factory throws and
 // supabaseStoreStatus() reports the missing pieces instead of pretending.
+// The table itself is created by an OWNER-RUN migration
+// (supabase/migrations/20261015020000_career_watch_kv.sql, design note §1):
+// until the owner runs it, every operation fails NOT_WIRED with the
+// missing-table reason (see isMissingTableError / notWiredTableError), and
+// probeSupabaseStore() reports the same verdict without attempting a write.
+export const WATCH_KV_MIGRATION = "supabase/migrations/20261015020000_career_watch_kv.sql";
+
+// A PostgREST failure means "this table is not there" when the schema cache
+// has no such table (PGRST205) or Postgres itself reports an undefined table
+// (42P01). Message matching is scoped to the adapter's own table name so an
+// unrelated failure is never relabeled.
+export function isMissingTableError(error, table) {
+  if (!error) return false;
+  if (error.code === "PGRST205" || error.code === "42P01") return true;
+  const msg = String(error.message || error);
+  const t = String(table || "career_watch_kv").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`could not find the table '[^']*${t}'|relation "[^"]*${t}" does not exist|${t}.*does not exist`, "i").test(msg);
+}
+
+export function notWiredTableError(table, cause) {
+  const t = table || "career_watch_kv";
+  const err = new Error(
+    `supabase watch store is NOT_WIRED: table public.${t} does not exist ` +
+    `(owner-run migration ${WATCH_KV_MIGRATION} has not been applied)`);
+  err.code = "NOT_WIRED";
+  err.table = t;
+  if (cause) err.cause = cause;
+  return err;
+}
+
+// Construction-time facts only (synchronous): what is missing before a store
+// can even be attempted. Table existence is asynchronous knowledge — with a
+// client and a userId the honest status is UNPROBED until probeSupabaseStore()
+// (or the first operation) resolves it; this function never guesses it.
 export function supabaseStoreStatus(opts) {
   const o = opts || {};
   const missing = [];
   if (!o.client) missing.push("no PostgREST client injected (the deployed host supplies the service-role client)");
   if (!o.userId) missing.push("no userId (the store is per-user by construction)");
-  missing.push("table public.career_watch_kv not confirmed to exist (migration is owner/coordinator work; design note §1)");
-  return { status: missing.length > 1 || !o.client || !o.userId ? "NOT_WIRED" : "NOT_WIRED", missing, table: o.table || "career_watch_kv" };
+  const table = o.table || "career_watch_kv";
+  if (missing.length) return { status: "NOT_WIRED", missing, table };
+  return { status: "UNPROBED", missing, table,
+    note: `construction inputs present; table public.${table} existence is established by probeSupabaseStore() or the first operation (owner-run migration ${WATCH_KV_MIGRATION})` };
 }
+
+// Resolve the wiring verdict against a live-shaped client: WIRED when the
+// table answers a read, NOT_WIRED (missing-table reason) when it does not
+// exist, NOT_WIRED (construction reasons) when no store can be built. Any
+// other database error propagates — an honest failure, never a relabel.
+export async function probeSupabaseStore(opts) {
+  const o = opts || {};
+  const table = o.table || "career_watch_kv";
+  const st = supabaseStoreStatus(o);
+  if (st.status === "NOT_WIRED") return st;
+  const r = await o.client.from(table).select("key").eq("user_id", o.userId).limit(1);
+  if (r && r.error) {
+    if (isMissingTableError(r.error, table)) {
+      return { status: "NOT_WIRED", table,
+        missing: [`table public.${table} does not exist (owner-run migration ${WATCH_KV_MIGRATION} has not been applied)`] };
+    }
+    throw new Error(`career_watch_kv probe failed: ${r.error.message || r.error}`);
+  }
+  return { status: "WIRED", missing: [], table };
+}
+
 export function createSupabaseStore(opts) {
   const o = opts || {};
   if (!o.client || !o.userId) {
@@ -91,14 +154,20 @@ export function createSupabaseStore(opts) {
     user_id: o.userId,
     async get(k) {
       const r = await o.client.from(table).select("value").eq("user_id", o.userId).eq("key", k).maybeSingle();
-      if (r.error) throw new Error(`career_watch_kv read failed: ${r.error.message || r.error}`);
+      if (r.error) {
+        if (isMissingTableError(r.error, table)) throw notWiredTableError(table, r.error);
+        throw new Error(`career_watch_kv read failed: ${r.error.message || r.error}`);
+      }
       return r.data ? r.data.value : null;
     },
     async set(k, v) {
       const r = await o.client.from(table).upsert(
         { user_id: o.userId, key: k, value: v, updated_at: new Date().toISOString() },
         { onConflict: "user_id,key" });
-      if (r.error) throw new Error(`career_watch_kv write failed: ${r.error.message || r.error}`);
+      if (r.error) {
+        if (isMissingTableError(r.error, table)) throw notWiredTableError(table, r.error);
+        throw new Error(`career_watch_kv write failed: ${r.error.message || r.error}`);
+      }
     },
   };
 }
@@ -158,6 +227,36 @@ export async function deliverReminder(reminder, deps) {
 }
 
 // ---- the per-user cycle -------------------------------------------------------
+// The profile the cycle gates with. 151's G6 gate reads its watch legs from
+// profile.preferences — role_families, or the BUG-095 taxonomy bridge
+// preferences.watched_occupations (an occupation's curated terms matched
+// against the posting's title / JD opening). The record the chat path stores
+// carries NEITHER: 142's create-watch intent states the user's watches as
+// 152 INTERESTS (role specs: title + terms) and stores a scoring_profile
+// whose preferences hold no families. Gating straight from that
+// scoring_profile rejects every posting — "role_family Finance is not in
+// the profile's watched families (none set)" — so a watch the user created,
+// can list, and can resume in chat could never alert (BUG-232, found by the
+// MI-032 step-2 E2E driving a chat-created watch through this cycle). The
+// bridge derives watched_occupations from the interests ONLY when the
+// stored profile states no watch leg of its own (producer data wins).
+// 152's per-interest matching stays the strict filter downstream, so the
+// bridge widens the gate's view but can never manufacture a reminder.
+export function watchCycleProfile(wp) {
+  const base = (wp && wp.scoring_profile) || {};
+  const prefs = Object.assign({}, base.preferences || {});
+  const hasOwnLeg = (Array.isArray(prefs.role_families) && prefs.role_families.length > 0)
+    || (Array.isArray(prefs.watched_occupations) && prefs.watched_occupations.length > 0);
+  if (!hasOwnLeg) {
+    const occs = ((wp && wp.interests) || []).map((i) => ({
+      occupation: (i.role || {}).title || "",
+      terms: ((i.role || {}).terms || []).slice(),
+    })).filter((o) => o.occupation && o.terms.length);
+    if (occs.length) prefs.watched_occupations = occs;
+  }
+  return Object.assign({}, base, { preferences: prefs });
+}
+
 // deps: { store, fetch, feeds, now, cadence: "starred"|"default"|"all",
 //         deliveredLogPath?, sink?, channel? }
 // feeds default to 121's live board registry; the caller (scheduler) may pass
@@ -180,6 +279,7 @@ export async function runUserAlertCycle(userId, deps) {
   }
   const scoring = wp.scoring_profile;
   if (!scoring) throw new Error(`watch profile for ${userId} carries no scoring_profile (152 needs the 121 scoreFit shape)`);
+  const profile = watchCycleProfile(wp);
   const feeds = d.feeds || Jobs.boardFeeds();
   const starred = new Set(((scoring.preferences || {}).starred_companies || []).map(lc));
   const cadence = d.cadence || "all";
@@ -196,7 +296,7 @@ export async function runUserAlertCycle(userId, deps) {
   for (const feed of selected) {
     try {
       const r = await Watch.runWatchCycle({
-        feeds: [feed], fetch: d.fetch, profile: scoring, store,
+        feeds: [feed], fetch: d.fetch, profile, store,
         sink: async (rec) => { alerts.push(rec); },
         now, snapshotKey: userBoardSnapshotKey(feed, userId),
         ...(d.alertOnSeed ? { alertOnSeed: true } : {}),

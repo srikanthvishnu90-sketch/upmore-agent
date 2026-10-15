@@ -37,6 +37,18 @@ const CareerHost = (() => {
     // router reads back on later turns, so all four must survive the
     // snapshot round trip like every other store here.
     "posting", "statedFacts", "intentQueue", "_relayedSuppressions",
+    // MI-032 STEP 2 (alerts host wiring, docs/career/alerts-host-wiring.md
+    // §4/§5): the watch-state box. 142's watch intents read/write module
+    // 152's records through a sync {get,set} view of this plain JSON
+    // object (watchStoreOf in 142); the records inside are keyed per
+    // user in 152's own scheme (career:watch-profile:<user_id>,
+    // career:reminder-queue:<user_id>, career:reminder-history:<user_id>)
+    // plus the host delivery ledger — so the box is per-user state, and
+    // whitelisting it here is what makes chat-created watches, queued
+    // reminders and delivery history survive the snapshot round trip
+    // instead of dying with the turn. Created lazily by 142 on first
+    // write only; a read never materializes it.
+    "alertWatchState",
   ];
 
   function cloneJson(v) {

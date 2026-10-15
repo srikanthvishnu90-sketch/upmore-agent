@@ -604,6 +604,23 @@ const CareerJobs = (() => {
     return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) > DEDUPE_RECENCY_MS;
   };
   const copyQuality = (p) => (p.jd_text || "").length + (p.department ? 500 : 0);
+  // MI-051/LA-0016 (2026-10-15): copies merge only when their JD texts
+  // are the same document (whitespace/case-normalized) or one side
+  // carries no text. Two boards can carry the same role with DIFFERENT
+  // text — LA-0016's Greenhouse twin carried a license-knockout
+  // sentence its Lever twin lacked; merging them (and keeping the
+  // longer text) poisoned the survivor and the gate killed a posting
+  // that should have reminded. A syndicated copy of one opening
+  // carries the employer's text; different text is a different record
+  // for every downstream verdict (gate, fit, deadline).
+  const jdNorm = (p) => (p.jd_text || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const sameJdText = (a, b) => { const x = jdNorm(a), y = jdNorm(b); return !x || !y || x === y || x.includes(y) || y.includes(x); };
+  // A shared req id is the employer's own identity for the opening —
+  // the same req on two boards is one posting however differently the
+  // boards render its text (the gauntlet mirror pair GJ-X02/GJ-X03,
+  // same req OPS-4471, requirement text rendered per board). Different
+  // reqs fall back to the same-text test above.
+  const sameOpening = (a, b) => (a.req_id && b.req_id && a.req_id === b.req_id) || sameJdText(a, b);
   function dedupe(postings) {
     const groups = new Map();
     for (const p of postings || []) {
@@ -611,7 +628,7 @@ const CareerJobs = (() => {
       // Req ids are source-scoped: two DIFFERENT boards carrying the same role merge even though
       // their req ids differ; two postings on the SAME board with different req ids are distinct roles.
       const group = groups.get(key) || [];
-      const hit = group.find((g) => (g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id)) && !postedFarApart(g, p));
+      const hit = group.find((g) => (g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id)) && !postedFarApart(g, p) && sameOpening(g, p));
       if (!hit) { group.push(Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })); groups.set(key, group); continue; }
       const winner = copyQuality(p) > copyQuality(hit) ? p : hit;
       const loser = winner === p ? hit : p;

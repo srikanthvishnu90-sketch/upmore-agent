@@ -61,6 +61,13 @@
                                      refused (consequences named, truthful alternative offered); protected-
                                      attribute inference is refused; distress gets warmth + safety first (§3.1)
      refreshDue(cir, now) / reportOutdated(cir, report, now)   INTL-007 maintenance view (schedule + report log)
+     detectRole(text) / barForRole(cir, role)   BUG-219 / FR-376 role lens: a company-intel answer serves the
+                                     bar for the ASKED role (cir.role_bars when the file carries per-role bars,
+                                     else the cohort bar only when the asked role IS the file's cohort role);
+                                     when the file carries no bar for the asked role it says so honestly —
+                                     another role's bar is never served as if it answered the question.
+     answerRoleIntel(cir, question, opts)   the composed intel answer: role-lens bar (or the honest no-bar
+                                     statement) + career-KB role stats cited WITH their n via 153 (BUG-220).
    Standalone validation (any CIR file, e.g. the other 25 built in parallel branches):
      node packages/domain/125-career-intel.js validate <cir.json> [more.json ...]
      node packages/domain/125-career-intel.js validate-dir <dir>
@@ -199,6 +206,16 @@ const CareerIntel = (() => {
     });
 
     checkFact(cir.hiring_bar_summary, "hiring_bar_summary");
+    // Optional per-role bars (BUG-219): a file MAY carry role_bars —
+    // [{ role, bar: fact }] or { <role>: fact } — served only for that role.
+    if (cir.role_bars !== undefined) {
+      const entries = Array.isArray(cir.role_bars) ? cir.role_bars.map((e, i) => [e && e.role, e && (e.bar || e), `role_bars[${i}]`]) : (cir.role_bars && typeof cir.role_bars === "object" ? Object.entries(cir.role_bars).map(([k, v]) => [k, v, `role_bars.${k}`]) : null);
+      if (!entries) err("role_bars", "must be an array of { role, bar } or an object keyed by role");
+      else entries.forEach(([role, bar, at]) => {
+        if (typeof role !== "string" || !role.trim()) err(`${at}.role`, "each role bar names its role");
+        checkFact(bar, `${at}.bar`);
+      });
+    }
     const ss = cir.screening_signals;
     if (!ss || typeof ss !== "object") err("screening_signals", "required: { stated: [fact], revealed: [fact] }");
     else { checkFactList(ss.stated, "screening_signals.stated"); checkFactList(ss.revealed, "screening_signals.revealed"); }
@@ -286,9 +303,88 @@ const CareerIntel = (() => {
     return { company_id: cir.company_id, sample_size: cir.sample_size, as_of: cir.as_of, confidence_level: cir.confidence_level, distributions: dists, suppressed };
   }
 
+  // ---------- BUG-219 / FR-376: the role lens ----------
+  // A company file's headline bar belongs to its COHORT role. Serving it
+  // for a different asked role ("how does Snowflake compare for PM?"
+  // answered with the SWE coding bar) is a wrong-lens answer. The lens:
+  // per-role bars (cir.role_bars) win for their role; the cohort bar is
+  // served only when the asked role IS the cohort role; otherwise the
+  // honest answer is that this file carries no bar for the asked role.
+  const factText = (f) => (typeof f === "string" ? f : (f && (f.statement || f.text || f.summary)) || "");
+  const ROLE_LENSES = [
+    { key: "pm", label: "product management", re: /\b(pm|apm|product manager|product management)\b/i },
+    { key: "swe", label: "software engineering", re: /\b(swe|software engineer|software engineering|software developer|engineering)\b/i },
+    { key: "data-analyst", label: "data analyst", re: /\bdata analyst\b/i },
+    { key: "data-scientist", label: "data science", re: /\b(data scientist|data science)\b/i },
+    { key: "ml", label: "machine learning engineering", re: /\b(machine learning|ml engineer)\b/i },
+    { key: "quant", label: "quantitative trading / research", re: /\b(quant|quantitative)\b/i },
+    { key: "ib", label: "investment banking", re: /\b(investment banking|ibd|banker|banking analyst)\b/i },
+    { key: "consulting", label: "consulting", re: /\b(consultant|consulting|management consulting)\b/i },
+    { key: "design", label: "design", re: /\b(designer|product design|ux|ui design)\b/i },
+    { key: "sales", label: "sales", re: /\b(sales|account executive)\b/i },
+  ];
+  function detectRole(text) {
+    const t = String(text || "");
+    for (const r of ROLE_LENSES) if (r.re.test(t)) return { key: r.key, label: r.label };
+    return null;
+  }
+  function roleBarsOf(cir) {
+    const rb = cir && cir.role_bars;
+    if (!rb) return [];
+    if (Array.isArray(rb)) return rb.filter((e) => e && e.role).map((e) => ({ role: e.role, bar: e.bar || e }));
+    if (typeof rb === "object") return Object.entries(rb).map(([role, bar]) => ({ role, bar }));
+    return [];
+  }
+  function barForRole(cir, roleAsk) {
+    const asked = typeof roleAsk === "string" ? detectRole(roleAsk) || { key: null, label: roleAsk } : roleAsk;
+    const cohortRole = (cir.cohort && cir.cohort.role_family) || "";
+    if (!asked || !asked.label) return { status: "cohort-bar", role: cohortRole, bar: cir.hiring_bar_summary || null, text: factText(cir.hiring_bar_summary) };
+    for (const e of roleBarsOf(cir)) {
+      const er = detectRole(e.role);
+      if ((er && asked.key && er.key === asked.key) || norm(e.role) === norm(asked.label) || norm(e.role) === norm(asked.key || "")) {
+        return { status: "role-bar", role: e.role, bar: e.bar, text: factText(e.bar) };
+      }
+    }
+    const cohortLens = detectRole(cohortRole);
+    if (cohortLens && asked.key && cohortLens.key === asked.key) return { status: "cohort-bar", role: cohortRole, bar: cir.hiring_bar_summary || null, text: factText(cir.hiring_bar_summary) };
+    const comp = cir.company_name || cir.company_id;
+    return {
+      status: "no-role-bar", role: asked.label, bar: null,
+      text: `This company file for ${comp} carries a hiring bar for its ${cohortRole} cohort only — it has no ${asked.label} bar, so I won't quote the ${cohortRole} bar as if it answered a ${asked.label} question. What would answer it is a ${asked.label} company file or the role's own evidence in the career knowledge library.`,
+    };
+  }
+
+  // ---------- BUG-220 / FR-377: intel answers read the career KB (153) ----------
+  // Lazy at call time: in the router bundle 153 may sit after this file
+  // (TDZ), and in Node the require resolves directly. Absent KB module
+  // degrades to no citation, never a crash and never an invented stat.
+  const getKB = () => { try { return typeof CareerKB !== "undefined" ? CareerKB : require("./153-career-kb.js"); } catch { try { return require("./153-career-kb.js"); } catch { return null; } } };
+  function roleKbStats(roleAsk, opts) {
+    const KB = getKB();
+    if (!KB || !roleAsk) return null;
+    const label = typeof roleAsk === "string" ? roleAsk : roleAsk.label;
+    try { const st = KB.roleStats(label, opts || {}); return st && st.found ? st : null; } catch { return null; }
+  }
+  // The composed intel answer for a role question about a company:
+  // role-lens bar (or the honest no-bar statement) + the library's
+  // stats for the ASKED role, cited with their n. The two compose:
+  // neither half may borrow the other role's evidence.
+  function answerRoleIntel(cir, question, opts) {
+    const o = opts || {};
+    const asked = o.role ? (typeof o.role === "string" ? detectRole(o.role) || { key: null, label: o.role } : o.role) : detectRole(question) || detectRole(o.roleLabel || "");
+    const lens = cir ? barForRole(cir, asked || (cir.cohort && cir.cohort.role_family)) : null;
+    const stats = asked ? roleKbStats(asked.label, o) : null;
+    const KB = getKB();
+    const parts = [];
+    if (lens) parts.push(lens.text);
+    if (stats && KB) parts.push(KB.formatRoleStats(stats));
+    else if (asked) parts.push(`The career knowledge library carries no stats for ${asked.label} that I can cite with a sample size, so no library numbers are quoted here.`);
+    return { role: asked ? asked.label : null, lens_status: lens ? lens.status : null, lens, kb: stats, text: parts.filter(Boolean).join(" ") };
+  }
+
   // ---------- INTL-005: compare-me gap table ----------
   const norm = (s) => String(s || "").toLowerCase().trim();
-  function compareMe(cir, profile) {
+  function compareMe(cir, profile, opts) {
     const p = profile || {};
     const rows = [];
     const userSkills = (p.skills || []).map(norm);
@@ -317,10 +413,14 @@ const CareerIntel = (() => {
       controllable: false,
       fix: "Do not plan around changing schools; offset with experience, projects and referrals.",
     });
+    const lens = opts && opts.role ? barForRole(cir, opts.role) : null;
     rows.push({
       dimension: "experience",
       user: internships.length ? internships.map((i) => i.role ? `${i.role} at ${i.employer || "?"}` : (i.employer || "?")).join("; ") : "no internships yet",
-      cohort: cir.hiring_bar_summary ? cir.hiring_bar_summary.statement : "not on file",
+      // Role lens (BUG-219): with an asked role, the cohort cell is that
+      // role's bar — or the honest no-bar statement — never another
+      // role's bar quoted as if it were this role's.
+      cohort: lens ? lens.text : (cir.hiring_bar_summary ? cir.hiring_bar_summary.statement : "not on file"),
       status: internships.length ? "matches" : "gap",
       controllable: true,
       fix: internships.length ? "Turn the internship into talkable depth: what you built or analyzed, with numbers from your own work." : "Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this company file's path patterns.",
@@ -367,7 +467,7 @@ const CareerIntel = (() => {
   function planPath(cir, profile, opts) {
     const o = opts || {};
     const now = o.now || cir.as_of;
-    const gaps = compareMe(cir, profile);
+    const gaps = compareMe(cir, profile, opts);
     const gapDims = new Set(gaps.rows.filter((r) => r.status === "gap").map((r) => r.dimension));
     const comp = cir.company_name || cir.company_id;
     const milestones = [];
@@ -406,8 +506,13 @@ const CareerIntel = (() => {
       return c;
     };
     const stats = cohortStats(cir);
-    const gaps = compareMe(cir, profile);
-    const plan = planPath(cir, profile, { now });
+    const gaps = compareMe(cir, profile, o);
+    const plan = planPath(cir, profile, { now, role: o.role });
+    // Role lens (BUG-219): when a role was asked, the bottom line quotes
+    // THAT role's bar — or states honestly that the file carries none —
+    // never the cohort role's bar dressed as the asked role's answer.
+    const lens = o.role ? barForRole(cir, o.role) : null;
+    const barSentence = lens ? lens.text : cir.hiring_bar_summary.statement;
     const comp = cir.company_name || cir.company_id;
     const staleHere = v.stale.length ? ` Note: ${v.stale.length} fact(s) in this record are past their freshness window and flagged stale — re-verify before acting on them.` : "";
 
@@ -439,7 +544,7 @@ const CareerIntel = (() => {
     const oddsWord = gaps.rows.filter((r) => r.status === "gap").length >= 3 ? "low, but not zero" : gaps.rows.some((r) => r.status === "gap") ? "a real reach that the plan below is built to close" : "credible, if you execute the plan";
 
     const sections = {
-      bottom_line: `Bottom line: for ${comp} — ${cir.cohort.role_family}, ${cir.cohort.level} — your odds through the cold application alone are ${oddsWord}. This read rests on a ${/qualitative/i.test(String(cir.confidence_level)) ? "reported-pattern" : cir.confidence_level} record as of ${cir.as_of}${cir.sample_size ? ` over a sample of ${cir.sample_size}` : " with no population sample — treat every pattern below as reported, not measured"}. ${cir.hiring_bar_summary.statement}${staleHere}`,
+      bottom_line: `Bottom line: for ${comp} — ${cir.cohort.role_family}, ${cir.cohort.level} — your odds through the cold application alone are ${oddsWord}. This read rests on a ${/qualitative/i.test(String(cir.confidence_level)) ? "reported-pattern" : cir.confidence_level} record as of ${cir.as_of}${cir.sample_size ? ` over a sample of ${cir.sample_size}` : " with no population sample — treat every pattern below as reported, not measured"}. ${barSentence}${staleHere}`,
       who_gets_in: `Who gets in (${cir.sample_size === null ? "no population sample — reported-pattern record" : `sample of ${cir.sample_size}`}${cir.sample_size != null && cir.sample_size >= K_ANON && cir.sample_size < THIN_BELOW ? " — thin sample" : ""}, as of ${cir.as_of}):\n${whoLines.map((l) => `- ${l}`).join("\n")}\nKnown biases of this data: ${cir.known_biases_of_data.join("; ")}. We see who got in, not who tried and failed — survivorship bias is real.`,
       stated_vs_revealed: `What ${comp} says it screens for vs what the record shows:\nStated: ${(cir.screening_signals.stated || []).map((f) => f.statement).join(" ")}\nRevealed: ${(cir.screening_signals.revealed || []).map((f) => f.statement).join(" ")}`,
       routes_ranked: `Routes in, ranked for you:\n${routes.map((r, i) => `${["First", "Second", "Third", "Fourth", "Fifth"][i] || "Also"}: ${r.route} — ${r.accessibility_note}`).join("\n")}`,
@@ -453,7 +558,7 @@ const CareerIntel = (() => {
     if (cir.sample_size) claim(`sample of ${cir.sample_size}`, cir.sample_size, "sample_size", { source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size });
     // Numbers stated inside CIR facts that the text quotes (cadence, hiring bar) enter the ledger sourced to
     // those facts — the validator already forced every fact to carry source + date, so they trace by construction.
-    for (const f of [cir.hiring_cadence, cir.hiring_bar_summary, ...(cir.red_flags || []), ...((cir.screening_signals || {}).stated || []), ...((cir.screening_signals || {}).revealed || [])]) {
+    for (const f of [cir.hiring_cadence, cir.hiring_bar_summary, ...(lens && lens.bar && lens.bar !== cir.hiring_bar_summary ? [lens.bar] : []), ...(cir.red_flags || []), ...((cir.screening_signals || {}).stated || []), ...((cir.screening_signals || {}).revealed || [])]) {
       if (!f || !f.statement) continue;
       for (const n of numbersIn(f.statement)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${f.statement.slice(0, 60)}…: ${n}`, n, null, f);
     }
@@ -587,7 +692,7 @@ const CareerIntel = (() => {
     };
   }
 
-  return { CONFIDENCE, FACT_KINDS, DIST_FIELDS, K_ANON, THIN_BELOW, validateCIR, loadCIRs, loadCIRsFromDir, getCIR, cohortStats, compareMe, planPath, composeThesis, verifyClaims, verifyThesis, lintAdvice, respondToRequest, refreshDue, reportOutdated, numbersIn };
+  return { CONFIDENCE, FACT_KINDS, DIST_FIELDS, K_ANON, THIN_BELOW, validateCIR, loadCIRs, loadCIRsFromDir, getCIR, cohortStats, compareMe, planPath, composeThesis, verifyClaims, verifyThesis, lintAdvice, respondToRequest, refreshDue, reportOutdated, numbersIn, detectRole, barForRole, roleKbStats, answerRoleIntel, ROLE_LENSES };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerIntel;
 if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) {

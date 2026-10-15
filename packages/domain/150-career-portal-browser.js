@@ -112,7 +112,7 @@ const CareerPortalBrowser = (() => {
   function classifyFields(rawFields) {
     const defs = [];      // 149-shaped
     const bindings = {};  // field_id -> helper binding
-    const raws = rawFields.slice();
+    const raws = rawFields.filter((f) => !f.disabled && !f.readOnly);
     // virtual full_name: a first+last pair becomes ONE logical standard field
     const isFirst = (f) => /first name/.test((f.label + " " + f.name + " " + f.id).toLowerCase()) && f.inputType === "text";
     const isLast = (f) => /last name/.test((f.label + " " + f.name + " " + f.id).toLowerCase()) && f.inputType === "text";
@@ -265,6 +265,7 @@ const CareerPortalBrowser = (() => {
 
   // ---------- the sync bridge to the helper process ----------
   let helperDir = null, helperProc = null, cmdSeq = 0;
+  const commandLimits = new Map();
   const liveBoards = new Set();
   function ensureHelper() {
     if (helperProc) return;
@@ -290,6 +291,8 @@ const CareerPortalBrowser = (() => {
   }
   function call(boardId, cmd, timeoutMs) {
     ensureHelper();
+    const limits = commandLimits.get(boardId) || {};
+    timeoutMs = Math.max(1, Math.min(timeoutMs || 60000, limits.timeoutMs || 60000, limits.deadlineMs ? limits.deadlineMs - Date.now() : 60000));
     cmdSeq += 1;
     const seq = cmdSeq;
     const cmdName = `cmd-${boardId}-${seq}.json`;
@@ -300,7 +303,11 @@ const CareerPortalBrowser = (() => {
     const buf = new Int32Array(new SharedArrayBuffer(4));
     const respPath = path.join(helperDir, respName);
     while (!fs.existsSync(respPath)) {
-      if (Date.now() > deadline) throw coded("DRIVER_TIMEOUT", `browser helper did not answer '${cmd.type}' in ${timeoutMs || 60000}ms`);
+      if (Date.now() > deadline) {
+        try { helperProc.kill("SIGTERM"); } catch (_) {}
+        helperProc = null;
+        throw coded("DRIVER_TIMEOUT", `browser helper did not answer '${cmd.type}' in ${timeoutMs}ms; helper terminated, submit outcome must be reconciled`);
+      }
       Atomics.wait(buf, 0, 0, 15);
     }
     const resp = JSON.parse(fs.readFileSync(respPath, "utf8"));
@@ -324,11 +331,13 @@ const CareerPortalBrowser = (() => {
     if (!o.userId) throw coded("BOARD_USER_REQUIRED", "createBrowserBoard: userId is required — sessions are per-user, never shared");
     boardSeq += 1;
     const boardId = `bb-${boardSeq}`;
+    commandLimits.set(boardId, { timeoutMs: o.commandTimeoutMs || 60000, deadlineMs: o.deadlineMs || null });
     const gate = hostAllowed(o.url);
     const state = {
       opened: false, closed: false, defs: null, bindings: null,
       filledValues: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
       resumeShaChecked: null, submitAttempted: false, submitCapture: null,
+      observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
       armed: o.submitArmed === true, approvalRef: o.submitArmed === true ? (o.approvalRef || null) : null,
     };
@@ -367,6 +376,7 @@ const CareerPortalBrowser = (() => {
       get captchaTech() { return state.captchaTech.slice(); },
       get finalUrl() { return state.finalUrl; },
       get submitArmed() { return state.armed; },
+      get lastObservation() { return state.observation; },
       get approvalRef() { return state.approvalRef; },
       // THE ARMING WIRE (BUG-063 / D3): called ONLY by 149's approval
       // gate (submitDoorstep). Arms this board iff the gate passed AND
@@ -374,6 +384,7 @@ const CareerPortalBrowser = (() => {
       // approval. Anything else arms nothing and says so — the default
       // stays unarmed, and submit() stays the refusal.
       armForSubmit(ctx) {
+        if (ctx && ctx.approvedByUser === true && ctx.approvalRef && ctx.payload) state.armedPayload = ctx.payload;
         if (state.armed) return { armed: true, alreadyArmed: true, approvalRef: state.approvalRef };
         const ref = ctx && typeof ctx.approvalRef === "string" ? ctx.approvalRef.trim() : "";
         if (ctx && ctx.approvedByUser === true && ref) {
@@ -387,7 +398,7 @@ const CareerPortalBrowser = (() => {
       open() {
         if (state.closed) throw coded("BOARD_CLOSED", "this browser board is closed");
         if (!gate.allowed) throw coded("DRIVER_HOST_REFUSED", `driver refuses to open ${o.url} — only tested ATS families and localhost test pages may be driven (§6.3)`);
-        const r = call(boardId, { type: "open", url: o.url }, 240000);
+        const r = call(boardId, { type: "open", url: o.url, scope: o.scope || null }, 240000);
         calls.open += 1;
         state.opened = true;
         state.finalUrl = r.finalUrl; state.captchaTech = r.captchaTech || []; state.navSteps = r.navSteps || [];
@@ -412,7 +423,15 @@ const CareerPortalBrowser = (() => {
         refuseIfRedirected();
         const r = call(boardId, { type: "discover" }, 30000);
         const { defs, bindings } = classifyFields(r.fields || []);
+        state.observation = r.observation;
+        const refOf = (selector) => (r.fields || []).find((f) => f.selector === selector)?.ref;
+        for (const b of Object.values(bindings)) {
+          const selectors = b.selectors || (b.selector ? [b.selector] : (b.options || []).map((x) => x.selector));
+          b.elementRefs = selectors.map(refOf).filter(Boolean);
+          if (b.options && !b.selector) for (const option of b.options) option.ref = refOf(option.selector);
+        }
         state.defs = defs; state.bindings = bindings;
+        Object.assign(state.bindingHistory, bindings);
         for (const d of defs) if (bindings[d.field_id]) bindings[d.field_id].field_id = d.field_id;
         log("discover", { fieldCount: defs.length, fields: defs.map((d) => ({ field_id: d.field_id, kind: d.kind, required: d.required })) });
         return { fields: defs.map((d) => Object.assign({}, d)), captchaAt: null };
@@ -425,11 +444,11 @@ const CareerPortalBrowser = (() => {
         calls.fill += 1;
         if (binding.inputType === "file") {
           if (!o.resumePath) throw coded("RESUME_FILE_MISSING", "the board was built without a local resume file to upload");
-          if (state.resumeShaChecked === null) state.resumeShaChecked = sha256File(o.resumePath);
+          state.resumeShaChecked = sha256File(o.resumePath);
           if (!value || value.sha256 !== state.resumeShaChecked) {
             throw coded("RESUME_SHA_MISMATCH", "the local resume file's bytes do not hash to the profile's resume sha256 — refused, never uploaded");
           }
-          call(boardId, { type: "fill", binding, value, filePath: o.resumePath }, 30000);
+          call(boardId, { type: "fill", observationVersion: state.observation.version, binding, value, filePath: o.resumePath }, 30000);
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
           log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename });
           return value;
@@ -443,8 +462,16 @@ const CareerPortalBrowser = (() => {
         // claims a resume it failed to upload would be a lie.)
         let r;
         try {
-          r = call(boardId, { type: "fill", binding, value }, 30000);
+          r = call(boardId, { type: "fill", observationVersion: state.observation.version, binding, value }, 30000);
         } catch (e) {
+          if (e.code === "STALE_OBSERVATION" && !state.staleRetries.has(fieldId)) {
+            state.staleRetries.add(fieldId);
+            const prior = (state.defs || []).find((f) => f.field_id === fieldId);
+            board.form();
+            const next = (state.defs || []).find((f) => f.field_id === fieldId);
+            if (!prior || !next || ["kind", "label", "profile_key", "question_key"].some((key) => prior[key] !== next[key])) throw coded("STALE_FIELD_MEANING", "the re-observed question changed; a new preparation is required");
+            return board.fill(fieldId, value);
+          }
           state.fillFailures.push({ field_id: fieldId, reason: "fill_error:" + (e.code || "DRIVER_ERROR"), wanted: String(value) });
           log("fill_failed", { field_id: fieldId, reason: "fill_error:" + (e.code || "DRIVER_ERROR"), message: String(e.message || e).slice(0, 160) });
           return undefined;
@@ -460,18 +487,15 @@ const CareerPortalBrowser = (() => {
       },
       answers() {
         if (!state.bindings) return Object.assign({}, state.filledValues);
-        const list = Object.values(state.bindings).filter((b) => b.inputType !== "file");
-        const r = call(boardId, { type: "readback", bindings: list }, 30000);
-        const out = Object.assign({}, r.answers || {});
-        for (const [k, v] of Object.entries(state.filledValues)) {
-          const b = state.bindings[k];
-          if (b && b.inputType === "file") out[k] = v;
-        }
-        return out;
+        const list = Object.values(state.bindings);
+        const r = call(boardId, { type: "readback", observationVersion: state.observation.version, bindings: list }, 30000);
+        return r.answers || {};
       },
       atReview() {
         refuseIfRedirected();
-        const r = call(boardId, { type: "review" }, 90000);
+        let r;
+        try { r = call(boardId, { type: "review", observationVersion: state.observation.version, knownSelectors: Object.values(state.bindings || {}).flatMap((b) => b.selectors || (b.selector ? [b.selector] : (b.options || []).map((x) => x.selector))).filter(Boolean) }, 90000); }
+        catch (e) { if (e.code === "STALE_OBSERVATION") { board.form(); return { needsFields: true }; } throw e; }
         // §6.3 hop gate at review (BUG-060): the Next/Continue clicks
         // inside the review step navigate too — wherever they landed
         // must still be on the allowlist before anything submits.
@@ -485,9 +509,10 @@ const CareerPortalBrowser = (() => {
           }
           state.finalUrl = landed;
         }
+        if (r.code) return { code: r.code, finalUrl: r.finalUrl };
         if (r.captcha) { log("captcha_detected", { at: "review" }); return { ok: true, captcha: "challenge", screenshotRef: captureStopScreenshot("review") }; }
         log("at_review", {});
-        return { ok: true, captcha: null };
+        return { ok: true, captcha: null, needsFields: !!r.needsFields, advanced: !!r.advanced, atFinalReview: r.atFinalReview === true };
       },
       screenshot(filePath) {
         const r = call(boardId, { type: "screenshot", path: filePath }, 30000);
@@ -507,11 +532,16 @@ const CareerPortalBrowser = (() => {
         if (state.submitAttempted) {
           throw coded("SUBMIT_ALREADY_ATTEMPTED", "this board already fired its one submit — reconcile the captured outcome, never re-click (§8.3)");
         }
+        if (state.armedPayload) {
+          const checked = call(boardId, { type: "verify_payload", observationVersion: state.observation.version,
+            bindings: Object.values(state.bindingHistory), payload: state.armedPayload }, 30000);
+          if (!checked.matches) throw coded("PAYLOAD_CHANGED_BEFORE_CLICK", "the current browser fields differ from the approved payload; no click was issued");
+        }
         state.submitAttempted = true;
         calls.submit += 1;
         const shotPath = path.join(o.evidenceDir || helperDir, `submit-confirmation-${boardId}.png`);
         if (o.evidenceDir) { try { fs.mkdirSync(o.evidenceDir, { recursive: true }); } catch (e) {} }
-        const r = call(boardId, { type: "submit_and_capture", screenshotPath: shotPath }, 90000);
+        const r = call(boardId, { type: "submit_and_capture", observationVersion: state.observation.version, screenshotPath: shotPath }, 90000);
         if (r.captcha) {
           // A challenge at the moment of submit: nothing was clicked
           // through it. 149 reads the non-accepted outcome as unknown —

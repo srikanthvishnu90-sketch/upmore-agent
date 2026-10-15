@@ -32,6 +32,7 @@ import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../_shared/router_core.career.js";
 import { CareerHost } from "../_shared/career_host.js";
+import { routeCareerBrowserTask } from "../_shared/career_task_bridge.js";
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -163,7 +164,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     if (fsErr) console.error("career state load failed:", fsErr.message);
     if (fsRow && fsRow.state && typeof fsRow.state === "object") flowState = fsRow.state as Record<string, unknown>;
     const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), snapshot: (flowState.career as any) ?? null });
-    const out = host.runTurn(message, ctx);
+    const out = await routeCareerBrowserTask({ taskRequest: body.career_task, message,
+      userId: user.id, userToken: isBridgeCall ? null : authM[1], ctx,
+      endpoint: Deno.env.get("UPMORE_CAREER_WORKER_URL") }) ?? host.runTurn(message, ctx);
     for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
     const { error: saveErr } = await admin.from("agent_flow_state").upsert(
       { thread_id: tid, user_id: user.id, state: { ...flowState, career: host.extractSnapshot(ctx) }, updated_at: new Date().toISOString() },
@@ -171,7 +174,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     );
     if (saveErr) console.error("career state save failed:", saveErr.message);
     await supabase.from("agent_messages").insert({ thread_id: tid, role: "assistant", content: out.reply, meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } });
-    return json(cors, { thread_id: tid, reply: out.reply, action: null, capabilities: out.capabilities });
+    return json(cors, { thread_id: tid, reply: out.reply, action: null, capabilities: out.capabilities, ...(out.task ? { task: out.task } : {}) });
   } catch (e) {
     console.error(e);
     return json(cors, { error: "internal" }, 500);

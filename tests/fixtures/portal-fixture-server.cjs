@@ -177,18 +177,28 @@ const GH_REMOUNT_LATE = `<!doctype html><html><head><title>Job Application (TEST
   <button type="submit" id="submit-btn">Submit application</button>
 </form>
 <script>
+let __resetArmed = false;
 let __resetDone = false;
 document.addEventListener('change', (e) => {
-  if (__resetDone || !e.target || e.target.type !== 'file') return;
+  if (__resetDone || !e.target) return;
+  if (e.target.type === 'file') { __resetArmed = true; return; }
+  if (!__resetArmed) return;
+  // Deterministic delayed reset (the live Labelbox shape): the board
+  // wipes every filled field once the driver moves past the resume
+  // upload — fired by the NEXT field's change event, never by a clock,
+  // so the loss cannot be outrun by a fast or slow driver.
   __resetDone = true;
-  setTimeout(() => {
-    document.querySelectorAll('input[type=text], input[type=email], input[type=tel], select').forEach((el) => {
-      if (!el.id) return;
-      const clone = el.cloneNode(el.tagName === 'SELECT');
-      if (clone.tagName === 'SELECT') clone.selectedIndex = 0;
-      el.replaceWith(clone);
-    });
-  }, 800);
+  document.querySelectorAll('input[type=text], input[type=email], input[type=tel], select').forEach((el) => {
+    if (!el.id) return;
+    const clone = el.cloneNode(el.tagName === 'SELECT');
+    if (clone.tagName === 'SELECT') clone.selectedIndex = 0;
+    // A real board remount re-creates inputs EMPTY (the live Labelbox
+    // reset dropped the values outright). cloneNode alone would carry
+    // the filled value attribute over — the clone must be cleared, or
+    // the "wipe" silently keeps every text value and nothing is lost.
+    else { clone.removeAttribute('value'); clone.value = ''; }
+    el.replaceWith(clone);
+  });
 }, true);
 </script></body></html>`;
 

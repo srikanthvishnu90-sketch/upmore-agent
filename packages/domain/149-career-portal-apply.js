@@ -426,9 +426,13 @@ const CareerPortalApply = (() => {
       resultStatus: "prepared", asks, formAnalysis,
       doorstep: { atFinalReview: true, payload, payloadSha256 },
     });
-    // step 6: submit only on the explicit approval carried in this run
+    // step 6: submit only on the explicit approval carried in this run.
+    // The delegated result carries this run's step log + cap report like
+    // every other return path (base() first, the leg's own fields win) —
+    // returning the leg's bare object dropped the audit trail, which hid
+    // the D11 doorstep repair from the run's record (BUG-207 guards).
     if (inp.approval && inp.approval.approvedByUser === true) {
-      return submitDoorstep(session, inp.approval, { log, now: inp.now, posting });
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting }));
     }
     return prepared;
   }
@@ -479,10 +483,7 @@ const CareerPortalApply = (() => {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId });
-      // The step log is the run's audit trail — the armed-success return
-      // carries it like every other return (its omission hid the D11
-      // doorstep repair from the record; caught by the BUG-207 guards).
-      return Object.assign(base(), { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep });
+      return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
     session.needsReconcile = true;

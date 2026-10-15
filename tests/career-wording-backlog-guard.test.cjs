@@ -234,19 +234,19 @@ test("BUG-136: brief replies speak bar, loop, and story state; coffee chats spea
 // source, and the company state the record carries ----
 test("BUG-137: announcements name the event, its source, and its next step", () => {
   const t122 = text(turn("SC-122"));
-  assert.ok(/Confirmation logged/.test(t122) && /came from the confirmation email itself/.test(t122), `SC-122: ${t122.slice(0, 160)}`);
+  assert.ok(/Confirmation on the record/.test(t122) && /came from the confirmation email itself/.test(t122), `SC-122: ${t122.slice(0, 160)}`);
   assert.ok(/carried as company not stated/.test(t122), "SC-122: TN-1a state spoken");
   assert.ok(!/Want the detail behind the new stage\?/.test(t122), "SC-122: detail-tease closer gone");
   const t138 = text(turn("SC-138"));
-  assert.ok(/Logged: interview at Ramp/.test(t138), `SC-138: ${t138.slice(0, 120)}`);
+  assert.ok(/Interview at Ramp — on the record/.test(t138), `SC-138: ${t138.slice(0, 120)}`);
   assert.ok(/from your message just now, not from an email/.test(t138), "SC-138: chat provenance told truly");
   assert.ok(!/came from the email itself/.test(t138), "SC-138: false email provenance gone");
   const t126 = text(turn("SC-126"));
-  assert.ok(/Assessment logged/.test(t126) && /prep pack for this assessment now\?/.test(t126), `SC-126: ${t126.slice(0, 160)}`);
+  assert.ok(/Assessment on the record/.test(t126) && /prep pack for this assessment now\?/.test(t126), `SC-126: ${t126.slice(0, 160)}`);
   const t127 = text(turn("SC-127"));
-  assert.ok(/Offer logged/.test(t127) && /offer terms — base, bonus, expiry — laid out now\?/.test(t127), `SC-127: ${t127.slice(0, 160)}`);
+  assert.ok(/Offer on the record/.test(t127) && /offer terms — base, bonus, expiry — laid out now\?/.test(t127), `SC-127: ${t127.slice(0, 160)}`);
   const t123 = text(turn("SC-123"));
-  assert.ok(/Rejection logged/.test(t123) && /came from the rejection email itself/.test(t123) && /full what-to-tighten note now\?/.test(t123), `SC-123: ${t123.slice(0, 160)}`);
+  assert.ok(/Rejection on the record/.test(t123) && /came from the rejection email itself/.test(t123) && /full what-to-tighten note now\?/.test(t123), `SC-123: ${t123.slice(0, 160)}`);
 });
 
 // ---- BUG-138: an empty tracker answers in the shape of the ask ----
@@ -258,7 +258,7 @@ test("BUG-138: empty-tracker replies take the ask's shape", () => {
   const t140 = text(turn("SC-140"));
   assert.ok(/Done — low-priority alerts are folded into the morning digest during your quiet hours\./.test(t140), `SC-140: ${t140.slice(0, 120)}`);
   const t121 = text(turn("SC-121"));
-  assert.ok(/Tell me about any application you have already sent, and I will log it first\./.test(t121), `SC-121: ${t121.slice(-120)}`);
+  assert.ok(/Tell me about any application already out under your own name, and I will log it first\./.test(t121), `SC-121: ${t121.slice(-120)}`);
   assert.ok(!/Find a role and I will start the tracker with it\./.test(t121), "SC-121: generic closer gone");
 });
 
@@ -280,7 +280,7 @@ test("BUG-139: nudge, thank-you, and classification speak their true state", () 
 // records' numbers ----
 test("BUG-140: track summaries speak their records", () => {
   const t131 = text(turn("SC-131"));
-  assert.ok(/Sent 0, replies 0, interviews 0/.test(t131), `SC-131: ${t131.slice(0, 160)}`);
+  assert.ok(/Applications out 0, replies in 0, interviews 0/.test(t131), `SC-131: ${t131.slice(0, 160)}`);
   const t133 = text(turn("SC-133"));
   assert.ok(!/wearing a suit/.test(t133) && /referral and cold rates can be compared honestly/.test(t133), `SC-133: ${t133.slice(0, 200)}`);
   const t141 = text(turn("SC-141"));

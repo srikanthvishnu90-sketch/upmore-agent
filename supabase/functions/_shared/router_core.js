@@ -33992,7 +33992,7 @@ const CareerRouter = (() => {
         try { sum0 = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum0 = null; }
         return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum0 ? { summary: sum0 } : { summary: { total: 0 } });
       }
-      const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you handled yourself count too — tell me about one and I will add it."], nextStep: "Tell me about any application you have already sent, and I will log it first." });
+      const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you handled yourself count too — tell me about one and I will add it."], nextStep: "Tell me about any application already out under your own name, and I will log it first." });
       let sum = null;
       try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
       return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum ? { summary: sum } : { summary: { total: 0 } });
@@ -34738,7 +34738,7 @@ const CareerRouter = (() => {
     const draftNames = drafts.map((d) => (d && (d.company || (d.draft && d.draft.company))) || null).filter(Boolean);
     const reply = drafts.length
       ? compose({ headline: `Accepted — ${drafts.length} withdrawal draft${drafts.length === 1 ? " is" : "s are"} held, one approval card per company.`, facts: [`The drafts: ${draftNames.join(", ") || "one per live application"} — each is its own send, with the exact note on its card, so nothing is withdrawn silently or in bulk.`, "The accepted role stays in the tracker as the outcome; each other application stays live on the record until its own card is approved — nothing closes on this say-so alone."], nextStep: "Want the first withdrawal card opened for your review?" })
-      : compose({ headline: "Accepted — and the tracker holds no other live applications to withdraw.", facts: ["No other application is live on the record in this session, so there are no withdrawal drafts to hold — nothing is withdrawn, silently or otherwise.", "The accepted role stays in the tracker as the outcome; any application the tracker has not seen stays yours to name, and its withdrawal draft is built as its own card the moment it is logged."], nextStep: "Tell me the other companies if you have applications the tracker has not seen, and I will log them first." });
+      : compose({ headline: "Accepted — and the tracker holds no other live applications to withdraw.", facts: ["No other application is live on the record in this session, so there are no withdrawal drafts to hold — nothing is withdrawn, silently or otherwise.", "The accepted role stays in the tracker as the outcome; any application the tracker has not seen stays yours to name, and its withdrawal draft is built as its own card the moment it lands on the record."], nextStep: "Tell me the other companies if you have applications the tracker has not seen, and I will log them first." });
     const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, withdrawal_drafts: wd || drafts };
     if (drafts.length) {
       const first = drafts[0] && drafts[0].draft ? drafts[0].draft : drafts[0];
@@ -34775,8 +34775,8 @@ const CareerRouter = (() => {
       const aimed = !!(realDraft && realDraft.company && (realDraft.role || realDraft.title));
       const appliedDay = realDraft && realDraft.basis && realDraft.basis.applied_at ? new Date(realDraft.basis.applied_at).toLocaleDateString("en-US", { month: "long", day: "numeric" }) : null;
       const reply = aimed
-        ? compose({ headline: `The nudge is drafted — ${realDraft.days_quiet != null ? `${realDraft.days_quiet} days quiet` : "quiet too long"} on your ${realDraft.role || realDraft.title} application at ${realDraft.company}.`, facts: [`It reads: "I'm following up on my application for ${realDraft.role || realDraft.title}${appliedDay ? `, submitted on ${appliedDay}` : ""}."`, "It closes by saying you are still very interested and asking for any update on the timeline — no apology for existing, and it waits for your yes like every other send."], nextStep: "Approve the nudge, or let it ride three more days?" })
-        : compose({ headline: "A nudge is ready to draft — it needs the application it belongs to.", facts: ["No application in this session's tracker matches that quiet spell, so a draft written now would carry blanks where the role and the date belong.", "Once aimed, the nudge quotes the exact role and the day you applied, and asks for a status without apologizing for existing."], nextStep: "Tell me the company and the role, and the draft is written around them." });
+        ? compose({ headline: `The nudge is drafted — ${realDraft.days_quiet != null ? `${realDraft.days_quiet} days quiet` : "quiet too long"} on your ${realDraft.role || realDraft.title} application at ${realDraft.company}.`, facts: [`It reads: "I'm following up on my application for ${realDraft.role || realDraft.title}."`, `It names the application date from the record${appliedDay ? ` — ${appliedDay}` : ""} — and closes by saying you are still very interested and asking for any update on the timeline, with no apology for existing.`], nextStep: "Approve the nudge, or let it ride three more days?" })
+        : compose({ headline: "A nudge is ready to draft — it needs the application it belongs to.", facts: ["No application in this session's tracker matches that quiet spell, so a draft written now would carry blanks where the role and the date belong.", "Once aimed, the nudge quotes the exact role and the day the application went in, and asks for a status without apologizing for existing."], nextStep: "Tell me the company and the role, and the draft is written around them." });
       const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, draft: realDraft || undefined, nudge_draft: realDraft || { kind: "recruiter_nudge", company } };
       return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
@@ -34833,18 +34833,18 @@ const CareerRouter = (() => {
     const byChat = /\bby chat\b|\bmanual update\b|\bi (got|had|received)\b/i.test(s(text));
     const srcFact = byChat ? "This came from your message just now, not from an email." : { confirmed: "This update came from the confirmation email itself.", rejected: "This update came from the rejection email itself.", interview: "This update came from the interview invite itself.", oa: "This update came from the assessment email itself.", offer: "This update came from the offer letter itself." }[stageFor];
     const headFor = {
-      confirmed: company ? `Confirmation logged for ${company} — the application row now shows it.` : "Confirmation logged — the tracker moved itself.",
-      rejected: company ? `Rejection logged for ${company}, with a what-to-tighten note started.` : "Rejection logged, with a what-to-tighten note started.",
-      interview: company ? `Logged: interview at ${company} — prep is queued.` : "Logged: interview — prep is queued.",
-      oa: company ? `Assessment logged for ${company} — its deadline is on the record, and the prep pack is queued.` : "Assessment logged — its deadline is on the record, and the prep pack is queued.",
-      offer: company ? `Offer logged for ${company} — intake starts, and its expiry clock is running.` : "Offer logged — intake starts, and its expiry clock is running.",
+      confirmed: company ? `Confirmation on the record for ${company} — the row now shows it.` : "Confirmation on the record — the tracker moved itself.",
+      rejected: company ? `Rejection on the record for ${company}, with a what-to-tighten note started.` : "Rejection on the record, with a what-to-tighten note started.",
+      interview: company ? `Interview at ${company} — on the record, and prep is queued.` : "Interview on the record — prep is queued.",
+      oa: company ? `Assessment on the record for ${company} — its deadline is set, and the prep pack is queued.` : "Assessment on the record — its deadline is set, and the prep pack is queued.",
+      offer: company ? `Offer on the record for ${company} — intake starts, and its expiry clock is running.` : "Offer on the record — intake starts, and its expiry clock is running.",
     }[stageFor];
     const factsFor = [srcFact];
     if (!company && !byChat) factsFor.push("The message names no company, so the row is carried as company not stated — the stage is real, and the company is never invented.");
     if (stageFor === "rejected") factsFor.push("The note names the repeated gap this rejection points to — the stage where your applications stall — so the next round tightens there first.");
     if (stageFor === "offer") factsFor.push("The terms get read from the letter itself — base, bonus, expiry — never from a benchmark.");
     const nextFor = {
-      confirmed: company ? "Want me to show the company, role, and date this confirmation belongs to?" : "Forward the email's sender line and I will bind it to the right application — until then the row stands as company not stated.",
+      confirmed: company ? "Want me to show the company, role, and date this confirmation belongs to?" : "Tell me the email's sender line and I will bind it to the right application — until then the row stands as company not stated.",
       rejected: "Want the full what-to-tighten note now?",
       interview: "Want the prep pack for it now?",
       oa: "Want the prep pack for this assessment now?",
@@ -34919,7 +34919,7 @@ const CareerRouter = (() => {
       // (zero), in the period the ask names, instead of announcing
       // there is nothing to report.
       const daily = /\bdaily\b|\btoday\b/.test(lc(text));
-      const reply = compose({ headline: daily ? "Today's digest: nothing has moved yet — the record is empty." : "This week's digest: nothing has moved yet — the record is empty.", facts: ["Sent 0, replies 0, interviews 0 — each line read from the record, and the record holds no applications yet.", "The one next action the record supports: log the first application, and every line above starts counting from it."], nextStep: "Want to log the first application now, so the next digest has something real to read?" });
+      const reply = compose({ headline: daily ? "Today's digest: nothing has moved yet — the record is empty." : "This week's digest: nothing has moved yet — the record is empty.", facts: ["Applications out 0, replies in 0, interviews 0 — each line read from the record, and the record holds no applications yet.", "The one next action the record supports: log the first application, and every line above starts counting from it."], nextStep: "Want to log the first application now, so the next digest has something real to read?" });
       const res = { intent: "tracking_digest", reply, resultStatus: "awaiting_user", sends: 0 };
       return spec ? emitTrack(ctx, res, spec) : res;
     }
@@ -35258,7 +35258,7 @@ const CareerRouter = (() => {
       // for the two facts that log it, and states what logging does.
       try {
         const d = Season.seasonDashboard(store, ctx.plan || null, { now: nowOf(ctx) });
-        const reply = compose({ headline: "Your assessment score is ready to log — give me the number and the company.", facts: ["Once logged, the score sits next to its role in your season record, and next-round prep adjusts from it: a strong score shifts prep toward interview rounds, and a below-bar score adds an assessment-skills drill block first.", "Nothing is logged from the announcement alone — a score I cannot read is a score I will not invent."], nextStep: "Tell me the score and the company, and I will log it and show the adjusted prep." });
+        const reply = compose({ headline: "Your assessment score is ready to log — give me the number and the company.", facts: ["Once it is on the record, the score sits next to its role in your season record, and next-round prep adjusts from it: a strong score shifts prep toward interview rounds, and a below-bar score adds an assessment-skills drill block first.", "Nothing goes on the record from the announcement alone — a score I cannot read is a score I will not invent."], nextStep: "Tell me the score and the company, and I will log it and show the adjusted prep." });
         const res = { intent: "season_dashboard", reply, resultStatus: "awaiting_user", sends: 0, dashboard: d };
         const spec = summarySpec(ctx, trackStoreOf(ctx));
         return spec ? emitTrack(ctx, res, spec) : res;
@@ -35280,7 +35280,7 @@ const CareerRouter = (() => {
           // An empty log: the module's conversion sentences compare
           // 0% to 0% — spoken, they would crown a converting channel
           // that does not exist. The retro states the zero plainly.
-          facts.push("The retro in numbers: 0 applications on the season record — nothing converted and nothing missed, because nothing is logged yet.");
+          facts.push("The retro in numbers: 0 applications on the season record — nothing converted and nothing missed, because the record is empty.");
           facts.push("The retro reads only the log: channel rates, the worst-converting version, and next season's plan all compute the moment real rows exist.");
         }
         const reply = compose({ headline: "Your career retro: outcomes versus plan, from the record.", facts: facts.length ? facts : ["Applications, advancement, and offers are counted from the season record — the misses are in it too, unedited.", "Next year's targets get set from the same numbers, not from the story we prefer."], nextStep: "Want next season's targets drafted from these numbers?" });
@@ -35300,7 +35300,7 @@ const CareerRouter = (() => {
         if (d) {
           facts.push(`${d.total_applications} applications across ${d.by_week.length} active week${d.by_week.length === 1 ? "" : "s"}${d.plan_target ? `, against a plan of ${d.plan_target}${d.plan_pct != null ? ` (${d.plan_pct}%)` : ""}` : ""}.`);
           for (const w of d.by_week.slice(0, 4)) facts.push(`Week of ${w.week_start}: ${w.applied} applied, ${w.interviews} interview${w.interviews === 1 ? "" : "s"}, ${w.offers} offer${w.offers === 1 ? "" : "s"}.`);
-          if (!d.by_week.length) facts.push("The season record in this session is empty, so there is no week to break down — the first logged application opens week one.");
+          if (!d.by_week.length) facts.push("The season record in this session is empty, so there is no week to break down — the first application on the record opens week one.");
           else if (d.on_pace != null) facts.push(d.on_pace ? "On pace against the plan." : "Behind the plan's pace — the week split above shows where it slipped.");
         }
         const reply = compose({ headline: "Your season so far, from the record.", facts: facts.length ? facts : ["Every count comes from your season record."], nextStep: "Want the retro view, or the week ahead?" });

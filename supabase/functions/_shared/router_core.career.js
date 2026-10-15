@@ -15908,7 +15908,7 @@ const CareerRouter = (() => {
     if (/\breject(ed|ion)\b[^.]*\b(advice|what now|next)\b|\bafter (a |the )?rejection\b/.test(t)) return "rejection";
     if (/\bgraduat|\bgrad school\b|\bwhich major\b|\bstraight out of college\b|\bfrom undergrad\b/.test(t)) return "graduation_window";
     if (/\bcredential\b|\blicense\b|\brequirement\b[^.]*\breal\b/.test(t)) return "classify_credential";
-    if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b/.test(t)) return "plan_paths";
+    if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbreak into\b|\bwhere do i start\b|\bhow do i start\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b/.test(t)) return "plan_paths";
     if (/\bfatal for\b|\bno sugarcoating\b|\bactually require\b|\bactually help\b|\boffsets the brand gap\b|\bmarket (bad|brutal)\b|\bdata science entry\b|\bstartup entry\b/.test(t)) return "honest_evidence";
     return null;
   }
@@ -18472,6 +18472,21 @@ const CareerRouter = (() => {
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls
     // through to 141 when this router returns null or the fallback.
+    // BUG-211 (MI-047, FR-369): the guidance dispatch gate (in the
+    // intel block above) and guidanceIntentFor kept SEPARATE phrase
+    // lists, and the flagship entry shapes ("break into investment
+    // banking — where do I start?") fell through both into the
+    // contained fallback (LF-01f). The intent matcher is a source of
+    // truth too — but it runs HERE, after every named owner in this
+    // dispatch has had its chance: an ask another handler owns (the
+    // weak-profile plan, SC-113, whose text happens to match
+    // plan_paths' quant...path shape) keeps its owner, and only the
+    // otherwise-unowned guidance-shaped asks reach the guidance
+    // engine instead of the generic fallback.
+    if (guidanceIntentFor(t)) {
+      const ig = handleIntelGuidance(text, c);
+      if (ig) return ig;
+    }
     // Career-adjacent but unmatched: the 140 unmatched fallback finally has a
     // caller (the baseline noted it existed with none in the path).
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {

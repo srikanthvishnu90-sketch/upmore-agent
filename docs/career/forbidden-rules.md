@@ -2375,8 +2375,9 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-366 (BUG-208) | UNENFORCED | UNENFORCED (see section) |
 | FR-367 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
 | FR-368 (BUG-210) | ENFORCED | tests/career-tn1a-feed-path.test.cjs |
+| FR-369 (BUG-211) | ENFORCED | tests/career-guidance-entry.test.cjs |
 
-<!-- totals: total=368 enforced=273 guarded_red=0 hard_shut=1 unenforced=94 (reconciled 2026-10-15, GC pass #1 + FR-368 added ENFORCED at birth, MI-030) -->
+<!-- totals: total=369 enforced=274 guarded_red=0 hard_shut=1 unenforced=94 (reconciled 2026-10-15, GC pass #1 + FR-368/FR-369 added ENFORCED at birth, MI-030/MI-047) -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2533,3 +2534,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-368 — A board token is never a company (BUG-210, TN-1a feed path)
 - **RULE:** A posting's company comes only from a source that names it: the feed payload's own company name, or the feed descriptor's stated company (the board registry carries one per board). The board token is an address and must never render as a company. When neither source names a company, the posting carries company: null with company_not_stated: true — the TN-1a truth — and flows onward (dedupe, matching, alerts) company-less, never dropped and never dressed in the token.
 - **ENFORCEMENT:** tests/career-tn1a-feed-path.test.cjs (8 tests: all four normalizers silent-payload -> not-stated; payload name wins; descriptor company used via fetchFeed; end-to-end not-stated; dedupe survival + stable job_id).
+
+### FR-369 — Guidance-shaped asks reach the guidance engine; the intent matcher runs last in dispatch (BUG-211)
+- **RULE:** The guidance dispatch gate and the guidance intent matcher must never silently diverge: an ask the intent matcher recognizes as guidance-shaped reaches 144's engine unless another named handler owns it. The matcher admission runs AFTER every named owner in dispatch (an owned ask keeps its owner even when its text matches a guidance shape — SC-113's weak-profile plan is the standing example), and the entry shapes (break into, where/how do I start) belong to plan_paths.
+- **ENFORCEMENT:** tests/career-guidance-entry.test.cjs (7 tests: the flagship ask + 3 sibling entry phrasings route to the guidance answer; the previously working shape unchanged; a non-guidance ask is not captured; SC-113 keeps its weak_profile_plan owner).

@@ -3388,6 +3388,7 @@ const CareerRouter = (() => {
     if (!Array.isArray(c.intentQueue) && Array.isArray(m.queue)) c.intentQueue = m.queue; else if (Array.isArray(c.intentQueue)) m.queue = c.intentQueue;
     if (!c.discovery && m.discovery) c.discovery = m.discovery; else if (c.discovery) m.discovery = c.discovery;
     if (!c.negotiationThread && m.negotiation) c.negotiationThread = m.negotiation; else if (c.negotiationThread) m.negotiation = c.negotiationThread;
+    if (!c._careerLastWork && m.lastWork) c._careerLastWork = m.lastWork; else if (c._careerLastWork) m.lastWork = c._careerLastWork;
     // Pause reconciliation (the C07 stale-pause class): a lifted
     // pause recorded in the mirror beats a stale set-flag whose own
     // timestamp is not newer than the lift. A genuinely newer halt
@@ -3415,6 +3416,7 @@ const CareerRouter = (() => {
     if (Array.isArray(c.intentQueue) && c.intentQueue.length) pairs.push(["queue", c.intentQueue]);
     const nt = (c.negotiationThread && typeof c.negotiationThread === "object") ? c.negotiationThread : null;
     if (nt && (nt.firm || nt.amount || nt.deadline)) pairs.push(["negotiation", nt]);
+    if (c._careerLastWork && typeof c._careerLastWork === "object" && c._careerLastWork.kind) pairs.push(["lastWork", c._careerLastWork]);
     if (c.globalPause && typeof c.globalPause === "object") pairs.push(["pause", c.globalPause]);
     else if (c.globalPause === true) { const ex = threadMirrorOf(c); if (!ex || !ex.pause) pairs.push(["pause", { set: true, at: nowOf(c) }]); }
     if (!pairs.length) return;
@@ -6801,6 +6803,13 @@ const CareerRouter = (() => {
       // turn, and the narrow clarifying questions — sits just above
       // the discovery tail, after every specific route has had its
       // chance.
+      // W-NEXTSTEP (MI-012 / LF-01a): a strict whole-turn next-step
+      // follow-up over ACTIVE WORK claims ahead of synthesis (which
+      // composes from facts alone); it stands down when no work is
+      // active, so facts-only and cold threads keep synthesis and
+      // the continuation branch as their owners.
+      const nsf = handleNextStepFollowUp(text, c);
+      if (nsf) return nsf;
       const fs2 = handleFactSynthesis(text, c);
       if (fs2) return fs2;
       const thc = handleThreadContinuation(text, c);
@@ -7052,7 +7061,126 @@ const CareerRouter = (() => {
     const plan = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
     let rows = [];
     try { const store = trackStoreOf(ctx); rows = (store && Array.isArray(store.rows)) ? store.rows : []; } catch { rows = []; }
-    return { facts, year: get("year"), majors: get("majors"), geo: get("geography"), firm: get("target_firm"), level: get("level"), exp: get("experience"), tone: get("tone"), thread, plan, rows };
+    // W-NEXTSTEP (MI-012 / LF-01a): the thread's ACTIVE WORK beyond
+    // facts/plan/rows — the held intent queue, the last search, the
+    // last piece of work actually served (prep / tailor / a draft /
+    // a negotiation turn, recorded by recordActiveWork), and the
+    // pause state. A next-step follow-up is answered from exactly
+    // this, so work that left no other durable record (a prep
+    // question served profile-less leaves no facts, plan, or row)
+    // is still visible to the composer instead of reading as cold.
+    const queue = Array.isArray(ctx.intentQueue) ? ctx.intentQueue : [];
+    const discovery = (ctx.discovery && ctx.discovery.lastParams) ? ctx.discovery.lastParams : null;
+    const lastWork = lastWorkOf(ctx);
+    let paused = false;
+    try { paused = pausedOf(ctx); } catch { paused = false; }
+    return { facts, year: get("year"), majors: get("majors"), geo: get("geography"), firm: get("target_firm"), level: get("level"), exp: get("experience"), tone: get("tone"), thread, plan, rows, queue, discovery, lastWork, paused };
+  }
+  // W-NEXTSTEP: the active-work record — read view (top-level ctx
+  // first, then the thread mirror inside the track store, the same
+  // two homes every other thread record reconciles between).
+  function lastWorkOf(ctx) {
+    const c = ctx || {};
+    if (c._careerLastWork && typeof c._careerLastWork === "object") return c._careerLastWork;
+    const m = threadMirrorOf(c);
+    if (m && m.lastWork && typeof m.lastWork === "object") { c._careerLastWork = m.lastWork; return m.lastWork; }
+    return null;
+  }
+  // W-NEXTSTEP: a turn that SERVED a piece of work (prep served, a
+  // tailor cut, a held draft, a negotiation turn) records that work
+  // as the thread's active item. This is conversation state, not a
+  // user-fact/tracker write: it records what the PRODUCT just did,
+  // in the user's own ask words, and a next-step ask itself (career_
+  // guidance) never overwrites it — so "and then?" asked twice
+  // reads the same active work twice.
+  function recordActiveWork(ctx, res, text) {
+    const c = ctx || {};
+    if (!res || !res.intent) return;
+    if (res.intent === "career_fallback" || res.intent === "honest_unavailable") return;
+    let kind = null;
+    if (/^prep_/.test(res.intent) && res.intent !== "prep_needs_profile") kind = "prep";
+    else if (/^negotiation_/.test(res.intent)) kind = "negotiation";
+    else if (res.intent === "career_tailor" || res.intent === "career_essay") kind = "tailor";
+    else if (res.intent === "outreach_draft") kind = "draft";
+    if (!kind) return;
+    const company = res.company || (res.artifact && res.artifact.company) || (res.draft && res.draft.company) || null;
+    c._careerLastWork = { kind, intent: res.intent, ask: s(text).slice(0, 140), company: company || null, at: new Date(nowOf(c)).toISOString() };
+  }
+  // W-NEXTSTEP (MI-012 / LF-01a): the next-step follow-up as a
+  // DISCOURSE FUNCTION. The claim is structural: after discourse
+  // fillers are stripped, the WHOLE turn is a continuation ask —
+  // an explicit next-step ask ("whats my next step then", "what
+  // should I do next") or a bare deictic one whose only content is
+  // the continuation itself ("ok and then?", "what now?", "so
+  // what's next?", "and then what?"). Whole-turn anchoring is the
+  // claim-order discipline: a longer turn that merely CONTAINS
+  // these words carries fresh content and keeps its own route —
+  // nothing already claimed by a more specific route is stolen.
+  function isNextStepFollowUp(text) {
+    let core = lc(text).replace(/[’]/g, "'").trim().replace(/\s+/g, " ").replace(/[?!.]+$/, "").trim();
+    if (/^(and )?then what$/.test(core)) return true; // the idiom as a whole — "then" is not a filler inside it
+    let prev = null;
+    while (core !== prev) { prev = core; core = core.replace(/^(ok|okay|so|alright|right|well|yeah|and|then)[ ,]+/, "").trim(); }
+    if (!core) return false;
+    return core === "then"
+      || core === "next"
+      || /^(what now|now what|what next|what then|then what)$/.test(core)
+      || /^what'?s next$/.test(core)
+      || /^what happens next$/.test(core)
+      || /^what'?s my (very )?next (step|move)( (then|now))?$/.test(core)
+      || /^what is my next (step|move)( (then|now))?$/.test(core)
+      || /^what'?s the (single |very )?next (step|move|thing)$/.test(core)
+      || /^what (do|should|can|would) i do( (next|now|from here))?$/.test(core)
+      || /^what (is|would be) (the|my) next (step|move|thing)$/.test(core)
+      || /^(the )?next (step|move)$/.test(core)
+      || /^where (do|should) (i|we) go from here$/.test(core)
+      || /^how (do|should) i proceed$/.test(core);
+  }
+  // W-NEXTSTEP: the composed next move for the thread's active
+  // work, in priority order — a standing pause first (no unpaused
+  // move may be spoken over it), then the deadline-bearing offer
+  // thread, the held queue, the plan's approval gate, the user's
+  // stated facts, the open tracker row, the last work served, and
+  // the last search. With no active work at all the step is the
+  // career-OS intake question — the one question that starts a
+  // plan — never an invented plan over no facts.
+  function composedNextStep(C) {
+    if (C.paused) return "Everything is paused right now, so the honest next step is a decision, not an action: lift the pause when you are ready and the work resumes from exactly this state — until then nothing sends, submits, or goes out.";
+    if (C.thread && C.thread.deadline) return `Draft the extension ask on the ${C.thread.firm || "offer"} before the ${C.thread.deadline} deadline moves — that one draft protects every other option.`;
+    if (C.thread && C.thread.amount) return `Get the counter drafted against the $${Number(C.thread.amount).toLocaleString()} offer${C.thread.firm ? ` from ${C.thread.firm}` : ""} — one written counter, from sourced numbers, held for your approval.`;
+    if (C.queue && C.queue.length) return `Take the next held part of your earlier message — ${C.queue[0].label || "the next part"} — it was queued in order and it runs next; the parts behind it stay held until it is done.`;
+    if (C.plan) return `Approve the ${C.firm ? `${C.firm.value} ` : ""}plan — the found, trustworthy, and sendable counts come back first, and nothing drafts or sends before that approval.`;
+    if (C.firm || C.geo || C.year || C.majors) return `Build the networking plan into ${C.firm ? C.firm.value : `${C.geo ? C.geo.value : "your target"} firms`} — alumni-directory names first, one opener each, all held for your approval.`;
+    if (C.rows.length) { const open = C.rows.find((r) => !/Rejected|Withdrawn|Accepted/i.test(r.stage || "")) || C.rows[0]; return `Work the ${open.company || "recorded"} application — it sits at ${open.stage || "the recorded stage"}, and the next move is the follow-up or prep that stage calls for.`; }
+    if (C.lastWork) {
+      const w = C.lastWork;
+      if (w.kind === "prep") {
+        const topic = /\bdcf\b/i.test(w.ask || "") ? " — the DCF question in front of you" : /\bmarket sizing\b/i.test(w.ask || "") ? " — the market-sizing question in front of you" : "";
+        return `Stay on the interview prep we just opened${topic}: answer the item in front of you the way you would in the room — out loud, structured, numbers before adjectives — and I will score it against the rubric and hand you the next prep question.`;
+      }
+      if (w.kind === "tailor") return `Review the tailored artifact we just produced${w.company ? ` for ${w.company}` : ""} — then the application packet for that role is prepared next, stopping at its doorstep for your tap, never submitted without it.`;
+      if (w.kind === "draft") return "Decide on the held draft we just produced: approve it as written, or name the change — shorter, warmer, a different angle — and it is revised in place; nothing sends from a draft on its own.";
+      if (w.kind === "negotiation") return "Put the offer itself on the record — paste the letter, or state its firm, base, and deadline — and the counter is drafted from those numbers; a negotiation move is never composed from a guess.";
+    }
+    if (C.discovery) return `Pick one role from the search you already ran${C.discovery.roleText ? ` (${C.discovery.roleText})` : ""} and tailor for it — the search is done and on record, so the next move is a tailored packet for its top role, not another search.`;
+    return "Tell me the field and the season (internship or full-time) — that one answer starts the whole loop in the right gear.";
+  }
+  // W-NEXTSTEP: the pre-synthesis claim. A strict whole-turn
+  // next-step follow-up over ACTIVE WORK (pause, offer thread,
+  // queue, plan, tracker row, work served, a standing search) is
+  // claimed here, ahead of the fact-synthesis plan — synthesis
+  // composes from facts alone and would answer a tracked or
+  // in-prep thread with a generic two-move plan that ignores the
+  // work in front of the user. With no active work this stands
+  // down: facts-only and cold threads keep their existing owners
+  // (synthesis, then the continuation branch below).
+  function handleNextStepFollowUp(text, ctx) {
+    if (!isNextStepFollowUp(text)) return null;
+    const C = threadContextOf(ctx);
+    const hasActiveWork = C.paused || !!C.thread || (C.queue && C.queue.length > 0) || !!C.plan || C.rows.length > 0 || !!C.lastWork || !!C.discovery;
+    if (!hasActiveWork) return null;
+    const reply = compose({ headline: "One thing, the next one:", facts: [composedNextStep(C)], nextStep: "Say go and that step runs now." });
+    return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function handleThreadContinuation(text, ctx) {
     const t = lc(text);
@@ -7085,15 +7213,18 @@ const CareerRouter = (() => {
       return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: C.facts };
     }
     // (3) One next step — a single concrete action from the record.
-    if (/\bwhat'?s my (very )?next step\b|\bwhat'?s the (single|very)? ?next (step|thing)\b|\bjust one thing\b[^.]*\b(step|do|next)\b|\bwhat do i do next\b|\bsingle next step\b/.test(t) || /^\s*ok and whats my very next step,? just one thing\s*$/i.test(raw)) {
-      let step;
-      if (C.thread && C.thread.deadline) step = `Draft the extension ask on the ${C.thread.firm || "offer"} before the ${C.thread.deadline} deadline moves — that one draft protects every other option.`;
-      else if (C.thread && C.thread.amount) step = `Get the counter drafted against the $${Number(C.thread.amount).toLocaleString()} offer${C.thread.firm ? ` from ${C.thread.firm}` : ""} — one written counter, from sourced numbers, held for your approval.`;
-      else if (C.plan) step = `Approve the ${C.firm ? `${C.firm.value} ` : ""}plan — the found, trustworthy, and sendable counts come back first, and nothing drafts or sends before that approval.`;
-      else if (C.firm || C.geo || C.year || C.majors) step = `Build the networking plan into ${C.firm ? C.firm.value : `${C.geo ? C.geo.value : "your target"} firms`} — alumni-directory names first, one opener each, all held for your approval.`;
-      else if (C.rows.length) { const open = C.rows.find((r) => !/Rejected|Withdrawn|Accepted/i.test(r.stage || "")) || C.rows[0]; step = `Work the ${open.company || "recorded"} application — it sits at ${open.stage || "the recorded stage"}, and the next move is the follow-up or prep that stage calls for.`; }
-      else step = "Tell me the field and the season (internship or full-time) — that one answer starts the whole loop in the right gear.";
-      const reply = compose({ headline: "One thing, the next one:", facts: [step], nextStep: "Say go and that step runs now." });
+    // W-NEXTSTEP (MI-012 / LF-01a): the claim is the follow-up's
+    // discourse function — the explicit shapes, plus the strict
+    // whole-turn deictic forms (isNextStepFollowUp: "ok and
+    // then?", "what now?", "so what's next?") that carry no fresh
+    // product nouns at all. The step itself is composed from the
+    // thread's active work by composedNextStep (pause / offer /
+    // queue / plan / facts / tracker / last work served / last
+    // search / cold intake), so a prep thread no longer reads as
+    // cold and an elliptical follow-up lands on the same move the
+    // explicit ask would have gotten.
+    if (/\bwhat'?s my (very )?next step\b|\bwhat'?s the (single|very)? ?next (step|thing)\b|\bjust one thing\b[^.]*\b(step|do|next)\b|\bwhat do i do next\b|\bsingle next step\b/.test(t) || isNextStepFollowUp(text) || /^\s*ok and whats my very next step,? just one thing\s*$/i.test(raw)) {
+      const reply = compose({ headline: "One thing, the next one:", facts: [composedNextStep(C)], nextStep: "Say go and that step runs now." });
       return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     // (4) Specificity / checklist: re-render the standing plan as a
@@ -7450,6 +7581,10 @@ const CareerRouter = (() => {
     const parts = intentPartsOf(text);
     const multi = parts.length >= 2 && (multiMarkerOf(text) || parts.length >= 3 || /\band\b|;/.test(lc(text)));
     const res = dispatchChat(text, c);
+    // W-NEXTSTEP: work actually served this turn becomes the
+    // thread's active work (mirrored out by syncThreadOut below),
+    // so a later noun-less follow-up can be answered from it.
+    recordActiveWork(c, res, text);
     if (parts.length === 1 && parts[0].key === "finance" && (!res || res.intent === "career_fallback")) {
       syncThreadOut(c);
       return financeScopeResult();

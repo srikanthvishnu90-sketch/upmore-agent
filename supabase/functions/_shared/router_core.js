@@ -33551,8 +33551,8 @@ const CareerRouter = (() => {
         // wearing the bank's name. The ask's own count is carried as
         // the build target.
         const wantN = Number((t.match(/(\d+)\s+(reusable\s+)?stories/) || [])[1]) || null;
-        const reply = compose({ headline: "Your STAR bank is empty — no stories are mined from your profile yet.", facts: [`A bank is your real experiences shaped into Situation, Task, Action, Result stories you can reuse across rounds; the profile on record names your roles and facts, but no experience is attached as a mineable story yet, so ${wantN ? `the ${wantN} reusable stories you asked for do` : "the bank does"} not exist to hand you.`, "Nothing gets invented to fill it: a rehearsed story you cannot defend collapses under the first follow-up question."], nextStep: "Name one real experience — a project, a deadline, a team that shipped — and I will shape it into your first story." });
-        return { intent: "prep_brief", reply, resultStatus: "awaiting_user", sends: 0, story_bank: bank, payload: bank };
+        const reply = compose({ headline: "Your STAR bank is empty — no stories are mined from your profile yet.", facts: [`A bank is your real experiences shaped into Situation, Task, Action, Result stories you can reuse across rounds; the profile on record names your roles and facts, but no experience is attached as a mineable story yet, so ${wantN ? `the ${wantN} reusable stories you asked for do` : "the bank does"} not exist to hand you.`, "Nothing gets invented to fill it: a rehearsed story you cannot defend collapses under the first follow-up question."], nextStep: "Tell me one real experience — a project, a deadline, a team that shipped — and I will shape it into your first story." });
+        return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story_bank: bank, payload: bank };
       }
       // The brief's own record, spoken: bar, loop, screening
       // signals, the story-mapping state, and the likely questions —
@@ -33689,13 +33689,13 @@ const CareerRouter = (() => {
         // shape — never a question list plus a grounding slogan
         // serving every brief-shaped ask alike.
         const facts = briefFacts(brief);
-        if (/\bportfolio walkthrough\b/.test(t)) facts.push("The walkthrough runs project by project, in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
+        if (/\bportfolio walkthrough\b/.test(t)) facts.push("Each project runs in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
         if (/\bhiring[ -]manager\b/.test(t)) facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap.");
         if (/\btwo interviews\b|\bsame day\b/.test(t)) facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue.");
         if (/\bnight[ -]before\b|\bthursday\b|\btomorrow\b/.test(t)) facts.push("The pack lands the day before, so the morning itself is only logistics: links, tech check, materials.");
         const headline = /\bnight[ -]before\b/.test(t) ? `Your night-before brief${company ? ` for ${company}` : ""}.`
           : /\bhiring[ -]manager\b/.test(t) ? `Your hiring-manager brief${company ? ` for ${company}` : ""}.`
-          : /\bportfolio walkthrough\b/.test(t) ? `Your portfolio walkthrough prep${company ? ` for ${company}` : ""}.`
+          : /\bportfolio walkthrough\b/.test(t) ? "The portfolio walkthrough, project by project."
           : `Your interview brief${company ? ` for ${company}` : ""}.`;
         const reply = compose({ headline, facts: facts.length ? facts : ["Every answer gets built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: /\bportfolio walkthrough\b/.test(t) ? "Want to run the walkthrough now, project by project, the way the round will?" : "Want to run it as a mock, one question at a time?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief, payload: brief };

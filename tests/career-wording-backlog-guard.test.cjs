@@ -221,7 +221,7 @@ test("BUG-136: brief replies speak bar, loop, and story state; coffee chats spea
   const t182 = text(turn("SC-182"));
   assert.ok(/Questions to ask them:/.test(t182) && /No company file is on record for this chat/.test(t182), `SC-182: ${t182.slice(0, 200)}`);
   const t203 = text(turn("SC-203"));
-  assert.ok(/Your portfolio walkthrough prep\./.test(t203) && /walkthrough runs project by project/.test(t203), `SC-203: ${t203.slice(0, 160)}`);
+  assert.ok(/The portfolio walkthrough, project by project\./.test(t203) && /Each project runs in this order/.test(t203), `SC-203: ${t203.slice(0, 160)}`);
   const t200 = text(turn("SC-200"));
   assert.ok(/Your superday plan\./.test(t200) && /No merged company file/.test(t200) && /back-to-back rounds/.test(t200), `SC-200: ${t200.slice(0, 200)}`);
   const t195 = text(turn("SC-195"));

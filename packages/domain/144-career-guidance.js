@@ -27,7 +27,7 @@
      no purchase is ever made or assumed by guidance.
    Pure: no IO, no clock reads (dates arrive in ctx). UMD like siblings. */
 const CareerGuidance = (() => {
-  const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  const Recommendations = typeof CareerRecommendations !== "undefined" ? CareerRecommendations : require("./154-career-recommendations.js");
   // BUG-218 seam: prep content lives in 127 (the wired interview banks);
   // guidance composes from it, never from a second copy held here.
   const Prep = typeof CareerPrep !== "undefined" ? CareerPrep : (() => { try { return require("./127-career-prep.js"); } catch { return null; } })();
@@ -103,9 +103,9 @@ const CareerGuidance = (() => {
   }
 
   // ---------------------------------------------------------------- helpers
-  const factsOf = (profile) => (profile ? Profile.confirmedFacts(profile) : []);
+  const factsOf = (profile) => Recommendations.confirmed(profile);
   const skillFactsOf = (profile) => factsOf(profile).filter((f) => f.kind === "skill");
-  const provenSkillNames = (profile) => skillFactsOf(profile).filter((f) => !f.unproven).map((f) => f.name).filter(Boolean);
+  const provenSkillNames = (profile) => skillFactsOf(profile).filter((f) => Recommendations.evidence(profile, f.name || f.title || "").status === "evidence_present").map((f) => f.name).filter(Boolean);
   const yearOf = (s) => { const m = String(s || "").match(/(20\d\d)/); return m ? Number(m[1]) : null; };
   const firstFact = (profile, pred) => factsOf(profile).find(pred) || null;
 
@@ -165,7 +165,8 @@ const CareerGuidance = (() => {
     if (/researcher (vs|versus|or) trader|quant researcher/.test(topicText)) {
       return finalize("plan_paths", {
         headline: "Quant researcher versus trader — the day-to-day decides it.",
-        sources: kbSources,
+        factIds: Recommendations.quantEvidence(c).factIds,
+        sources: [...Recommendations.quantEvidence(c).sources, ...kbSources],
         plan: [
           { action: "Run the researcher test: take one public dataset, build and write up a signal end to end, and notice whether the open-ended weeks appeal", timeframe: "two weekends" },
           { action: "Run the trader test: drill timed probability games and expected-value calls, and notice whether fast, reversible decisions energize or drain you", timeframe: "this week" },
@@ -173,7 +174,7 @@ const CareerGuidance = (() => {
         ],
         unknowns: ["Which seat fits you — the two tests are what produce that evidence; nothing in a transcript decides it."],
         nextStep: "Tell me which test to set up first — the research build or the timed probability drill — and I will lay it out.",
-        text: `The two seats share an interview family and then diverge completely. A quant researcher's day is open-ended building: form a hypothesis, get the data, test a signal, write code that survives review — weeks on one problem, judged on whether the model is real. A trader's day is the opposite rhythm: fast probabilistic decisions with money attached, market-making and hedging in real time, judged daily on outcomes under uncertainty. The fit evidence is behavioral, not curricular: research fits people who keep improving a model nobody asked them to touch; trading fits people who make clean, reversible decisions quickly and stay calm being wrong in public. Your record — a CS degree in progress, Python, and a built project — evidences the researcher's toolkit directly; it says nothing yet about trading temperament, which is exactly what the timed drill test is for.`,
+        text: `The two seats share an interview family and then diverge completely. A quant researcher's day is open-ended building: form a hypothesis, get the data, test a signal, write code that survives review — weeks on one problem, judged on whether the model is real. A trader's day is the opposite rhythm: fast probabilistic decisions with money attached, market-making and hedging in real time, judged daily on outcomes under uncertainty. The fit evidence is behavioral, not curricular: research fits people who keep improving a model nobody asked them to touch; trading fits people who make clean, reversible decisions quickly and stay calm being wrong in public. ${Recommendations.quantEvidence(c).text}`,
       });
     }
     if (/\bmbb\b|\bmckinsey\b|\bbain\b|\bbcg\b|consulting path/.test(topicText)) {
@@ -206,80 +207,7 @@ const CareerGuidance = (() => {
         text: `Big Law is the most gated path of the set. There is effectively no undergraduate door — the firms hire summer associates from law schools through on-campus interviewing, and the summer offer converts to the full-time seat. The real ladder is LSAT and admissions, then 1L grades, then OCI at the start of 2L, then the summer-associate class. The data that governs the choice is the ABA-required employment disclosure every law school must publish: large-firm placement is concentrated in a minority of schools, and outside them the same degree leads somewhere else entirely. Debt must be stated in the same breath: private law school commonly leaves graduates with six-figure debt, which only the large-firm outcome services comfortably — so the school decision is the career decision, and it is made from the disclosures, not from rankings.`,
       });
     }
-    const _facts = factsOf(profile);
-    const skills = provenSkillNames(profile);
-    const edu = firstFact(profile, (f) => f.kind === "education");
-    const project = firstFact(profile, (f) => f.kind === "project");
-    const anchorIds = [edu, project].filter(Boolean).map((f) => f.id);
-    const paths = [];
-    if (skills.includes("Python") || (edu && /computer science/i.test(`${edu.title} ${edu.text}`))) {
-      paths.push({
-        id: "software-engineering", title: "Software engineering",
-        why: `your record shows ${skills.length ? skills.join(" and ") : "programming coursework"}${project ? ` and a built project (${project.title})` : ""} — real, inspectable evidence a software employer can check`,
-        tradeoffs: "the most posting volume, and the most competition for the same seats; evidence has to be a working artifact, not coursework alone",
-        factIds: anchorIds,
-      });
-      paths.push({
-        id: "data-analytics", title: "Data / analytics",
-        why: `the same ${skills.includes("Python") ? "Python" : "programming"} evidence transfers: your project work already handles structured records, and analytics roles test exactly that — cleaning data and answering a question clearly`,
-        tradeoffs: "fewer freshman-level postings than software; SQL and a written explanation of limits carry more weight than code volume",
-        factIds: anchorIds,
-      });
-    }
-    if (!paths.length) {
-      paths.push(
-        { id: "explore-technical", title: "Technical roles (software / data) — as a hypothesis", why: "your education record is the only evidence on file, so these are hypotheses to test, not a fit finding", tradeoffs: "nothing is evidenced yet; the experiment below is what creates the first evidence", factIds: anchorIds },
-        { id: "explore-operations", title: "Campus / operations roles — as a hypothesis", why: "campus and project work on file is the nearest transferable evidence", tradeoffs: "builds reliability evidence, weaker technical depth", factIds: anchorIds },
-      );
-    }
-    const experiment = {
-      task: "Run one inexpensive experiment over the next two weekends: (1) extend your existing project with one new feature and write the README section explaining the design choice — that samples software work; (2) use Python to answer one small question from a public dataset and write a short summary of what the data does and does not show — that samples data work. Then notice which one you kept improving without being asked.",
-      discriminates: paths.map((p) => p.id),
-      cost: "time only; no purchase, no commitment",
-    };
-    const constraintNotes = [];
-    const cons = c.constraints || (profile && profile.constraints) || {};
-    if (c.remoteOnly || cons.remoteOnly) constraintNotes.push("framed for a remote-only search, as you stated");
-    if (c.needsIncome || cons.needsIncome) constraintNotes.push("paid routes only — an unpaid route is not treated as affordable");
-    // GATE-3 record completion (03 F7): the cited response carries its
-    // basis and a plan of 3-5 timed actions. Sources are the REAL profile
-    // facts this answer used (by fact ID, with the fact's own source
-    // label) — no citation is fabricated; when no anchor fact exists the
-    // source is the profile record itself, which is what was supplied.
-    const anchorFacts = anchorIds.map((id) => _facts.find((f) => f.id === id)).filter(Boolean);
-    const sources = anchorFacts.length
-      ? anchorFacts.map((f) => ({ type: "profile_fact", fact_id: f.id, label: f.title || f.text, source: f.source || "profile record" }))
-      : [{ type: "profile_record", label: (profile && (profile.label || profile.id)) || "profile record supplied in context", source: "profile record" }];
-    const basis = {
-      source_class: "the user's own profile record — confirmed facts only (curated-qualitative, no population sample)",
-      sample_size: _facts.length,
-      as_of: KNOWLEDGE_AS_OF,
-      as_of_covers: "the guidance knowledge base (deep dive 4 freeze, the date in this module's header); the profile facts themselves carry no as-of dates, and none is claimed for them",
-    };
-    const plan = [
-      { action: "Pick the dataset question for part (2) of the experiment", timeframe: "this week" },
-      { action: "Run experiment part (1): extend your existing project with one new feature and write the README section explaining the design choice", timeframe: "next weekend" },
-      { action: "Run experiment part (2): use Python to answer one small question from a public dataset and write a short summary of what the data does and does not show", timeframe: "the following weekend" },
-      { action: "Re-rank the two paths from what the experiment showed, then name the first evidence build or applications for the leading path", timeframe: "after both experiment parts — about two weeks from now" },
-    ];
-    const text = [
-      `You do not need a verdict today — you need two plausible paths and a cheap way to tell them apart. Nothing in your record decides this yet, and I will not pretend it does.`,
-      ...paths.map((p, i) => `Path ${i === 0 ? "A" : "B"} — ${p.title}: it may fit because ${p.why}. Tradeoff: ${p.tradeoffs}.`),
-      `The experiment: ${experiment.task}`,
-      constraintNotes.length ? `Constraints applied: ${constraintNotes.join("; ")}.` : null,
-      `Next step: pick the dataset question for part (2) this week; the paths get re-ranked by what the experiment shows, not by guessing.`,
-      `Basis: ${basis.source_class}; the guidance knowledge behind this answer is as of ${KNOWLEDGE_AS_OF}.`,
-      `Plan: ${plan.map((a, i) => `${i + 1}. (${a.timeframe}) ${a.action}.`).join(" ")}`,
-    ].filter(Boolean).join("\n");
-    return finalize("plan_paths", {
-      paths, experiment, deterministicVerdict: null,
-      factIds: anchorIds,
-      sources, basis, as_of: KNOWLEDGE_AS_OF,
-      plan, action_plan: plan,
-      unknowns: ["Which field fits — nothing in the record decides this; the experiment is what produces that evidence."],
-      nextStep: "Run the two-part experiment over the next two weekends, then re-rank the paths from what it shows.",
-      text,
-    });
+    return finalize("plan_paths", Recommendations.planPaths(c));
   }
 
   // ------------------------------------------- CG04: graduation-window eligibility
@@ -456,7 +384,7 @@ const CareerGuidance = (() => {
         ]),
         unknowns: ["Any employer's internal degree weighting where the posting is silent — not published, and not guessed here."],
         nextStep: "Tell me whether you want the practitioner roles first or the research-track seats, and I will set the project list to that bar.",
-        text: `The master's reality, plainly: a large share of titled data-science postings print a master's or PhD as required or preferred. The research-track seats (experimentation science, ML research) genuinely run on graduate training. But the field's practitioner half hires differently: data analyst, analytics engineering, and product analytics roles state a bachelor's bar and screen on evidence — SQL fluency, reproducible analyses, and judgment about what data cannot say. Your record's Python and SQL are exactly the practitioner wedge's currency; what they do not yet buy is the research track, and pretending otherwise wastes a cycle. The honest strategy is sequenced: enter through the practitioner roles with project evidence, then let real postings — counted, not vibes — decide whether a master's is the unlock for the seats you actually want next.`,
+        text: `The master's reality, plainly: a large share of titled data-science postings print a master's or PhD as required or preferred. The research-track seats (experimentation science, ML research) genuinely run on graduate training. But the field's practitioner half hires differently: data analyst, analytics engineering, and product analytics roles state a bachelor's bar and screen on evidence — SQL fluency, reproducible analyses, and judgment about what data cannot say. ${Recommendations.quantEvidence(c).text} The honest strategy is sequenced: enter through the practitioner roles with project evidence, then let real postings — counted, not vibes — decide whether a master's is the unlock for the seats you actually want next.`,
       });
     }
     if (/startup entr|getting into startups|work at a startup/.test(heTopic)) {
@@ -820,34 +748,7 @@ const CareerGuidance = (() => {
         text: `The government and intelligence path runs on gates the private sector does not have. The first is absolute: security clearances require US citizenship, so for cleared roles citizenship is a hard filter stated in the posting, not a preference to argue with. The second gate is time: a background investigation is measured in months, and the higher clearances commonly run past a year, with offers contingent on adjudication — which is why the agencies run student internship and co-op programs that begin the process while you are still in school. The third gate is the record itself: finances, foreign contacts, drug history, and candor are investigated, and the standard that decides cases is honesty — disclosed issues are routinely adjudicated favorably; discovered ones are not. The work is real and the pipeline is slow by design, and anyone quoting you a precise current processing time is quoting a statistic that changes quarterly.`,
       });
     }
-    const skill = c.skill || "that skill";
-    const proven = provenSkillNames(c.profile);
-    const alreadyHasSkill = proven.some((s) => s.toLowerCase() === String(skill).toLowerCase());
-    const hours = Number(c.hoursPerWeek) || 2;
-    const total = Math.round(hours * 60);
-    const phases = allocate([
-      { id: "learn-basics", task: `Work through the official basics of ${skill} by building, not just reading`, weight: 3 },
-      { id: "build-artifact", task: `Build the artifact below with ${skill}`, weight: 4 },
-      { id: "document-review", task: "Write the README, finish the tests, and get one review from someone who knows the stack", weight: 2 },
-    ], total);
-    const artifact = `a small service or tool built with ${skill}, in a public repo, with a README that explains what it does and one design tradeoff, plus tests that a reviewer can run`;
-    const levelText = c.requirementLevel === "required"
-      ? `the posting states ${skill} as a requirement`
-      : `the posting names ${skill} as preferred, expressly not required — so this is an advantage gap, not a wall`;
-    return finalize("skill_gap_plan", {
-      alreadyHasSkill, requirementLevel: c.requirementLevel || "preferred_not_required",
-      artifact, phases, totalMinutesPerWeek: phases.reduce((a, t) => a + t.minutes, 0),
-      sources: skillFactsOf(c.profile).length
-        ? skillFactsOf(c.profile).map((f) => ({ type: "profile_fact", fact_id: f.id, label: f.title || f.text, source: f.source || "profile record" }))
-        : [{ type: "profile_record", label: (c.profile && (c.profile.label || c.profile.id)) || "profile record supplied in context", source: "profile record" }],
-      plan: phases.map((p) => ({ action: p.task, timeframe: `${p.minutes} minutes per week` })),
-      reviewMethod: "One reviewer who knows the stack reads the README and runs the tests; their questions become the fix list.",
-      stoppingCondition: `Stop when the artifact runs, its tests pass, and a reviewer can follow the README unaided — then the gap is evidenced, and more hours go to applying, not polishing.`,
-      factIds: skillFactsOf(c.profile).map((f) => f.id),
-      unknowns: [`How heavily the employer screens on ${skill} beyond the posting's wording — not in the posting, not guessed here.`],
-      nextStep: `Start phase 1 this week (${phases[0].minutes} minutes): ${phases[0].task}.`,
-      text: `The gap, stated accurately: ${levelText}. ${alreadyHasSkill ? `${skill} is already on your record.` : `${skill} is not among your proven skills — your record proves ${proven.join(" and ") || "what is on file"} — and I will not claim ${skill} for you.`} The plan to close it with evidence, inside ${hours} hours per week: build ${artifact}. Phases: ${phases.map((p, i) => `${i + 1}. (${p.minutes} min/week) ${p.task}`).join(" ")} Review method: one reviewer who knows the stack runs the tests and reads the README. Stopping condition: the artifact runs, the tests pass, and a reviewer can follow the README unaided — at that point the gap is closed with evidence, not with a claim.`,
-    });
+    return finalize("skill_gap_plan", Recommendations.skillGapPlan(c));
   }
 
   // ------------------------------------------- CG17: rejection without feedback
@@ -1027,7 +928,7 @@ const CareerGuidance = (() => {
         ],
         unknowns: ["Which specific seat fits — the artifact and the first applications produce that evidence; nothing in a past record decides it."],
         nextStep: target ? `Tell me the seat inside ${target} you want first, and I will spec the artifact that proves the switch.` : "Tell me the field you are switching into, and I will aim this map at its actual seats.",
-        text: `Here is the transferable map, drawn only from your real record. ${mapBits.length ? mapBits.map((b) => b.charAt(0).toUpperCase() + b.slice(1)).join(". ") + "." : "Your record's skills and experience, labeled as what they are."} What does not transfer is equally plain: seniority, titles, and field-specific networks do not cross over, and any plan pretending otherwise collapses at the first screen. Where switchers actually win is adjacency — the move that keeps two-thirds of your evidence in play while the field changes around it — plus one artifact built to the new field's standards, which converts "career changer" from a risk flag into a demonstrated bet. At 32 the math is on your side in one specific way: the switch is early enough that the compounding years belong to the new field, provided the entry is lateral-or-better and the slope is steep.`,
+        text: `Here is the transferable map, drawn only from your real record. ${mapBits.length ? mapBits.map((b) => b.charAt(0).toUpperCase() + b.slice(1)).join(". ") + "." : "Your record's skills and experience, labeled as what they are."} What does not transfer is equally plain: seniority, titles, and field-specific networks do not cross over, and any plan pretending otherwise collapses at the first screen. Where switchers actually win is adjacency — the move that keeps two-thirds of your evidence in play while the field changes around it — plus one artifact built to the new field's standards, which converts "career changer" from a risk flag into a demonstrated bet. Your age, financial runway and willingness to change seniority are not established by this record; compare those constraints before choosing a move.`,
       });
     }
     const newInterest = c.newInterest || "the new field";
@@ -1054,7 +955,7 @@ const CareerGuidance = (() => {
       factIds: transferable.map((f) => f.id),
       unknowns: ["Which analytics specialty fits best — the first artifact and applications are what produce that evidence."],
       nextStep: `Build one data analysis artifact this week (documented dataset, reproducible SQL, short write-up of limits), then aim applications at data analytics roles.`,
-      text: `Updated — visibly, not quietly. Your plan now centers ${newInterest}; the ${previousInterest || "old"} plan is retired, not kept running alongside as if nothing changed. What transfers: your Python and SQL evidence (fact ${transferable.map((f) => f.id).join(", ") || "on file"}) — data-export and query work is analytics evidence already, and it is cited here by fact, not re-invented. The active paths are data analytics roles and the one artifact that proves the direction: an analysis of a documented dataset with reproducible SQL and a short write-up of its limits.`,
+      text: `Updated — visibly, not quietly. Your plan now centers ${newInterest}; the ${previousInterest || "old"} plan is retired, not kept running alongside as if nothing changed. What transfers: ${transferable.length ? `the confirmed record signals [${transferable.map((f) => f.id).join(", ")}] suggest data work to test, without establishing proficiency` : "no confirmed data-work evidence is available; the proposed sample is an exploration exercise"}. The active paths are data analytics roles and the one artifact that proves the direction: an analysis of a documented dataset with reproducible SQL and a short write-up of its limits.`,
     });
   }
 

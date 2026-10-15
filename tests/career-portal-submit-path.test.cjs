@@ -179,12 +179,14 @@ test("D3 (BUG-063): submitDoorstep arms the board ONLY from an approval carrying
   board.submit = () => { if (!armed) { const e = new Error("not armed"); e.code = "REAL_SUBMIT_DISABLED"; throw e; } return realSubmit(); };
   const { r, session } = runWith(board);
   assert.equal(r.resultStatus, "prepared");
-  // no approvalRef: the gate must not transmit
-  assert.throws(() => Portal.submitDoorstep(session, { approvedByUser: true }, { log: { records: [] } }), (e) => e.code === "REAL_SUBMIT_DISABLED");
+  // bound to the payload but no approvalRef: the binding passes (MI-116),
+  // the gate reaches the arming wire honestly with a null ref, and the
+  // unarmed board's refusal propagates — no transmission without a ref
+  assert.throws(() => Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: r.doorstep.payloadSha256 }, { log: { records: [] } }), (e) => e.code === "REAL_SUBMIT_DISABLED");
   assert.equal(board.calls.submit, 0, "the board's submit never fired without a ref");
   assert.ok(armCalls.length >= 1 && armCalls[armCalls.length - 1].approvalRef == null, "149 offered the (ref-less) approval to the arming wire honestly");
-  // with the owner's batch approval ref: armed, fires once, ref recorded
-  const done = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: "owner-batch-001-2026-10-13" }, { log: { records: [] }, now: "2026-10-14T00:00:00Z" });
+  // with the owner's batch approval ref, bound to the shown payload (MI-116 caller contract): armed, fires once, ref recorded
+  const done = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: "owner-batch-001-2026-10-13", payloadSha256: r.doorstep.payloadSha256 }, { log: { records: [] }, now: "2026-10-14T00:00:00Z" });
   assert.equal(done.resultStatus, "completed");
   assert.equal(done.submission.confirmationId, "STUB-1");
   assert.equal(done.submission.approvalRef, "owner-batch-001-2026-10-13", "the submission record names the approval it fired under");

@@ -216,7 +216,7 @@ test("confirmation capture: an armed submit that lands on a confirmation page re
       attestations: { certify_true: { value: true, explicit: true } },
     });
     assert.equal(r.resultStatus, "prepared");
-    const done = Portal.submitDoorstep(session, { approvedByUser: true });
+    const done = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: r.doorstep.payloadSha256 }); // approval binds the shown payload (MI-116)
     assert.equal(done.resultStatus, "completed");
     assert.equal(done.submission.status, "submitted");
     assert.equal(done.submission.confirmationId, "TEST-APP-12345", "the employer's own application ID, read off the landing page");
@@ -240,7 +240,7 @@ test("confirmation capture: an ambiguous landing page is unknown_outcome — nev
       attestations: { certify_true: { value: true, explicit: true } },
     });
     assert.equal(r.resultStatus, "prepared");
-    const done = Portal.submitDoorstep(session, { approvedByUser: true });
+    const done = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: r.doorstep.payloadSha256 }); // approval binds the shown payload (MI-116)
     assert.equal(done.resultStatus, "unknown_outcome", "no ID and no success wording on the landing page — the outcome is NOT spoken as submitted");
     assert.equal(done.submission.status, "unknown_outcome");
     assert.ok(done.submission.screenshotRef, "the ambiguous landing is still captured for the human");
@@ -294,7 +294,7 @@ test("D3 arming wire: runApply with an owner approvalRef arms the board and subm
       attestations: { certify_true: { value: true, explicit: true } },
     });
     assert.equal(r2.resultStatus, "prepared");
-    assert.throws(() => Portal.submitDoorstep(s2.session, { approvedByUser: true }), (e) => e.code === "REAL_SUBMIT_DISABLED");
+    assert.throws(() => Portal.submitDoorstep(s2.session, { approvedByUser: true, payloadSha256: r2.doorstep.payloadSha256 }), (e) => e.code === "REAL_SUBMIT_DISABLED");
     assert.equal(s2.board.calls.submit, 0, "no click ever fired without the ref");
   } finally { s2.board.close(); }
 });
@@ -353,7 +353,7 @@ test("submit stays unplugged unless armed: 149 approval alone does not enable a 
       attestations: { certify_true: { value: true, explicit: true } },
     });
     assert.equal(r.resultStatus, "prepared");
-    assert.throws(() => Portal.submitDoorstep(session, { approvedByUser: true }), (e) => e.code === "REAL_SUBMIT_DISABLED");
+    assert.throws(() => Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: r.doorstep.payloadSha256 }), (e) => e.code === "REAL_SUBMIT_DISABLED");
     assert.equal(board.calls.submit, 0, "no click ever fired");
   } finally { board.close(); }
 });

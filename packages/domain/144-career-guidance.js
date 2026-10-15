@@ -28,6 +28,9 @@
    Pure: no IO, no clock reads (dates arrive in ctx). UMD like siblings. */
 const CareerGuidance = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  // BUG-218 seam: prep content lives in 127 (the wired interview banks);
+  // guidance composes from it, never from a second copy held here.
+  const Prep = typeof CareerPrep !== "undefined" ? CareerPrep : (() => { try { return require("./127-career-prep.js"); } catch { return null; } })();
 
   // ---------------------------------------------------------------- odds guard
   // Deterministic detector for fabricated odds / guarantees (mirrors the CG
@@ -1142,6 +1145,34 @@ const CareerGuidance = (() => {
     });
   }
 
+  // ------------------------------------------------- BUG-218: prep bank seam
+  // Guidance answers that compose interview prep draw the asked sector's
+  // wired interview bank through 127's questionBank — the bank items ride
+  // the record's `questions` (structured data, not composed prose, so the
+  // odds guard is applied to the summary text only). Sector isolation is
+  // 127's: only the asked sector's items are returned. Not a guidance
+  // intent (GUIDANCE_INTENTS is a locked set) — a seam for composers.
+  function interviewBankFor(ctx) {
+    const c = ctx || {};
+    if (!Prep || !Prep.questionBank) {
+      return { ok: false, kind: "prep_bank", code: "prep_unavailable", sector: null, bank_file: null, count: 0, questions: [],
+        unknowns: ["The prep module is not loaded in this build, so no interview bank can be served."], sources: [], factIds: [], nextStep: null,
+        text: "The interview bank is not reachable in this build." };
+    }
+    const bank = Prep.questionBank({ sector: c.sector || c.track || null, roleFamily: c.roleFamily || c.sector || c.track || null, role: c.role || null, focus: c.focus || null, weakness: c.weakness || null, stories: c.stories || [] });
+    const meta = bank.interview_bank || null;
+    const sector = meta ? meta.sector : null;
+    const questions = (bank.questions || []).filter((q) => q && ((q.source && /^interview_bank_/.test(q.source.type || "")) || q.bank_item));
+    const text = guardReply(sector
+      ? `Interview bank for ${sector}: ${questions.length} cited items are wired in from ${meta.file} — the sector's canonical questions, each carrying its source note, and the model answers the bank holds ride the items themselves.`
+      : "No sector was named, so no sector's bank is served — name the field (data, law, medicine, finance, quant, SWE, product, consulting, real estate) and its bank is the one served.");
+    return { ok: true, kind: "prep_bank", sector, bank_file: meta ? meta.file : null, count: questions.length, questions,
+      focus_applied: bank.focus_applied || null,
+      unknowns: sector ? [] : ["Which sector's interview bank to serve."],
+      sources: sector ? [{ type: "interview_bank", file: meta.file, label: `Interview bank (${sector}) — researched product data, citations in the bank file`, as_of: "2026-10-13" }] : [],
+      factIds: [], nextStep: sector ? "Pick the first item and answer it out loud — it gets scored, and the weakest part is drilled next." : "Tell me the sector and its bank is served.", text };
+  }
+
   // ------------------------------------------------------------- dispatch (router seam)
   const INTENT_TO_FUNCTION = {
     plan_paths: "planPaths",
@@ -1181,6 +1212,8 @@ const CareerGuidance = (() => {
     // CGD-2 / CGD-3 / interest change / constraints
     skillGapPlan, detectInjectedInstruction, replanForInterestChange, filterOpportunities,
     oddsRefusal,
+    // BUG-218 prep seam (not a guidance intent)
+    interviewBankFor,
     // router seam
     GUIDANCE_INTENTS, INTENT_TO_FUNCTION, answerGuidance,
   };

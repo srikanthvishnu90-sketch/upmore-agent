@@ -17,7 +17,11 @@
    Functions:
      normalizeCir(cir)                 tolerant reader for the 15 merged CIR shapes
      composeBrief({cir, jdText, role, round})   PREP-001 brief: bar, stages, emphasis
-     questionBank({cir, roleFamily, round, stories})  PREP-002 questions, each CIR-tagged
+     questionBank({cir, roleFamily, round, stories})  PREP-002 questions, each CIR-tagged;
+                                       for a named sector the wired interview bank
+                                       (packages/career-data/interview-banks/*.md, BUG-218)
+                                       is served per sector — interviewBanks() /
+                                       parseInterviewBank() / bankSectorFor() below
      mineStories(facts)                PREP-004 STAR drafts mined from profile facts
      captureStory(store, story) / findStories(store, query)
      scoreAnswer(answer)               rubric: structure / evidence / specificity (0-5 each);
@@ -223,6 +227,133 @@ const CareerPrep = (() => {
       return { story: r, score }; }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).map((x) => x.story);
   }
 
+  // ---------- Interview banks (BUG-218) ----------
+  // The researched banks live as product data in
+  // packages/career-data/interview-banks/*.md (304 cited canonical items
+  // across 9 sectors, verbatim copies of the research files, citations
+  // intact). They load LAZILY, exactly on the BUG-174 pattern of 124's
+  // firmSets() / 142's cirListOf(): in Node the .md files are read from
+  // disk at call time; in the shipped bundle there is no career-data
+  // directory, so the build embeds the same files as
+  // CAREER_INTERVIEW_BANKS_JSON (an object keyed by sector — or by file
+  // name — with the raw markdown as values), appended after the modules
+  // and therefore readable only at call time, never at load time. An
+  // empty result is NOT cached, so a later call can still pick the
+  // embedded const up. Parsing is deterministic: canonical items are
+  // the numbered entries of the lettered sections; format-facts,
+  // worked-example, bookshelf and standardisation sections never yield
+  // items, and ### model-answer / worked-example subsections attach to
+  // their item as the item's full answer (the DCF outline, the paper
+  // LBO) instead of being served as questions.
+  const BANK_FILES = { finance: "ib-finance.md", quant: "quant-trading.md", swe: "swe.md", data: "data.md", pm: "pm.md", consulting: "consulting.md", law: "law.md", medicine: "medicine.md", real_estate: "real-estate.md" };
+  const BANK_SKIP_SECTION = /^(format facts|worked|standardisation|standardization|count and honesty|source key|canonical bookshelf|dropped|ai-flag|how to read)/i;
+  function parseInterviewBank(md) {
+    const items = [], modelAnswers = [];
+    let section = "", skip = false, cur = null, ma = null;
+    const flushMA = () => { if (ma) { ma.body = ma.lines.join("\n").trim(); delete ma.lines; modelAnswers.push(ma); ma = null; } };
+    for (const line of s(md).split(/\r?\n/)) {
+      const h2 = line.match(/^##\s+(.*)$/);
+      const h3 = line.match(/^###\s+(.*)$/);
+      if (h2) { flushMA(); section = h2[1].trim(); skip = BANK_SKIP_SECTION.test(section); cur = null; continue; }
+      if (h3) { flushMA(); const head = h3[1].trim(); if (/model[ -]answer|worked example/i.test(head)) ma = { heading: head, lines: [] }; cur = null; continue; }
+      if (ma) { ma.lines.push(line); continue; }
+      if (skip) continue;
+      const m = line.match(/^(\d+)\.\s+(.*)$/);
+      if (m) { cur = { n: Number(m[1]), raw: m[2].trim(), section, extra: [] }; items.push(cur); continue; }
+      if (cur && line.trim()) cur.extra.push(line.trim());
+    }
+    flushMA();
+    const shaped = items.map((it) => {
+      let title = it.raw, detail = "";
+      const bold = it.raw.match(/^\*\*(.+?)\*\*\s*(.*)$/);
+      if (bold) { title = bold[1].trim(); detail = (bold[2] || "").replace(/^—\s*/, "").trim(); }
+      const srcSplit = detail.split(/\s+Sources?:\s+/);
+      let sourceNote = srcSplit.length > 1 ? "Sources: " + srcSplit.slice(1).join(" Sources: ") : null;
+      detail = srcSplit[0].trim();
+      for (const x of it.extra) {
+        if (/^Sources?:\s+/.test(x)) { if (!sourceNote) sourceNote = x; continue; }
+        if (/^\*.*\*$/.test(x) || /^---$/.test(x)) continue;
+        detail = detail ? detail + " " + x : x;
+      }
+      title = title.replace(/\s+—\s+REQUIRED.*$/i, "").replace(/,?\s+full (?:model-answer )?outline below\.?$/i, "").trim();
+      return { n: it.n, q: title, detail: detail || null, section: it.section, source_note: sourceNote ? sourceNote.slice(0, 400) : null, answer: null };
+    }).filter((x) => x.q);
+    for (const ans of modelAnswers) {
+      if (!ans.body) continue;
+      let target = null;
+      const ref = ans.heading.match(/\(Item (\d+)/i);
+      if (ref) target = shaped.find((x) => x.n === Number(ref[1])) || null;
+      if (!target) {
+        const rules = [[/dcf/i, /\bdcf\b/i], [/paper lbo/i, /paper lbo/i], [/enterprise value/i, /enterprise value/i], [/accretion/i, /accretive|accretion/i], [/depreciation/i, /depreciation/i]];
+        for (const [hre, qre] of rules) if (hre.test(ans.heading)) { target = shaped.find((x) => qre.test(x.q)) || null; if (target) break; }
+      }
+      if (!target) { // generic fallback: the item sharing the most heading words
+        const words = lc(ans.heading).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3 && !["worked", "example", "model", "answer", "required"].includes(w));
+        let best = 0;
+        for (const x of shaped) { const score = words.filter((w) => lc(x.q).includes(w)).length; if (score > best) { best = score; target = x; } }
+        if (best < 2) target = null;
+      }
+      if (target) target.answer = target.answer ? target.answer + "\n\n" + ans.body : ans.body;
+    }
+    return { items: shaped, model_answers: modelAnswers.map((a) => ({ heading: a.heading, body: a.body })) };
+  }
+  let _banksCache = null;
+  function interviewBanks() {
+    if (_banksCache && Object.keys(_banksCache).length) return _banksCache;
+    let raw = null;
+    try {
+      const fs = require("fs"); const path = require("path");
+      const dir = path.join(__dirname, "..", "career-data", "interview-banks");
+      const found = {};
+      for (const [sector, file] of Object.entries(BANK_FILES)) { try { const t = fs.readFileSync(path.join(dir, file), "utf8"); if (t) found[sector] = t; } catch { /* a missing file is that sector's absence, stated by the caller */ } }
+      if (Object.keys(found).length) raw = found;
+    } catch { raw = null; }
+    if (!raw) {
+      try {
+        if (typeof CAREER_INTERVIEW_BANKS_JSON !== "undefined" && CAREER_INTERVIEW_BANKS_JSON && typeof CAREER_INTERVIEW_BANKS_JSON === "object") {
+          raw = {};
+          for (const [k, v] of Object.entries(CAREER_INTERVIEW_BANKS_JSON)) {
+            const key = k.replace(/\.md$/i, "");
+            const sector = BANK_FILES[key] ? key : Object.keys(BANK_FILES).find((sk) => BANK_FILES[sk].replace(/\.md$/i, "") === key);
+            if (sector && typeof v === "string") raw[sector] = v;
+          }
+          if (!Object.keys(raw).length) raw = null;
+        }
+      } catch { /* embedded const not yet evaluated at load time */ }
+    }
+    if (!raw || !Object.keys(raw).length) return {};
+    const parsed = {};
+    for (const [sector, text] of Object.entries(raw)) parsed[sector] = { sector, file: BANK_FILES[sector] || (sector + ".md"), ...parseInterviewBank(text) };
+    _banksCache = parsed;
+    return parsed;
+  }
+  // The sector a prep ask names — from whichever of sector / track /
+  // roleFamily / role the caller supplied. Quant is checked before
+  // finance (a quant ask inside the finance family is a quant ask),
+  // data before finance (a "data analyst" is not a banking analyst).
+  function bankSectorFor(opts) {
+    const t = lc([opts.sector, opts.track, opts.roleFamily, opts.role].filter(Boolean).join(" "));
+    if (!t.trim()) return null;
+    if (/quant|trading/.test(t)) return "quant";
+    if (/real[ _-]?estate|realestate/.test(t)) return "real_estate";
+    if (/medicine|medical|residency|pre[ -]?med|\bmmi\b/.test(t)) return "medicine";
+    if (/\blaw\b|legal|attorney|lawyer/.test(t)) return "law";
+    if (/consult/.test(t)) return "consulting";
+    if (/\bdata\b|analytics|data scien/.test(t)) return "data";
+    if (/product|\bpm\b/.test(t)) return "pm";
+    if (/swe|software|coding|engineering|developer/.test(t)) return "swe";
+    if (/finance|banking|investment|\bib\b|analyst/.test(t)) return "finance";
+    return null;
+  }
+  // Focus/weakness ordering: items whose question or detail shares words
+  // with the stated focus lead the bank's segment — the weakness the
+  // user named is drilled first, never dropped (BUG-218; the thread's
+  // prep state itself is the router's, this is the bank-side seam).
+  function focusScore(item, focusWords) {
+    const hay = lc(item.q + " " + (item.detail || ""));
+    return focusWords.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0);
+  }
+
   // ---------- PREP-002 question bank ----------
   const GENERIC_BEHAVIORAL = [
     "Tell me about yourself and why this role.",
@@ -287,11 +418,56 @@ const CareerPrep = (() => {
       push("Design a URL shortener: the data model, the API, and how it scales.", "system_design", { type: "swe_coding_bank", company_id: n && n.company_id || null });
       push("How does a hash map handle collisions, and what are the trade-offs?", "fundamentals", { type: "swe_coding_bank", company_id: n && n.company_id || null });
     }
+    // BUG-218: the wired interview bank for the asked sector. Items are
+    // drawn ONLY from that sector's bank file — sector isolation is by
+    // construction (one file per sector, selected by bankSectorFor).
+    // An item whose question duplicates an inline BUG-117 drill merges
+    // into it instead of duplicating: the bank's detail and full model
+    // answer (where the bank carries one — the DCF outline, the paper
+    // LBO, EV/equity, accretion, the $10 depreciation) ride the inline
+    // item, so the DCF question serves the MODEL ANSWER, not the old
+    // keyword prompt. A stated focus/weakness re-orders the bank
+    // segment so the named weakness is drilled first.
+    const sector = bankSectorFor(opts);
+    let bankMeta = null;
+    if (sector) {
+      const bankData = interviewBanks()[sector] || null;
+      if (bankData && bankData.items && bankData.items.length) {
+        const focusText = s(opts.focus || opts.weakness || (Array.isArray(opts.weaknesses) ? opts.weaknesses.join(" ") : "") || "");
+        const focusWords = [...new Set(lc(focusText).split(/[^a-z0-9]+/).filter((w) => w.length > 3 && !["case", "cases", "weak", "weakest", "focus", "drill", "drills", "question", "questions", "with", "that", "this"].includes(w)))];
+        const ordered = bankData.items.map((it, i) => ({ it, i, fs: focusWords.length ? focusScore(it, focusWords) : 0 }));
+        if (focusWords.length) ordered.sort((a, b) => (b.fs - a.fs) || (a.i - b.i));
+        const normQ = (x) => lc(x).replace(/[^a-z0-9]+/g, " ").trim();
+        const seen = new Map(qs.map((x) => [normQ(x.q), x]));
+        let served = 0;
+        for (const { it, fs } of ordered) {
+          const existing = seen.get(normQ(it.q));
+          if (existing) {
+            if (it.answer && !existing.answer) { existing.answer = it.answer; existing.model_answer = it.answer; }
+            if (it.detail && !existing.detail) existing.detail = it.detail;
+            existing.bank_item = { bank_file: bankData.file, item_n: it.n, sector };
+            served += 1;
+            continue;
+          }
+          const match = findStories({ stories }, it.q)[0] || null;
+          const row = { q: it.q, round: it.section ? it.section.replace(/^[A-Z]\.\s*/, "").replace(/\s*\([^)]*\)\s*$/, "") : "interview_bank",
+            source: { type: "interview_bank_" + sector, bank_file: bankData.file, company_id: null, sector, item_n: it.n, section: it.section },
+            matched_story: match ? { story_id: match.story_id, title: match.title } : null,
+            detail: it.detail, source_note: it.source_note,
+            answer: it.answer, model_answer: it.answer, focus_match: focusWords.length ? fs > 0 : null };
+          qs.push(row); seen.set(normQ(it.q), row); served += 1;
+        }
+        bankMeta = { sector, file: bankData.file, count: served, total_items: bankData.items.length, focus_applied: focusText || null };
+      } else {
+        bankMeta = { sector, file: BANK_FILES[sector] || null, count: 0, total_items: 0, focus_applied: null, note: "No interview bank file is wired for this sector in this build — the inline sets above are all the product holds for it." };
+      }
+    }
     // BUG-117: the story-mapping state rides the record itself — how
     // many mineable stories the profile holds, and when there are
     // none, the reason questions ship unmapped (never an invented
     // match).
     return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, questions: qs,
+      interview_bank: bankMeta, focus_applied: bankMeta ? bankMeta.focus_applied : null,
       stories_on_file: stories.length,
       stories_note: stories.length ? null : "No mineable story on the profile yet — stories mine only from facts carrying an action and a result, so the questions ship unmapped rather than inventing a match." };
   }
@@ -565,7 +741,14 @@ const CareerPrep = (() => {
     { id: "q-4", topic: "expected_value", q: "A game pays $10 with probability 0.3 and $0 otherwise, and costs $2 to play. Expected value of playing?", answer: 1, tol: 0.01, expect: "0.3*10 - 2 = +$1." },
     { id: "q-5", topic: "probability", q: "Three cards are drawn without replacement from a standard deck. Probability all three are aces? (decimal)", answer: (4 / 52) * (3 / 51) * (2 / 50), tol: 0.001, expect: "≈ 0.00018." },
   ];
-  function financeDrill() { return { kind: "finance", questions: FINANCE_DRILL.map(({ id, topic, q, expect }) => ({ id, topic, q, expect })) }; }
+  function financeDrill() {
+    // BUG-218: the DCF drill (fin-2) carries the bank's full model answer
+    // alongside its keyword expect — the drill's answer is the researched
+    // outline in ib-finance.md §C, not a one-line keyword summary.
+    let dcfModel = null;
+    try { const fin = interviewBanks().finance; const dcfItem = fin && fin.items.find((x) => /\bdcf\b/i.test(x.q) && x.answer); if (dcfItem) dcfModel = dcfItem.answer; } catch { dcfModel = null; }
+    return { kind: "finance", questions: FINANCE_DRILL.map(({ id, topic, q, expect }) => ({ id, topic, q, expect, ...(topic === "dcf" && dcfModel ? { model_answer: dcfModel } : {}) })) };
+  }
   function quantDrill() { return { kind: "quant", questions: QUANT_DRILL.map(({ id, topic, q, expect }) => ({ id, topic, q, expect })) }; }
   function gradeDrillAnswer(kind, id, answer) {
     if (kind === "finance") { const d = FINANCE_DRILL.find((x) => x.id === id); if (!d) return null;
@@ -998,6 +1181,7 @@ const CareerPrep = (() => {
     salaryPrep, coffeeChatBrief, twoInterviewPlan, rejectionPivot, assemblePack,
     interviewerResearch, sharedGround, coffeeChatPrep, systemDesignPrep, casePrepPlan,
     quantPrepSet, marketMakingDrill, gradeMarketMaking, pmPrep, sendThankYou,
-    liveAssistGuard, voiceMockAvailability, GENERIC_BEHAVIORAL };
+    liveAssistGuard, voiceMockAvailability, GENERIC_BEHAVIORAL,
+    interviewBanks, parseInterviewBank, bankSectorFor, BANK_FILES };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPrep;

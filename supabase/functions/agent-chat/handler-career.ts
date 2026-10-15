@@ -32,6 +32,7 @@ import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../_shared/router_core.career.js";
 import { CareerHost } from "../_shared/career_host.js";
+import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -138,6 +139,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
       return json(cors, { error: "thread_id must be a string" }, 400);
 
+    const turnKey = body.turn_key == null ? crypto.randomUUID() : body.turn_key;
+    if (typeof turnKey !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(turnKey)) return json(cors, { error: "invalid_turn_key" }, 400);
+
     // Scope both JWT and service-role bridge histories to the verified owner.
     let tid: string;
     try { tid = await ownerThread(supabase, user.id, thread_id, message); }
@@ -156,22 +160,27 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // Per-thread career state rides agent_flow_state.state under the
     // "career" key, mirroring the flow router's own use of that table.
     const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
-    await supabase.from("agent_messages").insert({ thread_id: tid, role: "user", content: userContent });
+    const requestHash = await careerRequestHash(rawMessage, images);
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    let flowState: Record<string, unknown> = {};
-    const { data: fsRow, error: fsErr } = await admin.from("agent_flow_state").select("state").eq("thread_id", tid).eq("user_id", user.id).maybeSingle();
-    if (fsErr) console.error("career state load failed:", fsErr.message);
-    if (fsRow && fsRow.state && typeof fsRow.state === "object") flowState = fsRow.state as Record<string, unknown>;
-    const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), snapshot: (flowState.career as any) ?? null });
-    const out = host.runTurn(message, ctx);
-    for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
-    const { error: saveErr } = await admin.from("agent_flow_state").upsert(
-      { thread_id: tid, user_id: user.id, state: { ...flowState, career: host.extractSnapshot(ctx) }, updated_at: new Date().toISOString() },
-      { onConflict: "thread_id" },
-    );
-    if (saveErr) console.error("career state save failed:", saveErr.message);
-    await supabase.from("agent_messages").insert({ thread_id: tid, role: "assistant", content: out.reply, meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } });
-    return json(cors, { thread_id: tid, reply: out.reply, action: null, capabilities: out.capabilities });
+    const persistence = createCareerPersistence(admin);
+    try {
+      const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
+      if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
+      const out = host.runTurn(message, ctx);
+      for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
+      const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+      const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
+      const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
+      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response });
+      flowCtx.note = null;
+      return json(cors, saved.response, 200);
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
+      const conflict = ["turn_key_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
+      return json(cors, { error: code, reply: conflict ? "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started." : "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.", action: null, turn_key: turnKey }, conflict ? 409 : 503);
+    }
   } catch (e) {
     console.error(e);
     return json(cors, { error: "internal" }, 500);

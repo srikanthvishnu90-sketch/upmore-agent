@@ -11,29 +11,11 @@
 //     alerts -> 152 runAssignCycle(alerts) -> drain the 152 queue ->
 //     deliverReminder() each record through the delivery ledger.
 //
-// Exactly-once: 152's drain removes what it returns AND deliverReminder
-// refuses any reminder_id already in the delivery ledger
-// (career:delivery-ledger:<user_id>), so a crash/retry between drain and
-// channel send can never produce a second delivered record.
-//
-// Stores (121's KV contract {get,set}, keys exactly as 152 defines):
-//   createFileStore(path)      durable on one host; the host-tier proof store
-//   createSupabaseStore(opts)  the deployed shape, behind the same interface
-//                              (MI-032 step 2, Crew A: wired against
-//                              public.career_watch_kv). Honestly NOT_WIRED
-//                              without an injected PostgREST client, and —
-//                              because the table is created by an OWNER-RUN
-//                              migration — any operation against a database
-//                              where the table is absent fails NOT_WIRED
-//                              naming the table and the pending migration,
-//                              instead of leaking a raw PostgREST error or
-//                              faking a write. probeSupabaseStore() resolves
-//                              the table's existence up front.
-//
-// Delivery channel at this tier: "host_record" — the delivered record is
-// appended to a JSONL delivered-log when deps.deliveredLogPath is given and
-// always returned on the cycle result. "Received" at higher tiers is defined
-// in the design note §3. Nothing here sends anything to any person.
+// Owned product-inbox delivery uses an atomic outbox/lease/ack transaction.
+// The source queue is cleared only after durable transfer. Expired leases
+// require reconciliation using the existing lease; no external send occurs.
+// File/memory stores remain proof-only KV adapters and cannot deliver.
+// Supabase construction/probing must confirm both the KV table and RPCs.
 import fs from "node:fs";
 import { createRequire } from "node:module";
 
@@ -135,6 +117,9 @@ export async function probeSupabaseStore(opts) {
     }
     throw new Error(`career_watch_kv probe failed: ${r.error.message || r.error}`);
   }
+  if(typeof o.client.rpc!=="function")return {status:"NOT_WIRED",missing:["Atomic career RPCs are unavailable; owner-run migration "+WATCH_KV_MIGRATION],table};
+  const rpcRead=await o.client.rpc("career_watch_read",{p_user:o.userId,p_key:"career:watch-profile:"+o.userId});
+  if(rpcRead.error){if(rpcRead.error.code==="PGRST202")return {status:"NOT_WIRED",missing:["Atomic career RPCs are unavailable; owner-run migration "+WATCH_KV_MIGRATION],table};throw new Error("career RPC probe failed");}
   return { status: "WIRED", missing: [], table };
 }
 
@@ -148,26 +133,53 @@ export function createSupabaseStore(opts) {
     throw err;
   }
   const table = o.table || "career_watch_kv";
+  const rpc = async (name, args) => {
+    if (typeof o.client.rpc !== "function") throw Object.assign(new Error("Atomic reminder RPCs are NOT_WIRED"), {code:"NOT_WIRED"});
+    const r = await o.client.rpc(name, {...args, p_user:o.userId});
+    if (r.error && isMissingTableError(r.error,table)) throw notWiredTableError(table,r.error);
+    if (r.error && r.error.code === "PGRST202") throw Object.assign(new Error("Atomic career RPCs are NOT_WIRED; owner-run migration "+WATCH_KV_MIGRATION),{code:"NOT_WIRED"});
+    if (r.error || !r.data || r.data.error) throw Object.assign(new Error("Reminder storage could not be confirmed"), {code:"reminder_storage_unavailable"});
+    return r.data;
+  };
+  // One store instance is one cycle. Never refresh this fence after reads:
+  // otherwise a stale watch/profile read could overwrite a concurrent turn.
+  let fence;
+  async function read(k) {
+    const r=await rpc("career_watch_read",{p_key:k});
+    if(!fence)fence={version:r.version,epoch:r.epoch};
+    return r;
+  }
+  async function currentFence(){if(!fence)await read("career:watch-profile:"+o.userId);return fence;}
+  const owner = userId => {if(userId!==o.userId)throw Error("reminder_owner_mismatch");};
+  const delivery = {
+    async enqueue(reminder){owner(reminder.user_id);const f=await currentFence();return rpc("career_reminder_enqueue",{p_reminder:reminder,p_version:f.version,p_epoch:f.epoch});},
+    async claim(userId,id){owner(userId);return rpc("career_reminder_claim",{p_id:id});},
+    async ack(userId,id,lease,record){owner(userId);return rpc("career_reminder_ack",{p_id:id,p_lease:lease,p_record:record});},
+    async status(userId,id){owner(userId);return rpc("career_reminder_status",{p_id:id});},
+    async pending(userId){owner(userId);return rpc("career_reminder_list",{});},
+  };
   return {
     kind: "supabase",
+    beginCycle() {
+      const writes=new Map();
+      const cycleStore={delivery,
+        async get(k){return writes.has(k)?structuredClone(writes.get(k)):(await read(k)).value;},
+        async set(k,v){writes.set(k,structuredClone(v));}
+      };
+      return {store:cycleStore,async commit(reminders){
+        const f=await currentFence();
+        const saved=await rpc("career_watch_cycle_commit",{p_version:f.version,p_epoch:f.epoch,p_writes:Object.fromEntries(writes),p_reminders:reminders});
+        fence={version:saved.version,epoch:saved.epoch};
+      }};
+    },
+    delivery,
     table,
     user_id: o.userId,
-    async get(k) {
-      const r = await o.client.from(table).select("value").eq("user_id", o.userId).eq("key", k).maybeSingle();
-      if (r.error) {
-        if (isMissingTableError(r.error, table)) throw notWiredTableError(table, r.error);
-        throw new Error(`career_watch_kv read failed: ${r.error.message || r.error}`);
-      }
-      return r.data ? r.data.value : null;
-    },
-    async set(k, v) {
-      const r = await o.client.from(table).upsert(
-        { user_id: o.userId, key: k, value: v, updated_at: new Date().toISOString() },
-        { onConflict: "user_id,key" });
-      if (r.error) {
-        if (isMissingTableError(r.error, table)) throw notWiredTableError(table, r.error);
-        throw new Error(`career_watch_kv write failed: ${r.error.message || r.error}`);
-      }
+    async get(k) { return (await read(k)).value; },
+    async set(k,v) {
+      const f=await currentFence();
+      const saved=await rpc("career_watch_write",{p_key:k,p_value:v,p_version:f.version,p_epoch:f.epoch});
+      fence={version:saved.version,epoch:saved.epoch};
     },
   };
 }
@@ -198,32 +210,41 @@ export function deliveredRecordFor(reminder, opts) {
   };
 }
 
-// Deliver ONE reminder exactly once. The ledger is checked before delivery
-// and the id is recorded as part of the delivery step; a record re-presented
-// after a crash returns { delivered: false, duplicate: true } and no second
-// delivered record is ever produced. deps.sink, when given, is the channel
-// hook (called with the delivered record, after the ledger write).
+// Confirm one owned product-inbox record through atomic claim/ack RPCs.
+// Crash recovery reuses the existing lease; arbitrary external sinks are disabled.
 export async function deliverReminder(reminder, deps) {
-  const d = deps || {};
-  const store = d.store;
-  if (!store || typeof store.get !== "function" || typeof store.set !== "function")
-    throw new Error("deliverReminder requires the injected store {get,set} (the ledger lives there)");
-  if (!reminder || !reminder.reminder_id) throw new Error("deliverReminder requires a reminder with reminder_id");
-  const userId = reminder.user_id || d.userId;
-  if (!userId) throw new Error("deliverReminder requires the reminder's user_id");
-  const key = DELIVERY_LEDGER_KEY(userId);
-  const ledger = (await store.get(key)) || { user_id: userId, delivered_ids: [], records: [] };
-  if ((ledger.delivered_ids || []).includes(reminder.reminder_id)) {
-    return { delivered: false, duplicate: true, reminder_id: reminder.reminder_id,
-      record: (ledger.records || []).find((r) => r.reminder_id === reminder.reminder_id) || null };
+  const d = deps || {}, store = d.store, api = store && store.delivery;
+  if (!api || typeof api.claim !== "function" || typeof api.ack !== "function") throw Object.assign(new Error("Atomic reminder delivery is NOT_WIRED"), {code:"NOT_WIRED"});
+  if (!reminder || !reminder.reminder_id || !reminder.user_id) throw Error("invalid reminder identity");
+  // This worker delivers to the owned product inbox only. Arbitrary sinks,
+  // email and external sends require a separately reviewed effect contract.
+  if (d.sink || d.channel && d.channel !== "product_inbox") throw Object.assign(new Error("External reminder delivery is NOT_WIRED"), {code:"NOT_WIRED"});
+  const userId = reminder.user_id, id = reminder.reminder_id;
+  await api.enqueue(reminder);
+  let claim = await api.claim(userId,id);
+  if (!claim.claimed) {
+    if (claim.status === "delivered") return {delivered:false,duplicate:true,reminder_id:id,record:claim.record};
+    if (!d.reconcile) return {delivered:false,duplicate:false,pending:true,status:claim.status,reminder_id:id};
+    // Explicit reconciliation reuses the SAME lease and payload. It can only
+    // commit an idempotent row to our own inbox, never re-send an external action.
+    const prior = await api.status(userId,id);
+    if (!prior.leaseToken || !["claimed","uncertain"].includes(prior.status)) return {delivered:false,pending:true,status:prior.status,reminder_id:id};
+    claim = {...prior,reminder:prior.reminder,claimed:true};
   }
-  const record = deliveredRecordFor(reminder, { now: d.now, channel: d.channel });
-  ledger.delivered_ids = [...(ledger.delivered_ids || []), reminder.reminder_id];
-  ledger.records = [...(ledger.records || []), record];
-  await store.set(key, ledger);
-  if (d.deliveredLogPath) fs.appendFileSync(d.deliveredLogPath, JSON.stringify(record) + "\n");
-  if (typeof d.sink === "function") await d.sink(record);
-  return { delivered: true, duplicate: false, reminder_id: reminder.reminder_id, record };
+  const record = deliveredRecordFor(claim.reminder || reminder,{now:d.now,channel:"product_inbox"});
+  let acknowledged;
+  try {acknowledged = await api.ack(userId,id,claim.leaseToken,record);}
+  catch (error) {
+    // Lost acknowledgement may follow a committed transaction. Read it back;
+    // never fabricate delivery or begin a second sink/send.
+    const observed = await api.status(userId,id).catch(()=>null);
+    if (!observed || observed.status!=="delivered") throw error;
+    acknowledged = observed;
+  }
+  if (acknowledged.status!=="delivered") throw Error("reminder_delivery_unconfirmed");
+  // A local diagnostic log is observation, not the delivery acknowledgement.
+  if (d.deliveredLogPath) fs.appendFileSync(d.deliveredLogPath,JSON.stringify(acknowledged.record)+"\n");
+  return {delivered:true,duplicate:false,reminder_id:id,record:acknowledged.record};
 }
 
 // ---- the per-user cycle -------------------------------------------------------
@@ -264,9 +285,11 @@ export function watchCycleProfile(wp) {
 // 121 profile 151 scores against; interests live on the same record for 152.
 export async function runUserAlertCycle(userId, deps) {
   const d = deps || {};
-  const store = d.store;
+  let store = d.store;
   if (!store || typeof store.get !== "function" || typeof store.set !== "function")
     throw new Error("runUserAlertCycle requires an injected store {get,set}");
+  if(typeof store.beginCycle!=="function")throw Object.assign(new Error("Atomic career cycle is NOT_WIRED"),{code:"NOT_WIRED"});
+  const transaction=store.beginCycle();store=transaction.store;
   const now = d.now == null ? Date.now() : d.now;
   const wp = await Assign.loadWatchProfile(store, userId);
   if (!wp) {
@@ -320,13 +343,20 @@ export async function runUserAlertCycle(userId, deps) {
   // 152: match alerts against the user's interests, enqueue reminders.
   const assign = await Assign.runAssignCycle({ alerts, watchProfile: wp, store, now, presentJobIds });
 
-  // Drain exactly once (152 queue contract) and deliver through the ledger.
+  // Transfer durably before removing queue entries. A failed transfer leaves
+  // the queue intact; a crash after transfer is recovered from the outbox.
+  if(!store.delivery || typeof store.delivery.pending!=="function") throw Object.assign(new Error("Atomic reminder delivery is NOT_WIRED"),{code:"NOT_WIRED"});
   const queue = Assign.createReminderQueue(store, userId);
-  const drained = await queue.drain();
+  const queued = await queue.peek();
+  await queue.drain(); // buffered only; no source state is persisted yet
+  await transaction.commit(queued); // snapshots + history + queue + outbox, one transaction
+  const pending = await store.delivery.pending(userId);
+  const drained = pending.reminders || [];
   const delivered = [];
   for (const reminder of drained) {
-    const res = await deliverReminder(reminder, { store, now, channel: d.channel, deliveredLogPath: d.deliveredLogPath, sink: d.sink });
+    const res = await deliverReminder(reminder, { store, now, channel: d.channel, deliveredLogPath: d.deliveredLogPath, sink: d.sink, reconcile: true });
     if (res.delivered) delivered.push(res.record);
+    else if(res.pending)errors.push({stage:"deliver",reminder_id:reminder.reminder_id,error:"owned inbox delivery pending reconciliation"});
     else errors.push({ stage: "deliver", reminder_id: reminder.reminder_id, error: "duplicate delivery suppressed by ledger" });
   }
 

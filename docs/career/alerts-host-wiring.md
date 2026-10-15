@@ -14,8 +14,9 @@ executes them without CommonJS `require` (regression:
 `tests/career-bundle-reachability.test.cjs`). Node browser driver 150
 remains outside Edge. The career handler explicitly reports browser
 execution and automatic alert delivery as `NOT_WIRED`; saving a watch
-does not poll, deliver, or submit anything. Its snapshot is scoped to the
-current conversation, pending the shared-store bridge described below.
+does not poll, deliver, or submit anything. The bundle repair alone keeps snapshots scoped to the
+current conversation. The proposed host reliability extension below adds the
+account bridge; neither change establishes a deployed scheduler.
 
 Reminder shape baseline: PD-1 has landed — a reminder
 (`career_job_reminder`, 152 `composeReminder`) carries `deadline`
@@ -139,21 +140,22 @@ line, the deadline in the posting's own words, and the apply link.
 `deadline` and `fit_lines` ride the record verbatim from the reminder
 (PD-1 shape preserved, asserted by the tier-2 proof).
 
-**Exactly-once.** Two independent guards, either sufficient:
-(a) 152's queue contract — `drain()` removes exactly the records it
-returns, and `enqueue` refuses a duplicate `reminder_id`; (b) the
-host delivery ledger (`career:delivery-ledger:<user_id>`) —
-`deliverReminder` checks the ledger *before* delivering and appends
-the `reminder_id` as part of the same delivery step, so a crash
-between drain and channel send can re-present a record to
-`deliverReminder` but can never produce a second delivered record.
-The tier-2 proof runs the whole cycle twice: second run delivers 0.
+**Reliability correction (2026-10-15, source contribution only).** The former
+claim that queue drain or a read/check/set delivery ledger independently
+prevented crash loss and parallel duplicates was false. Real local PostgreSQL
+now verifies a proposed atomic scheduler checkpoint (board snapshots, seat
+history, queue removal and outbox insertion), owner-scoped claim/ack, and
+same-lease inbox reconciliation. `deliverReminder` confirms only a durable
+`product_inbox` record; arbitrary sinks and external channels fail `NOT_WIRED`.
+A JSONL diagnostic file is not the delivery authority. File/memory KV stores
+cannot provide this delivery contract. See [host durability contribution](host-durability-20261015.md)
+for the current contract, tests, migration prerequisites and remaining gates.
 
 **Tiers of "received":**
 
 | tier | channel | "received" means |
 |---|---|---|
-| host-tier proof (built here) | `channel: "host_record"` — the delivered record appended to a JSONL delivered-log + returned | the record exists in the log with its `reminder_id` in the ledger; read-back verifies it |
+| host-tier proof (proposed source) | `channel: "product_inbox"` — a committed owner outbox row | the local database confirms the record and payload hash; this does not prove a person saw it |
 | product, data-only (tier-1 attempt) | a row the deployed product already reads (see §5) | read-back from the product DB returns the record |
 | product, deployed (not built) | the user's next chat surface: the delivered record lands in the user's product state and the chat layer speaks `speak_line` | the user sees the reminder text in the product — requires the deploy steps in §5 |
 
@@ -211,8 +213,9 @@ the authenticated user; the `"user-1"` fallback matches 142's
 existing convention for harness turns). Because the profile record
 itself is user-scoped (`career:watch-profile:<user_id>`), it prevents
 cross-user mixing inside a store. It does not make independent thread
-rows share state: the handler loads by thread ID. Sharing across threads
-and handing chat watches to the scheduler still needs a store bridge.
+rows share state: the handler loads by thread ID. The source reliability contribution adds the bridge through service-role-only
+load/commit RPCs and canonical per-user KV. It is verified locally, remains
+unapplied/undeployed, and does not establish a running scheduler.
 
 ## 5. Deploy vs data-only
 
@@ -229,11 +232,12 @@ and handing chat watches to the scheduler still needs a store bridge.
    guidance and watch creation through the actual handler, without require.
 2. Host: add `"alertWatchState"` to `career_host.js` `STATE_KEYS`
    so chat-created watches survive snapshot reload within a thread.
-   Cross-thread sharing needs a store bridge, not just STATE_KEYS.
+   Cross-thread sharing is proposed in the host reliability contribution, not
+   established by STATE_KEYS alone.
    **Snapshot whitelist DONE — MI-032 step 2
    (Crew A, branch `work/crewa-mi032-host`), with the Supabase adapter
    wired and the tier-2 E2E green (14/14); rides the step-5 deploy.**
-3. Migration: create `public.career_watch_kv` (§1) — owner-run.
+3. Migration: create `public.career_watch_kv`, the inbox outbox and service RPCs (§1) — owner-run.
    The SQL file is written (`supabase/migrations/20261015020000_career_watch_kv.sql`,
    additive only); the owner runs it.
 4. Host: run the scheduler (`alerts-host.mjs`'s `runUserAlertCycle`

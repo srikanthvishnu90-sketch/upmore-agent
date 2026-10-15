@@ -44,10 +44,7 @@ if (!vm.SourceTextModule) {
     const db = { state: { career: { v: 1, stores: { profile: clone(PROFILE) } } }, messages: [], writes: [] };
     const client = {
       auth: { getUser: async () => ({ data: { user: { id: USER } } }) },
-      rpc: async (name) => {
-        assert.equal(name, "agent_rl_bump");
-        return { data: true, error: null };
-      },
+      rpc: (name,args) => require("./helpers/career-persistence-fake.cjs")(db,USER,THREAD,name,args),
       from(table) {
         assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table), `unexpected table: ${table}`);
         const filters = {};
@@ -86,7 +83,7 @@ if (!vm.SourceTextModule) {
     let handle;
     let networkCalls = 0;
     const context = vm.createContext({
-      Request, Response, Headers, URL, TextEncoder, TextDecoder, AbortController,
+      Request, Response, Headers, URL, TextEncoder, TextDecoder, AbortController, crypto: require("node:crypto").webcrypto,
       setTimeout, clearTimeout,
       console: { log() {}, error() {}, warn() {} },
       fetch() { networkCalls++; throw new Error("External network forbidden in bundle regressions"); },

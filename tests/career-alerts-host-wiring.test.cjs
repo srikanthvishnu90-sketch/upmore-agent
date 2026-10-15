@@ -133,7 +133,7 @@ function makeFakePostgrest({ tableExists = true } = {}) {
       return { data: null, error: null };
     },
   });
-  return { rows, from };
+  return { rows, from, rpc: require("./helpers/career-alerts-rpc-fake.cjs")(rows,tableExists) };
 }
 
 test("adapter: probe reports WIRED when the table answers", async () => {

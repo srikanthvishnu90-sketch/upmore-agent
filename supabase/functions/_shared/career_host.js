@@ -27,7 +27,7 @@ const CareerHost = (() => {
   // scheduler/channel. Runtime capabilities never ride user snapshots.
   const WORKER_CAPABILITIES = Object.freeze({
     portal_browser: Object.freeze({ status: "NOT_WIRED", reason: "The Node browser worker is not connected to this Edge handler." }),
-    job_alert_delivery: Object.freeze({ status: "NOT_WIRED", reason: "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only." }),
+    job_alert_delivery: Object.freeze({ status: "NOT_WIRED", reason: "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders." }),
   });
   // Whitelist of ctx keys that carry durable per-thread career state.
   // Anything not listed here is a per-turn input or a host service and is
@@ -81,6 +81,37 @@ const CareerHost = (() => {
     return r;
   }
 
+  // Exact first-person controls precede broad keyword routing. This patches
+  // only Muse's existing profile/watch snapshot fields, never model authority.
+  function applyHostControl(text, ctx) {
+    if (!ctx.userId || typeof text !== "string") return null;
+    const ask = text.trim();
+    if (/^(?:STOP|UNSUBSCRIBE|stop everything|pause all career work)[.!]*$/i.test(ask)) {
+      ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
+      ctx._hostPatch = { paused: true };
+      return { intent: "career_paused", reply: "Career work is paused. No new action will be started. Earlier uncertain actions remain recorded and will not be retried automatically." };
+    }
+    if (/^(?:resume career work|resume all career work)[.!]*$/i.test(ask)) {
+      ctx.globalPause = { set: false, source: "account_control" }; ctx._hostPatch = { paused: false };
+      return { intent: "career_resumed", reply: "The account pause is lifted. Earlier cancelled or uncertain work was not restarted. Ask for the next action explicitly." };
+    }
+    if (/^(?:forget|delete) my career profile[.!]*$/i.test(ask)) {
+      for (const key of STATE_KEYS) delete ctx[key];
+      ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
+      ctx._hostPatch = { erase: true, paused: true };
+      return { intent: "career_profile_erased", reply: "I removed your saved career profile and active career context, cleared account watches and paused career work. Existing chat/audit records may retain earlier text; it is excluded from active context. No uncertain action was retried." };
+    }
+    const match = ask.match(/^(?:(?:actually|correction|to clarify)[,:]?\s+)?my preferred location is ([^\r\n]{1,100}?)[.!]*$/i);
+    if (match && ctx.profile && typeof ctx.profile === "object") {
+      const location = match[1].trim();
+      if (!location || /[<>]|https?:|password|\b(?:unknown|not sure)\b/i.test(location)) return null;
+      ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: [location] });
+      ctx._hostPatch = { preferred_locations: [location] };
+      return { intent: "career_preference_corrected", reply: `I saved your preferred location as ${location}. Existing application approvals and watch locations were not silently rewritten; review those separately.` };
+    }
+    return null;
+  }
+
   function createCareerHost(deps) {
     const { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } = deps || {};
     for (const [name, mod] of Object.entries({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment })) {
@@ -103,7 +134,9 @@ const CareerHost = (() => {
         postings: Array.isArray(o.postings) ? o.postings : [],
         containmentRecords: [],
         workerCapabilities: WORKER_CAPABILITIES,
+        accountPersistence: o.accountPersistence === true,
       };
+      if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");
       const stores = o.snapshot && typeof o.snapshot === "object" ? o.snapshot.stores : null;
       if (stores && typeof stores === "object") {
         for (const key of STATE_KEYS) {
@@ -113,6 +146,17 @@ const CareerHost = (() => {
         }
       }
       if (o.profile !== undefined) ctx.profile = o.profile;
+      if (o.account) {
+        if (o.account.preferred_locations && ctx.profile) {
+          ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: o.account.preferred_locations.slice() });
+        }
+        if (o.account.paused === true) ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
+        if (o.account.paused === false && ctx.globalPause && ctx.globalPause.source === "account_control") ctx.globalPause = { set: false };
+      }
+      if (o.watchState) {
+        if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
+        else delete ctx.alertWatchState;
+      }
       return ctx;
     }
 
@@ -122,6 +166,9 @@ const CareerHost = (() => {
     // ctx.containmentRecords for the handler to log.
     function runTurn(text, ctx) {
       let handler = null;
+      const controls = applyHostControl(text, ctx);
+      if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
+      if (ctx.globalPause === true || ctx.globalPause && ctx.globalPause.set === true) return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }
@@ -145,6 +192,9 @@ const CareerHost = (() => {
         return { reply: outcome.replyText, intent: null, resultStatus: null, handler, contained: true, result: null, capabilities: WORKER_CAPABILITIES };
       }
       let result = outcome.result;
+      if (ctx.accountPersistence && result && ["career_watch_create","career_watch_manage"].includes(result.intent) && typeof result.reply === "string") {
+        result = {...result,reply:result.reply.replaceAll("saved in this conversation only","saved to your owned account").replaceAll("saved watches stay paused in this conversation","saved watches stay paused on your account").replaceAll("saved watches are no longer paused in this conversation","saved watches are no longer paused on your account")};
+      }
       if (result && ["application_packet", "doorstep_fill", "doorstep_status"].includes(result.intent)) {
         // Packet preparation remains available; a local doorstep is never
         // presented as an opened employer form or a connected submit leg.
@@ -171,7 +221,7 @@ const CareerHost = (() => {
           try { stores[key] = cloneJson(ctx[key]); } catch { /* skip */ }
         }
       }
-      return { v: 1, stores };
+      return { v: 1, scope: { userId: ctx.userId }, stores };
     }
 
     return { createTurnCtx, runTurn, extractSnapshot, STATE_KEYS: STATE_KEYS.slice() };

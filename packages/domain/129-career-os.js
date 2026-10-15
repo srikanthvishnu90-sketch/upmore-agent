@@ -12,6 +12,13 @@ const CareerOS = (() => {
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
+  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
 
   function createStore(seed) { return Object.assign({ offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }, seed || {}); }
 
@@ -112,7 +119,7 @@ const CareerOS = (() => {
 
   // ---------- COS-004 network upkeep ----------
   function networkUpkeep(store, opts) {
-    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const rows = [...(store.relationships || [])].map((r) => ({ name: r.name, org: r.org || null, warmth: r.warmth || null, last_touch: r.last_touch || null, days_since: r.last_touch ? Math.floor((now - Date.parse(r.last_touch)) / DAY) : null, channel: r.channel || null }))
       .sort((a, b) => (b.days_since == null ? 1e9 : b.days_since) - (a.days_since == null ? 1e9 : a.days_since));
     const coldestWarm = rows.find((r) => r.warmth === "warm") || rows[0] || null;

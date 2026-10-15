@@ -2361,7 +2361,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-352 (BUG-195) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-195 |
 | FR-353 (BUG-196) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-196 |
 | FR-354 (BUG-197) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-197 |
-| FR-355 (BUG-198) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-198 |
+| FR-355 (BUG-198) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-198 + tests/career-clock-source-guard.test.cjs (see section) |
 | FR-356 (BUG-199) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-199 |
 | FR-357 (BUG-200) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-200 |
 | FR-358 (BUG-201) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-201 |
@@ -2369,8 +2369,13 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-360 (BUG-203) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 + 3 more (see section) |
 | FR-361 (BUG-204) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-204 (see section) |
 | FR-362 (BUG-205) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-205 (see section) |
+| FR-363 (BUG-206) | UNENFORCED | UNENFORCED (see section) |
+| FR-364 (BUG-207) | UNENFORCED | UNENFORCED (see section) |
+| FR-365 (BUG-209) | UNENFORCED | UNENFORCED (see section) |
+| FR-366 (BUG-208) | UNENFORCED | UNENFORCED (see section) |
+| FR-367 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
 
-<!-- totals: total=362 enforced=257 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=367 enforced=271 guarded_red=0 hard_shut=1 unenforced=95 (reconciled 2026-10-15, GC pass #1: index rows added for FR-363..FR-366, whose sections already stood UNENFORCED; prior comment claimed unenforced=103, matching no count) -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2474,7 +2479,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 
 ### FR-355 — A proposal never offers a time that has already passed (BUG-198)
 - **RULE:** Offered times are checked against the turn's own clock. All-past offers are re-evaluated for the next day at the same local times (conflict checks rerun) with the shift disclosed in the reply and recorded in the payload; a past slot is never presented as available.
-- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-198 (SC-143 shape).
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-198 (the emitter staged directly with slots past at the turn clock; corrected 2026-10-15 under MI-001 — the original chat-path form expected the next-day shift, which appeared only because the emitter read the wall clock: the defect itself, see FR-367) + tests/career-clock-source-guard.test.cjs (SC-143 wall-clock invariance at faked morning and afternoon clocks; pass^3 recorded in docs/career/contracts/mi-001-bug-198.md).
 
 ### FR-356 — A status shape asserts only the state it holds (BUG-199)
 - **RULE:** A label is spoken as the name of a pattern unless a write put it on a row this turn; a setting is never "done" before the inputs it depends on exist; every deadline carries its absolute date on first mention; a missing comparison (a plan, a base) is stated as missing, not dropped and not zero; and a retro or dashboard delivers its forward plan from the numbers it has — from zero, an honest floor.
@@ -2519,3 +2524,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-366 — A confirmation ID is evidence only in a confirmation context (BUG-208)
 - **RULE:** A confirmation/application ID counts only when the post-submit landing labels it as one (a confirmation view naming the ID as an application/confirmation/reference number). Text from the job posting itself, or any unlabeled ID-shaped token in page prose, can never mint a confirmation, and an extraction alone can never upgrade an outcome to accepted — acceptance requires the labeled ID or unambiguous employer success wording on the confirmation view.
 - **ENFORCEMENT:** UNENFORCED — recorded 2026-10-15 from the live submit run (the extractor minted confirmationId "security" from the Labelbox posting's own prose and the product recorded a SUBMITTED that never happened; disproven by the captured screenshot before it reached any count). The portal fix lane owes adversarial extraction cases (posting prose containing ID-shaped words, incl. "security", must yield no confirmation). The rule flips to ENFORCED only when that guard stands.
+
+### FR-367 — A clock value is never fed to Date.parse unless it is known to be a string (BUG-198 class)
+- **RULE:** The turn clock arrives as numeric epoch milliseconds (harness and production host alike). Any code that reads a clock value coerces it type-safely — a finite number passes through, a string parses, anything else falls to the caller's explicit default. Date.parse() on a possibly-numeric clock value is forbidden: it returns NaN, and the NaN silently becomes a wall-clock fallback, a thrown RangeError, or a NaN verdict downstream (six sites at discovery: 141 emitCalendarProposal, 128 deadlinePlan, 129 networkUpkeep, 145 pressurePlan, 135 keepWarm, 142->124 draftAndGate). A guard for a clock-sensitive behavior must pin BOTH the turn clock and the wall clock; a guard whose expectation holds at only one time of day is evidence of this defect, not of a fix.
+- **ENFORCEMENT:** tests/career-clock-source-guard.test.cjs (7 tests: SC-143 wall-clock invariance at faked 12:00Z and 21:35Z; past-slot re-proposal staged at the emitter; numeric-vs-ISO identity with no throw and no NaN at 128 deadlinePlan, 129 networkUpkeep, 145 pressurePlan, 135 keepWarm; 142 call-site smoke).

@@ -12,6 +12,14 @@ const DISCLAIMER = "Advice, not a guarantee of outcome. Not legal or tax advice 
 const s = (v) => (v == null ? "" : String(v));
 const card = (kind, title, body, destination) => ({ type: "approval_card", kind, title, body, destination: destination || "recruiter (address confirmed on the card before send)", requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." });
 
+// CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+// numeric epoch ms from the router/host and Date.parse(number) is NaN.
+// Coerce type-safely — a finite number passes through, a string parses,
+// anything else is NaN and the caller applies its own default.
+// (Uniquely named: the bundle concatenates files into one module
+// scope, so file-scope helper names must be unique across files.)
+function w11ClockMsOf(v) { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; }
+
 // ---------- BUG-141 adapter: pivot/career CIRs store screening_signals as {stated, revealed} ----------
 // 127's normalizeCir calls .map on screening_signals and crashes on the merged-corpus shape.
 // Flattening stated+revealed into one list (entries untouched) lets the vendored engine consume
@@ -262,7 +270,7 @@ function compExpectationAnswer(bench) {
 
 // ---------- SC-217 exploding-offer (48h) pressure plan ----------
 function pressurePlan(offer, opts) {
-  opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+  opts = opts || {}; const now = (() => { const t = w11ClockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
   const exp = offer.expiry_date ? Date.parse(offer.expiry_date + "T00:00:00Z") : null;
   const hoursLeft = exp != null ? Math.round((exp - now) / 3600000) : null;
   return {

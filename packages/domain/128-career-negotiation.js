@@ -14,6 +14,13 @@ const CareerNegotiation = (() => {
   const DISCLAIMER = "Negotiation support is advice, not a guarantee of outcome. It is not legal or tax advice — have an employment lawyer review any agreement before you sign.";
   const s = (v) => (v == null ? "" : String(v));
   const money = (n) => (n == null || !Number.isFinite(n) ? null : Math.round(n));
+  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
 
   function createStore() { return { offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }; }
 
@@ -235,7 +242,7 @@ const CareerNegotiation = (() => {
 
   // ---------- deadline sequencing (colliding deadlines) ----------
   function deadlinePlan(offers, opts) {
-    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const sorted = [...(offers || [])].filter((o) => o.expiry_date).sort((a, b) => a.expiry_date.localeCompare(b.expiry_date))
       .map((o) => ({ offer_id: o.offer_id || null, company: o.company, expiry_date: o.expiry_date, days_left: Math.ceil((Date.parse(o.expiry_date + "T00:00:00Z") - now) / 86400000) }));
     const collide = sorted.length > 1 && sorted[0].expiry_date === sorted[sorted.length - 1].expiry_date;

@@ -12,6 +12,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const L = require("../scripts/career/gauntlet/pilot-lib.cjs");
 const Outreach = require("../packages/domain/124-career-outreach.js");
+const Doorstep = require("../packages/domain/141-career-doorstep.js");
 
 const doc = fs.readFileSync(path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md"), "utf8");
 const CANON = new Map();
@@ -432,8 +433,21 @@ test("BUG-197: no deadline or expiry is claimed without a value on the record; t
 });
 
 // ---- BUG-198: a calendar proposal never offers a past time ----
+// CORRECTED 2026-10-15 (MI-001, Crew A): the original form drove
+// SC-143 through the chat path and expected the next-day shift —
+// but through the chat path the slots are proposed FROM the turn
+// clock, so the shift appeared only because 141 judged them
+// against the wall clock (the defect itself; FR-367). The behavior
+// under test — slots past at the turn clock re-proposed for the
+// next day, disclosed — is staged directly at the emitter with the
+// turn clock at the ledger's delivery instant (Wed Oct 14, 8:35 PM
+// CT). The standing guard for the whole clock-source class is
+// tests/career-clock-source-guard.test.cjs.
 test("BUG-198: offered slots that have all passed are re-proposed for the next day, disclosed", () => {
-  const t143 = text(turn("SC-143"));
+  const r143 = Doorstep.emitCalendarProposal(
+    { now: Date.parse("2026-10-15T01:35:00Z"), timezone: "America/New_York" },
+    { title: "Interview", timezone: "America/New_York", slots: ["2026-10-14T13:00:00.000Z", "2026-10-14T14:00:00.000Z", "2026-10-14T15:00:00.000Z"].map((start) => ({ start, timezone: "America/New_York", durationMin: 30 })) });
+  const t143 = r143.reply;
   assert.ok(/proposes the same times tomorrow/.test(t143), `SC-143: ${t143.slice(0, 300)}`);
   assert.ok(!/already passed today" ;|— that time has already passed/.test(t143), "SC-143: a past slot is still being offered");
 });

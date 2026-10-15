@@ -1250,7 +1250,12 @@ const CareerDoorstep = (() => {
     // for the next day (busy and quiet checks rerun) and the card
     // says so; when only some are past, the proposal prefers a
     // future free slot and each past slot's verdict says it passed.
-    const nowMs = (() => { const n = Date.parse(c.now || ""); return Number.isNaN(n) ? Date.now() : n; })();
+    // CLOCK-SOURCE (BUG-198 class, FR-367): c.now arrives as numeric
+    // epoch ms from the harness/host and Date.parse(number) is NaN —
+    // the old line silently fell back to the wall clock, so verdicts
+    // flipped between morning and afternoon runs. Parse via isoOf,
+    // which is number-safe (the same pattern as the outreach emitter).
+    const nowMs = (() => { const n = Date.parse(isoOf(c.now) || ""); return Number.isNaN(n) ? Date.now() : n; })();
     const slotMsOf = (e) => Date.parse(e.utc || e.start_iso || e.start || "");
     let shiftedNote = null;
     if (evaluations.length && evaluations.every((e) => { const m = slotMsOf(e); return !Number.isNaN(m) && m < nowMs; })) {

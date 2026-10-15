@@ -1090,7 +1090,10 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate", school: (edu && edu.org) || (profile.basics && profile.basics.school) || "" };
     const candidate = { full_name: named.name, current_firm: named.firm, title: "", schools: user.school ? [user.school] : [], relationship_to_user: "", personalization_facts: [] };
     let gated = null;
-    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now ? Date.parse(ctx.now) : undefined }); } catch { gated = null; }
+    // CLOCK-SOURCE (BUG-198 class, FR-367): nowOf coerces the turn clock
+    // type-safely; Date.parse(ctx.now) on the numeric clock was NaN,
+    // which silently disabled 124's stale-record check at this call.
+    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now != null ? nowOf(ctx) : undefined }); } catch { gated = null; }
     if (!gated || !gated.draft || !gated.gate || !gated.gate.pass) return null;
     const facts = [`Subject: ${gated.draft.subject || "(set at the gate)"}.`, `No email address is on file for ${named.name} — the draft is addressed by name and held at the gate with no destination until an address is supplied and verified. Nothing can go out from the gate, and sending stays off regardless.`];
     const reply = compose({ headline: `Your draft to ${named.name} at ${named.firm} is ready at the approval gate.`, facts, nextStep: "Approve it as-is, edit it, or add the address first?" });

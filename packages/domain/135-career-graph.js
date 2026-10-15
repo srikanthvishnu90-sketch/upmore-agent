@@ -40,6 +40,13 @@
    fact_ids array). */
 const CareerGraph = (() => {
   "use strict";
+  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const norm = (v) => lc(v).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -191,7 +198,7 @@ const CareerGraph = (() => {
       last_contact_at: (person && person.last_contact_at) || last.at || null, last_summary: last.summary || null };
   }
   function keepWarm(store, opts) {
-    opts = opts || {}; const now = Date.parse(opts.now || new Date().toISOString());
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const due = [];
     for (const p of store.people || []) {
       const mem = relationshipMemory(store, p.full_name);

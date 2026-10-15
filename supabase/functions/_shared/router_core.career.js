@@ -6498,6 +6498,13 @@ const CareerNegotiation = (() => {
   const DISCLAIMER = "Negotiation support is advice, not a guarantee of outcome. It is not legal or tax advice — have an employment lawyer review any agreement before you sign.";
   const s = (v) => (v == null ? "" : String(v));
   const money = (n) => (n == null || !Number.isFinite(n) ? null : Math.round(n));
+  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
 
   function createStore() { return { offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }; }
 
@@ -6719,7 +6726,7 @@ const CareerNegotiation = (() => {
 
   // ---------- deadline sequencing (colliding deadlines) ----------
   function deadlinePlan(offers, opts) {
-    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const sorted = [...(offers || [])].filter((o) => o.expiry_date).sort((a, b) => a.expiry_date.localeCompare(b.expiry_date))
       .map((o) => ({ offer_id: o.offer_id || null, company: o.company, expiry_date: o.expiry_date, days_left: Math.ceil((Date.parse(o.expiry_date + "T00:00:00Z") - now) / 86400000) }));
     const collide = sorted.length > 1 && sorted[0].expiry_date === sorted[sorted.length - 1].expiry_date;
@@ -6750,6 +6757,13 @@ const CareerOS = (() => {
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
+  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
 
   function createStore(seed) { return Object.assign({ offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }, seed || {}); }
 
@@ -6850,7 +6864,7 @@ const CareerOS = (() => {
 
   // ---------- COS-004 network upkeep ----------
   function networkUpkeep(store, opts) {
-    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const rows = [...(store.relationships || [])].map((r) => ({ name: r.name, org: r.org || null, warmth: r.warmth || null, last_touch: r.last_touch || null, days_since: r.last_touch ? Math.floor((now - Date.parse(r.last_touch)) / DAY) : null, channel: r.channel || null }))
       .sort((a, b) => (b.days_since == null ? 1e9 : b.days_since) - (a.days_since == null ? 1e9 : a.days_since));
     const coldestWarm = rows.find((r) => r.warmth === "warm") || rows[0] || null;
@@ -8038,6 +8052,13 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPath
    fact_ids array). */
 const CareerGraph = (() => {
   "use strict";
+  // CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+  // numeric epoch ms from the router/host and Date.parse(number) is
+  // NaN. Coerce type-safely — a finite number passes through, a
+  // string parses, anything else is NaN and the caller defaults.
+  // (Closure-local name: the bundle concatenates files into one
+  // module scope, so file-scope helper names must be unique.)
+  const clockMsOf = (v) => { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; };
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const norm = (v) => lc(v).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -8189,7 +8210,7 @@ const CareerGraph = (() => {
       last_contact_at: (person && person.last_contact_at) || last.at || null, last_summary: last.summary || null };
   }
   function keepWarm(store, opts) {
-    opts = opts || {}; const now = Date.parse(opts.now || new Date().toISOString());
+    opts = opts || {}; const now = (() => { const t = clockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
     const due = [];
     for (const p of store.people || []) {
       const mem = relationshipMemory(store, p.full_name);
@@ -9128,6 +9149,14 @@ const DISCLAIMER = "Advice, not a guarantee of outcome. Not legal or tax advice 
 const s = (v) => (v == null ? "" : String(v));
 const card = (kind, title, body, destination) => ({ type: "approval_card", kind, title, body, destination: destination || "recruiter (address confirmed on the card before send)", requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." });
 
+// CLOCK-SOURCE (BUG-198 class, FR-367): the turn clock arrives as
+// numeric epoch ms from the router/host and Date.parse(number) is NaN.
+// Coerce type-safely — a finite number passes through, a string parses,
+// anything else is NaN and the caller applies its own default.
+// (Uniquely named: the bundle concatenates files into one module
+// scope, so file-scope helper names must be unique across files.)
+function w11ClockMsOf(v) { if (v == null) return NaN; if (typeof v === "number") return Number.isFinite(v) ? v : NaN; const t = Date.parse(v); return Number.isNaN(t) ? NaN : t; }
+
 // ---------- BUG-141 adapter: pivot/career CIRs store screening_signals as {stated, revealed} ----------
 // 127's normalizeCir calls .map on screening_signals and crashes on the merged-corpus shape.
 // Flattening stated+revealed into one list (entries untouched) lets the vendored engine consume
@@ -9378,7 +9407,7 @@ function compExpectationAnswer(bench) {
 
 // ---------- SC-217 exploding-offer (48h) pressure plan ----------
 function pressurePlan(offer, opts) {
-  opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+  opts = opts || {}; const now = (() => { const t = w11ClockMsOf(opts.now); return Number.isNaN(t) ? Date.now() : t; })();
   const exp = offer.expiry_date ? Date.parse(offer.expiry_date + "T00:00:00Z") : null;
   const hoursLeft = exp != null ? Math.round((exp - now) / 3600000) : null;
   return {
@@ -11469,7 +11498,12 @@ const CareerDoorstep = (() => {
     // for the next day (busy and quiet checks rerun) and the card
     // says so; when only some are past, the proposal prefers a
     // future free slot and each past slot's verdict says it passed.
-    const nowMs = (() => { const n = Date.parse(c.now || ""); return Number.isNaN(n) ? Date.now() : n; })();
+    // CLOCK-SOURCE (BUG-198 class, FR-367): c.now arrives as numeric
+    // epoch ms from the harness/host and Date.parse(number) is NaN —
+    // the old line silently fell back to the wall clock, so verdicts
+    // flipped between morning and afternoon runs. Parse via isoOf,
+    // which is number-safe (the same pattern as the outreach emitter).
+    const nowMs = (() => { const n = Date.parse(isoOf(c.now) || ""); return Number.isNaN(n) ? Date.now() : n; })();
     const slotMsOf = (e) => Date.parse(e.utc || e.start_iso || e.start || "");
     let shiftedNote = null;
     if (evaluations.length && evaluations.every((e) => { const m = slotMsOf(e); return !Number.isNaN(m) && m < nowMs; })) {
@@ -12963,7 +12997,10 @@ const CareerRouter = (() => {
     const user = { name: (profile.basics && profile.basics.name) || "the candidate", school: (edu && edu.org) || (profile.basics && profile.basics.school) || "" };
     const candidate = { full_name: named.name, current_firm: named.firm, title: "", schools: user.school ? [user.school] : [], relationship_to_user: "", personalization_facts: [] };
     let gated = null;
-    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now ? Date.parse(ctx.now) : undefined }); } catch { gated = null; }
+    // CLOCK-SOURCE (BUG-198 class, FR-367): nowOf coerces the turn clock
+    // type-safely; Date.parse(ctx.now) on the numeric clock was NaN,
+    // which silently disabled 124's stale-record check at this call.
+    try { gated = Outreach.draftAndGate(candidate, user, { ctx, suppression: ctx.suppression || null, nowMs: ctx.now != null ? nowOf(ctx) : undefined }); } catch { gated = null; }
     if (!gated || !gated.draft || !gated.gate || !gated.gate.pass) return null;
     const facts = [`Subject: ${gated.draft.subject || "(set at the gate)"}.`, `No email address is on file for ${named.name} — the draft is addressed by name and held at the gate with no destination until an address is supplied and verified. Nothing can go out from the gate, and sending stays off regardless.`];
     const reply = compose({ headline: `Your draft to ${named.name} at ${named.firm} is ready at the approval gate.`, facts, nextStep: "Approve it as-is, edit it, or add the address first?" });

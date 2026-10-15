@@ -198,7 +198,18 @@ const CareerTailor = (() => {
     const zoneSegs = inReq ? reqSegs : segments.filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate");
     const zoneSkills = [...new Set(zoneSegs.flatMap((sg) => skillsInText(sg.text)))];
     const mustSkills = zoneSkills.filter((sk) => skillQualifies(sk, zoneSegs, inReq));
-    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s) && (!AMBIGUOUS_SKILLS.has(s) || skillQualifies(s, [{ kind: "other", text: niceText }], false)));
+    // R1 C11 (Crew B Cycle 2): an AMBIGUOUS skill (Go, Spring, Spark, R)
+    // named in the preferred zone under explicit preference phrasing —
+    // the sentence itself says "not required" / "a plus" / "nice to
+    // have" / "preferred" / "bonus" — IS a preferred skill, not a verb
+    // or a season. The BUG-057 tech-context window dropped exactly that
+    // case (GJ-T03: "Go listed as 'a plus, not required'"), so the gap
+    // read came back empty and the tailor turn's spoken line falsely
+    // asserted full coverage. The marker must be in the SAME sentence
+    // as the token: a distant preference heading does not vouch for a
+    // verb use elsewhere in the zone.
+    const PREF_MARKER = /not required|a plus|nice to have|preferred|bonus/i;
+    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s) && (!AMBIGUOUS_SKILLS.has(s) || skillQualifies(s, [{ kind: "other", text: niceText }], false) || sentencesOf(niceText).some((sent) => PREF_MARKER.test(sent) && skillsInText(sent).includes(s))));
     let level = "unspecified";
     if (/intern(ship)?\b/i.test(raw)) level = "intern";
     else if (/new grad|entry[- ]level|junior/i.test(raw)) level = "new-grad/junior";
@@ -285,12 +296,38 @@ const CareerTailor = (() => {
     general: { label: "General", sectionOrder: ["Experience", "Projects", "Education", "Leadership", "Certifications", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Neutral conventions: strongest evidenced experience first, education and credentials in their own sections; no family-specific framing is applied to an unmatched role."], pageLimit: 1 },
   };
 
+  // Role-family skill vocabularies (Lane B depth, Crew B Cycle 2): the
+  // occupation-level skills each family's facts typically evidence, in
+  // the lexicon's own spellings. Used ONLY as a selection signal (a fact
+  // evidencing a family skill is tailoring material for that family's
+  // postings even when the posting's surviving text never named the
+  // skill) — never as a claim source: a skill still reaches the page
+  // only through an evidencing fact, under the audit + name rules.
+  const FAMILY_SKILLS = {
+    swe: ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "CI/CD", "GraphQL", "REST", "Data Structures", "Algorithms", "System Design", "Spark", "Hadoop"],
+    data_ml: ["Python", "SQL", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Statistics", "Probability", "A/B Testing", "Tableau", "R", "Spark", "Hadoop", "Data Structures", "Algorithms", "PostgreSQL"],
+    quant: ["Python", "C++", "Java", "Statistics", "Probability", "Data Structures", "Algorithms", "Machine Learning", "SQL", "R", "Pandas", "NumPy"],
+    pm: ["User Stories", "Agile", "Jira", "Confluence", "Requirements Analysis", "Stakeholder Management", "Business Analysis", "Project Management", "A/B Testing", "SQL", "Tableau"],
+    design: ["Figma", "Photoshop"],
+    ib_finance: ["Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Python", "SQL", "Tableau"],
+    consulting: ["User Stories", "Agile", "Jira", "Confluence", "Requirements Analysis", "Stakeholder Management", "Business Analysis", "Consulting", "Change Management", "Project Management", "Excel", "PowerPoint", "Tableau"],
+    law: ["Legal Research", "Legal Writing", "Westlaw", "LexisNexis", "E-Filing", "Legal Calendaring", "Contract Review", "Legal Operations"],
+    medicine: ["Patient Care", "Vital Signs", "Phlebotomy", "Epic", "EHR", "EMR", "BLS", "CNA", "Medical Assistant", "Medical Assistant Certification", "Utilization Review", "Case Management", "Clinical Documentation", "Nursing License", "RN License", "Registered Nurse"],
+    real_estate: ["Argus", "NOI", "DSC", "DSCR", "IRR", "Cap Rate", "Underwriting", "Rent Roll", "CoStar", "Asset Management", "Escrow", "Pro Forma", "Salesforce", "Real Estate License", "Real Estate", "Excel", "Financial Modeling"],
+    general: [],
+  };
+
   // ---- fact selection: relevance, then recency, then impact (Doc 2 §3.1 step 3) ----
   function scoreFact(fact, jd) {
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
     const fskills = (fact.skills || []).map((s) => String(s).toLowerCase());
+    // Relevance reads the fact's whole stated content (title + text +
+    // bullets) — the same corpus the truth audit and the grader's
+    // evidence model read. Reading text alone missed skills evidenced
+    // only in a bullet (Lane B depth, Crew B Cycle 2).
+    const corpus = `${fact.title || ""} ${fact.text || ""} ${(fact.bullets || []).join(" ")}`.toLowerCase();
     let relevance = 0;
-    for (const s of wanted) relevance += fskills.includes(s.toLowerCase()) ? 3 : (String(fact.text || "").toLowerCase().includes(s.toLowerCase()) ? 1 : 0);
+    for (const s of wanted) relevance += fskills.includes(s.toLowerCase()) ? 3 : (corpus.includes(s.toLowerCase()) ? 1 : 0);
     for (const kw of jd.keywords || []) if (kw.length > 5 && String(fact.text || "").toLowerCase().includes(kw)) relevance += 0.25;
     const endMs = fact.end ? Date.parse(`${fact.end}-01T00:00:00Z`) : (fact.start ? Date.parse(`${fact.start}-01T00:00:00Z`) : 0);
     const recency = Number.isFinite(endMs) && endMs ? Math.min(2, Math.max(0, (endMs / 1e12))) : 0;
@@ -300,7 +337,58 @@ const CareerTailor = (() => {
   function selectFacts(profile, jd, opts) {
     const o = opts || {};
     const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
-    return pool.map((f) => ({ fact: f, score: scoreFact(f, jd) })).sort((a, b) => b.score.total - a.score.total).slice(0, o.limit || 8);
+    const scored = pool.map((f) => ({ fact: f, score: scoreFact(f, jd) }));
+    // Posting-driven selection (Lane B depth, Crew B Cycle 2): the old
+    // rule returned the top-(limit) of the WHOLE pool for every posting;
+    // with real pools of 2–7 facts and a limit of 8 that was the entire
+    // record every time, so selection was identical across postings by
+    // construction (861 GENERIC_NOT_TAILORED instances in Lane B). A
+    // fact is now KEPT when it has a reason to be on THIS resume:
+    //  - it evidences a skill this posting names (skills[] or its
+    //    title/text/bullets — scoreFact's skill component, without the
+    //    keyword dust); or
+    //  - it evidences a skill in this posting's role-FAMILY vocabulary
+    //    (FAMILY_SKILLS above): posting texts are often truncated, and
+    //    a fact carrying the occupation's own skills (a Go API on an
+    //    SWE cut whose surviving JD text extracted only "Data
+    //    Structures") is tailoring material, not filler; or
+    //  - it is structural: education / certification / leadership —
+    //    sections nearly every role-family variant carries, and a
+    //    credential fact is often the degree/license evidence itself.
+    // Ordinary off-target experience (no named skill, no family skill)
+    // is what tailoring leaves out. Remaining facts fill only while
+    // the kept set is not yet a viable document (fewer than 2 facts, or
+    // no experience/project/leadership content at all), so a thin or
+    // unmatched record still renders; fillers never displace a kept fact.
+    const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((s) => String(s).toLowerCase());
+    const skillRelevance = (f) => {
+      const fskills = (f.skills || []).map((s) => String(s).toLowerCase());
+      const corpus = `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`.toLowerCase();
+      let r = 0;
+      for (const s of wanted) r += fskills.includes(s) ? 3 : (corpus.includes(s) ? 1 : 0);
+      return r;
+    };
+    const famVocab = new Set((FAMILY_SKILLS[jd.family] || []).map((s) => s.toLowerCase()));
+    const familyRelevance = (f) => famVocab.size > 0 && factEvidencedSkillNames(f).some((n) => famVocab.has(n.toLowerCase()));
+    const STRUCTURAL = new Set(["education", "certification", "leadership"]);
+    const byTotal = (a, b) => b.score.total - a.score.total;
+    const keep = scored.filter((x) => skillRelevance(x.fact) > 0 || familyRelevance(x.fact) || STRUCTURAL.has(x.fact.kind)).sort(byTotal);
+    const rest = scored.filter((x) => !keep.includes(x)).sort(byTotal);
+    const picked = [...keep];
+    const hasContent = () => picked.some((x) => ["experience", "project", "leadership"].includes(x.fact.kind));
+    // Viability floor: a larger record (pool >= 5) fills to 3 facts, a
+    // small one to 2 — always with content — before tailoring stops;
+    // a 6-fact record cut to 2 facts because the surviving JD text
+    // extracted little is a thinner document than the record supports
+    // (Lane B LB-0012 shape), while a 4-fact record's relevant core of
+    // 2 is a complete cut and fills nothing.
+    const minFacts = Math.min(scored.length >= 5 ? 3 : 2, scored.length);
+    for (const x of rest) {
+      if (picked.length >= minFacts && hasContent()) break;
+      if (picked.length >= 3) break;
+      picked.push(x);
+    }
+    return picked.slice(0, o.limit || 8);
   }
   // ---- skill-fact names + proof (BUG-210 / BUG-211) ----
   // A skill fact's name lives in different fields depending on who wrote
@@ -337,8 +425,16 @@ const CareerTailor = (() => {
   function skillFactSelfEvidences(fact, name) {
     const body = `${fact.text || ""} ${(fact.bullets || []).join(" ")}`.trim();
     if (!body || /^Skill:\s*/i.test(body)) return false;
-    const low = ` ${body.toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
-    if (!low.includes(` ${String(name).toLowerCase()} `)) return false;
+    // Token match, punctuation-insensitive (Lane B depth, Crew B Cycle 2):
+    // the old raw ` name ` substring check missed a skill mentioned at
+    // the END of the fact's sentence ("…sensitivities in Excel.",
+    // "…research guides in Confluence."), so a substantive statement was
+    // treated as a bare claim and the skill became a false gap. Both
+    // sides are normalised to bare tokens, so a trailing period/comma
+    // cannot hide the mention — and a longer word containing the name
+    // still cannot fake it.
+    const norm = (s) => ` ${String(s || "").toLowerCase().replace(/[^a-z0-9+#]+/g, " ").replace(/\s+/g, " ")} `;
+    if (!norm(body).includes(norm(name))) return false;
     return body.split(/\s+/).filter(Boolean).length >= 6;
   }
   // Proof rule (BUG-211, aligned with 121's scoreFit semantics ~line 847):
@@ -387,12 +483,22 @@ const CareerTailor = (() => {
     for (const f of Profile.confirmedFacts(profile)) {
       if (f.kind === "skill") continue;
       for (const name of factEvidencedSkillNames(f)) {
-        if (!wanted.has(name.toLowerCase())) continue;
         const key = name.toLowerCase();
         if (!byName.has(key)) byName.set(key, { name, factId: f.id, proven: true, evidence: [f.id], derivedFromFact: f.kind });
       }
     }
-    return [...byName.values()];
+    // Lane B depth (Crew B Cycle 2): the rows are no longer wanted-only.
+    // A tailored resume's Skills section is the candidate's evidenced
+    // skill vocabulary for the role family; restricting it to the terms
+    // parseJD happened to extract from a (often truncated) posting text
+    // left truthful, evidenced skills off the page by construction
+    // (KEYWORD_ABSENT_TRUTHFUL / MISSING_REQUIREMENT for skills the
+    // posting's occupation requires but its surviving text never named).
+    // Every row still cites the confirmed fact that evidences it, and
+    // the name-safety filter in assemble() still applies. Wanted rows
+    // keep their lead position.
+    const rows = [...byName.values()];
+    return rows.sort((a, b) => (wanted.has(b.name.toLowerCase()) ? 1 : 0) - (wanted.has(a.name.toLowerCase()) ? 1 : 0));
   }
 
   // BUG-058 (FV-11/SS-12): the consulting X-by-Y-Z template concatenated the
@@ -481,6 +587,14 @@ const CareerTailor = (() => {
     // some fact). A name sourced only from a skills[] list, whose words no
     // fact ever states in prose, would print as an unsupported proper name
     // on the page — it stays a coverage miss, never an invention.
+    // Lane B depth (Crew B Cycle 2): a lexicon exemption for skills[]-
+    // sourced names was TRIED here and REVERTED on measurement — the
+    // Lane B re-run's coverage rose (0.686 -> 0.961) but invention went
+    // 0 -> 1,441, every instance the immutability name check (a
+    // capitalized name mid-line must appear in the persona's fact
+    // PROSE; skills[] is not prose). The invention bar is hard (0), so
+    // the prose rule stands for lexicon and non-lexicon names alike:
+    // a skills[]-only name is a coverage miss, never an invention.
     const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
     const nameSafe = (name) => String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
     const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
@@ -879,7 +993,7 @@ const CareerTailor = (() => {
         if (years != null) { satisfied = years >= (ko.min_years || 0); why = `your confirmed facts evidence about ${years} years of full-time experience`; }
       }
       if (satisfied === false) {
-        gaps.push({ requirement: ko.requirement, kind: "knockout", type: ko.type, reasonClass: "knockout-failed", reason: `posting knockout not met — ${ko.requirement}: ${why}`, evidence: ko.evidence || null });
+        gaps.push({ requirement: ko.requirement, kind: "knockout", type: ko.type, gapClass: "required", reasonClass: "knockout-failed", reason: `posting knockout not met — ${ko.requirement}: ${why}`, evidence: ko.evidence || null });
         for (const s of skillsInText(ko.requirement)) koCoveredSkills.add(s.toLowerCase());
       }
     }
@@ -888,7 +1002,7 @@ const CareerTailor = (() => {
       if (skillSatisfied(name) || koCoveredSkills.has(name.toLowerCase())) return;
       if (gaps.some((g) => g.requirement.toLowerCase() === name.toLowerCase())) return;
       const unp = unprovenNames.get(name.toLowerCase());
-      gaps.push({ requirement: name, kind: "skill", tier, reasonClass: "no-evidence", reason: unp
+      gaps.push({ requirement: name, kind: "skill", tier, gapClass: tier === "must-have" ? "required" : "preferred", reasonClass: "no-evidence", reason: unp
         ? `posting ${tier === "nice-to-have" ? "mentions" : "requires"} ${name}; the only record naming it is a skill fact with empty evidence (fact ${unp.factId}) — not proven, so it is not claimed`
         : `posting ${tier === "nice-to-have" ? "mentions" : "requires"} ${name}; no proven fact on your record evidences it`, evidence: null });
     };
@@ -900,9 +1014,9 @@ const CareerTailor = (() => {
     const pl = personaLevelOf(profile);
     const band = jd.level || "unspecified";
     if (pl && (band === "senior" || band === "manager/lead") && (pl === "intern" || pl === "early")) {
-      gaps.push({ requirement: `posting level (${band}) vs your level (${pl})`, kind: "level", type: "level_mismatch", reasonClass: "knockout-failed", reason: `eligibility mismatch: this is a ${band} posting and your record is at ${pl} level — the tailored resume ships with this gap named, not as if the levels matched`, evidence: null });
+      gaps.push({ requirement: `posting level (${band}) vs your level (${pl})`, kind: "level", type: "level_mismatch", gapClass: "eligibility", reasonClass: "knockout-failed", reason: `eligibility mismatch: this is a ${band} posting and your record is at ${pl} level — the tailored resume ships with this gap named, not as if the levels matched`, evidence: null });
     } else if (pl === "senior" && band === "intern") {
-      gaps.push({ requirement: `posting level (intern) vs your level (senior)`, kind: "level", type: "level_mismatch", reasonClass: "knockout-failed", reason: "eligibility mismatch: this is an intern posting (an enrolled-student band) and your record is at senior level — the tailored resume ships with this gap named, not as if the levels matched", evidence: null });
+      gaps.push({ requirement: `posting level (intern) vs your level (senior)`, kind: "level", type: "level_mismatch", gapClass: "eligibility", reasonClass: "knockout-failed", reason: "eligibility mismatch: this is an intern posting (an enrolled-student band) and your record is at senior level — the tailored resume ships with this gap named, not as if the levels matched", evidence: null });
     }
     return gaps;
   }
@@ -936,22 +1050,32 @@ const CareerTailor = (() => {
     // attached to the document model + the version snapshot + the result —
     // a shipped resume always carries its uncovered requirements as data.
     const gaps = computeGaps(profile, jd);
+    // R1 C11: gap CLASSES are first-class typed data, not a flat list a
+    // caller must re-derive. requiredGaps = must-have skill gaps +
+    // failed knockouts; preferredGaps = nice-to-have skill gaps only.
+    // A result with preferredGaps non-empty is NOT a "no gap" result —
+    // the spoken line's data source must be able to tell the classes
+    // apart (level/eligibility gaps ride `gaps` + the gap section).
+    const requiredGaps = gaps.filter((g) => g.gapClass === "required");
+    const preferredGaps = gaps.filter((g) => g.gapClass === "preferred");
     assembled.gaps = gaps;
+    assembled.requiredGaps = requiredGaps;
+    assembled.preferredGaps = preferredGaps;
     assembled.gapSection = gapSectionFor(gaps);
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled, { profile });
-    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null, gaps };
+    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null, gaps, requiredGaps, preferredGaps };
     // §10.5: the approval snapshot records the exact rendered artifacts
     // (filename + sha256 + size) so a submitted resume can be reproduced.
     if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
-      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps };
+      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
     }
     const cover = o.wantCoverLetter ? generateCoverLetter(profile, jd, cir, o) : null;
-    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps };
+    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
   }
 
-  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, FAMILY_SKILLS, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;

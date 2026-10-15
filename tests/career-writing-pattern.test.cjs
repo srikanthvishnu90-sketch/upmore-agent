@@ -1,4 +1,4 @@
-/* MI-097 / BUG-233 / FR-391 — the writing-pattern system (module 154).
+/* MI-097 / BUG-236 / FR-394 — the writing-pattern system (module 154).
  *
  * FAIL-FIRST property: the guards are built on the 2026-10-13 MEASURED
  * corpora (packages/career-data/fixtures/writing-pattern-corpus.json):

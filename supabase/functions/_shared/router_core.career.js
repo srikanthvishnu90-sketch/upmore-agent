@@ -5816,12 +5816,12 @@ const CareerKB = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerKB;
 
-/* Career writing pattern (MI-097 / BUG-233 / FR-391).
+/* Career writing pattern (MI-097 / BUG-236 / FR-394).
    Design: docs/career/writing-pattern-prompt-v2.md renders this module's
    template; the design of record is
    ~/workspace/your_files/writing-pattern/design-upmore-writing-pattern.md.
 
-   THE DEFECT THIS MODULE EXISTS TO KILL (BUG-233): the draft QA that
+   THE DEFECT THIS MODULE EXISTS TO KILL (BUG-236): the draft QA that
    shipped the owner's real 12-draft networking wave on 2026-10-13
    (124's qualityGate + the same-firm skeleton check) passed every draft
    while the wave failed HS-1/2/3/4/5/6 on measurement — verbatim

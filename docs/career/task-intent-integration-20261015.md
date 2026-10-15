@@ -46,3 +46,11 @@ Crew A owns the independently reported module-130 correction-cache privacy,
 rollback and epoch defect. Module 130 is untouched here. This contribution
 requires independent composition retesting and does not establish release,
 merge or deployment readiness.
+
+Verification at source commit `7f2b11d9fa7227e7267ea96c24ca30bafa801ffa`:
+188 tests pass, comprising 18 staged/frozen/durability, 119 domain/worker/bundle,
+30 memory/alerts PostgreSQL and 21 task-authority PostgreSQL tests. Bundle
+freshness, browser-fixture syntax and whitespace checks pass. The isolated
+test container and local wire listener were removed afterward. Exact commands,
+source digests, test names and log hashes are recorded in
+`docs/testing/runs/career-worker-integration-20261015/results.json`.

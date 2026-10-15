@@ -1,0 +1,27 @@
+[
+  {
+    "control": "STOP",
+    "host_intent": "career_paused",
+    "account_patch": {
+      "paused": true
+    },
+    "queued_task_id": "348bdf140eda942361b6b224a3ac026f",
+    "worker_status": "review_ready",
+    "mock_browser_opens_after_control": 1,
+    "actual_browser_opens": 0,
+    "provenance": "actual services, disconnected account control; branch MOCK board only"
+  },
+  {
+    "control": "Forget my career profile",
+    "host_intent": "career_profile_erased",
+    "account_patch": {
+      "erase": true,
+      "paused": true
+    },
+    "queued_task_id": "348bdf140eda942361b6b224a3ac026f",
+    "worker_status": "review_ready",
+    "mock_browser_opens_after_control": 1,
+    "actual_browser_opens": 0,
+    "provenance": "actual services, disconnected account control; branch MOCK board only"
+  }
+]

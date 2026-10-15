@@ -111,12 +111,44 @@ const CareerAlertWatch = (() => {
     const prefs = (profile && profile.preferences) || {};
     return Array.isArray(prefs.watched_occupations) ? prefs.watched_occupations : [];
   }
+  const termRe = (t) => new RegExp(`(^|[^a-z0-9])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`);
+  // MI-095: occupation identity is established from title + JD evidence, not
+  // the title string alone. A convention-form title ("Summer Analyst") whose
+  // JD opening names the division/occupation ("Our investment banking
+  // division hosts this summer analyst program") IS that occupation's
+  // posting — 152's roleMatch has always accepted exactly this evidence
+  // (its jd_head leg), but the watch gate matched the title only, so the
+  // alert never fired and the reminder was gated here (Lane A seed LA-0043).
+  // Precision law (Lane A's false-alert rate is 0 and stays 0): JD evidence
+  // counts ONLY when a MULTIWORD occupation term matches on word boundaries
+  // within the JD's opening 500 chars — the same head 152 reads, so a gate
+  // pass on JD evidence is always confirmable downstream. A single-word term
+  // in the body, finance words merely co-occurring, or the phrase buried in
+  // late boilerplate never establishes identity. The returned detail
+  // { occupation, basis, term, evidence } makes every match auditable; it
+  // rides the gate result and the alert record.
+  const JD_HEAD_CHARS = 500;
   function occupationHit(posting, occupations) {
     const title = lc(posting && posting.title);
     for (const occ of occupations || []) {
       for (const term of (occ && occ.terms) || []) {
         const t = lc(term).trim();
-        if (t && new RegExp(`(^|[^a-z0-9])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`).test(title)) return occ.occupation || t;
+        if (t && termRe(t).test(title)) return { occupation: occ.occupation || t, basis: "title", term: t };
+      }
+    }
+    const jd = s(posting && posting.jd_text);
+    const head = lc(jd).slice(0, JD_HEAD_CHARS);
+    if (head) {
+      for (const occ of occupations || []) {
+        for (const term of (occ && occ.terms) || []) {
+          const t = lc(term).trim();
+          if (!t || !t.includes(" ")) continue; // JD evidence must NAME the occupation family, not co-occur
+          const m = termRe(t).exec(head);
+          if (m) {
+            const at = m.index + (m[1] ? m[1].length : 0);
+            return { occupation: occ.occupation || t, basis: "jd_head", term: t, evidence: jd.slice(Math.max(0, at - 40), at + t.length + 40).trim() };
+          }
+        }
       }
     }
     return null;
@@ -127,7 +159,8 @@ const CareerAlertWatch = (() => {
   // families) — a user watching any of the other ~890 occupations could never be
   // alerted, by construction. Bands now come from the profile
   // (preferences.alert_bands, defaulting to the student bands), and a posting also
-  // passes the watch leg when its title matches a watched occupation's terms
+  // passes the watch leg when a watched occupation's terms match the posting's
+  // title — or, per MI-095, its JD opening (see occupationHit) —
   // (preferences.watched_occupations: [{occupation, terms}]) — the bridge from the
   // ~900-occupation taxonomy to 121's family classifier.
   function gatePosting(posting, profile, fit, watchedFamilies) {
@@ -141,12 +174,12 @@ const CareerAlertWatch = (() => {
     const occHit = occupationHit(posting, occs);
     if (!watched.includes(posting.role_family) && !occHit) {
       let r = `role_family ${posting.role_family || "unknown"} is not in the profile's watched families (${watched.join(", ") || "none set"})`;
-      if (occs.length) r += ` and the title matches no watched occupation (${occs.map((o) => o.occupation).join(", ")})`;
+      if (occs.length) r += ` and neither the title nor the JD opening names a watched occupation (${occs.map((o) => o.occupation).join(", ")})`;
       reasons.push(r);
     }
     if (fit && fit.excluded)
       reasons.push(...(fit.hard_fails || fit.reasons || []).map((r) => `scoreFit hard-excluded: ${r}`));
-    return { pass: reasons.length === 0, reasons, occupation_match: occHit };
+    return { pass: reasons.length === 0, reasons, occupation_match: occHit ? occHit.occupation : null, occupation_match_detail: occHit };
   }
 
   // BUG-207: proven-skill derivation for fit lines. 121 scoreFit matches skills from
@@ -293,6 +326,10 @@ const CareerAlertWatch = (() => {
       const gate = gatePosting(posting, profile, fit, watched);
       if (!gate.pass) { gated.push({ job_id: posting.job_id, reasons: gate.reasons }); continue; }
       const record = composeAlert(posting, fit, profile, detectedMs);
+      // MI-095 audit: when the watch leg passed on a watched occupation, the
+      // alert record carries why it matched (occupation, basis, term, and —
+      // for JD evidence — the JD fragment that named it).
+      if (gate.occupation_match_detail) record.occupation_match = gate.occupation_match_detail;
       try {
         await deliver(sink, record);
         alerts_emitted += 1;

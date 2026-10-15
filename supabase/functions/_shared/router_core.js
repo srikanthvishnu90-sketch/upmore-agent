@@ -22177,7 +22177,18 @@ const CareerTailor = (() => {
     const zoneSegs = inReq ? reqSegs : segments.filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate");
     const zoneSkills = [...new Set(zoneSegs.flatMap((sg) => skillsInText(sg.text)))];
     const mustSkills = zoneSkills.filter((sk) => skillQualifies(sk, zoneSegs, inReq));
-    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s) && (!AMBIGUOUS_SKILLS.has(s) || skillQualifies(s, [{ kind: "other", text: niceText }], false)));
+    // R1 C11 (Crew B Cycle 2): an AMBIGUOUS skill (Go, Spring, Spark, R)
+    // named in the preferred zone under explicit preference phrasing —
+    // the sentence itself says "not required" / "a plus" / "nice to
+    // have" / "preferred" / "bonus" — IS a preferred skill, not a verb
+    // or a season. The BUG-057 tech-context window dropped exactly that
+    // case (GJ-T03: "Go listed as 'a plus, not required'"), so the gap
+    // read came back empty and the tailor turn's spoken line falsely
+    // asserted full coverage. The marker must be in the SAME sentence
+    // as the token: a distant preference heading does not vouch for a
+    // verb use elsewhere in the zone.
+    const PREF_MARKER = /not required|a plus|nice to have|preferred|bonus/i;
+    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s) && (!AMBIGUOUS_SKILLS.has(s) || skillQualifies(s, [{ kind: "other", text: niceText }], false) || sentencesOf(niceText).some((sent) => PREF_MARKER.test(sent) && skillsInText(sent).includes(s))));
     let level = "unspecified";
     if (/intern(ship)?\b/i.test(raw)) level = "intern";
     else if (/new grad|entry[- ]level|junior/i.test(raw)) level = "new-grad/junior";
@@ -22264,12 +22275,38 @@ const CareerTailor = (() => {
     general: { label: "General", sectionOrder: ["Experience", "Projects", "Education", "Leadership", "Certifications", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Neutral conventions: strongest evidenced experience first, education and credentials in their own sections; no family-specific framing is applied to an unmatched role."], pageLimit: 1 },
   };
 
+  // Role-family skill vocabularies (Lane B depth, Crew B Cycle 2): the
+  // occupation-level skills each family's facts typically evidence, in
+  // the lexicon's own spellings. Used ONLY as a selection signal (a fact
+  // evidencing a family skill is tailoring material for that family's
+  // postings even when the posting's surviving text never named the
+  // skill) — never as a claim source: a skill still reaches the page
+  // only through an evidencing fact, under the audit + name rules.
+  const FAMILY_SKILLS = {
+    swe: ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "CI/CD", "GraphQL", "REST", "Data Structures", "Algorithms", "System Design", "Spark", "Hadoop"],
+    data_ml: ["Python", "SQL", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Statistics", "Probability", "A/B Testing", "Tableau", "R", "Spark", "Hadoop", "Data Structures", "Algorithms", "PostgreSQL"],
+    quant: ["Python", "C++", "Java", "Statistics", "Probability", "Data Structures", "Algorithms", "Machine Learning", "SQL", "R", "Pandas", "NumPy"],
+    pm: ["User Stories", "Agile", "Jira", "Confluence", "Requirements Analysis", "Stakeholder Management", "Business Analysis", "Project Management", "A/B Testing", "SQL", "Tableau"],
+    design: ["Figma", "Photoshop"],
+    ib_finance: ["Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Python", "SQL", "Tableau"],
+    consulting: ["User Stories", "Agile", "Jira", "Confluence", "Requirements Analysis", "Stakeholder Management", "Business Analysis", "Consulting", "Change Management", "Project Management", "Excel", "PowerPoint", "Tableau"],
+    law: ["Legal Research", "Legal Writing", "Westlaw", "LexisNexis", "E-Filing", "Legal Calendaring", "Contract Review", "Legal Operations"],
+    medicine: ["Patient Care", "Vital Signs", "Phlebotomy", "Epic", "EHR", "EMR", "BLS", "CNA", "Medical Assistant", "Medical Assistant Certification", "Utilization Review", "Case Management", "Clinical Documentation", "Nursing License", "RN License", "Registered Nurse"],
+    real_estate: ["Argus", "NOI", "DSC", "DSCR", "IRR", "Cap Rate", "Underwriting", "Rent Roll", "CoStar", "Asset Management", "Escrow", "Pro Forma", "Salesforce", "Real Estate License", "Real Estate", "Excel", "Financial Modeling"],
+    general: [],
+  };
+
   // ---- fact selection: relevance, then recency, then impact (Doc 2 §3.1 step 3) ----
   function scoreFact(fact, jd) {
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
     const fskills = (fact.skills || []).map((s) => String(s).toLowerCase());
+    // Relevance reads the fact's whole stated content (title + text +
+    // bullets) — the same corpus the truth audit and the grader's
+    // evidence model read. Reading text alone missed skills evidenced
+    // only in a bullet (Lane B depth, Crew B Cycle 2).
+    const corpus = `${fact.title || ""} ${fact.text || ""} ${(fact.bullets || []).join(" ")}`.toLowerCase();
     let relevance = 0;
-    for (const s of wanted) relevance += fskills.includes(s.toLowerCase()) ? 3 : (String(fact.text || "").toLowerCase().includes(s.toLowerCase()) ? 1 : 0);
+    for (const s of wanted) relevance += fskills.includes(s.toLowerCase()) ? 3 : (corpus.includes(s.toLowerCase()) ? 1 : 0);
     for (const kw of jd.keywords || []) if (kw.length > 5 && String(fact.text || "").toLowerCase().includes(kw)) relevance += 0.25;
     const endMs = fact.end ? Date.parse(`${fact.end}-01T00:00:00Z`) : (fact.start ? Date.parse(`${fact.start}-01T00:00:00Z`) : 0);
     const recency = Number.isFinite(endMs) && endMs ? Math.min(2, Math.max(0, (endMs / 1e12))) : 0;
@@ -22279,7 +22316,58 @@ const CareerTailor = (() => {
   function selectFacts(profile, jd, opts) {
     const o = opts || {};
     const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
-    return pool.map((f) => ({ fact: f, score: scoreFact(f, jd) })).sort((a, b) => b.score.total - a.score.total).slice(0, o.limit || 8);
+    const scored = pool.map((f) => ({ fact: f, score: scoreFact(f, jd) }));
+    // Posting-driven selection (Lane B depth, Crew B Cycle 2): the old
+    // rule returned the top-(limit) of the WHOLE pool for every posting;
+    // with real pools of 2–7 facts and a limit of 8 that was the entire
+    // record every time, so selection was identical across postings by
+    // construction (861 GENERIC_NOT_TAILORED instances in Lane B). A
+    // fact is now KEPT when it has a reason to be on THIS resume:
+    //  - it evidences a skill this posting names (skills[] or its
+    //    title/text/bullets — scoreFact's skill component, without the
+    //    keyword dust); or
+    //  - it evidences a skill in this posting's role-FAMILY vocabulary
+    //    (FAMILY_SKILLS above): posting texts are often truncated, and
+    //    a fact carrying the occupation's own skills (a Go API on an
+    //    SWE cut whose surviving JD text extracted only "Data
+    //    Structures") is tailoring material, not filler; or
+    //  - it is structural: education / certification / leadership —
+    //    sections nearly every role-family variant carries, and a
+    //    credential fact is often the degree/license evidence itself.
+    // Ordinary off-target experience (no named skill, no family skill)
+    // is what tailoring leaves out. Remaining facts fill only while
+    // the kept set is not yet a viable document (fewer than 2 facts, or
+    // no experience/project/leadership content at all), so a thin or
+    // unmatched record still renders; fillers never displace a kept fact.
+    const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((s) => String(s).toLowerCase());
+    const skillRelevance = (f) => {
+      const fskills = (f.skills || []).map((s) => String(s).toLowerCase());
+      const corpus = `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`.toLowerCase();
+      let r = 0;
+      for (const s of wanted) r += fskills.includes(s) ? 3 : (corpus.includes(s) ? 1 : 0);
+      return r;
+    };
+    const famVocab = new Set((FAMILY_SKILLS[jd.family] || []).map((s) => s.toLowerCase()));
+    const familyRelevance = (f) => famVocab.size > 0 && factEvidencedSkillNames(f).some((n) => famVocab.has(n.toLowerCase()));
+    const STRUCTURAL = new Set(["education", "certification", "leadership"]);
+    const byTotal = (a, b) => b.score.total - a.score.total;
+    const keep = scored.filter((x) => skillRelevance(x.fact) > 0 || familyRelevance(x.fact) || STRUCTURAL.has(x.fact.kind)).sort(byTotal);
+    const rest = scored.filter((x) => !keep.includes(x)).sort(byTotal);
+    const picked = [...keep];
+    const hasContent = () => picked.some((x) => ["experience", "project", "leadership"].includes(x.fact.kind));
+    // Viability floor: a larger record (pool >= 5) fills to 3 facts, a
+    // small one to 2 — always with content — before tailoring stops;
+    // a 6-fact record cut to 2 facts because the surviving JD text
+    // extracted little is a thinner document than the record supports
+    // (Lane B LB-0012 shape), while a 4-fact record's relevant core of
+    // 2 is a complete cut and fills nothing.
+    const minFacts = Math.min(scored.length >= 5 ? 3 : 2, scored.length);
+    for (const x of rest) {
+      if (picked.length >= minFacts && hasContent()) break;
+      if (picked.length >= 3) break;
+      picked.push(x);
+    }
+    return picked.slice(0, o.limit || 8);
   }
   // ---- skill-fact names + proof (BUG-210 / BUG-211) ----
   // A skill fact's name lives in different fields depending on who wrote
@@ -22316,8 +22404,16 @@ const CareerTailor = (() => {
   function skillFactSelfEvidences(fact, name) {
     const body = `${fact.text || ""} ${(fact.bullets || []).join(" ")}`.trim();
     if (!body || /^Skill:\s*/i.test(body)) return false;
-    const low = ` ${body.toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
-    if (!low.includes(` ${String(name).toLowerCase()} `)) return false;
+    // Token match, punctuation-insensitive (Lane B depth, Crew B Cycle 2):
+    // the old raw ` name ` substring check missed a skill mentioned at
+    // the END of the fact's sentence ("…sensitivities in Excel.",
+    // "…research guides in Confluence."), so a substantive statement was
+    // treated as a bare claim and the skill became a false gap. Both
+    // sides are normalised to bare tokens, so a trailing period/comma
+    // cannot hide the mention — and a longer word containing the name
+    // still cannot fake it.
+    const norm = (s) => ` ${String(s || "").toLowerCase().replace(/[^a-z0-9+#]+/g, " ").replace(/\s+/g, " ")} `;
+    if (!norm(body).includes(norm(name))) return false;
     return body.split(/\s+/).filter(Boolean).length >= 6;
   }
   // Proof rule (BUG-211, aligned with 121's scoreFit semantics ~line 847):
@@ -22366,12 +22462,22 @@ const CareerTailor = (() => {
     for (const f of Profile.confirmedFacts(profile)) {
       if (f.kind === "skill") continue;
       for (const name of factEvidencedSkillNames(f)) {
-        if (!wanted.has(name.toLowerCase())) continue;
         const key = name.toLowerCase();
         if (!byName.has(key)) byName.set(key, { name, factId: f.id, proven: true, evidence: [f.id], derivedFromFact: f.kind });
       }
     }
-    return [...byName.values()];
+    // Lane B depth (Crew B Cycle 2): the rows are no longer wanted-only.
+    // A tailored resume's Skills section is the candidate's evidenced
+    // skill vocabulary for the role family; restricting it to the terms
+    // parseJD happened to extract from a (often truncated) posting text
+    // left truthful, evidenced skills off the page by construction
+    // (KEYWORD_ABSENT_TRUTHFUL / MISSING_REQUIREMENT for skills the
+    // posting's occupation requires but its surviving text never named).
+    // Every row still cites the confirmed fact that evidences it, and
+    // the name-safety filter in assemble() still applies. Wanted rows
+    // keep their lead position.
+    const rows = [...byName.values()];
+    return rows.sort((a, b) => (wanted.has(b.name.toLowerCase()) ? 1 : 0) - (wanted.has(a.name.toLowerCase()) ? 1 : 0));
   }
 
   // BUG-058 (FV-11/SS-12): the consulting X-by-Y-Z template concatenated the
@@ -22460,6 +22566,14 @@ const CareerTailor = (() => {
     // some fact). A name sourced only from a skills[] list, whose words no
     // fact ever states in prose, would print as an unsupported proper name
     // on the page — it stays a coverage miss, never an invention.
+    // Lane B depth (Crew B Cycle 2): a lexicon exemption for skills[]-
+    // sourced names was TRIED here and REVERTED on measurement — the
+    // Lane B re-run's coverage rose (0.686 -> 0.961) but invention went
+    // 0 -> 1,441, every instance the immutability name check (a
+    // capitalized name mid-line must appear in the persona's fact
+    // PROSE; skills[] is not prose). The invention bar is hard (0), so
+    // the prose rule stands for lexicon and non-lexicon names alike:
+    // a skills[]-only name is a coverage miss, never an invention.
     const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
     const nameSafe = (name) => String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
     const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
@@ -22858,7 +22972,7 @@ const CareerTailor = (() => {
         if (years != null) { satisfied = years >= (ko.min_years || 0); why = `your confirmed facts evidence about ${years} years of full-time experience`; }
       }
       if (satisfied === false) {
-        gaps.push({ requirement: ko.requirement, kind: "knockout", type: ko.type, reasonClass: "knockout-failed", reason: `posting knockout not met — ${ko.requirement}: ${why}`, evidence: ko.evidence || null });
+        gaps.push({ requirement: ko.requirement, kind: "knockout", type: ko.type, gapClass: "required", reasonClass: "knockout-failed", reason: `posting knockout not met — ${ko.requirement}: ${why}`, evidence: ko.evidence || null });
         for (const s of skillsInText(ko.requirement)) koCoveredSkills.add(s.toLowerCase());
       }
     }
@@ -22867,7 +22981,7 @@ const CareerTailor = (() => {
       if (skillSatisfied(name) || koCoveredSkills.has(name.toLowerCase())) return;
       if (gaps.some((g) => g.requirement.toLowerCase() === name.toLowerCase())) return;
       const unp = unprovenNames.get(name.toLowerCase());
-      gaps.push({ requirement: name, kind: "skill", tier, reasonClass: "no-evidence", reason: unp
+      gaps.push({ requirement: name, kind: "skill", tier, gapClass: tier === "must-have" ? "required" : "preferred", reasonClass: "no-evidence", reason: unp
         ? `posting ${tier === "nice-to-have" ? "mentions" : "requires"} ${name}; the only record naming it is a skill fact with empty evidence (fact ${unp.factId}) — not proven, so it is not claimed`
         : `posting ${tier === "nice-to-have" ? "mentions" : "requires"} ${name}; no proven fact on your record evidences it`, evidence: null });
     };
@@ -22879,9 +22993,9 @@ const CareerTailor = (() => {
     const pl = personaLevelOf(profile);
     const band = jd.level || "unspecified";
     if (pl && (band === "senior" || band === "manager/lead") && (pl === "intern" || pl === "early")) {
-      gaps.push({ requirement: `posting level (${band}) vs your level (${pl})`, kind: "level", type: "level_mismatch", reasonClass: "knockout-failed", reason: `eligibility mismatch: this is a ${band} posting and your record is at ${pl} level — the tailored resume ships with this gap named, not as if the levels matched`, evidence: null });
+      gaps.push({ requirement: `posting level (${band}) vs your level (${pl})`, kind: "level", type: "level_mismatch", gapClass: "eligibility", reasonClass: "knockout-failed", reason: `eligibility mismatch: this is a ${band} posting and your record is at ${pl} level — the tailored resume ships with this gap named, not as if the levels matched`, evidence: null });
     } else if (pl === "senior" && band === "intern") {
-      gaps.push({ requirement: `posting level (intern) vs your level (senior)`, kind: "level", type: "level_mismatch", reasonClass: "knockout-failed", reason: "eligibility mismatch: this is an intern posting (an enrolled-student band) and your record is at senior level — the tailored resume ships with this gap named, not as if the levels matched", evidence: null });
+      gaps.push({ requirement: `posting level (intern) vs your level (senior)`, kind: "level", type: "level_mismatch", gapClass: "eligibility", reasonClass: "knockout-failed", reason: "eligibility mismatch: this is an intern posting (an enrolled-student band) and your record is at senior level — the tailored resume ships with this gap named, not as if the levels matched", evidence: null });
     }
     return gaps;
   }
@@ -22915,23 +23029,33 @@ const CareerTailor = (() => {
     // attached to the document model + the version snapshot + the result —
     // a shipped resume always carries its uncovered requirements as data.
     const gaps = computeGaps(profile, jd);
+    // R1 C11: gap CLASSES are first-class typed data, not a flat list a
+    // caller must re-derive. requiredGaps = must-have skill gaps +
+    // failed knockouts; preferredGaps = nice-to-have skill gaps only.
+    // A result with preferredGaps non-empty is NOT a "no gap" result —
+    // the spoken line's data source must be able to tell the classes
+    // apart (level/eligibility gaps ride `gaps` + the gap section).
+    const requiredGaps = gaps.filter((g) => g.gapClass === "required");
+    const preferredGaps = gaps.filter((g) => g.gapClass === "preferred");
     assembled.gaps = gaps;
+    assembled.requiredGaps = requiredGaps;
+    assembled.preferredGaps = preferredGaps;
     assembled.gapSection = gapSectionFor(gaps);
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled, { profile });
-    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null, gaps };
+    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null, gaps, requiredGaps, preferredGaps };
     // §10.5: the approval snapshot records the exact rendered artifacts
     // (filename + sha256 + size) so a submitted resume can be reproduced.
     if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
-      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps };
+      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
     }
     const cover = o.wantCoverLetter ? generateCoverLetter(profile, jd, cir, o) : null;
-    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps };
+    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
   }
 
-  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, FAMILY_SKILLS, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;
 
@@ -33062,6 +33186,10 @@ const CareerRouter = (() => {
   // an eager top-level read hits the const TDZ inside the bundle. Resolve
   // lazily at call time instead (post-initialization in every host).
   const getIntake = () => { try { return typeof CareerIntake !== "undefined" ? CareerIntake : req("./146-career-intake.js"); } catch { return req("./146-career-intake.js"); } };
+  // ALERTS HOST WIRING (Crew B Cycle 2, W4): 152 (assignment layer) is not in
+  // the router bundle today — resolve lazily at call time; absent, the watch
+  // intents below step aside (return null) rather than crash the turn.
+  const getAssign = () => { try { return typeof CareerAssign !== "undefined" ? CareerAssign : req("./152-career-assign.js"); } catch { return req("./152-career-assign.js"); } };
   const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch { return null; } })();
 
   const s = (v) => String(v == null ? "" : v);
@@ -33547,7 +33675,18 @@ const CareerRouter = (() => {
     if (profile && typeof profile === "object") { profile._careerRouterArtifacts = [...(profile._careerRouterArtifacts || []), artifact]; }
     const jd = Tailor.parseJD(jdText);
     const proven = provenSkillNames(profile).map(lc);
-    const gaps = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].filter((sk, i, a) => a.indexOf(sk) === i && !proven.includes(lc(sk)));
+    // R1 C11: gap CLASSES come from 123's typed result (tailored.requiredGaps /
+    // tailored.preferredGaps — must-have vs nice-to-have skill gaps, computed
+    // in 123 from proven facts only). The old flat list mixed the two classes
+    // into one "Skill gap" sentence, and when 123's parse dropped a preferred
+    // skill the list came back empty and the spoken line falsely asserted
+    // full coverage (GJ-T03: Go, preferred-not-required, not on the profile).
+    // The parse-based computation remains only as a fallback for a tailor
+    // result that predates the classified fields.
+    const skillGapNames = (list) => [...new Set((list || []).filter((g) => g && g.kind === "skill").map((g) => g.requirement).filter(Boolean))];
+    const requiredSkillGaps = tailored.requiredGaps ? skillGapNames(tailored.requiredGaps) : [...(jd.mustHaveSkills || [])].filter((sk, i, a) => a.indexOf(sk) === i && !proven.includes(lc(sk)));
+    const preferredSkillGaps = tailored.preferredGaps ? skillGapNames(tailored.preferredGaps) : [...(jd.niceToHaveSkills || [])].filter((sk, i, a) => a.indexOf(sk) === i && !proven.includes(lc(sk)) && !requiredSkillGaps.includes(sk));
+    const gaps = [...requiredSkillGaps, ...preferredSkillGaps];
     const matched = [...(jd.mustHaveSkills || [])].filter((sk) => proven.includes(lc(sk)));
     const titleLine = posting ? `${posting.title} at ${posting.company}` : "that role";
     const parseVerdict = rendered.parseCheck ? (typeof rendered.parseCheck === "string" ? rendered.parseCheck : rendered.parseCheck.verdict || rendered.parseCheck.status || null) : null;
@@ -33711,13 +33850,29 @@ const CareerRouter = (() => {
       const postStack = /front[- ]?end/.test(titleLc) ? "frontend" : /back[- ]?end/.test(titleLc) ? "backend" : /full[- ]?stack/.test(titleLc) ? "full-stack" : null;
       if (askStack && postStack && askStack !== postStack) mismatchFact = `One mismatch, named: you asked for a ${askStack} cut, and the closest ${company || "matching"} role on the current list is its ${postStack} posting — this cut is for that posting, and a true ${askStack} posting re-runs it the moment one is in the list.`;
     }
+    // R1 C11: the spoken gap line has exactly three honest shapes.
+    // (a) Required gaps exist: they are named AS required (plus any
+    //     preferred gaps, named as preferred) — the old wording.
+    // (b) ONLY preferred gaps exist: the line names them as preferred,
+    //     not required, states that nothing the posting requires is
+    //     missing, and that they were not added. "No skill gap" must
+    //     NEVER be spoken in this case — a preferred gap is still a
+    //     gap the user should hear (GJ-T03).
+    // (c) Neither class has a gap: only then may the line say
+    //     "No skill gap: every skill the posting names is evidenced
+    //     on your profile."
+    const gapLine = requiredSkillGaps.length
+      ? `Skill gap, named plainly: ${requiredSkillGaps.join(", ")} ${requiredSkillGaps.length === 1 ? "is" : "are"} required by the posting and not on your profile, so ${requiredSkillGaps.length === 1 ? "it was" : "they were"} not added to the resume${preferredSkillGaps.length ? `; ${preferredSkillGaps.join(", ")} ${preferredSkillGaps.length === 1 ? "is" : "are"} also named as preferred, not required, and not on your profile, so not added either` : ""}.`
+      : preferredSkillGaps.length
+        ? `Preferred skill gap, named plainly: ${preferredSkillGaps.join(", ")} ${preferredSkillGaps.length === 1 ? "is" : "are"} listed by the posting as a plus, not required, and not on your profile, so ${preferredSkillGaps.length === 1 ? "it was" : "they were"} not added to the resume — nothing the posting requires is missing.`
+        : "No skill gap: every skill the posting names is evidenced on your profile.";
     const facts = variantFacts
       ? [...variantFacts, savedFact, groundedFact]
       : [
         ...(listFact ? [listFact] : []),
         ...(sweepFirst ? [groundedFact] : []),
         leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
-        gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
+        gapLine,
         // BUG-048: the artifact's sha256 stays in the typed artifact record
         // (the proof) — it is never spoken. The composer (140) also strips
         // any digest that reaches it, so this can never leak again.
@@ -33895,7 +34050,32 @@ const CareerRouter = (() => {
     const companies = (profile.preferences && (profile.preferences.starredCompanies || profile.preferences.starred_companies)) || [];
     const mode = /\bspeed run\b|\bwithin the hour\b/.test(t) ? "speed_run" : /\bapply to\b/.test(t) ? "apply_queue" : "ping";
     const winM = t.match(/last (\d+)\s*hours?/);
-    const rec = { kind: "starred_watch", mode, companies, matched: [], window_hours: winM ? Number(winM[1]) : null, cadence: mode === "speed_run" ? "starred feeds polled first; a fitting role reaches its doorstep within the hour it posts" : mode === "ping" ? "a fitting role pings within minutes of posting" : "new roles at starred companies enter the apply queue" };
+    const windowHours = winM ? Number(winM[1]) : null;
+    // BUG-076 (MI-048 disposition): the starred-watch turn must
+    // CARRY the genuine shortlist element the A4 branch reads —
+    // the same ranked fitting pool handleDiscovery serves and
+    // handleMlForward rides beside its own record (the pool this
+    // watch is computed over), in discovery's own element shape.
+    // BUG-112's record is untouched and stays the answer: the
+    // reply is composed from the watch record alone, `matched`
+    // is the starred subset of the pool (empty when the profile
+    // stars nothing — the true state, stated), and no pool role
+    // is ever claimed to sit at a starred company.
+    const { ranked } = rankedShortlist(profile, ctx, {});
+    const pool = (ranked || []).map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat }));
+    const shortlist = pool.slice(0, 5);
+    const starHit = (row) => companies.some((co) => { const a = lc(row.company).replace(/\s*\(fictional\)\s*/g, "").trim(), b = lc(co).replace(/\s*\(fictional\)\s*/g, "").trim(); return !!a && !!b && (a.includes(b) || b.includes(a)); });
+    const nowMs = nowOf(ctx);
+    const matched = pool.filter((row, i) => {
+      if (!starHit(row)) return false;
+      // The ask's window binds only where the posting carries a
+      // parseable posted_at — a missing date is not invented into
+      // an exclusion.
+      if (windowHours == null) return true;
+      const posted = Date.parse(s((ranked[i] && ranked[i].posting && ranked[i].posting.posted_at) || ""));
+      return !Number.isFinite(posted) || (nowMs - posted) <= windowHours * 3600000;
+    });
+    const rec = { kind: "starred_watch", mode, companies, matched, window_hours: windowHours, cadence: mode === "speed_run" ? "starred feeds polled first; a fitting role reaches its doorstep within the hour it posts" : mode === "ping" ? "a fitting role pings within minutes of posting" : "new roles at starred companies enter the apply queue" };
     const empty = !companies.length;
     // WORDING-BACKLOG (BUG-185): the ask's own terms are carried —
     // the look-back window when one is named (SC-063's 48 hours),
@@ -33903,7 +34083,7 @@ const CareerRouter = (() => {
     // which is the whole point of the mode (SC-106).
     const facts = [empty ? "Your profile has no starred companies on file, so the watch matches nothing today — that is the true state, not a quiet pass." : `${companies.length} starred companies are on the watch; fitting roles surface the moment they post.`, ...(empty ? ["The moment you star a company, every fitting role it posts lands in this watch."] : []), ...(winM ? [`Your window: only roles posted in the last ${winM[1]} hours qualify — an older posting at a starred company does not enter the queue.`] : []), ...(/\bany fitting role\b/.test(t) ? ["The rule as set: any fitting role, at any of your companies — no role type is filtered out of the watch."] : []), mode === "apply_queue" ? "Mode: apply queue — a fitting new-grad role at a starred company goes straight into the apply queue at its doorstep, inside the daily cap." : mode === "speed_run" ? "Mode: speed run — starred feeds are polled first, ahead of the general boards, and a fitting role reaches its doorstep within the hour it posts, stopping there for your tap." : "Mode: ping — any fitting role at a starred company pings you within minutes."];
     const reply = compose({ headline: empty ? "The watch is set — and it covers zero companies right now." : `Watching your ${companies.length} starred companies.`, facts, nextStep: "Name the companies to star and the watch starts covering them?" });
-    return { intent: "career_watch", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
+    return { intent: "career_watch", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec, shortlist };
   }
   function handleGhostAssessment(text, ctx) {
     const t = lc(text);
@@ -39004,6 +39184,162 @@ const CareerRouter = (() => {
   }
 
   // ---------- main entry: consulted after 120, then 130 ----------
+
+  // ---------- alert watches (152): create + list/manage in chat ----------
+  // ALERTS HOST WIRING (Crew B Cycle 2, W4; design: docs/career/alerts-host-
+  // wiring.md). 152 holds watch profiles per USER in an injected {get,set}
+  // store (keys career:watch-profile:<user_id> etc.). This router is sync
+  // and has NO per-user KV access today: its durable state is thread state
+  // the host snapshot persists (career_host STATE_KEYS). watchStoreOf is the
+  // sync adapter over that reality, in precedence order:
+  //   1. ctx.alertStore — a host-injected sync KV, when a host supplies one;
+  //   2. ctx.alertWatchState — a plain JSON object carried on ctx, created
+  //      lazily on WRITE only (a read never materializes state). It becomes
+  //      durable across threads only when the host adds "alertWatchState"
+  //      to career_host.js STATE_KEYS — until then the harness (which keeps
+  //      ctx by reference) persists it and the deployed handler does not.
+  // The record itself is user-scoped by 152's key, so threads are views onto
+  // one per-user profile, never separate profiles.
+  function watchStoreOf(ctx, forWrite) {
+    const c = ctx || {};
+    if (c.alertStore && typeof c.alertStore.get === "function" && typeof c.alertStore.set === "function") return c.alertStore;
+    if (!c.alertWatchState || typeof c.alertWatchState !== "object" || Array.isArray(c.alertWatchState)) {
+      if (!forWrite) { const empty = {}; return { get: (k) => (k in empty ? empty[k] : null), set: () => {} }; }
+      c.alertWatchState = {};
+    }
+    const box = c.alertWatchState;
+    return { get: (k) => (Object.prototype.hasOwnProperty.call(box, k) ? box[k] : null), set: (k, v) => { box[k] = v; } };
+  }
+  function watchUserId(ctx) { return s((ctx && ctx.userId) || "user-1"); }
+  function loadWatchProfileSync(ctx) {
+    const A = getAssign(); if (!A) return null;
+    try { return watchStoreOf(ctx, false).get(A.PROFILE_KEY(watchUserId(ctx))) || null; } catch { return null; }
+  }
+  function saveWatchProfileSync(ctx, wp) {
+    const A = getAssign(); if (!A) return false;
+    const v = A.validateWatchProfile(wp);
+    if (!v.ok) return false;
+    wp.updated_at = new Date(nowOf(ctx)).toISOString();
+    watchStoreOf(ctx, true).set(A.PROFILE_KEY(wp.user_id), wp);
+    return true;
+  }
+  // The role a watch ask names, resolved ONLY through 152's own specs: a
+  // curated split by name or by one of its curated terms. Anything else is
+  // not silently derived — a saved interest needs a SOC the taxonomy
+  // carries, and inventing one would corrupt the profile the host polls on.
+  function watchRoleFromText(text) {
+    const A = getAssign(); if (!A || !A.SPLITS) return null;
+    const t = lc(text);
+    for (const [split, spec] of Object.entries(A.SPLITS)) {
+      if (!spec.soc) continue; // a split with no SOC cannot pass 152 validation; never saved
+      if (t.includes(lc(split))) return A.roleSpecFor({ split });
+      for (const term of spec.terms || []) if (term && t.includes(lc(term))) return A.roleSpecFor({ split });
+    }
+    return null;
+  }
+  const WATCH_CITIES = ["Chicago", "New York", "San Francisco", "Boston", "Seattle", "Los Angeles", "Houston", "Dallas", "Austin", "Denver", "Atlanta", "Miami", "London"];
+  function watchLocationsFromText(text) {
+    const raw = s(text);
+    const out = [];
+    for (const city of WATCH_CITIES) if (new RegExp(`\\b${city}\\b`, "i").test(raw) && !out.includes(city)) out.push(city);
+    if (/\bNYC\b/.test(raw) && !out.includes("New York")) out.push("New York");
+    if (/\bSF\b/.test(raw) && !out.includes("San Francisco")) out.push("San Francisco");
+    if (/\bLA\b/.test(raw) && !out.includes("Los Angeles")) out.push("Los Angeles");
+    return out;
+  }
+  function watchInterestLine(i) {
+    const f = i.filters || {};
+    const where = (f.locations || []).length ? f.locations.join(", ") : "any location";
+    const remote = f.remote_ok === false ? "" : " + remote";
+    const bands = (f.bands || []).length ? ` — ${(f.bands || []).join(" / ")} only` : "";
+    const firms = (f.firms_include || []).length ? ` at ${(f.firms_include || []).join(", ")}` : "";
+    return `${(i.role || {}).title || i.interest_id}${firms} — ${where}${remote}${bands}`;
+  }
+  function handleWatchCreate(text, ctx) {
+    const A = getAssign(); if (!A) return null;
+    const profile = ctx && ctx.profile;
+    if (!profile) {
+      const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
+      return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const role = watchRoleFromText(text);
+    if (!role) {
+      const covered = Object.entries(A.SPLITS).filter(([, sp]) => sp.soc).map(([n]) => n).join(", ");
+      const reply = compose({ headline: "That role is not one the watch can save yet.", facts: [`A saved watch needs a role from the taxonomy the assignment layer carries — today: ${covered}.`, "A role outside that set gets no watch rather than a watch keyed to an invented category, which would poll wrong and alert wrong."], nextStep: "Name one of those roles — or the closest one — and the watch is set in this turn." });
+      return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const t = lc(text);
+    const bands = [];
+    if (/\bintern(ship)?s?\b/.test(t)) bands.push("intern");
+    if (/\bnew[ -]?grad/.test(t)) bands.push("new_grad");
+    const firm = companyFromText(text, ctx);
+    const interest = {
+      interest_id: `int-${lc(role.title).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
+      role,
+      filters: { locations: watchLocationsFromText(text), remote_ok: !/\bno remote\b|\bonsite only\b/.test(t), bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
+      created_at: new Date(nowOf(ctx)).toISOString(),
+    };
+    const store = watchStoreOf(ctx, true);
+    let wp = null;
+    try { wp = store.get(A.PROFILE_KEY(watchUserId(ctx))) || null; } catch { wp = null; }
+    if (!wp) wp = A.createWatchProfile(watchUserId(ctx), { scoring_profile: scoringProfile(profile) });
+    if (!wp.scoring_profile) wp.scoring_profile = scoringProfile(profile);
+    A.upsertInterest(wp, interest);
+    if (!saveWatchProfileSync(ctx, wp)) {
+      const reply = compose({ headline: "That watch did not save — the profile it built failed validation, so nothing was recorded.", facts: ["Nothing polls on a watch that is not saved; a half-saved watch would be worse than none."], nextStep: "Say the watch again with the role and city named plainly, and I will set it." });
+      return { intent: "career_watch_create", reply, resultStatus: "blocked", sends: 0 };
+    }
+    const facts = [`Watching: ${watchInterestLine(interest)}.`, "The record is per-user, not per-thread: the host's scheduler reads this same profile, polls the boards on the standing cadence (starred companies every 15 minutes, the rest hourly), and a matching new posting becomes a reminder with the posting's own deadline quoted and the match basis stated.", wp.opt_out && wp.opt_out.global ? "Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts." : "The watch is live the moment the host's next tick runs — creating it here sends nothing and applies to nothing."];
+    const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep: "Want another role watched, or the list of what you are watching now?" });
+    return { intent: "career_watch_create", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp, artifact: wp };
+  }
+  function handleWatchManage(text, ctx) {
+    const A = getAssign(); if (!A) return null;
+    const t = lc(text);
+    const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
+    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t);
+    const isStop = /\b(stop watching|remove (the )?watch|delete (the )?watch|unwatch)\b/.test(t);
+    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b/.test(t);
+    if (!isPause && !isResume && !isStop && !isList) return null;
+    const wp = loadWatchProfileSync(ctx);
+    if (!wp) {
+      const reply = compose({ headline: "You have no job watches on file.", facts: ["No watch profile exists for you in this store yet, so there is nothing to list, pause, or remove — nothing was changed."], nextStep: "Say \"watch for\" plus a role — for example, \"watch for investment banking analyst roles in Chicago\" — and the first watch is set." });
+      return { intent: "career_watch_manage", reply, resultStatus: "awaiting_user", sends: 0, watch_profile: null };
+    }
+    if (isPause || isResume) {
+      A.setOptOut(wp, { global: isPause, companies: ((wp.opt_out || {}).companies || []) });
+      if (!saveWatchProfileSync(ctx, wp)) return null;
+      const reply = isPause
+        ? compose({ headline: "Job alerts paused.", facts: ["Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." })
+        : compose({ headline: "Job alerts resumed.", facts: ["Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    if (isList) {
+      let queued = 0;
+      try { const q = watchStoreOf(ctx, false).get(A.QUEUE_KEY(wp.user_id)); queued = Array.isArray(q) ? q.length : 0; } catch { queued = 0; }
+      const facts = wp.interests.length
+        ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`)
+        : ["Your watch profile exists but holds no interests right now — it polls nothing and reminds nothing."];
+      if (wp.opt_out && wp.opt_out.global) facts.push("Job alerts are PAUSED for you: watches are recorded, and no reminders go out until you resume them.");
+      if (queued) facts.push(`${queued} reminder${queued === 1 ? " is" : "s are"} already queued for delivery.`);
+      const reply = compose({ headline: wp.interests.length ? `You are watching ${wp.interests.length} role${wp.interests.length === 1 ? "" : "s"}.` : "Your watch list is empty.", facts, nextStep: "Add a role, remove one by name, or pause alerts — say which." });
+      return { intent: "career_watch_manage", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp };
+    }
+    // stop watching X
+    const role = watchRoleFromText(text);
+    let target = null;
+    if (role) target = wp.interests.find((i) => (i.role || {}).title === role.title) || null;
+    if (!target && wp.interests.length === 1) target = wp.interests[0];
+    if (!target) {
+      const reply = compose({ headline: "Which watch should come off?", facts: wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`), nextStep: "Name the role to stop watching and I will remove exactly that one." });
+      return { intent: "career_watch_manage", reply, resultStatus: "awaiting_user", sends: 0, watch_profile: wp };
+    }
+    A.removeInterest(wp, target.interest_id);
+    if (!saveWatchProfileSync(ctx, wp)) return null;
+    const reply = compose({ headline: `Stopped watching: ${(target.role || {}).title || target.interest_id}.`, facts: [`That interest is off your watch profile, so the host stops matching it from the next tick. ${wp.interests.length ? `${wp.interests.length} watch${wp.interests.length === 1 ? "" : "es"} remain${wp.interests.length === 1 ? "s" : ""}.` : "No watches remain on your profile."}`], nextStep: "Want the remaining list, or a new role watched instead?" });
+    return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+  }
+
   function dispatchChat(text, ctx) {
     const c = ctx || {};
     text = detypo(text); // routing copy only — records keep the original
@@ -39033,6 +39369,17 @@ const CareerRouter = (() => {
     // turns on EVERY route are held (drafting / reading / status still run).
     const paused = handlePauseGate(text, c);
     if (paused) return paused;
+    // ALERTS HOST WIRING (W4): alert-watch intents (152) — manage before
+    // create, so "stop watching X" / "what am I watching" are never read as
+    // new-watch asks. Both step aside when 152 is absent from the bundle.
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+      const wm = handleWatchManage(text, c);
+      if (wm) return wm;
+    }
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b/.test(t)) {
+      const wc = handleWatchCreate(text, c);
+      if (wc) return wc;
+    }
     // An active mock session captures plain ANSWERS before any other
     // intent — but never an instruction-shaped turn. A new task always
     // wins over a pending mock answer: without this guard, one started

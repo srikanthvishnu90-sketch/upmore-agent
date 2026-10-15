@@ -1313,7 +1313,7 @@ const CareerDoorstep = (() => {
       ...art,
       reply: proposed.conflict
         ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}.${shiftedNote ? ` ${shiftedNote}` : ""} Nothing has been booked or sent: approve the card and the proposed time (${fmtSlot(proposed)}) goes to them as the proposal — nothing is booked until they confirm.`,
+        : `The pick: ${fmtSlot(proposed)} — the first offered time that checks free. Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}.${shiftedNote ? ` ${shiftedNote}` : ""} Nothing has been booked or sent: approve the card and the pick goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 
@@ -1424,7 +1424,13 @@ const CareerDoorstep = (() => {
     return {
       intent: "application_packet", family: "application", resultStatus: "awaiting_user",
       packet, binding, review, ...art,
-      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`,
+      // WORDING-BACKLOG (BUG-204): an autopilot ask hears the RULE
+      // first — submission never runs ahead of the user's yes, and
+      // that rule has no override — and the packet is named by its
+      // tailoring (the role it was cut for), not as a stock packet.
+      reply: spec.autopilotAsk
+        ? `Autopilot submission is off, and that rule has no override: every application stops at this doorstep for your yes. Prepared the application packet for ${packet.company} — the resume in it is tailored to the ${packet.title || "role"} it names, and the answers ride with it. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`
+        : `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`,
     };
   }
 

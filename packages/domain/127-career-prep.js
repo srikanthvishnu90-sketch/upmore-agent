@@ -887,7 +887,7 @@ const CareerPrep = (() => {
   }
   function finalRoundDelta(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir);
-    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, earlier_stages: [], changes: [], gaps: ["No merged CIR on file — what changes in the final round cannot be claimed."] };
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, earlier_stages: [], changes: [], gaps: ["No company file is on record for this round — what changes in the final round cannot be claimed."] };
     let fi = n.stages.length - 1; for (let i = n.stages.length - 1; i >= 0; i--) { if (/final|superday|onsite|interview|loop/i.test(n.stages[i].name)) { fi = i; break; } }
     const final = n.stages[fi] || null; const earlier = n.stages.slice(0, fi);
     const changes = [];
@@ -980,7 +980,7 @@ const CareerPrep = (() => {
   }
   function superdayPlan(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir);
-    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, schedule: [], drill_topics: [], gaps: ["No merged CIR on file — no superday plan is claimed."] };
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, schedule: [], drill_topics: [], gaps: ["No company file is on record for this round — no company-specific superday plan is claimed."] };
     const fin = financeDrill(); const delta = finalRoundDelta({ cir: opts.cir });
     return { status: "OK", company: n.company_name, when: s(opts.when || "") || null, final_stage: delta.final_stage, earlier_stages: delta.earlier_stages,
       drill_topics: fin.questions.map((q) => q.topic + ": " + q.q),

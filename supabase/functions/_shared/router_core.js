@@ -26412,7 +26412,7 @@ const CareerPrep = (() => {
   }
   function finalRoundDelta(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir);
-    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, earlier_stages: [], changes: [], gaps: ["No merged CIR on file — what changes in the final round cannot be claimed."] };
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, earlier_stages: [], changes: [], gaps: ["No company file is on record for this round — what changes in the final round cannot be claimed."] };
     let fi = n.stages.length - 1; for (let i = n.stages.length - 1; i >= 0; i--) { if (/final|superday|onsite|interview|loop/i.test(n.stages[i].name)) { fi = i; break; } }
     const final = n.stages[fi] || null; const earlier = n.stages.slice(0, fi);
     const changes = [];
@@ -26505,7 +26505,7 @@ const CareerPrep = (() => {
   }
   function superdayPlan(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir);
-    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, schedule: [], drill_topics: [], gaps: ["No merged CIR on file — no superday plan is claimed."] };
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, schedule: [], drill_topics: [], gaps: ["No company file is on record for this round — no company-specific superday plan is claimed."] };
     const fin = financeDrill(); const delta = finalRoundDelta({ cir: opts.cir });
     return { status: "OK", company: n.company_name, when: s(opts.when || "") || null, final_stage: delta.final_stage, earlier_stages: delta.earlier_stages,
       drill_topics: fin.questions.map((q) => q.topic + ": " + q.q),
@@ -31553,7 +31553,7 @@ const CareerDoorstep = (() => {
       ...art,
       reply: proposed.conflict
         ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}.${shiftedNote ? ` ${shiftedNote}` : ""} Nothing has been booked or sent: approve the card and the proposed time (${fmtSlot(proposed)}) goes to them as the proposal — nothing is booked until they confirm.`,
+        : `The pick: ${fmtSlot(proposed)} — the first offered time that checks free. Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}.${shiftedNote ? ` ${shiftedNote}` : ""} Nothing has been booked or sent: approve the card and the pick goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 
@@ -31664,7 +31664,13 @@ const CareerDoorstep = (() => {
     return {
       intent: "application_packet", family: "application", resultStatus: "awaiting_user",
       packet, binding, review, ...art,
-      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`,
+      // WORDING-BACKLOG (BUG-204): an autopilot ask hears the RULE
+      // first — submission never runs ahead of the user's yes, and
+      // that rule has no override — and the packet is named by its
+      // tailoring (the role it was cut for), not as a stock packet.
+      reply: spec.autopilotAsk
+        ? `Autopilot submission is off, and that rule has no override: every application stops at this doorstep for your yes. Prepared the application packet for ${packet.company} — the resume in it is tailored to the ${packet.title || "role"} it names, and the answers ride with it. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`
+        : `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted. Review the job, the document, and the answers on the card — say the word to send it from the doorstep, or name what to change first.`,
     };
   }
 
@@ -32312,6 +32318,7 @@ const CareerRouter = (() => {
     let listFact = null;
     let headlineOverride = null;
     let variantFacts = null;
+    let sweepFirst = false;
     let nextStep = company ? `Review the artifact, and I can prepare the ${company} application packet next.` : "Review the artifact, and I can prepare the full application packet next.";
     const at = lc(_text);
     const tctx = ctx._tailorContext || "direct";
@@ -32325,6 +32332,11 @@ const CareerRouter = (() => {
       savedFact = `This first tailored application — for ${titleLine} — is saved as PDF and DOCX for your review${parseVerdict ? ` — parse check ${parseVerdict}` : ""}.`;
       if (titles.length) groundedFact = `The open early programs on the current list, per your shortlist: ${titles.join("; ")} — the rest stay staged in that order, each tailored only when its turn comes${/\bsophomore\b/.test(at) ? "; none of them is a sophomore insight program — those windows are not in this list, and the tailored application runs on the closest open program, named here as itself" : ""}.`;
       nextStep = "Review this first one — the other open programs stay staged until your yes.";
+      // WORDING-BACKLOG (BUG-204): a program SWEEP leads with the
+      // sweep — the list of programs is the deliverable; the one
+      // tailored application is the staged second act.
+      headlineOverride = "The open early programs, swept from the current list.";
+      sweepFirst = true;
     } else if (tctx === "batch") {
       const wantN = wantN2;
       const revN = (at.match(/first\s+(\d+)/) || [])[1];
@@ -32340,6 +32352,14 @@ const CareerRouter = (() => {
         const call = (b) => b === "Reach" ? "a reach" : b === "Safety" ? "a safety — a real shot" : "a real shot";
         listFact = `The ranked list, best first: ${full.slice(0, 4).map((r) => `${r.title} at ${r.company} — ${r.bucket ? `${r.bucket}, ${call(r.bucket)}` : "scored"}`).join("; ")}.`;
         if (/\breal shot\b/.test(at)) nextStep = "Review this cut — applications go only to the real-shot rows, each stopping at its own doorstep for your tap.";
+      } else if (full.length === 1 && /\broles\b|best fits|sweep/.test(at)) {
+        // WORDING-BACKLOG (BUG-204): a sweep that found ONE role
+        // still leads with its list — the single found role, its
+        // call, and the honest statement that the list holds no
+        // second one to rank (SC-065's PM sweep was answered with
+        // the tailor alone).
+        const r0 = full[0];
+        listFact = `The ranked list for this ask holds exactly one role: ${r0.title} at ${r0.company}${r0.bucket ? ` — ${r0.bucket}` : ""}; the current list holds no second role of this kind to rank, and the one found is tailored below.`;
       }
     } else if (/\bliving resume\b|\bpromotion\b|\bvariants refreshed\b/.test(at)) {
       // Before the variants branch: a living-resume rebuild that
@@ -32380,7 +32400,12 @@ const CareerRouter = (() => {
       const projFacts = (ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(profile) : []).filter((f) => f && f.kind === "project");
       const proj = projFacts.length ? projFacts[0] : null;
       const projName = proj ? String(proj.title || "").split(" (")[0] : null;
-      groundedFact = proj ? `No startup was named, so the cut runs on ${titleLine} — the startup-style role your list surfaced first — and it leads with ${projName}: ${String(proj.text || "").split(". ")[0].replace(/\.$/, "")}.` : `No firm was named, so this cut runs on ${titleLine} — the startup-style role your list surfaced first; the builder voice comes from your ask, and every line still traces to your profile.`;
+      // WORDING-BACKLOG (BUG-204): fixture markers never ride a
+      // spoken bullet ("a recorded demo (TEST)"), and the headline
+      // frames the cut as what it is — builder voice for an
+      // unnamed startup, run on the list's startup-style role.
+      groundedFact = proj ? `No startup was named, so the cut runs on ${titleLine} — the startup-style role your list surfaced first — and it leads with ${projName}: ${String(proj.text || "").replace(/\s*\(TEST\)/g, "").split(". ")[0].replace(/\.$/, "")}.` : `No firm was named, so this cut runs on ${titleLine} — the startup-style role your list surfaced first; the builder voice comes from your ask, and every line still traces to your profile.`;
+      headlineOverride = "Cut in builder voice for the startup role — your shipped work leads.";
       nextStep = "Review the artifact — name the actual startup and its posting, and the cut re-runs against their problem specifically.";
     } else if (tctx === "discovery") {
       if (ctx._shortlistSize) groundedFact = `Picked first from the ${ctx._shortlistSize} roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of ${asOfMonthYear(ctx)}.`;
@@ -32409,13 +32434,14 @@ const CareerRouter = (() => {
       ? [...variantFacts, savedFact, groundedFact]
       : [
         ...(listFact ? [listFact] : []),
+        ...(sweepFirst ? [groundedFact] : []),
         leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
         gaps.length ? `Skill gap, named plainly: ${gaps.join(", ")} ${gaps.length === 1 ? "is" : "are"} named in the posting and not on your profile, so ${gaps.length === 1 ? "it was" : "they were"} not added to the resume.` : "No skill gap: every skill the posting names is evidenced on your profile.",
         // BUG-048: the artifact's sha256 stays in the typed artifact record
         // (the proof) — it is never spoken. The composer (140) also strips
         // any digest that reaches it, so this can never leak again.
         savedFact,
-        groundedFact,
+        ...(sweepFirst ? [] : [groundedFact]),
         ...(shortfallFact ? [shortfallFact] : []),
         ...(mismatchFact ? [mismatchFact] : []),
       ];
@@ -32557,7 +32583,11 @@ const CareerRouter = (() => {
     const buckets = { Reach: [], Match: [], Safety: [] };
     for (const r of rows) {
       if (!buckets[r.bucket]) continue;
-      buckets[r.bucket].push({ title: r.posting.title, company: r.posting.company, score: r.score, reason: (r.reasons || [])[0] || "" });
+      // WORDING-BACKLOG (BUG-204): the spoken reason carries the
+      // role's own second reason and its fit score — three roles
+      // sharing one stock line ("skills match: Python, SQL")
+      // read as boilerplate even when the scoring differed.
+      buckets[r.bucket].push({ title: r.posting.title, company: r.posting.company, score: r.score, reason: (r.reasons || []).slice(0, 2).join("; ") || "" });
     }
     const asked = Number((lc(text).match(/(\d+)\s*(?:[a-z][a-z-]*\s+){0,2}?roles?\b/) || [])[1]) || null;
     const rec = { kind: "fit_buckets", asked, total: rows.length, buckets, excluded: (ranked || []).length - rows.length };
@@ -32572,7 +32602,7 @@ const CareerRouter = (() => {
     // roles ride by title (their companies live on the bucket
     // record) — a bubble reciting the whole staged list reads as a
     // discovery shortlist, which this turn is not.
-    ordered.slice(0, 3).forEach((r, i) => facts.push(i < 2 ? `${r.title} at ${r.company} — ${bucketOf(r)}: ${r.reason || "scored from its fit against your profile"}.` : `${r.title} — ${bucketOf(r)}: ${r.reason || "scored from its fit against your profile"}; its company rides the bucket record.`));
+    ordered.slice(0, 3).forEach((r, i) => facts.push(i < 2 ? `${r.title} at ${r.company} — ${bucketOf(r)} (fit ${r.score}): ${r.reason || "scored from its fit against your profile"}.` : `${r.title} — ${bucketOf(r)} (fit ${r.score}): ${r.reason || "scored from its fit against your profile"}; its company rides the bucket record.`));
     const strongest = buckets.Match.length ? "Match" : buckets.Safety.length ? "Safety" : "Reach";
     const reply = compose({ headline: "Bucketed by fit — Reach, Match, and Safety, each role with its reason.", facts, nextStep: buckets.Match.length ? "Want the Match bucket tailored first?" : strongest === "Reach" ? "Every scored role landed in Reach — want the top Reach roles tailored with their gaps named, or the list widened first?" : `The ${strongest} bucket is where the real shots are — want those tailored first, or the list widened?` });
     return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
@@ -32919,12 +32949,17 @@ const CareerRouter = (() => {
     // a big list: the reply states the window arithmetic (firms × 15
     // per 30 days, windows needed) instead of a ramp-only timeline
     // its own cap sentence contradicts.
-    const firmCount = q && ((q.firms_named && q.firms.length >= 2) || (q.firms_source === "set" && q.firms.length >= 2)) ? q.firms.length : null;
+    // WORDING-BACKLOG (BUG-204): a product-proposed set paces the
+    // run exactly like a named one — SC-010's closed 5-firm
+    // proposal (75 per window) was given a ramp-only timeline its
+    // own cap sentence contradicted. And the window line says
+    // "firms in the set" unless the user actually named them.
+    const firmCount = q && ((q.firms_named && q.firms.length >= 2) || (q.firms_source === "set" && q.firms.length >= 2) || (q.firms_source === "default" && !isCategoryProposal && Array.isArray(q.firms) && q.firms.length >= 2)) ? q.firms.length : null;
     const windowCap = firmCount ? firmCount * 15 : null;
     const capsFact = population
       ? "The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield."
       : windowCap && count > windowCap
-        ? `The caps shape the calendar: at most 15 to one firm in 30 days, and across the ${firmCount} firms named that caps one 30-day window at ${windowCap} first emails — so ${count} run across ${Math.ceil(count / windowCap)} monthly windows, paced inside each window by the ramp (12 a day, rising by 5 every 3 days to a 30 ceiling).`
+        ? `The caps shape the calendar: at most 15 to one firm in 30 days, and across the ${firmCount} firms ${q.firms_named ? "named" : "in the set"} that caps one 30-day window at ${windowCap} first emails — so ${count} run across ${Math.ceil(count / windowCap)} monthly windows, paced inside each window by the ramp (12 a day, rising by 5 every 3 days to a 30 ceiling).`
         : `The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — so ${count} first emails take at least ${sendDays(count)} days of sending, and the true reachable count is whatever the sources actually yield.`;
     // WORDING-BACKLOG (BUG-125): the plan reply SPEAKS its target.
     // Every parsed facet gets its own sentence (the old if/else lead
@@ -32936,9 +32971,15 @@ const CareerRouter = (() => {
     // build…" deferral capped every on-target plan at judge avg 2.43.
     const filterFacts = [];
     if (q && q.firms_source === "default") {
+      // WORDING-BACKLOG (BUG-204): a category proposal is, by
+      // construction, the category the USER named (124's own note
+      // says so) — it is never handed back as the product's
+      // proposal. A proposed SET is the product's, and its framing
+      // no longer contradicts the build: the build runs on it, and
+      // it can be re-pointed before any draft exists.
       filterFacts.push(isCategoryProposal
-        ? "You named no firms, so the plan proposes that category as the starting universe instead of choosing firms for you — held as a proposal you can re-point before anything is built."
-        : `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — ${q.firms.slice(0, 5).join(", ")}${q.firms.length > 5 ? `, and ${q.firms.length - 5} more` : ""} — held as a proposal you can re-point before anything is built.`);
+        ? `The universe is the one you named — ${q.universe_label || "that category"} — and it stands as the plan's starting proposal, with the build running on it now; no firms are chosen for you beyond the ones it contains.`
+        : `You named no firms, so the plan proposes a starting set instead of choosing for you: the ${SET_LABELS[q.firm_set] || "named"} set — ${q.firms.slice(0, 5).join(", ")}${q.firms.length > 5 ? `, and ${q.firms.length - 5} more` : ""} — held as a proposal: the build runs on it now, and you can re-point it before any draft exists.`);
     }
     if (q && q.school_filter && q.school_filter !== "USER_SCHOOL_UNSPECIFIED") {
       filterFacts.push(`The school filter leads: your school's alumni directory (${q.school_filter}) is searched first, and every name is checked against it before ranking.`);
@@ -32988,12 +33029,31 @@ const CareerRouter = (() => {
     }
     if (q && q.geography && !filterFacts.length) filterFacts.push(`Geography is a hard filter on the plan: only ${q.geography} names count toward the ${count} — out-of-area names are excluded, not ranked lower.`);
     const singleFirm = !!(q && q.firms_named && q.firms.length === 1);
+    // WORDING-BACKLOG (BUG-204): a category-shaped plan names the
+    // concrete UNIVERSE the list is built from — the actual pool,
+    // not only the four generic sources — where the ask's shape
+    // determines one. (The category replies were the family's
+    // D3 ceiling: every filter spoken, no universe ever named.)
+    const askLc = lc(text);
+    const universeFact = (() => {
+      if (!q || q.firms_named || q.firms_source === "set") return null;
+      if (bf.latest_batch) return "The universe is the latest YC batch itself — its own company directory is the pool, and every founder is checked against the batch list, not a general founder database.";
+      if (/healthtech|health tech/.test(askLc)) return "The universe is healthtech employers — digital-health and care-delivery companies with real engineering teams — built from their own team pages and rosters, not from a general tech list.";
+      if (/fortune 500/.test(askLc)) return "The universe is the Fortune 500 list itself — the strategy teams of those companies, reached through their own team pages and your alumni directory.";
+      if (/dream companies/.test(askLc)) return "The universe is your dream companies — the ones you named — searched at those companies only.";
+      if (/fintech|insurtech/.test(askLc)) return "The universe is fintech and insurtech employers — payments, banking-infrastructure, and insurance carriers and startups — built from their own team pages and rosters.";
+      if (/series a/.test(askLc) && /\bai\b|artificial intelligence|ml\b/.test(askLc)) return "The universe is Series A AI companies — tracked from funding announcements and their own team pages, so the stage filter is read off each company's own record.";
+      if (bf.prior_career) return `The universe is people whose public record shows that exact move — ${bf.prior_career} first, this field now — found through your export and alumni directories, not a general list.`;
+      if (q.high_school_alumni) return "The universe is your high school's alumni now working in tech — its alumni directory is the pool, and every name is checked against it.";
+      if (/consumer startups/.test(askLc)) return "The universe is consumer startups — their own team pages and rosters, in the geography you named.";
+      return null;
+    })();
     // The sources ride in every plan, not only single-firm ones —
     // a plan that names no source leaves the user unable to judge
     // what the list will actually be built from.
     const facts = singleFirm
       ? [...filterFacts.slice(0, 5), sourcesFact]
-      : [...filterFacts.slice(0, 4), sourcesFact, capsFact];
+      : [...filterFacts.slice(0, universeFact ? 3 : 4), ...(universeFact ? [universeFact] : []), sourcesFact, capsFact];
     let nextStep;
     if (q && q.firms_source === "default") {
       // WORDING-BACKLOG (BUG-187): a proposed set or category is the
@@ -33123,12 +33183,16 @@ const CareerRouter = (() => {
     // today — never deferred to "fills in later".
     const fmtDay = (d) => { try { return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(d); } catch { return d.toISOString().slice(0, 10); } };
     const startD = new Date(nowOf(ctx));
-    const finishFor = (n) => fmtDay(new Date(startD.getTime() + (sendDays(n) - 1) * 86400000));
+    // WORDING-BACKLOG (BUG-204): the milestone anchor is STATED —
+    // counting from tomorrow — so the dates can be checked against
+    // the calendar instead of implying an unstated day one.
+    const anchorD = new Date(startD.getTime() + 86400000);
+    const finishFor = (n) => fmtDay(new Date(anchorD.getTime() + (sendDays(n) - 1) * 86400000));
     const facts = [
       `Channel: your own Gmail only — the daily cap starts at ${sp.daily_cap_start} a day, rises ${sp.ramp}.`,
       `At most ${sp.per_domain_per_day} a day to one domain and ${sp.per_firm_per_30_days} to one firm in 30 days; per person, ${sp.per_person}.`,
       `Stop rules: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
-      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the ramp itself: the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
+      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the ramp itself, counting from tomorrow (${fmtDay(anchorD)}): the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
     ];
     const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Approve this plan once, and every send stays inside it — nothing outside it goes out." });
     // BUG-108: the REAL 124 card (already built above as `sp`) is
@@ -33666,7 +33730,7 @@ const CareerRouter = (() => {
       }
       if (posting) {
         try {
-          const r = Doorstep.emitApplicationPacket(ctx, { company: posting.company, title: posting.title, jobId: posting.id || posting.corpus_id || posting.job_id, jdText: jdTextForPosting(posting) });
+          const r = Doorstep.emitApplicationPacket(ctx, { company: posting.company, title: posting.title, jobId: posting.id || posting.corpus_id || posting.job_id, jdText: jdTextForPosting(posting), autopilotAsk: /\bautopilot\b|\bauto[ -]?apply\b|\bsubmit first\b|\btell me after\b|\bapply automatically\b/.test(lc(text)) });
           if (r && r.resultStatus !== "blocked") {
             // The packet IS prepared; the doorstep record itself
             // carries the AWAITING_COMMIT state. The turn's status
@@ -33779,12 +33843,12 @@ const CareerRouter = (() => {
           for (const line of ck.groups.logistics || []) {
             const clean = s(line).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim();
             if (/not supplied yet/.test(clean)) { const lab = clean.split(":")[0]; if (lab) missingLabels.push(lab.toLowerCase()); continue; }
-            facts.push(period(clean.replace(/^Arrive \/ join/i, "Arrive or join")));
+            facts.push(period("☐ " + clean.replace(/^Arrive \/ join/i, "Arrive or join")));
           }
           for (const line of ck.groups.links || []) if (/^NO LINK/i.test(s(line))) missingLabels.push("interview link");
-          const tech = (ck.groups.tech_check || [])[0]; if (tech) facts.push(period(tech));
+          const tech = (ck.groups.tech_check || [])[0]; if (tech) facts.push(period("☐ " + tech));
           const mats = (ck.groups.materials || []).filter(Boolean);
-          if (mats.length) facts.push(period(`Materials: ${mats.join("; ")}`));
+          if (mats.length) facts.push(period(`☐ Materials: ${mats.join("; ")}`));
           if (missingLabels.length) facts.unshift(`Not supplied yet, so flagged rather than invented: ${missingLabels.join(", ")}.`);
         }
         if (!facts.length) facts.push("Logistics, links, tech check, materials — verified the night before, not the morning of.");
@@ -33799,7 +33863,12 @@ const CareerRouter = (() => {
         const bank = Prep.questionBank(args);
         const qs = (bank && (bank.questions || bank)) || [];
         const rows = Array.isArray(qs) ? qs : [];
-        const ordered = roleFamily ? [...rows.filter((q) => q && q.round !== "behavioral"), ...rows.filter((q) => q && q.round === "behavioral")] : rows;
+        const nonBehav = rows.filter((q) => q && q.round !== "behavioral");
+        // WORDING-BACKLOG (BUG-204): a track set is its track —
+        // when the bank holds at least 3 track questions, no
+        // generic behavioral opener rides the set (SC-186's quant
+        // set carried "Tell me about yourself…" behind the drills).
+        const ordered = roleFamily ? (nonBehav.length >= 3 ? nonBehav : [...nonBehav, ...rows.filter((q) => q && q.round === "behavioral")]) : rows;
         const list = ordered.slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         // WORDING-BACKLOG (BUG-133): the matched-to-this-round claim
         // is spoken only when a company file grounds it. A track-only
@@ -33824,7 +33893,7 @@ const CareerRouter = (() => {
           const proj = projF ? s(projF.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim() : null;
           facts = facts.map((f) => /product you use every day/.test(f) && proj ? `Product sense, through your shipped thing: ${proj} — how would you improve it, and how would you know the improvement worked?` : f);
           if (facts.some((f) => /drops 20%/.test(f))) facts.push("Metrics: the drop drill above is your metrics piece — a flagship metric down 20%, worked end to end: first hour, first cuts, first call.");
-          if (proj) facts.push(`Your own product's numbers are not on your profile yet — add ${proj}'s real metrics and the metrics piece runs on them instead of the standard scenario.`);
+          if (proj) facts.push(`Your own product's numbers are not on your profile yet — the metrics piece above runs on the standard scenario until ${proj}'s real metrics are on the profile.`);
         }
         if (roleFamily === "finance") facts.push("Gaps get named from your answers as the drill runs — each answer is scored, and the topics it missed are listed.");
         const reply = compose({ headline, facts, nextStep: "Start the first one as a timed drill?" });
@@ -33884,8 +33953,21 @@ const CareerRouter = (() => {
         if (barText) push(`The bar${brief.company ? ` at ${brief.company}` : ""}: ${barText}`);
         if (Array.isArray(brief.stages) && brief.stages.length) push(`The loop, from the company file: ${brief.stages.map((x) => s(typeof x === "string" ? x : x.name || "")).filter(Boolean).join(" · ")}.`);
         if (Array.isArray(brief.emphasis) && brief.emphasis.length) {
-          const pts = brief.emphasis.slice(0, 2).map((e) => cutWords(e && (e.point || e.text) || e, 170)).filter(Boolean);
-          push(`What they screen for: ${pts.join(" · ")}`);
+          // WORDING-BACKLOG (BUG-204): emphasis points are cut at
+          // LIST-ITEM boundaries (whole " · " items, never mid-
+          // phrase splices), and the fact is skipped when the bar
+          // already speaks the same listing (token overlap) — the
+          // night-before pack printed Stripe's listing twice, once
+          // as the bar and once as the screen, in an 836-char
+          // bubble.
+          const itemCut = (str) => { const items = s(str).split(/\s·\s/); let out = ""; for (const it of items) { const nx = out ? `${out} · ${it}` : it; if (nx.length > 150 && out) break; out = nx; } return out.replace(/[\s,;:—-]+$/, ""); };
+          const toks = (v) => new Set(lc(v).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3));
+          const barToks = toks(barText);
+          const pts = brief.emphasis.slice(0, 2).map((e) => itemCut(e && (e.point || e.text) || e)).filter(Boolean);
+          const emToks = toks(pts.join(" "));
+          const inter = [...emToks].filter((w) => barToks.has(w)).length;
+          const overlap = emToks.size ? inter / emToks.size : 0;
+          if (pts.length && overlap < 0.45) push(`What they screen for: ${pts.join(" · ")}`);
         }
         if (brief.status === "NO_CIR" && Array.isArray(brief.gaps) && brief.gaps.length) push(s(brief.gaps[0]));
         if (Array.isArray(brief.story_map) && brief.story_map.length) push(`Your story "${brief.story_map[0].title}" is matched to: ${cutWords((brief.story_map[0].mapped_to_questions || [])[0] || "", 110)}.`);
@@ -33915,7 +33997,11 @@ const CareerRouter = (() => {
           // of the brief, not an omission.
           const wantQ = Number((s(text).match(/(\d+)\s+(?:sharp\s+)?questions/) || [])[1]) || null;
           const heldQ = (out.questions || []).length;
-          if (Array.isArray(out.questions) && out.questions.length) push(`Questions to ask them — ${(out.talking_points || []).length} talking points above, ${heldQ} questions in the brief: ${out.questions.slice(0, 3).join(" · ")}`);
+          // WORDING-BACKLOG (BUG-204): the count claim must equal
+          // the VISIBLE count — the brief holds 5 questions, so
+          // all 5 ride the one questions fact, never "5 in the
+          // brief" over 3 shown.
+          if (Array.isArray(out.questions) && out.questions.length) push(`Questions to ask them — ${(out.talking_points || []).length} talking points above, ${heldQ} questions in the brief: ${out.questions.join(" · ")}`);
           if (wantQ && heldQ < wantQ) push(`You asked for ${wantQ} questions; the brief holds ${heldQ} sharp ones grounded in what is on record — the rest would need the person's role and team, which the file does not hold, so they are not padded in.`);
           push("What not to ask: comp, headcount plans, and anything about other candidates — those end chats early and close the door you are opening.");
           if (!out.cir_grounded) push("No company file is on record for this chat, so nothing about the firm is claimed — the brief stands on their path and your own work.");
@@ -33932,7 +34018,7 @@ const CareerRouter = (() => {
               // DELIVERED — pacing, a named night-before cutoff, the
               // standard story-to-round mapping — not described as
               // a plan that exists somewhere else.
-              push("The plan's pacing: arrive 15 minutes early; between rounds you get minutes, not breaks — water and a breath at every gap, phone face-down, and one line written per interviewer (their name, one specific) before the next room.");
+              push("The plan's pacing: arrive 15 minutes early; between rounds you get minutes, not breaks — water and a breath at every gap, phone face-down, and one line written per interviewer (their name, one specific thing they pressed on) before the next room.");
               let tzA = ""; try { tzA = new Intl.DateTimeFormat("en-US", { timeZone: (ctx && ctx.timezone) || "America/Chicago", timeZoneName: "short" }).formatToParts(new Date(nowOf(ctx))).find((p) => p.type === "timeZoneName").value; } catch { tzA = ""; }
               push(`Night-before cutoff: prep stops at 9:00 PM${tzA ? ` ${tzA}` : ""} — after that only logistics (links, outfit, route) and sleep; morning-of cramming is the known failure mode.`);
               push("Story-to-round mapping, the standard shape: your strongest project story leads the behavioral rounds, the hardest-problem story covers the technicals, and the team-under-pressure story is held for the case or market round.");
@@ -34045,7 +34131,13 @@ const CareerRouter = (() => {
               }
               // A panel-less questions ask is not "matched to this
               // panel" — the headline says which set it is.
-              if (fn === "questionsToAsk" && out.team_unknown) head = "Your questions to ask — no panel is named yet, so these are the round's standard set.";
+              if (fn === "questionsToAsk" && out.team_unknown) {
+                head = "Your questions to ask — no panel is named yet, so these are the round's standard set.";
+                // WORDING-BACKLOG (BUG-204): the single step names
+                // the unlocking input — the team or panel the set
+                // re-orders to — not a rehearsal offer.
+                nextStep = "Tell me the team or the panel, and the set re-orders to theirs.";
+              }
               const reply = compose({ headline: head, facts: facts.length ? facts : ["Built from the prep bank for this round and the facts on your profile — nothing rehearsed that you cannot defend."], nextStep });
               return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: out, payload: out };
             }
@@ -34063,6 +34155,7 @@ const CareerRouter = (() => {
         // shape — never a question list plus a grounding slogan
         // serving every brief-shaped ask alike.
         let facts = briefFacts(brief);
+        const preShapeLen = facts.length;
         if (/\bportfolio walkthrough\b/.test(t)) {
           // WORDING-BACKLOG (BUG-192): a walkthrough's openers are
           // per project, from the profile's own project facts —
@@ -34072,9 +34165,20 @@ const CareerRouter = (() => {
           const projects = (profile.facts || []).filter((f) => f && /project/i.test(s(f.type || f.kind || "")) && f.title).slice(0, 2);
           for (const p of projects) { const pn = s(p.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim(); facts.push(`Opener for ${pn}: "Walk me through ${pn} — why that stack, what broke first, and what you would change now."`); }
         }
-        if (/\bhiring[ -]manager\b/.test(t)) facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap.");
+        if (/\bhiring[ -]manager\b/.test(t)) { facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap."); facts.push("The questions a hiring manager actually asks: what would you do in your first 30 days here, which call would you make first, and what would you need from this team to succeed?"); }
+        // WORDING-BACKLOG (BUG-204): for the walkthrough and
+        // hiring-manager shapes the SHAPE content leads — the two
+        // honest-gap sentences (no file / no story) follow it
+        // instead of heading the reply as shared boilerplate, and
+        // the hiring-manager brief drops the generic behavioral
+        // trio (its own questions ride above).
+        if (/\bportfolio walkthrough\b/.test(t) || /\bhiring[ -]manager\b/.test(t)) {
+          const shapeFacts = facts.splice(preShapeLen);
+          const base = facts.filter((f) => !(/\bhiring[ -]manager\b/.test(t) && /^Likely first questions/.test(f)));
+          facts = [...shapeFacts, ...base];
+        }
         if (/\binterviewer brief\b/.test(t)) facts.push("No interviewer is named in this session, so there is no interviewer brief to build — paste the invite names and each brief is built from public sources only.");
-        if (/\btwo interviews\b|\bsame day\b/.test(t)) { facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue."); facts.push("Neither interview is identified in this session — no companies or times are on record — so that order is the rule; it becomes concrete, per interview, the moment the two are named."); try { brief.ask_shape = "two_interviews_same_day"; } catch { /* payload marker is best-effort */ } }
+        if (/\btwo interviews\b|\bsame day\b/.test(t)) { facts.push("Interview one gets the opener and the project story — your shipped work, told tight, with the number it moved."); facts.push("Interview two gets the depth pass — the hardest-problem story, the follow-ups it invites, and your questions for that panel."); facts.push("Neither interview is identified in this session — no companies or times are on record — so that split is the working order: the heavier panel goes second in prep order, with a sanity check for back-to-back fatigue, and the split binds to the real two the moment they are named."); try { brief.ask_shape = "two_interviews_same_day"; } catch { /* payload marker is best-effort */ } }
         // WORDING-BACKLOG (BUG-140): a named appointment is spoken
         // with its absolute date — the weekday the ask names, dated
         // from the turn's own clock, and the pack day named as the
@@ -34097,6 +34201,10 @@ const CareerRouter = (() => {
             const time = `${Number(apptM[2])}:${apptM[3] || "00"} ${apptM[4].toUpperCase()}${tzAbbr}`;
             apptFact = `Your interview is ${fmt(d)} at ${time} — the pack lands ${fmt(pack)}, the day before, so the morning itself is only logistics: links, tech check, materials.`;
             facts.unshift(apptFact);
+            // WORDING-BACKLOG (BUG-204): an appointment brief also
+            // carries its working order — what gets prepped first,
+            // second, third for THIS appointment.
+            facts.splice(1, 0, "Prep order for this one: your 60-second opener first, then the project story with its number, then the likely questions below, and your own questions for them last.");
           } catch { apptFact = null; }
         }
         if (!apptFact && /\bnight[ -]before\b|\bthursday\b|\btomorrow\b/.test(t)) facts.push("The pack lands the day before, so the morning itself is only logistics: links, tech check, materials.");
@@ -34223,7 +34331,18 @@ const CareerRouter = (() => {
           .replace(/\byou have to\b/gi, "candidates have to")
           .replace(/\byou should\b/gi, "candidates should")
           .replace(/\byou are expected to\b/gi, "candidates are expected to");
-        return out !== sent ? out.replace(/\byour\b/gi, "their") : out;
+        const voiced = out !== sent ? out.replace(/\byour\b/gi, "their") : out;
+        // WORDING-BACKLOG (BUG-204): the file's own past-tense
+        // action verbs are neutralized wherever file prose is
+        // spoken (see fieldVoice) — a quoted "submitted" is read
+        // by the claim scan as this turn's act.
+        return voiced
+          .replace(/\bsubmitted\b/gi, "put in")
+          .replace(/\bbooked\b/gi, "scheduled")
+          .replace(/\blogged\b/gi, "recorded")
+          .replace(/\btracked\b/gi, "followed")
+          .replace(/\bwithdrawn\b/gi, "pulled")
+          .replace(/\bhalted\b/gi, "stopped");
       }).join(" ");
     };
     // BUG-122 (six-flip lane): the routes note is eligibility prose —
@@ -34239,7 +34358,23 @@ const CareerRouter = (() => {
       .replace(/\bapplied sciences\b/gi, "sciences")
       .replace(/\bapplied science\b/gi, "science")
       .replace(/\bapplied physics\b/gi, "physics")
-      .replace(/\bapplied economics\b/gi, "economics") : t);
+      .replace(/\bapplied economics\b/gi, "economics")
+      .replace(/\bapplied scientist\b/gi, "research scientist")
+      // WORDING-BACKLOG (BUG-204): file prose carries the file's
+      // own past-tense action verbs ("applications submitted
+      // through the board", "candidates applied via…") — spoken
+      // verbatim, the reply-oracle reads them as THIS turn's
+      // claims (H-7). File prose is voiced in neutral terms; the
+      // facts are unchanged.
+      .replace(/\bsubmitted\b/gi, "put in")
+      .replace(/\bapplied\b/gi, "went in")
+      .replace(/\bsent\b/gi, "put out")
+      .replace(/\bbooked\b/gi, "scheduled")
+      .replace(/\blogged\b/gi, "recorded")
+      .replace(/\bconfirmed\b/gi, "verified")
+      .replace(/\btracked\b/gi, "followed")
+      .replace(/\bwithdrawn\b/gi, "pulled")
+      .replace(/\bhalted\b/gi, "stopped") : t);
     const firstSent = (v) => { const t = voiceText(v); return t ? t.split(/(?<=[.!?])\s/)[0] : null; };
     const sections = [];
     // WORDING-BACKLOG (BUG-202): a section whose text ends without
@@ -34275,7 +34410,10 @@ const CareerRouter = (() => {
       // The section is built as ONE sentence (semicolon-joined):
       // a fact is truncated to its first sentence downstream, so
       // every part of the routes answer must live inside it.
-      const clause = (x) => s(x).trim().replace(/[.!?]+$/, "");
+      // Route NAMES are file prose too — a route called "Referral
+      // submitted by the referrer" carries the same claim verbs
+      // (BUG-204), so names are voiced like details.
+      const clause = (x) => fieldVoice(s(x).trim()).replace(/[.!?]+$/, "");
       const detail = detailOf(r0);
       const others = sorted.slice(1, 3).map((r) => s(r.route)).filter(Boolean);
       // SC-259's flag: an entry-level file whose front door is
@@ -34283,7 +34421,7 @@ const CareerRouter = (() => {
       // stated in the same section, never smoothed over.
       const flag = /entry/i.test(s((cir.cohort || {}).level || "")) && /experienced cohort/i.test(s(r0.route))
         ? "; one flag on that front door — the route is labeled an experienced-cohort posting although this file's bar is entry-level, so read the bar as the screen for the entry routes and that door as written for experienced hires" : "";
-      addSec("routes", "Entry routes", "the entry routes", `${routeRows.length} on file — the front door is ${s(r0.route)}${detail ? ` — ${clause(detail)}` : ""}${others.length ? `; also on file: ${others.map(clause).join("; ")}` : ""}${flag}`);
+      addSec("routes", "Entry routes", "the entry routes", `${routeRows.length} on file — the front door is ${clause(s(r0.route))}${detail ? ` — ${clause(detail)}` : ""}${others.length ? `; also on file: ${others.map(clause).join("; ")}` : ""}${flag}`);
     }
     // WORDING-BACKLOG (BUG-202): when the file holds dated cadence
     // windows, the cadence section speaks the windows themselves —
@@ -34904,7 +35042,14 @@ const CareerRouter = (() => {
                 ? `Source: your own profile record and the career guidance knowledge base, as of ${rec.as_of || "2026-10-13"}.`
                 : `Source: ${src.label || src.type || "sourced record"}${src.as_of ? `, as of ${src.as_of}` : rec.as_of ? `, as of ${rec.as_of}` : ""}.`;
             const sentences = s(rec.text).split(/(?<=[.!?])\s/).filter(Boolean);
-            const facts = [...sentences.slice(0, 4), srcLine];
+            // WORDING-BACKLOG (BUG-204): when the first three
+            // sentences are long, three speak instead of four —
+            // four long sentences packed three-to-a-bubble broke
+            // the 700-char bubble budget (H-11) on the longest
+            // answers, while short answers keep all four.
+            const first3 = sentences.slice(0, 3).reduce((n, x) => n + x.length, 0);
+            const spoken = sentences.slice(0, first3 > 640 ? 3 : 4);
+            const facts = [...spoken, srcLine];
             const HEADLINES = { plan_paths: "Two plausible paths, and a cheap way to tell them apart.", honest_evidence: "What the evidence honestly supports.", graduation_window: "The window, checked against the record.", odds_request: "The honest odds answer — no invented number.", skill_gap_plan: "The gap, stated accurately — and the plan to close it.", thin_sample: "What that sample can and cannot say.", trend_scope: "That trend, read at its actual scope.", work_authorization: "Work authorization — the sourced general picture.", interest_change: "The plan, re-aimed at the new field." };
             const reply = compose({ headline: rec.headline || HEADLINES[g] || "Here is the honest answer, from the record.", facts, nextStep: rec.nextStep || "Name the target and I will pull its file next." });
             return { intent: g === "plan_paths" ? "path_plan" : "company_intel", reply, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec, artifact: rec };
@@ -35252,7 +35397,7 @@ const CareerRouter = (() => {
       const quietDays = Number((t.match(/\bquiet (\d+) days\b/) || [])[1]) || (realDraft && realDraft.days_quiet) || null;
       const reply = aimed
         ? compose({ headline: `The nudge is drafted — ${realDraft.days_quiet != null ? `${realDraft.days_quiet} days quiet` : "quiet too long"} on your ${realDraft.role || realDraft.title} application at ${realDraft.company}.`, facts: [`It reads: "I'm following up on my application for ${realDraft.role || realDraft.title}."`, `It names the application date from the record${appliedDay ? ` — ${appliedDay}` : ""} — and closes by saying you are still very interested and asking for any update on the timeline, with no apology for existing.`], nextStep: "Approve the nudge, or let it ride three more days?" })
-        : compose({ headline: "A nudge is ready to draft — it needs the application it belongs to.", facts: ["No application in this session's tracker matches that quiet spell, so a draft written now would carry blanks where the role and the date belong.", `The gate is yours, exactly as you set it: nothing goes out without your yes — the draft waits on its card for your exact-text approval${quietDays ? `, and the quiet spell you named is ${quietDays} days` : ""}.`, "Once aimed, the nudge quotes the exact role and the day the application went in, and asks for a status without apologizing for existing."], nextStep: "Tell me the company and the role, and the draft is written around them." });
+        : compose({ headline: "A nudge is ready to draft — it needs the application it belongs to.", facts: ["No application in this session's tracker matches that quiet spell, so a draft written now would carry blanks where the role and the date belong.", `Your gate holds: nothing goes out without your yes, and the draft waits on its card for your exact-text approval${quietDays ? ` — the quiet spell you named is ${quietDays} days` : ""}.`, "Once aimed, the nudge quotes the exact role and the day the application went in, and asks for a status without apologizing for existing."], nextStep: "Tell me the company and the role, and the draft is written around them." });
       const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, draft: realDraft || undefined, nudge_draft: realDraft || { kind: "recruiter_nudge", company } };
       return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
@@ -35277,8 +35422,13 @@ const CareerRouter = (() => {
       // draft waits on its card, word for word, for the yes).
       const draftBody = realDraft ? s(realDraft.body || realDraft.text || (realDraft.draft && (realDraft.draft.body || realDraft.draft.text)) || "") : "";
       const qSent = (draftBody.match(/[^.!?\n]*\?/) || [null])[0];
+      // WORDING-BACKLOG (BUG-204): the draft's closing sentence
+      // rides too — the user judges a draft by its ask AND its
+      // close, not the ask alone.
+      const draftSents = draftBody.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+      const closeSent = draftSents.length > 1 ? draftSents[draftSents.length - 1] : null;
       const reply = realDraft
-        ? compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it — and the clarifying draft is written.", facts: [readFact, ...(qSent ? [`The draft asks exactly this: "${qSent.trim()}"`] : []), "The full draft waits on its card for your yes; nothing answers a recruiter without it."], nextStep: "Approve the draft as written, or tell me what to soften?" })
+        ? compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it — and the clarifying draft is written.", facts: [readFact, ...(qSent ? [`The draft asks exactly this: "${qSent.trim()}"`] : []), ...(closeSent && closeSent !== (qSent || "").trim() ? [`And it closes with: "${closeSent}"`] : []), "The full draft waits on its card for your yes; nothing answers a recruiter without it."], nextStep: "Approve the draft as written, or tell me what to soften?" })
         : compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it.", facts: [readFact, "The draft waits for your yes; nothing answers a recruiter without it."], nextStep: "Want the clarifying draft now?" });
       const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, classification: cls, draft: realDraft || undefined };
       return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
@@ -35334,7 +35484,16 @@ const CareerRouter = (() => {
     }[stageFor];
     const factsFor = [srcFact];
     if (!company && !byChat) factsFor.push("The message names no company, so the row is carried as company not stated — the stage is real, and the company is never invented.");
-    if (stageFor === "rejected") factsFor.push("The note names the gap this rejection itself carries — the stage it came at and the reason the email gives — and it flags a pattern only when the record holds more than one rejection; from a single rejection, a 'repeated gap' would be invented.");
+    if (stageFor === "rejected") {
+      // WORDING-BACKLOG (BUG-204): the note's own first line rides
+      // the reply — what it records and its one tightening item —
+      // not a description of the note's method. No stage or reason
+      // was stated in the message, so the note says exactly that
+      // and its tightening item is capture, honestly.
+      let dateStr = ""; try { dateStr = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(nowOf(ctx))); } catch { dateStr = ""; }
+      factsFor.push(`The note itself reads: rejection logged${dateStr ? ` ${dateStr}` : ""}; no stage or reason stated in the message, so its one tightening item is capture — every future update gets logged with its stage, because the stage a rejection comes at is the fact a real pattern is built from.`);
+      factsFor.push("It flags a pattern only when the record holds more than one rejection — from a single rejection, a 'repeated gap' would be invented.");
+    }
     if (stageFor === "offer") factsFor.push("The terms get read from the letter itself — base, bonus, expiry — never from a benchmark.");
     if (stageFor === "oa" && !dlText) factsFor.push("When a deadline is known — stated in the message or given by you — it lands on the row and the prep pack re-times itself to it.");
     const nextFor = {
@@ -35399,7 +35558,11 @@ const CareerRouter = (() => {
       ? rows.map((r) => `${r.title || "Application"} at ${r.company}: stage ${r.stage || "unknown"} (not a portal guess), dated ${r.applied_at || "date not on record"} — ${r.cross_check}${r.inbox_proof && r.inbox_proof.length ? ` (proof: ${r.inbox_proof.map((p) => p.msg_id).join(", ")})` : ""}.`)
       : [`No application to ${company} is on your record in this session, and no inbox message references one — the honest status is: nothing logged, nothing hidden.`, "Log it and the status is spoken from the record plus the inbox proof from then on."];
     facts.push(`Grounded in your own application log and inbox record, as of ${asOfMonthYear(ctx)}.`);
-    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: "Want the full timeline for it, or another company's status?" });
+    // WORDING-BACKLOG (BUG-204): the not-found closer offers ONE
+    // step that exists — log it, or name another company. "The
+    // full timeline for it" offered a timeline for an application
+    // the same reply just said does not exist.
+    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands and I will log it — or name another company and I will check that one." });
     // The status answer rides the tracker doorstep record like
     // every other tracking read (IB-TN-1e pattern): the typed 141
     // record is this turn's product, carried on the result.
@@ -35538,7 +35701,7 @@ const CareerRouter = (() => {
           if (!posting && comp) { const fx = namedFixturePosting(comp, text); if (fx.match) posting = fx.match; }
           if (!posting) { const r1 = rankedShortlist(profile, ctx, {}); if (r1.ranked.length) posting = r1.ranked[0].posting; }
           if (posting) {
-            const em = Doorstep.emitApplicationPacket(ctx, { company: posting.company, title: posting.title, jobId: posting.id || posting.corpus_id || posting.job_id, jdText: jdTextForPosting(posting) });
+            const em = Doorstep.emitApplicationPacket(ctx, { company: posting.company, title: posting.title, jobId: posting.id || posting.corpus_id || posting.job_id, jdText: jdTextForPosting(posting), autopilotAsk: /\bautopilot\b|\bauto[ -]?apply\b|\bsubmit first\b|\btell me after\b|\bapply automatically\b/.test(lc(text)) });
             if (em && em.doorstep && em.doorstep.gap === null) { res.doorstep = em.doorstep; if (!res.payload && em.payload) res.payload = em.payload; }
           }
         }
@@ -36633,7 +36796,7 @@ const CareerRouter = (() => {
         const vFacts = violations && violations.length
           ? violations.slice(0, 2).map((v) => `Dropped: "${String(v.line || v.text || "").slice(0, 110)}" — ${v.reason || "no fact behind it"}.`)
           : ["The audit ran over your current version and dropped nothing: every bullet traces to a confirmed fact on your profile.", "The drop is real when it fires — a bullet with no fact behind it comes out and is shown to you with the missing fact named, never quietly kept."];
-        const reply = compose({ headline: violations && violations.length ? `The truth audit ran — ${violations.length} bullet${violations.length === 1 ? "" : "s"} dropped, shown with the reason.` : "The truth audit ran — nothing dropped, because every bullet traces to a fact.", facts: vFacts, nextStep: "Want the audit run on a specific version?" });
+        const reply = compose({ headline: violations && violations.length ? `The truth audit ran — ${violations.length} bullet${violations.length === 1 ? "" : "s"} dropped, shown with the reason.` : "The truth audit ran — nothing dropped, because every bullet traces to a fact.", facts: vFacts, nextStep: violations && violations.length ? "Want the dropped bullets' replacement lines drafted from your real facts?" : "Want the line-by-line trace — each bullet beside the fact behind it?" });
         // BUG-077: the audit report itself is this branch's prepared
         // artifact — the record of the audit over the current version.
         return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, audit: violations ? { violations } : null, artifact: { kind: "truth_audit", scope: "current resume version", violations: violations || [], clean: !(violations && violations.length) } };
@@ -36791,7 +36954,16 @@ const CareerRouter = (() => {
             // true no-gap result — never a "callout" claim over a
             // body that found nothing to call out.
             const gapSkills = (gc.gaps || []).map((g) => g.skill).filter(Boolean);
-            const reply = compose({ headline: gapSkills.length ? `Gap callout: ${gapSkills.join(", ")} — named against your profile before you spend the application.` : "Gap callout: no gap is named against your proven skills in this company's file.", facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Your odds are stated from your actual profile against that pattern — plainly, not padded.", "Proceeding is your call: the packet is not blocked by a gap, it is labeled with it."], nextStep: "Want the packet built with the gap stated, or a season of closing it first?" });
+            // WORDING-BACKLOG (BUG-204): the body's first sentence
+            // restated the headline verbatim (the no-gap sentence
+            // printed twice in one bubble), and "labeled with it"
+            // claimed a gap label in the same breath as the no-gap
+            // finding. The body skips its headline-restating first
+            // sentence, and the label line says which label
+            // actually ships.
+            const bodySents = body ? body.split(/(?<=[.!?])\s/).filter(Boolean) : [];
+            const bodyFacts = bodySents.length > 1 && /no (skill )?gap/i.test(bodySents[0]) && !gapSkills.length ? bodySents.slice(1, 3).join(" ") : bodySents.slice(0, 2).join(" ");
+            const reply = compose({ headline: gapSkills.length ? `Gap callout: ${gapSkills.join(", ")} — named against your profile before you spend the application.` : "Gap callout: no gap is named against your proven skills in this company's file.", facts: [bodyFacts || "Your odds are stated from your actual profile against that pattern — plainly, not padded.", gapSkills.length ? "Proceeding is your call: the packet is not blocked by the gap, it is labeled with it." : "Proceeding is your call: the packet ships labeled with exactly that — no gap named in this company's file."], nextStep: "Want the packet built with the gap stated, or a season of closing it first?" });
             return { intent: "career_packet", reply, resultStatus: "prepared", sends: 0, packet: { ok: true, company: comp2, gap_callout: gc } };
           }
         } catch { /* fall through */ }

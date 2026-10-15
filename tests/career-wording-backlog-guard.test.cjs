@@ -223,7 +223,7 @@ test("BUG-136: brief replies speak bar, loop, and story state; coffee chats spea
   const t203 = text(turn("SC-203"));
   assert.ok(/The portfolio walkthrough, project by project\./.test(t203) && /Each project runs in this order/.test(t203), `SC-203: ${t203.slice(0, 160)}`);
   const t200 = text(turn("SC-200"));
-  assert.ok(/Your superday plan\./.test(t200) && /No merged company file/.test(t200) && /prep stops at 9:00 PM/.test(t200), `SC-200: ${t200.slice(0, 200)}`);
+  assert.ok(/Your superday plan\./.test(t200) && /No company file is on record for this round/.test(t200) && /prep stops at 9:00 PM/.test(t200), `SC-200: ${t200.slice(0, 200)}`);
   const t195 = text(turn("SC-195"));
   assert.ok(!/matched to this panel/.test(t195) && /No team or company file was supplied/.test(t195), `SC-195: ${t195.slice(0, 200)}`);
 });
@@ -347,7 +347,7 @@ test("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap 
   assert.ok(/Hold Tier C back, or release it/.test(t50) && /372 Tier A and B/.test(t50), `SC-050: ${t50.slice(0, 260)}`);
   const t43 = text(turn("SC-043"));
   assert.ok(/rises \+5 every 3 days, never above 30/.test(t43) && !/\+5\/day/.test(t43), `SC-043 ramp: ${t43.slice(0, 200)}`);
-  assert.ok(/Finish date, from the ramp itself: the first 87 first-emails clear by/.test(t43), `SC-043 finish: ${t43.slice(0, 300)}`);
+  assert.ok(/Finish date, from the ramp itself, counting from tomorrow \([^)]+\): the first 87 first-emails clear by/.test(t43), `SC-043 finish: ${t43.slice(0, 300)}`);
 });
 
 // ---- BUG-191: waves, surgery counts, and the bounce check are computed in the reply ----
@@ -379,7 +379,7 @@ test("BUG-201: no advice reply carries the shared opener, the degree-as-source, 
     assert.ok(!/the named skill/.test(t), `${id}: unsubstituted placeholder survives`);
     assert.ok(!/Tell me what you'd like to do next\./.test(t), `${id}: generic closer survives`);
   }
-  assert.ok(/sophomore-year internships and early programs feed the junior-year summer analyst class/.test(text(turn("SC-222"))), "SC-222: the IB ladder is the answer");
+  assert.ok(/[Ss]ophomore-year internships and early programs feed the junior-year summer analyst class/.test(text(turn("SC-222"))), "SC-222: the IB ladder is the answer");
   assert.ok(/three visible routes/.test(text(turn("SC-223"))) && /boutique ladder is second/.test(text(turn("SC-223"))), "SC-223: three routes delivered");
   assert.ok(/below the line the biggest banks print/.test(text(turn("SC-224"))), "SC-224: the 3.4 answer is about screens");
   assert.ok(/90-day version of the levers/.test(text(turn("SC-228"))), "SC-228: the 90-day plan is delivered");
@@ -586,7 +586,7 @@ test("BUG-181: an empty-log autopsy asks for the user's applications first", () 
 // ---- BUG-182: headlines state the finding, never outrun the record ----
 test("BUG-182: essay headline leads with the missing-theme gap; hold headline drops the unshown math; gap headline states the finding", () => {
   const t96 = text(turn("SC-096"));
-  assert.ok(/outlines are built — from the 3 experiences on file, and none of them is clinical or research/.test(t96), `SC-096: ${t96.slice(0, 160)}`);
+  assert.ok(/outline is built — from your 3 usable facts, and it holds no clinical or research experience/.test(t96), `SC-096: ${t96.slice(0, 160)}`);
   assert.ok(!/essay packet is ready/.test(t96), "SC-096: 'ready' headline over a missing-theme record is gone");
   const t99 = text(turn("SC-099"));
   assert.ok(/neither time is on record/.test(t99) && !/deadline math shown/.test(t99), `SC-099: ${t99.slice(0, 140)}`);
@@ -603,7 +603,7 @@ test("BUG-183: the review set is tailored whole; variants are delivered as named
   const t70 = text(turn("SC-070"));
   assert.ok(/Three variants from one master profile: backend, full-stack, infra/.test(t70) && /Backend cut:/.test(t70) && /Full-stack cut:/.test(t70) && /Infra cut:/.test(t70), `SC-070: ${t70.slice(0, 220)}`);
   const t69 = text(turn("SC-069"));
-  assert.ok(/— Reach: skills match/.test(t69), `SC-069: per-role reasons spoken: ${t69.slice(0, 200)}`);
+  assert.ok(/— Reach \(fit \d+\): skills match/.test(t69), `SC-069: per-role reasons spoken: ${t69.slice(0, 200)}`);
   assert.ok(!/Want the Match bucket tailored first\?/.test(t69), "SC-069: closer must not point at the empty Match bucket");
   const t94 = text(turn("SC-094"));
   assert.ok(/leads with StudyBoard/.test(t94), `SC-094: builder lead is a specific built thing: ${t94.slice(0, 240)}`);
@@ -644,4 +644,74 @@ test("BUG-186: 'What happened with my Stripe application?' reaches the applicati
   assert.equal((r.result || {}).intent, "tracking_status", `SC-115 intent: ${JSON.stringify(r.result || {}).slice(0, 120)}`);
   const t = text(r);
   assert.ok(/No Stripe application on record|Your Stripe application status/.test(t) && /application log and inbox/.test(t), `SC-115: ${t.slice(0, 200)}`);
+});
+
+// ---- BUG-204: the residual sweep (Outreach/Prep/Track/Apply/Intelligence) ----
+test("BUG-204: a proposed closed set gets window arithmetic, not a ramp-only timeline (SC-010)", () => {
+  const t = text(turn("SC-010"));
+  assert.match(t, /caps one 30-day window at 75/);
+  assert.match(t, /2 monthly windows/);
+  assert.doesNotMatch(t, /re-point before anything is built/);
+});
+
+test("BUG-204: a user-named category is never handed back as the plan's proposal (SC-028)", () => {
+  const t = text(turn("SC-028"));
+  assert.doesNotMatch(t, /plan proposes that category/);
+  assert.match(t, /The universe is the one you named/);
+});
+
+test("BUG-204: the safety plan states its milestone anchor (SC-043)", () => {
+  assert.match(text(turn("SC-043")), /counting from tomorrow/);
+});
+
+test("BUG-204: the coffee-chat brief speaks every question it counts (SC-182)", () => {
+  const r = turn("SC-182");
+  const held = ((r.result || {}).brief || (r.result || {}).payload || {}).questions || [];
+  const t = text(r);
+  assert.ok(held.length >= 4, "brief holds at least 4 questions");
+  for (const q of held) assert.ok(t.includes(q.slice(0, 30)), `spoken brief includes: ${q.slice(0, 40)}`);
+});
+
+test("BUG-204: a quant prep set carries no generic behavioral opener (SC-186)", () => {
+  assert.doesNotMatch(text(turn("SC-186")), /Tell me about yourself and why this role/);
+});
+
+test("BUG-204: no reply says 'merged company file' (SC-193/SC-200)", () => {
+  for (const id of ["SC-193", "SC-200"]) assert.doesNotMatch(text(turn(id)), /merged company file/i);
+});
+
+test("BUG-204: the rejection note's own first line rides the reply (SC-123)", () => {
+  assert.match(text(turn("SC-123")), /The note itself reads: rejection logged/);
+});
+
+test("BUG-204: the calendar proposal names its pick first (SC-143)", () => {
+  const r = turn("SC-143");
+  assert.match((r.delivered || [])[0] || "", /^The pick: /);
+});
+
+test("BUG-204: a not-found status never offers a timeline for the missing application (SC-115)", () => {
+  assert.doesNotMatch(text(turn("SC-115")), /full timeline for it/);
+});
+
+test("BUG-204: an autopilot ask hears the doorstep rule first (SC-061)", () => {
+  assert.match(text(turn("SC-061")), /Autopilot submission is off, and that rule has no override/);
+});
+
+test("BUG-204: no fixture marker rides a spoken tailor bullet (SC-094)", () => {
+  assert.doesNotMatch(text(turn("SC-094")), /\(TEST\)/);
+});
+
+test("BUG-204: file prose never speaks the file's claim verbs as this turn's acts (SC-255)", () => {
+  const t = text(turn("SC-255"));
+  assert.doesNotMatch(t, /\bsubmitted\b|\bapplied\b/);
+});
+
+test("BUG-204: every advice record's bottom line is under 30 words and carries no claim-verb adjectives (F7)", () => {
+  for (const id of ["SC-222", "SC-224", "SC-228", "SC-230", "SC-232", "SC-233", "SC-234", "SC-237", "SC-238", "SC-240", "SC-241", "SC-245", "SC-246"]) {
+    const r = turn(id);
+    const p = (r.result || {}).payload || {};
+    const first = String(p.text || "").split(/(?<=[.!?])\s/)[0] || "";
+    assert.ok(first.split(/\s+/).filter(Boolean).length < 30, `${id} bottom line is ${first.split(/\s+/).filter(Boolean).length} words`);
+  }
+  for (const id of ["SC-237", "SC-238", "SC-241"]) assert.doesNotMatch(text(turn(id)), /\bapplied\b|\bportfolio\b/);
 });

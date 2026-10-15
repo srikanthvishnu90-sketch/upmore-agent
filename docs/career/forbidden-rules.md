@@ -2003,7 +2003,7 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 255 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 360
+Counts: ENFORCED 256 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 361
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2367,8 +2367,9 @@ Counts: ENFORCED 255 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-358 (BUG-201) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-201 |
 | FR-359 (BUG-202) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-202 |
 | FR-360 (BUG-203) | ENFORCED | tests/career-template-breakup-guard.test.cjs BUG-110 + 3 more (see section) |
+| FR-361 (BUG-204) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-204 (see section) |
 
-<!-- totals: total=360 enforced=255 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=361 enforced=256 guarded_red=1 hard_shut=1 unenforced=103 -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2493,3 +2494,7 @@ Counts: ENFORCED 255 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-360 — Verification repairs keep every older pin standing (BUG-203)
 - **RULE:** A fix that breaks an older lane's guard is itself a bug: named-firm extraction stays a recognizer (short forms and abbreviations of a canonical hit are that hit, never extra firms); user-facing copy names bindings and outcomes, never internal mechanics (hashes, field names); a packet's spoken shape is its real shape (facts behind outlines, counted as what they are); and where a judge-mandated reroute supersedes a pin, the pin is amended to the new contract in the open, in the same commit — never silently dropped.
 - **ENFORCEMENT:** tests/career-template-breakup-guard.test.cjs BUG-110; tests/career-hash-leak-guard.test.cjs BUG-048; tests/career-essay-tailor.test.cjs BUG-104; tests/career-apply-completion.test.cjs BUG-114.
+
+### FR-361 — Spoken text never outruns, under-runs, or re-cans its record (BUG-204)
+- **RULE:** A reply's claims must reconcile with what the user can see and what the record holds: a count spoken equals the count shown (every brief question the count claims is printed); a timeline never contradicts the caps stated beside it (closed sets pace by window arithmetic); a category the user named is never handed back as the product's proposal, and a category plan names the concrete universe it builds from; dated milestones state their anchor; file prose is voiced before it is spoken (the file's own past-tense verbs are never this turn's claims, in details, evidence, or route names); advice records open with a bottom line under 30 words (the F7 contract) and carry no claim-verb adjectives or finance-sense nouns; an auto-apply ask hears the doorstep rule — no override — before the packet; a proposal names its pick first; a note's substance rides the reply, not a description of its method; and per-role reasons differ because the roles' records differ.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-204 (13 tests: proposed-set windows, user-category framing, safety-plan anchor, coffee-chat visible count, quant-set purity, jargon ban, note substance, pick-first, not-found closer, autopilot rule, fixture-marker ban, file-prose voicing, F7 bottom lines).

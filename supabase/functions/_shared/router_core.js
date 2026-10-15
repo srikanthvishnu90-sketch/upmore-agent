@@ -20974,13 +20974,21 @@ const CareerJobs = (() => {
     return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
   }
 
+  // TN-1a FEED PATH (BUG-210, FR-368): a posting's company comes only
+  // from a source that NAMES it — the payload itself, or the feed
+  // descriptor's stated company (registry boards carry one). The board
+  // token is an address, never a company: when neither source names a
+  // company the posting arrives company-less (null + the not-stated
+  // marker), per the owner's TN-1a ruling — never invented.
+  const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
                        : `${p.source}:${normName(p.company)}:${hash(p.url)}`.replace(/\s+/g, "-");
     const jd_text = stripHtml(p.jd_text || "");
     const posting = {
-      job_id, company: s(p.company), title: s(p.title),
+      job_id, company: p.company ? s(p.company) : null, company_not_stated: !p.company, title: s(p.title),
       role_family: roleFamily(p.title, jd_text), seniority_band: seniorityBand(p.title, jd_text),
       location: s(p.location || ""), remote: remoteOf(p.location, jd_text),
       url: s(p.url), posted_at: iso(p.posted_at), jd_text,
@@ -20996,8 +21004,8 @@ const CareerJobs = (() => {
   }
 
   // ---------- per-ATS normalization (recorded shapes; see tests) ----------
-  function normalizeGreenhouse(json, token) {
-    const company = (json && json.name) || token;
+  function normalizeGreenhouse(json, token, statedCompany) {
+    const company = companyOf(json && json.name, statedCompany);
     return ((json && json.jobs) || []).map((j) => basePosting({
       // BUG-005 (SC-032): Stripe's board returns requisition_id "See Opening ID" for ALL 721 jobs —
       // using it as the req id collapsed every Stripe posting onto ONE job_id. A requisition id
@@ -21008,29 +21016,29 @@ const CareerJobs = (() => {
       jd_text: j.content || "", department: (j.departments && j.departments[0] && j.departments[0].name) || "",
     }));
   }
-  function normalizeLever(json, companyToken) {
+  function normalizeLever(json, companyToken, statedCompany) {
     return (Array.isArray(json) ? json : []).map((j) => basePosting({
-      source: "lever", company: companyToken, title: j.text, req_id: j.id,
+      source: "lever", company: companyOf(null, statedCompany), title: j.text, req_id: j.id,
       location: (j.categories && j.categories.location) || "", url: j.hostedUrl || j.applyUrl,
       posted_at: j.createdAt, jd_text: j.descriptionPlain || j.description || "",
       department: (j.categories && (j.categories.team || j.categories.department)) || "",
     }));
   }
-  function normalizeAshby(json, name) {
+  function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
-      source: "ashby", company: (json && json.name) || name, title: j.title, req_id: j.id,
+      source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
       location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
   }
-  function normalizeSmartRecruiters(json, companyToken) {
+  function normalizeSmartRecruiters(json, companyToken, statedCompany) {
     return ((json && json.content) || []).map((j) => {
       const loc = j.location || {};
       const location = [loc.city, loc.region, loc.country].filter(Boolean).join(", ") + (loc.remote ? " (Remote)" : loc.hybrid ? " (Hybrid)" : "");
       const sections = j.jobAd && j.jobAd.sections ? Object.values(j.jobAd.sections).map((x) => (x && (x.text || "")) || "").join(" ") : "";
       return basePosting({
-        source: "smartrecruiters", company: (j.company && j.company.name) || companyToken, title: j.name, req_id: j.ref || j.id,
+        source: "smartrecruiters", company: companyOf(j.company && j.company.name, statedCompany), title: j.name, req_id: j.ref || j.id,
         location, url: `https://jobs.smartrecruiters.com/${companyToken}/${j.id}`,
         posted_at: j.releasedDate || j.createdOn, jd_text: sections, department: (j.department && j.department.label) || "",
       });
@@ -21111,7 +21119,7 @@ const CareerJobs = (() => {
       const status = res.status != null ? res.status : (res.ok ? 200 : 0);
       if (status < 200 || status >= 300) return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: [], error: `HTTP ${status}` };
       const json = typeof res.json === "function" ? await res.json() : res;
-      const postings = NORMALIZERS[feed.source](json, feed.company_token);
+      const postings = NORMALIZERS[feed.source](json, feed.company_token, feed.company);
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings };
     } catch (e) {
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status: 0, postings: [], error: s(e && e.message || e) };

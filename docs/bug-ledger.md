@@ -749,7 +749,10 @@ Rule: FR-306.
 BUG-131 — Outreach carried shapes (SC-033/039/040/042/043/045/
 046/047/048): replies under-spoke or mis-spoke their records.
 SC-033 reported a suppression as "this one" instead of the
-number (now: "1 person suppressed"); SC-039 asked "Want the seed
+number (now: "1 person added to the never-contact list" — the
+count stated without the H-7 claim verb, which this turn's
+typed suppression record does not surface as a state event);
+SC-039 asked "Want the seed
 run staged…?" for a run the product stages as part of the plan
 (now stated as staged, approval pointed at the wave); SC-040
 worked from "two or three of your own past emails" when the ask
@@ -777,3 +780,19 @@ the reply names every offered slot with weekday, absolute date,
 time and timezone, names which day is free, and closes on the
 approval ("approve the card and that time goes to them as the
 proposal — nothing is booked until they confirm"). Rule: FR-308.
+
+## Assignment layer (module 152) — 2026-10-14, Mega Task 2 assigning half
+
+New module `packages/domain/152-career-assign.js`: per-user watch profiles keyed to the hired-research taxonomy, a matcher over 151 alert records / 121 new postings, and a persisted reminder queue. Each entry below is a defect class the design review + fail-first guards killed before or during the build; the guard is the replay. Guard suite: `tests/career-assign.test.cjs` (16/16).
+
+| BUG | Found in | Symptom (the failure the guard forbids) | Root cause | Fix | Replay | Status |
+|---|---|---|---|---|---|---|
+| BUG-160 | 152 design review (ASG-1) | an "Investment Banking Analyst" interest fires on "Strategy & M&A Lead" / "Head of Private Equity" — keyword kinship is not the role | role matching by title keywords alone, no seniority semantics | role specs carry seniority BLOCKERS (senior/lead/head of/director/vp/manager/principal/chief/staff) checked before terms, plus the interest's band gate (121 seniorityBand) | career-assign ASG-1 (senior M&A title rejected, reason names blocker + band) | fixed (152) |
+| BUG-161 | 152 design review (ASG-2) | a posting whose source states no company is dropped by the matcher — the TN-1a loss at the assignment layer | company treated as a required match key | company is a value, not a gate: company-less postings match, the reminder carries company:null + company_stated:false, and speakLine says "an employer whose name is not stated in the posting" — never invented, never dropped | career-assign ASG-2 | fixed (152) |
+| BUG-162 | 152 design review (ASG-3) | the same seat arriving via Greenhouse + Lever (or re-presented next cycle) queues two reminders | no per-user seat memory at the assignment layer | seat suppression with 151 BUG-092's exact semantics (121 dedupeKey, 14-day window, re-presented req suppressed, replacement req for a gone seat absorbed when presence data is supplied, in-cycle cross-board duplicate always suppressed), persisted per user | career-assign ASG-3 | fixed (152) |
+| BUG-163 | 152 design review (ASG-4) | a user who opted out (globally or per company) still receives queued reminders | opt-out checked at delivery time (host) instead of assignment time | opt-out binds FIRST in runAssignCycle, before any matching; suppressed entries carry the opt-out reason | career-assign ASG-4 | fixed (152) |
+| BUG-164 | 152 design review (ASG-5) | a posting outside the interest's locations reminds anyway once the role matches | location treated as a soft preference in early matcher sketch | location is a hard gate in matchInterest (remote passes only when the interest allows remote); rejection reasons name the location | career-assign ASG-5 | fixed (152) |
+| BUG-165 | 152 design review (ASG-6) | the reminder queue double-delivers a record on re-drain, or loses records enqueued between drains | drain implemented as read-all + clear in early sketch | drain removes exactly the records it returns (FIFO); enqueue refuses a duplicate reminder_id; empty drain returns [] | career-assign ASG-6 | fixed (152) |
+| BUG-166 | 152 design review (ASG-7) | a fit line on the reminder cites a skill the user's profile never proved | fit lines composed from raw scoreFit matched text | fit lines come only from 151 composeAlert's fact-cited lines (matched_fact_ids ⊆ proven skills with fact IDs) — one implementation of the citation law, reused | career-assign ASG-7 (Rust-only posting: reminder carries no Rust line) | fixed (152) |
+| BUG-167 | 152 design review (ASG-8) | a perfect title match overrides 121 scoreFit's hard exclusion (license/years/location knockouts) and reminds anyway | matcher consulted scoreFit for score only, ignored `excluded` | scoreFit hard exclusion is a match-killer with the exclusion reasons carried into rejected[] | career-assign ASG-8 (5-years-required posting vs 0-year student) | fixed (152) |
+| BUG-168 | 152 e2e proof, Window 2 feed (ASG-9) | a posting located "SF, SEA, CHI, NYC" is location-rejected for a Chicago interest — the spelled-out city never appears, so a true in-city posting is silently missed | location matching was substring on the raw location string; boards abbreviate cities | token-wise city canonicalization (NYC/CHI/SF/SEA/LA/Philly/ATL/DFW/DC alias table) before comparison; found by hand-grading the proof's near-miss reasons — no verdict in the slice changed, the miss class is closed | career-assign ASG-9 (CHI matches Chicago; SF-only still rejects) | fixed (152) |

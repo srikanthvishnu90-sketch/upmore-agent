@@ -1088,7 +1088,7 @@ const CareerRouter = (() => {
     // WORDING-BACKLOG (BUG-131): the ask's own sample count is the
     // number the reply works with — never a smaller stock figure.
     const askedSamples = Number((lc(text).match(/(\d+)\s+of my sent/) || [])[1]) || null;
-    const reply = compose({ headline: "I will learn your voice from your own past emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually written, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: askedSamples ? `Connect Gmail or paste the ${askedSamples} sent emails you mentioned and I will build the voice profile first.` : "Connect Gmail or paste two or three of your own past emails and I will build the voice profile first." });
+    const reply = compose({ headline: "I will learn your voice from your own past emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually written, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: askedSamples ? `Connect Gmail or paste the ${askedSamples} emails you mentioned and I will build the voice profile first.` : "Connect Gmail or paste two or three of your own past emails and I will build the voice profile first." });
     // BUG-108: the awaiting-samples state is the typed record.
     const vrec = { kind: "voice_profile", status: "awaiting_samples", sample_count: 0, requested_samples: Number((lc(text).match(/(\d+)\s+of my sent/) || [])[1]) || null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: vrec, artifact: vrec };
@@ -1274,7 +1274,7 @@ const CareerRouter = (() => {
     if (!Array.isArray(c._relayedSuppressions)) c._relayedSuppressions = [];
     c._relayedSuppressions.push({ at: new Date(nowOf(c)).toISOString(), source: "relayed_reply", instruction: s(text).slice(0, 200) });
     const camp = campaignOf(c);
-    const countFact = camp ? "The campaign record carries the matching count, and this address is out of every future wave." : "The count from this instruction: 1 person suppressed. No campaign is loaded in this session, so there is no wider campaign count to report — the suppression itself is recorded now.";
+    const countFact = camp ? "The campaign record carries the matching count, and this address is out of every future wave." : "The count from this instruction: 1 person added to the never-contact list. No campaign is loaded in this session, so there is no wider campaign count to report — the addition itself is recorded now.";
     const reply = compose({ headline: "Done — that sender goes on your never-contact list.", facts: ["Every queued follow-up to them stops here, and the address stays on the list across every campaign, for good.", countFact], nextStep: "Want the never-contact count in your next digest?" });
     // BUG-108: the suppression record is this turn's doorstep
     // artifact — the completion branch already read `suppression`;

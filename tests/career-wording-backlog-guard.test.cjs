@@ -115,7 +115,7 @@ test("BUG-130: SC-025 states the Tier C hold as settled", () => {
 // ---- BUG-131: carried shapes speak their records ----
 test("BUG-131: voice ask keeps its own sample count; reserve speaks its split; safety plan states the cap", () => {
   const t40 = text(turn("SC-040"));
-  assert.ok(/the 8 sent emails you mentioned/.test(t40), `SC-040: ${t40.slice(-140)}`);
+  assert.ok(/the 8 emails you mentioned/.test(t40), `SC-040: ${t40.slice(-140)}`);
   const t48 = text(turn("SC-048"));
   assert.ok(/40 next names in rank order, behind the 500 selected/.test(t48), `SC-048: ${t48.slice(0, 140)}`);
   const t43 = text(turn("SC-043"));
@@ -128,7 +128,7 @@ test("BUG-131: voice ask keeps its own sample count; reserve speaks its split; s
   const t39 = text(turn("SC-039"));
   assert.ok(/seed run is staged for the current draft set now/.test(t39), `SC-039: ${t39.slice(-160)}`);
   const t33 = text(turn("SC-033"));
-  assert.ok(/1 person suppressed/.test(t33), `SC-033 states the number: ${t33.slice(0, 200)}`);
+  assert.ok(/1 person added to the never-contact list/.test(t33), `SC-033 states the number: ${t33.slice(0, 200)}`);
   const t42 = text(turn("SC-042"));
   assert.ok(/re-rendered samples sit at the top of your review doc/.test(t42), `SC-042: ${t42.slice(-160)}`);
   const t45 = text(turn("SC-045"));

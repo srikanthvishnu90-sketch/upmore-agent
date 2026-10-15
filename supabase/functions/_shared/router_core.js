@@ -24973,6 +24973,10 @@ const CareerTrack = (() => {
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const normCo = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  // TN-1a (owner ruling, 2026-10-14): display label for a row whose
+  // company is recorded as not stated — rendered text says so plainly,
+  // never the word "null" and never an invented name.
+  const coLabel = (co, notStated) => (notStated || co == null) ? "company not stated" : s(co);
   const daysBetween = (a, b) => Math.floor((b - a) / DAY);
   const isoDay = (t) => new Date(t).toISOString().slice(0, 10);
 
@@ -24990,22 +24994,33 @@ const CareerTrack = (() => {
     opts = opts || {};
     const rows = rowsOf(store);
     const at = opts.now || Date.now();
+    // TN-1a (owner ruling, 2026-10-14): a record may be opened for a
+    // detected job event whose source names no company — ONLY with the
+    // explicit company_not_stated marker. The row carries company:
+    // null + the marker and a not-stated app_id; a company is never
+    // invented and an empty string never poses as one. Without the
+    // marker, behavior is exactly as before.
+    const notStated = input.company == null && input.company_not_stated === true;
     const app = {
-      app_id: input.app_id || `app-${normCo(input.company).replace(/\s+/g, "-")}-${(++seq).toString(36)}${rows.length}`,
-      company: s(input.company), role: s(input.role || ""), role_family: s(input.role_family || ""),
+      app_id: input.app_id || (notStated ? `app-not-stated-${(++seq).toString(36)}${rows.length}` : `app-${normCo(input.company).replace(/\s+/g, "-")}-${(++seq).toString(36)}${rows.length}`),
+      company: notStated ? null : s(input.company), ...(notStated ? { company_not_stated: true } : {}),
+      role: s(input.role || ""), role_family: s(input.role_family || ""),
       url: s(input.url || ""), applied_at: input.applied_at || new Date(at).toISOString(),
       resume_version: s(input.resume_version || ""), source: input.source === "referred" ? "referred" : "cold",
       referred_by: input.referred_by || null, fit_bucket: input.fit_bucket || null,
       stage: input.stage || "Submitted",
       offer_deadline: input.offer_deadline || null, assessment_deadline: input.assessment_deadline || null,
       cooldown_until: input.cooldown_until || null,
-      events: [{ type: "applied", at: input.applied_at || new Date(at).toISOString(), source: input.event_source || "system", detail: `applied (${input.source === "referred" ? "referred" : "cold"}, resume ${input.resume_version || "?"})`, evidence: input.url || null }],
+      events: [{ type: "applied", at: input.applied_at || new Date(at).toISOString(), source: input.event_source || "system", detail: notStated ? "record opened from a detected job event — the source names no company, so the company is recorded as not stated" : `applied (${input.source === "referred" ? "referred" : "cold"}, resume ${input.resume_version || "?"})`, evidence: input.url || null }],
     };
     rows.push(app); return app;
   }
   function findByCompany(store, company) {
     const n = normCo(company); if (!n) return null;
-    return rowsOf(store).find((r) => normCo(r.company) === n || normCo(r.company).includes(n) || n.includes(normCo(r.company))) || null;
+    // TN-1a: a row with no normalized company (a not-stated record) must
+    // never match a named lookup — "".includes() matches everything, so
+    // an empty row name would hijack every company search.
+    return rowsOf(store).find((r) => { const rn = normCo(r.company); return rn !== "" && (rn === n || rn.includes(n) || n.includes(rn)); }) || null;
   }
   function moveStage(app, stage, event, now) {
     if (!STAGES.includes(stage)) throw new Error("unknown stage: " + stage);
@@ -25108,20 +25123,32 @@ const CareerTrack = (() => {
     const rows = rowsOf(store);
     const cls = classifyMessage(msg, rows.map((r) => r.company).concat(opts.knownCompanies || []));
     if (!cls.is_signal) return { classification: cls, linked: false, moved: false, alert: null, reason: "no-signal: stage unchanged" };
-    const app = cls.company ? findByCompany(store, cls.company) : null;
-    if (!app) return { classification: cls, linked: false, moved: false, alert: null, reason: `signal for ${cls.company || "unknown company"} but no matching application in the log` };
     const stage = CLASS_TO_STAGE[cls.class];
-    const out = { classification: cls, linked: true, application: app.company, moved: false, alert: null };
+    let app = cls.company ? findByCompany(store, cls.company) : null;
+    let openedNotStated = false;
+    if (!app && !cls.company && stage) {
+      // TN-1a (owner ruling, 2026-10-14): a detected job event whose
+      // message names no company still gets its tracking record — the
+      // event is consumed end to end (stage move, alert, class side
+      // records) on a row whose company is recorded as not stated
+      // (company: null + marker), never invented. Noise never reaches
+      // here (no-signal returned above) and a class with no stage
+      // (recruiter_other) opens no record.
+      app = addApplication(store, { company: null, company_not_stated: true, role: s(msg.title || msg.subject || ""), event_source: "inbox", applied_at: new Date(now).toISOString(), stage: "Submitted" }, { now });
+      openedNotStated = true;
+    }
+    if (!app) return { classification: cls, linked: false, moved: false, alert: null, reason: `signal for ${cls.company || "unknown company"} but no matching application in the log` };
+    const out = { classification: cls, linked: true, application: app.company, ...(openedNotStated ? { company_not_stated: true } : {}), moved: false, alert: null };
     if (stage && app.stage !== stage && !TERMINAL.includes(app.stage)) {
       moveStage(app, stage, { type: cls.class, source: "inbox", detail: `${cls.class} detected in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null }, now);
       out.moved = true; out.stage_after = stage;
     } else { out.stage_after = app.stage; }
-    out.alert = { kind: cls.class, company: app.company, stage_after: out.stage_after, at: new Date(now).toISOString(), text: alertText(cls.class, app) };
+    out.alert = { kind: cls.class, company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), stage_after: out.stage_after, at: new Date(now).toISOString(), text: app.company_not_stated ? notStatedAlertText(cls.class) : alertText(cls.class, app) };
     if (cls.class === "recruiter_other") { // SC-125: a real recruiter signal with no decision — recorded on the log row (it is the last signal, and it resets the quiet clock honestly) but it NEVER moves a stage.
       app.events.push({ type: "recruiter_other", at: new Date(now).toISOString(), source: "inbox", detail: `recruiter message classified recruiter_other (no decision stated) in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null });
     }
     if (cls.class === "interview_invite") { // SC-064: calendar record attached + F09 prep seam noted
-      out.calendar_event = { title: `Interview — ${app.company} (${app.role})`, company: app.company, app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
+      out.calendar_event = { title: `Interview — ${coLabel(app.company, app.company_not_stated)} (${app.role})`, company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
       app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: "inbox", detail: out.calendar_event.title, evidence: msg.id || null });
     }
     if (cls.class === "oa_invite") { // SC-071/SC-126: agent NEVER takes it; a dated message sets the deadline + queues prep
@@ -25130,7 +25157,7 @@ const CareerTrack = (() => {
     }
     if (cls.class === "offer") { // SC-127: intake starts on arrival; a dated letter starts the expiry clock
       const dl = extractMessageDate(msg); if (dl && !app.offer_deadline) app.offer_deadline = dl;
-      out.offer_intake = { started: true, at: new Date(now).toISOString(), company: app.company, offer_deadline: app.offer_deadline || null, expiry_clock_started: !!app.offer_deadline, next: "offer intake: read terms, start deadline countdown, prep decision card (128-career-negotiation seam)" };
+      out.offer_intake = { started: true, at: new Date(now).toISOString(), company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), offer_deadline: app.offer_deadline || null, expiry_clock_started: !!app.offer_deadline, next: "offer intake: read terms, start deadline countdown, prep decision card (128-career-negotiation seam)" };
     }
     if (cls.class === "rejection") out.pattern_note = rejectionAnalysis(store, opts).headline;
     return out;
@@ -25138,8 +25165,14 @@ const CareerTrack = (() => {
   function alertText(cls, app) {
     return { confirmation: `${app.company}: application confirmed.`, rejection: `${app.company} rejected this application — see the pattern note and plan.`, oa_invite: `${app.company} sent an online assessment. I can schedule, remind and prep — I do not take assessments.`, interview_invite: `${app.company} invited you to interview. Prep triggered.`, offer: `${app.company} sent an offer. Deadline tracking is on.`, recruiter_other: `${app.company} recruiter emailed.` }[cls] || `${app.company}: new signal.`;
   }
+  // TN-1a: the same alerts for a record whose company is not stated —
+  // the event is reported in full; the missing name is stated, never
+  // filled in and never rendered as "null".
+  function notStatedAlertText(cls) {
+    return { confirmation: "Application confirmed — the message names no company, so the tracker record carries the company as not stated.", rejection: "A rejection landed — the message names no company, so it is recorded as not stated; see the pattern note and plan.", oa_invite: "An online assessment arrived from a company the message does not name — recorded as not stated. I can schedule, remind and prep — I do not take assessments.", interview_invite: "An interview invite arrived from a company the message does not name — recorded as not stated. Prep triggered.", offer: "An offer arrived from a company the message does not name — recorded as not stated. Deadline tracking is on.", recruiter_other: "A recruiter emailed — the message names no company, so it is recorded as not stated." }[cls] || "New signal recorded — the message names no company, so the company is recorded as not stated.";
+  }
   function handleAssessment(app, msg, now) {
-    return { will_take: false, statement: "I will not take this assessment for you — that would be dishonest and can get candidates banned (Doc 2 5.3).", actions: ["schedule a sitting time", "remind before the deadline", "offer prep"], prep_pack_queued: true, company: app.company, deadline: app.assessment_deadline || null, received_at: new Date(now || Date.now()).toISOString(), source_message: msg && msg.id || null };
+    return { will_take: false, statement: "I will not take this assessment for you — that would be dishonest and can get candidates banned (Doc 2 5.3).", actions: ["schedule a sitting time", "remind before the deadline", "offer prep"], prep_pack_queued: true, company: app.company, ...(app.company_not_stated ? { company_not_stated: true } : {}), deadline: app.assessment_deadline || null, received_at: new Date(now || Date.now()).toISOString(), source_message: msg && msg.id || null };
   }
 
   // ---------- quiet period / ghosted (SC-067/068) ----------
@@ -25149,7 +25182,7 @@ const CareerTrack = (() => {
     const ghostAfter = opts.ghostAfterDays != null ? opts.ghostAfterDays : GHOST_AFTER_DAYS;
     return rowsOf(store).filter((r) => ["Submitted", "Confirmed", "Recruiter screen", "Final"].includes(r.stage)).map((r) => {
       const days = daysBetween(lastSignalAt(r), now);
-      return { company: r.company, role: r.role, stage: r.stage, days_quiet: days, last_signal_at: new Date(lastSignalAt(r)).toISOString(), nudge_due: days >= nudgeAfter, ghosted: days >= ghostAfter, state: days >= ghostAfter ? "ghosted" : days >= nudgeAfter ? "nudge_due" : "within_window" };
+      return { company: r.company, ...(r.company_not_stated ? { company_not_stated: true } : {}), role: r.role, stage: r.stage, days_quiet: days, last_signal_at: new Date(lastSignalAt(r)).toISOString(), nudge_due: days >= nudgeAfter, ghosted: days >= ghostAfter, state: days >= ghostAfter ? "ghosted" : days >= nudgeAfter ? "nudge_due" : "within_window" };
     }).sort((a, b) => b.days_quiet - a.days_quiet);
   }
   function markGhosted(store, opts) {
@@ -25215,7 +25248,7 @@ const CareerTrack = (() => {
     // and drop the duplicate nudge line for that company — one event, once.
     const radar = deadlineRadar(store, [], { now, withinDays: 14 });
     const radarFollowUps = new Set(radar.filter((d) => d.kind === "follow_up_due").map((d) => normCo(d.company)));
-    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${coLabel(q.company, q.company_not_stated)} (${q.days_quiet} days quiet)`);
     for (const d of radar) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
     const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -25240,7 +25273,7 @@ const CareerTrack = (() => {
     // user-facing digest.
     const radar = deadlineRadar(store, [], { now, withinDays: 7 });
     const radarFollowUps = new Set(radar.filter((d) => d.kind === "follow_up_due").map((d) => normCo(d.company)));
-    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${coLabel(q.company, q.company_not_stated)} (${q.days_quiet} days quiet)`);
     for (const d of radar) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_24h: sent24, responses_last_24h: responses24, rejections_last_24h: rejections24, active_interviews: rows.filter((r) => ["Interview rounds", "Final"].includes(r.stage)).length, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
     return { window_hours: 24, counts, next_actions: next, text: `Daily digest: ${sent24} sent in the last 24h, ${responses24} responses, ${counts.active_interviews} in interview stages, ${rejections24} rejections. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`, generated_at: new Date(now).toISOString() };
@@ -25327,10 +25360,10 @@ const CareerTrack = (() => {
     opts = opts || {}; const now = opts.now || Date.now(); const within = opts.withinDays != null ? opts.withinDays : 14;
     const items = [];
     for (const r of rowsOf(store)) {
-      if (r.offer_deadline) { const t = Date.parse(r.offer_deadline); items.push({ kind: "offer_expiry", company: r.company, label: `${r.company} offer expiry`, date: isoDay(t), days_away: daysBetween(now, t), source: "application log" }); }
-      if (r.assessment_deadline) { const t = Date.parse(r.assessment_deadline); items.push({ kind: "assessment_deadline", company: r.company, label: `${r.company} assessment deadline`, date: isoDay(t), days_away: daysBetween(now, t), source: "application log" }); }
+      if (r.offer_deadline) { const t = Date.parse(r.offer_deadline); items.push({ kind: "offer_expiry", company: r.company, label: `${coLabel(r.company, r.company_not_stated)} offer expiry`, date: isoDay(t), days_away: daysBetween(now, t), source: "application log" }); }
+      if (r.assessment_deadline) { const t = Date.parse(r.assessment_deadline); items.push({ kind: "assessment_deadline", company: r.company, label: `${coLabel(r.company, r.company_not_stated)} assessment deadline`, date: isoDay(t), days_away: daysBetween(now, t), source: "application log" }); }
     }
-    for (const q of quietReport(store, { now })) if (q.nudge_due) items.push({ kind: "follow_up_due", company: q.company, label: `${q.company} follow-up due (${q.days_quiet} days quiet)`, date: isoDay(now), days_away: 0, source: "application log" });
+    for (const q of quietReport(store, { now })) if (q.nudge_due) items.push({ kind: "follow_up_due", company: q.company, label: `${coLabel(q.company, q.company_not_stated)} follow-up due (${q.days_quiet} days quiet)`, date: isoDay(now), days_away: 0, source: "application log" });
     items.push(...extractCirDeadlines(cirs, now));
     return items.filter((i) => i.days_away >= -1 && i.days_away <= within).sort((a, b) => a.days_away - b.days_away || a.date.localeCompare(b.date));
   }
@@ -31072,7 +31105,25 @@ const CareerDoorstep = (() => {
     const analytics = spec.analytics && typeof spec.analytics === "object" ? spec.analytics : null;
     const summary = spec.summary && typeof spec.summary === "object" ? spec.summary : null;
     const company = spec.company || spec.companyName || (appRow && appRow.company) || (draft && draft.company) || null;
-    if (!company && !draft && !verdict && !analytics && !summary) {
+    // TN-1a — OWNER RULING (2026-10-14, resolving BUG-2026-10-14-TN1A-
+    // CONFLICT / FR-199): a tracking/reporting write of a DETECTED JOB
+    // EVENT is never refused for a missing company. Every detected job
+    // gets its tracking record; when the source names no company, the
+    // record carries the company as explicitly not-stated (company:
+    // null + company_not_stated) — never invented, never guessed. A
+    // write is a detected-event report when it carries a detected
+    // event: an inbox-sourced spec or event, one of 126's inbox signal
+    // classes (confirmation / rejection / oa_invite / interview_invite /
+    // offer), or a 126 row already carrying the not-stated marker.
+    // Writes that ATTRIBUTE an action to a company — a submission
+    // record ("applied"), an unmarked manual stage move — are NOT
+    // detected-event reports and keep the missing_company refusal
+    // below; emitApplicationPacket and emitOutreachDraft keep theirs.
+    const DETECTED_EVENT_TYPES = ["confirmation", "rejection", "oa_invite", "interview_invite", "offer"];
+    const declaredEventType = spec.event_type || spec.eventType || (specEvent && specEvent.type) || null;
+    const recordNotStated = !!(appRow && appRow.company == null && appRow.company_not_stated === true);
+    const companyNotStated = !company && (recordNotStated || spec.source === "inbox" || (specEvent && specEvent.source === "inbox") || DETECTED_EVENT_TYPES.includes(declaredEventType));
+    if (!company && !draft && !verdict && !analytics && !summary && !companyNotStated) {
       return emitterBlocked("tracking_log", "tracking-write", "missing_company",
         "no company was named for this tracker log write",
         "name the company the log entry belongs to",
@@ -31151,7 +31202,12 @@ const CareerDoorstep = (() => {
     const rows = trackerRowsOf(c);
     const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
     const specAppId = spec.app_id || spec.appId || (appRow && appRow.app_id) || null;
-    const existing = rows.find((r) => r && (specAppId && r.app_id === specAppId || norm(r.company) === norm(company))) || null;
+    // A not-stated write binds ONLY by an explicit app_id — never by a
+    // company match, where an empty normalized name could hijack a
+    // named company's row.
+    const existing = companyNotStated
+      ? (specAppId ? rows.find((r) => r && r.app_id === specAppId) || null : null)
+      : rows.find((r) => r && (specAppId && r.app_id === specAppId || norm(r.company) === norm(company))) || null;
     let operation, row;
     if (existing) {
       operation = stage ? "move_stage" : "append_event";
@@ -31168,8 +31224,11 @@ const CareerDoorstep = (() => {
         ? event
         : { type: "applied", at: appliedAt, source: specLogSource(spec.event_source || "system"), detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
       row = {
-        app_id: specAppId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || (appRow && appRow.role) || "")).slice(0, 6)}`,
-        company: String(company), role: String(spec.role || (appRow && appRow.role) || ""), role_family: String(spec.role_family || spec.roleFamily || (appRow && appRow.role_family) || ""),
+        app_id: specAppId || (companyNotStated
+          ? `app-not-stated-${sha256("not-stated|" + (spec.role || spec.title || (appRow && appRow.role) || "") + "|" + eventType + "|" + appliedAt).slice(0, 6)}`
+          : `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || (appRow && appRow.role) || "")).slice(0, 6)}`),
+        company: companyNotStated ? null : String(company), ...(companyNotStated ? { company_not_stated: true } : {}),
+        role: String(spec.role || spec.title || (appRow && appRow.role) || (appRow && appRow.title) || ""), role_family: String(spec.role_family || spec.roleFamily || (appRow && appRow.role_family) || ""),
         url: String(spec.url || ""), applied_at: appliedAt,
         resume_version: String(spec.resume_version || spec.resumeVersion || (c.resumeArtifact && c.resumeArtifact.version) || ""),
         source: spec.source === "referred" || spec.application_source === "referred" ? "referred" : "cold",
@@ -31181,7 +31240,8 @@ const CareerDoorstep = (() => {
       };
       if (stage) event.stage_after = stage;
     }
-    const wouldWrite = { operation, app_id: row.app_id, company: row.company, row: cloneJson(row), event: cloneJson(event) };
+    const rowNotStated = !!(row && row.company == null && row.company_not_stated === true);
+    const wouldWrite = { operation, app_id: row.app_id, company: row.company, ...(rowNotStated ? { company_not_stated: true } : {}), row: cloneJson(row), event: cloneJson(event) };
     // Triggered follow-ups, from 126's own follow-up state: the quiet-period
     // radar (deadlineRadar -> quietReport) run over the would-be log (the
     // existing rows with this write applied). A company whose follow-up is
@@ -31189,7 +31249,9 @@ const CareerDoorstep = (() => {
     // and empty WITH the reason, computed from the same radar — never a
     // follow-up invented for the record.
     let triggeredFollowups = [], triggeredNote = "126's follow-up radar is unavailable in this build, so no follow-up state could be read";
-    if (Track && typeof Track.deadlineRadar === "function" && typeof Track.quietReport === "function") {
+    if (rowNotStated) {
+      triggeredNote = "no follow-ups are armed: this record's company is not stated, so 126's quiet-period radar has no named company to read follow-up state for";
+    } else if (Track && typeof Track.deadlineRadar === "function" && typeof Track.quietReport === "function") {
       const nowMs = Date.parse(at) || Date.now();
       const rowsAfter = existing ? rows.map((r) => (r && r.app_id === row.app_id ? row : r)) : [...rows, row];
       const radar = Track.deadlineRadar({ rows: rowsAfter }, [], { now: nowMs, withinDays: 14 });
@@ -31204,15 +31266,15 @@ const CareerDoorstep = (() => {
     }
     const payload = {
       kind: "tracker_log_write", family: "tracking-write", operation,
-      app_id: row.app_id, company: row.company, role: row.role || spec.role || "",
-      application: { app_id: row.app_id, company: row.company, role: row.role || spec.role || "", stage_before: existing ? existing.stage : null },
+      app_id: row.app_id, company: row.company, ...(rowNotStated ? { company_not_stated: true } : {}), role: row.role || spec.role || spec.title || "",
+      application: { app_id: row.app_id, company: row.company, ...(rowNotStated ? { company_not_stated: true } : {}), role: row.role || spec.role || spec.title || "", stage_before: existing ? existing.stage : null },
       status: row.stage, stage: row.stage,
       note: spec.note || null, event: cloneJson(event),
       triggered_followups: triggeredFollowups, triggered_followups_note: triggeredNote,
       would_write: wouldWrite, target: "tracker", committed: false,
     };
     const stepLog = [
-      { step: 1, action: "resolve", field: "company", result: existing ? `matched the existing tracker row for ${row.company}` : `no tracker row for ${row.company} yet — this write would add one` },
+      { step: 1, action: "resolve", field: "company", result: rowNotStated ? "the source names no company — under the TN-1a ruling the record carries the company as not stated (company: null, company_not_stated); no company was invented" : existing ? `matched the existing tracker row for ${row.company}` : `no tracker row for ${row.company} yet — this write would add one` },
       { step: 2, action: "build", field: "log_write", result: `built the exact ${operation} payload in the tracker row and event shape; nothing was written` },
       { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the tracker write is armed for approval, not fired" },
     ];
@@ -31220,9 +31282,11 @@ const CareerDoorstep = (() => {
     return {
       intent: "tracking_log", family: "tracking-write", resultStatus: "awaiting_user",
       ...art,
-      reply: existing
-        ? `Prepared the tracker update for ${row.company} — it would move the application to "${row.stage}" and log your note. Nothing has been written yet: it is waiting at the doorstep for your approval.`
-        : `Prepared the tracker entry for ${row.company} at stage "${row.stage}" — the full log row is ready. Nothing has been written yet: it is waiting at the doorstep for your approval.`,
+      reply: rowNotStated
+        ? `Prepared the tracker entry at stage "${row.stage}" — the message names no company, so the record carries the company as not stated rather than guessed. Nothing has been written yet: it is waiting at the doorstep for your approval.`
+        : existing
+          ? `Prepared the tracker update for ${row.company} — it would move the application to "${row.stage}" and log your note. Nothing has been written yet: it is waiting at the doorstep for your approval.`
+          : `Prepared the tracker entry for ${row.company} at stage "${row.stage}" — the full log row is ready. Nothing has been written yet: it is waiting at the doorstep for your approval.`,
     };
   }
 
@@ -32735,7 +32799,7 @@ const CareerRouter = (() => {
     // WORDING-BACKLOG (BUG-131): the ask's own sample count is the
     // number the reply works with — never a smaller stock figure.
     const askedSamples = Number((lc(text).match(/(\d+)\s+of my sent/) || [])[1]) || null;
-    const reply = compose({ headline: "I will learn your voice from your own past emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually written, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: askedSamples ? `Connect Gmail or paste the ${askedSamples} sent emails you mentioned and I will build the voice profile first.` : "Connect Gmail or paste two or three of your own past emails and I will build the voice profile first." });
+    const reply = compose({ headline: "I will learn your voice from your own past emails before drafting a word.", facts: ["Connect your Gmail, or paste a few emails you have actually written, and I read only their shape: length, greeting, sign-off, and how direct you are.", "Until then I will not guess at your voice — a generic draft in your name is worse than waiting."], nextStep: askedSamples ? `Connect Gmail or paste the ${askedSamples} emails you mentioned and I will build the voice profile first.` : "Connect Gmail or paste two or three of your own past emails and I will build the voice profile first." });
     // BUG-108: the awaiting-samples state is the typed record.
     const vrec = { kind: "voice_profile", status: "awaiting_samples", sample_count: 0, requested_samples: Number((lc(text).match(/(\d+)\s+of my sent/) || [])[1]) || null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: vrec, artifact: vrec };
@@ -32921,7 +32985,7 @@ const CareerRouter = (() => {
     if (!Array.isArray(c._relayedSuppressions)) c._relayedSuppressions = [];
     c._relayedSuppressions.push({ at: new Date(nowOf(c)).toISOString(), source: "relayed_reply", instruction: s(text).slice(0, 200) });
     const camp = campaignOf(c);
-    const countFact = camp ? "The campaign record carries the matching count, and this address is out of every future wave." : "The count from this instruction: 1 person suppressed. No campaign is loaded in this session, so there is no wider campaign count to report — the suppression itself is recorded now.";
+    const countFact = camp ? "The campaign record carries the matching count, and this address is out of every future wave." : "The count from this instruction: 1 person added to the never-contact list. No campaign is loaded in this session, so there is no wider campaign count to report — the addition itself is recorded now.";
     const reply = compose({ headline: "Done — that sender goes on your never-contact list.", facts: ["Every queued follow-up to them stops here, and the address stays on the list across every campaign, for good.", countFact], nextStep: "Want the never-contact count in your next digest?" });
     // BUG-108: the suppression record is this turn's doorstep
     // artifact — the completion branch already read `suppression`;

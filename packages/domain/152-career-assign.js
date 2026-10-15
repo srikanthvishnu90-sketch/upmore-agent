@@ -1,0 +1,408 @@
+/* Career assignment layer (Mega Task 2, assigning half; owner direction
+   2026-10-14: "we need a system for knowing everything. once we have that, we
+   can properly assign jobs for people interested in that position.").
+   Module 151 watches boards and emits typed alert records, but an alert is
+   composed against ONE injected profile inside the watch cycle — nothing held
+   a user's stated interests as durable data, matched detections against them,
+   or queued the result as a reminder a channel can deliver. This module is
+   that half, at the same host tier as 151 (the router bundle does not carry
+   it; the host schedules runAssignCycle after 151's cycle and drains the
+   reminder queue through its channel):
+
+     watch profile (per-USER record, key career:watch-profile:<user_id> in the
+       injected {get,set} store — 121's KV contract; the record is user-scoped
+       by construction, never keyed to a chat thread)
+       -> interests: taxonomy roles (849 base occupations by SOC + the market
+          splits of 00-taxonomy.md §A2) with title-variant terms, seniority
+          blockers and optional filters (locations, remote, bands, firm lists)
+     matcher: a candidate (a 151 alert record, or a raw 121 new posting) is
+       scored against every interest — role terms, band gate, location gate,
+       firm lists, opt-out — and 121 scoreFit's HARD EXCLUSION always wins
+       over a title match (an alert never recommends a job the user's
+       confirmed facts disqualify them from; methodology §6)
+     suppression: the same seat rules 151 defines bind here (121 dedupeKey;
+       14-day seat window; a re-presented req never re-reminds; a replacement
+       req for a gone seat is absorbed) — persisted per user, so consuming
+       raw diffs instead of 151's already-suppressed alerts cannot double-fire
+     reminder: a typed career_job_reminder (the methodology §6 contract:
+       role, company — or honestly not-stated under the TN-1a ruling, a
+       posting with no stated company still matches and still reminds —
+       deadline quoted in the posting's own words, fit lines sourced only
+       from proven facts citing their fact IDs, the apply link) enqueued on a
+       persisted per-user queue the host drains exactly once per record.
+
+   Delivery itself (scheduler + channel send) is HOST wiring and is
+   deliberately NOT in this module, exactly as in 151. Pure-ish domain idiom:
+   all I/O arrives injected { postings | alerts, watchProfile, store, now }. */
+const CareerAssign = (() => {
+  const Jobs = (typeof require !== "undefined")
+    ? (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })()
+    : (typeof CareerJobs !== "undefined" ? CareerJobs : null);
+  const Watch = (typeof require !== "undefined")
+    ? (() => { try { return require("./151-career-alert-watch.js"); } catch { return null; } })()
+    : (typeof CareerAlertWatch !== "undefined" ? CareerAlertWatch : null);
+
+  const SEAT_WINDOW_MS = 14 * 24 * 3600 * 1000; // 151 BUG-092's window, binding here too
+  const PROFILE_KEY = (uid) => `career:watch-profile:${uid}`;
+  const QUEUE_KEY = (uid) => `career:reminder-queue:${uid}`;
+  const HISTORY_KEY = (uid) => `career:reminder-history:${uid}`;
+
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const termIn = (text, term) => new RegExp(`(^|[^a-z0-9])${esc(term)}([^a-z0-9]|$)`).test(lc(text));
+
+  function nowMs(now) {
+    const v = typeof now === "function" ? now() : now;
+    if (v == null) return Date.now();
+    if (v instanceof Date) return v.getTime();
+    if (typeof v === "number") return v;
+    const p = Date.parse(v);
+    return isNaN(p) ? Date.now() : p;
+  }
+
+  // ---- role specs: the taxonomy bridge -------------------------------------
+  // Curated title-variant + blocker sets for the market splits approved in
+  // 00-taxonomy.md §A2 (a split exists only where the hiring recipe differs).
+  // Any of the 849 base occupations gets a derived spec: its own title is the
+  // term set; entry-band interests inherit the seniority blockers so a derived
+  // spec can never fire on an executive title either (ASG-1).
+  const ENTRY_BLOCKERS = ["senior", "sr.", "lead", "head of", "director", "vp", "vice president", "manager", "principal", "chief", "staff"];
+  const SPLITS = {
+    "Investment Banking Analyst": { soc: "13-2051", terms: ["investment banking"], blockers: ENTRY_BLOCKERS },
+    "Private Equity Analyst": { soc: "13-2051", terms: ["private equity"], blockers: ENTRY_BLOCKERS },
+    "Equity Research Analyst": { soc: "13-2051", terms: ["equity research"], blockers: ENTRY_BLOCKERS },
+    "Corporate Banking Analyst": { soc: "13-2051", terms: ["corporate banking"], blockers: ENTRY_BLOCKERS },
+    "Quantitative Trader": { soc: "41-3031", terms: ["quantitative trader", "quant trader"], blockers: ENTRY_BLOCKERS },
+    "Software Engineering Intern / New-Grad": { soc: "15-1252", terms: ["software engineer", "software engineering"], blockers: ENTRY_BLOCKERS },
+    "Machine Learning Engineer": { soc: "15-1252", terms: ["machine learning engineer", "ml engineer"], blockers: ENTRY_BLOCKERS },
+    "Data Analyst": { soc: "15-2051", terms: ["data analyst"], blockers: ENTRY_BLOCKERS },
+    "Product Manager": { soc: null, terms: ["product manager"], blockers: ENTRY_BLOCKERS },
+    "Corporate Law Associate": { soc: "23-1011", terms: ["corporate associate", "law associate"], blockers: ENTRY_BLOCKERS },
+    "Management Consultant Analyst": { soc: "13-1111", terms: ["management consultant", "consulting analyst"], blockers: ENTRY_BLOCKERS },
+    "Real Estate Analyst": { soc: "13-2051", terms: ["real estate analyst", "acquisitions analyst"], blockers: ENTRY_BLOCKERS },
+  };
+
+  function roleSpecFor(input) {
+    input = input || {};
+    if (input.split && SPLITS[input.split]) {
+      const sp = SPLITS[input.split];
+      return { soc: input.soc || sp.soc, split: input.split, title: input.split, terms: sp.terms.slice(), blockers: sp.blockers.slice(), derived: false };
+    }
+    const title = s(input.title || input.split || "").trim();
+    const base = lc(title).replace(/,?\s+all other$/, "").trim();
+    const terms = base ? [base] : [];
+    // plural/singular twin so "Boilermakers" also matches a "Boilermaker" title
+    if (base.endsWith("s")) terms.push(base.slice(0, -1)); else if (base) terms.push(base + "s");
+    return { soc: input.soc || null, split: input.split || null, title, terms: [...new Set(terms)], blockers: ENTRY_BLOCKERS.slice(), derived: true };
+  }
+
+  // ---- watch profile --------------------------------------------------------
+  function createWatchProfile(userId, seed) {
+    seed = seed || {};
+    return {
+      type: "career_watch_profile",
+      version: 1,
+      user_id: s(userId),
+      interests: (seed.interests || []).map((i) => ({
+        interest_id: s(i.interest_id),
+        role: i.role,
+        filters: Object.assign({ locations: [], remote_ok: true, bands: [], firms_include: [], firms_exclude: [] }, i.filters || {}),
+        created_at: i.created_at || null,
+      })),
+      opt_out: Object.assign({ global: false, companies: [] }, seed.opt_out || {}),
+      scoring_profile: seed.scoring_profile || null, // the 121 scoreFit shape (proven-fact skills etc.)
+      updated_at: seed.updated_at || null,
+    };
+  }
+
+  function validateWatchProfile(wp) {
+    const errors = [];
+    if (!wp || wp.type !== "career_watch_profile") errors.push("not a career_watch_profile record");
+    if (!wp || !s(wp.user_id)) errors.push("user_id is required (profiles are per-user, never per-thread)");
+    for (const i of (wp && wp.interests) || []) {
+      if (!i.interest_id) errors.push("an interest is missing its interest_id");
+      const role = i.role || {};
+      if (!role.soc || !/^\d{2}-\d{4}$/.test(role.soc)) errors.push(`interest ${i.interest_id || "?"}: role.soc must be a SOC code (NN-NNNN)`);
+      if (!role.title) errors.push(`interest ${i.interest_id || "?"}: role.title is required`);
+      if (!Array.isArray(role.terms) || !role.terms.length) errors.push(`interest ${i.interest_id || "?"}: role.terms must carry at least one title term`);
+      const f = i.filters || {};
+      if (!Array.isArray(f.locations) || !Array.isArray(f.bands)) errors.push(`interest ${i.interest_id || "?"}: filters.locations and filters.bands must be arrays`);
+    }
+    return { ok: errors.length === 0, errors };
+  }
+
+  function upsertInterest(wp, interest) {
+    const ix = wp.interests.findIndex((i) => i.interest_id === interest.interest_id);
+    if (ix >= 0) wp.interests[ix] = interest; else wp.interests.push(interest);
+    return wp;
+  }
+  function removeInterest(wp, interestId) {
+    wp.interests = wp.interests.filter((i) => i.interest_id !== interestId);
+    return wp;
+  }
+  function setOptOut(wp, optOut) { wp.opt_out = Object.assign({ global: false, companies: [] }, optOut || {}); return wp; }
+
+  async function saveWatchProfile(store, wp) {
+    const v = validateWatchProfile(wp);
+    if (!v.ok) throw new Error(`invalid watch profile: ${v.errors.join("; ")}`);
+    wp.updated_at = new Date().toISOString();
+    await store.set(PROFILE_KEY(wp.user_id), wp);
+    return wp;
+  }
+  async function loadWatchProfile(store, userId) {
+    const wp = await store.get(PROFILE_KEY(userId));
+    return wp || null;
+  }
+
+  // ---- matching --------------------------------------------------------------
+  function roleMatch(posting, role) {
+    const title = lc(posting.title);
+    for (const b of role.blockers || []) if (termIn(title, lc(b))) return { hit: false, blocker: b };
+    for (const t of role.terms || []) if (termIn(title, lc(t))) return { hit: true, basis: "title", term: t };
+    // Multiword role terms also match in the posting's own opening text — a
+    // "Summer Analyst" req whose body names the desk is a real match, labeled.
+    const head = lc(posting.jd_text || "").slice(0, 500);
+    for (const t of role.terms || []) if (t.includes(" ") && termIn(head, lc(t))) return { hit: true, basis: "jd_head", term: t };
+    return { hit: false };
+  }
+
+  // Boards abbreviate cities freely ("NYC", "CHI", "SF, SEA, CHI, NYC" on one
+  // real Stripe location string). Matching only the spelled-out city name
+  // would reject a posting in the user's own city — a silent miss class
+  // (ASG-9). Canonicalize known abbreviations token-wise before comparing.
+  const CITY_ALIASES = { nyc: "new york", chi: "chicago", sf: "san francisco", sea: "seattle", la: "los angeles", philly: "philadelphia", atl: "atlanta", dfw: "dallas", dc: "washington" };
+  const canonLoc = (txt) => lc(txt).split(/[^a-z0-9]+/).map((t) => CITY_ALIASES[t] || t).join(" ");
+  function locationOk(posting, filters) {
+    if (posting.remote === "remote" && filters.remote_ok !== false) return { ok: true, via: "remote" };
+    const loc = canonLoc(posting.location || "");
+    for (const want of filters.locations || []) {
+      const w = canonLoc(want).split(",")[0].trim();
+      if (w && loc.includes(w)) return { ok: true, via: `location ${want}` };
+    }
+    if (!(filters.locations || []).length && filters.remote_ok === false) return { ok: true, via: "no location filter" };
+    return { ok: false };
+  }
+
+  // Deadline in the posting's own words (methodology §6: quoted, never converted).
+  function extractDeadline(posting) {
+    const text = s(posting.jd_text || "");
+    const m = text.match(/(applications? (?:close|deadline)|apply by|deadline|closing date)\s*(?:is|:|on)?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i);
+    if (!m) return null;
+    const at = Date.parse(m[2]);
+    return { text: m[0].trim(), at: isNaN(at) ? null : new Date(at).toISOString() };
+  }
+
+  // One posting x one interest. Returns { matched, reasons[], fit } — reasons
+  // are data, so a no-match can always SAY why (the negative-proof contract).
+  function matchInterest(posting, interest, scoringProfile) {
+    const reasons = [];
+    const role = interest.role || {};
+    const f = interest.filters || {};
+    const rm = roleMatch(posting, role);
+    if (rm.blocker) reasons.push(`title carries the seniority blocker "${rm.blocker}" — not a ${role.title} posting`);
+    else if (!rm.hit) reasons.push(`title matches no term for ${role.title}`);
+    const band = posting.seniority_band || (Jobs ? Jobs.seniorityBand(posting.title || "", posting.jd_text || "") : "unknown");
+    if ((f.bands || []).length && !f.bands.includes(band)) reasons.push(`seniority band is ${band}; this interest watches ${(f.bands || []).join(" / ")}`);
+    const loc = locationOk(posting, f);
+    if (!loc.ok) reasons.push(`location ${posting.location || "unstated"} is outside this interest's locations (${(f.locations || []).join(", ") || "none"}${f.remote_ok === false ? "" : " + remote"})`);
+    const company = s(posting.company);
+    if ((f.firms_include || []).length) {
+      if (!company) reasons.push("interest is limited to named firms and this posting states no company (cannot verify the firm)");
+      else if (!f.firms_include.some((x) => lc(x) === lc(company))) reasons.push(`${company} is not in this interest's firm list`);
+    }
+    if (company && (f.firms_exclude || []).some((x) => lc(x) === lc(company))) reasons.push(`${company} is excluded by this interest`);
+    let fit = null;
+    if (!reasons.length) {
+      // A 151 alert record was already gated + scored at the watch tier; its
+      // fit is inherited, never recomputed against a shadow of the posting.
+      fit = posting._inherited_fit || (Jobs && scoringProfile ? Jobs.scoreFit(posting, scoringProfile) : null);
+      if (fit && fit.excluded) reasons.push(...(fit.hard_fails || fit.reasons || []).map((r) => `scoreFit hard-excluded: ${r}`));
+    }
+    return { matched: reasons.length === 0, reasons, fit, band, match_basis: rm.basis || null };
+  }
+
+  // ---- reminder ---------------------------------------------------------------
+  function composeReminder(posting, interest, verdict, wp, now) {
+    const fit = verdict.fit || posting._inherited_fit || null;
+    let fitLines = [], factIds = [], score = null, bucket = null;
+    if (posting._inherited_fit_lines) { // a 151 alert record: lines already fact-cited at the watch tier
+      fitLines = posting._inherited_fit_lines.slice();
+      factIds = (posting._inherited_fact_ids || []).slice();
+      if (fit) { score = fit.score; bucket = fit.bucket; }
+    } else if (fit) {
+      // Reuse 151's composer so the fact-citation law has ONE implementation.
+      const rec = Watch ? Watch.composeAlert(posting, fit, wp.scoring_profile || {}, now) : null;
+      if (rec) { fitLines = rec.fit_lines; factIds = rec.matched_fact_ids; }
+      score = fit.score; bucket = fit.bucket;
+    }
+    const company = s(posting.company) || null;
+    return {
+      type: "career_job_reminder",
+      reminder_id: null, // set at enqueue from the seat key + job id
+      user_id: wp.user_id,
+      interest_id: interest.interest_id,
+      role_title: interest.role.title,
+      soc: interest.role.soc || null,
+      job_id: posting.job_id,
+      company,
+      company_stated: !!company, // TN-1a: unstated is a value, never a drop and never an invention
+      title: posting.title,
+      location: posting.location || null,
+      remote: posting.remote || null,
+      url: posting.url,
+      source: posting.source,
+      posted_at: posting.posted_at || null,
+      detected_at: new Date(now).toISOString(),
+      deadline: extractDeadline(posting),
+      fit: { score, bucket, lines: fitLines, matched_fact_ids: factIds },
+      match_basis: verdict.match_basis || null,
+      dedupe_key: Jobs ? Jobs.dedupeKey({ company: company || "not-stated", title: posting.title, location: posting.location || "" }) : `${company || "not-stated"}|${posting.title}`,
+      status: "queued",
+      queued_at: new Date(now).toISOString(),
+    };
+  }
+
+  function speakLine(r) {
+    const who = r.company_stated ? r.company : "an employer whose name is not stated in the posting";
+    const dl = r.deadline ? ` Deadline, in the posting's own words: "${r.deadline.text}".` : "";
+    const fit = r.fit && r.fit.lines && r.fit.lines.length ? ` ${r.fit.lines[0]}.` : "";
+    return `New ${r.role_title} posting: ${r.title} at ${who}${r.location ? ` — ${r.location}` : ""}.${fit}${dl} Apply: ${r.url}`;
+  }
+
+  // ---- reminder queue (the delivery contract) ----------------------------------
+  function createReminderQueue(store, userId) {
+    const key = QUEUE_KEY(userId);
+    const read = async () => (await store.get(key)) || [];
+    const write = async (rows) => { await store.set(key, rows); };
+    return {
+      key,
+      async enqueue(reminder) {
+        const rows = await read();
+        if (rows.some((x) => x.reminder_id === reminder.reminder_id)) return false;
+        rows.push(reminder);
+        await write(rows);
+        return true;
+      },
+      async peek(limit) { const rows = await read(); return limit ? rows.slice(0, limit) : rows.slice(); },
+      async size() { return (await read()).length; },
+      // Drain = the host's delivery pull: returns the oldest records and
+      // removes exactly those; a record is never delivered twice by the queue.
+      async drain(limit) {
+        const rows = await read();
+        const n = limit == null ? rows.length : Math.min(limit, rows.length);
+        const out = rows.slice(0, n);
+        await write(rows.slice(n));
+        return out.map((r) => Object.assign({}, r, { status: "drained", drained_at: new Date().toISOString() }));
+      },
+    };
+  }
+
+  // ---- the assignment cycle ------------------------------------------------------
+  function normalizeCandidate(c) {
+    if (c && c.type === "career_job_alert") {
+      return {
+        job_id: c.job_id, company: c.company || "", title: c.title, location: c.location || "",
+        remote: /remote/i.test(c.location || "") ? "remote" : "onsite",
+        url: c.url, posted_at: c.posted_at || null, source: c.source,
+        seniority_band: c.seniority_band, role_family: c.role_family, jd_text: "",
+        _inherited_fit: c.fit || null, _inherited_fit_lines: c.fit_lines || [], _inherited_fact_ids: c.matched_fact_ids || [],
+      };
+    }
+    return c;
+  }
+
+  async function runAssignCycle(deps) {
+    if (!Jobs) throw new Error("152 requires 121-career-jobs alongside it");
+    deps = deps || {};
+    const wp = deps.watchProfile;
+    if (!wp) throw new Error("152 runAssignCycle requires a watchProfile (createWatchProfile)");
+    const v = validateWatchProfile(wp);
+    if (!v.ok) throw new Error(`invalid watch profile: ${v.errors.join("; ")}`);
+    const store = deps.store;
+    if (!store || typeof store.get !== "function" || typeof store.set !== "function")
+      throw new Error("152 runAssignCycle requires an injected store {get,set}");
+    const now = nowMs(deps.now);
+    const candidates = [...(deps.alerts || []), ...(deps.postings || [])].map(normalizeCandidate);
+    const queue = createReminderQueue(store, wp.user_id);
+    const history = (await store.get(HISTORY_KEY(wp.user_id))) || {};
+    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(lc);
+
+    const reminders = [], suppressed = [], rejected = [];
+    const cycleSeats = new Set();
+    const summary = new Map(); // interest_id -> { considered, reasons: {class: count} }
+    const bump = (iid, reasons) => {
+      if (!summary.has(iid)) summary.set(iid, { interest_id: iid, considered: 0, reasons: {} });
+      const row = summary.get(iid);
+      row.considered += 1;
+      for (const r of reasons) {
+        const cls = /blocker/.test(r) ? "seniority_blocker" : /band is/.test(r) ? "band" : /location/.test(r) ? "location" : /firm/.test(r) ? "firm_filter" : /hard-excluded/.test(r) ? "scorefit_excluded" : /no term/.test(r) ? "role_no_match" : "other";
+        row.reasons[cls] = (row.reasons[cls] || 0) + 1;
+      }
+    };
+
+    for (const posting of candidates) {
+      // Opt-out binds before any matching (shared cross-user suppression is a
+      // host store; the per-user + per-company opt-outs live on the profile).
+      if (wp.opt_out && wp.opt_out.global) { suppressed.push({ job_id: posting.job_id, reason: "opt-out: the user has opted out of job reminders globally" }); continue; }
+      if (posting.company && optedOutCompanies.includes(lc(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
+
+      let best = null;
+      for (const interest of wp.interests) {
+        const verdict = matchInterest(posting, interest, wp.scoring_profile);
+        if (!verdict.matched) { rejected.push({ job_id: posting.job_id, interest_id: interest.interest_id, reasons: verdict.reasons }); bump(interest.interest_id, verdict.reasons); continue; }
+        const reminder = composeReminder(posting, interest, verdict, wp, now);
+        if (!best || ((reminder.fit.score || 0) > (best.reminder.fit.score || 0))) best = { reminder, interest };
+      }
+      if (!best) continue;
+
+      // Seat suppression (151 BUG-092 semantics, persisted per user): the same
+      // seat reminded within 14 days never re-reminds — a re-presented req is
+      // the same seat; a replacement req while the old one is gone is a repost
+      // (absorb the new id); a replacement while the old one still stands is a
+      // seat-count change and DOES remind. Presence comes from the host's 151
+      // snapshots (deps.presentJobIds); without it, a different req id is
+      // treated as a new seat — we never eat a possibly-real req on a guess —
+      // but a second candidate for the same seat inside ONE cycle is always
+      // the cross-board duplicate 151 names.
+      const r = best.reminder;
+      const seat = history[r.dedupe_key];
+      if (cycleSeats.has(r.dedupe_key)) { suppressed.push({ job_id: r.job_id, reason: "cross-board duplicate: same seat already reminded this cycle" }); continue; }
+      if (seat && now - seat.reminded_at < SEAT_WINDOW_MS) {
+        if ((seat.job_ids || []).includes(r.job_id)) { suppressed.push({ job_id: r.job_id, reason: "same req re-presented — seat already reminded" }); continue; }
+        if (deps.presentJobIds && !(seat.job_ids || []).some((id) => deps.presentJobIds.has(id))) {
+          seat.job_ids = (seat.job_ids || []).concat([r.job_id]);
+          suppressed.push({ job_id: r.job_id, reason: "repost of a reminded seat (prior req gone, within 14 days) — absorbed" });
+          continue;
+        }
+      }
+      r.reminder_id = `rem:${r.dedupe_key}:${r.job_id}`;
+      const added = await queue.enqueue(r);
+      if (added) {
+        reminders.push(r);
+        cycleSeats.add(r.dedupe_key);
+        const ids = new Set(seat ? seat.job_ids || [] : []); ids.add(r.job_id);
+        history[r.dedupe_key] = { job_ids: [...ids], reminded_at: now };
+      } else suppressed.push({ job_id: r.job_id, reason: "already queued (duplicate reminder suppressed)" });
+    }
+    await store.set(HISTORY_KEY(wp.user_id), history);
+
+    return {
+      type: "career_assign_cycle",
+      user_id: wp.user_id,
+      at: new Date(now).toISOString(),
+      considered: candidates.length,
+      reminders,
+      suppressed,
+      rejected,
+      no_match_summary: [...summary.values()],
+      queue_depth: await queue.size(),
+    };
+  }
+
+  return { createWatchProfile, validateWatchProfile, upsertInterest, removeInterest, setOptOut,
+    saveWatchProfile, loadWatchProfile, roleSpecFor, SPLITS, matchInterest, composeReminder,
+    speakLine, extractDeadline, createReminderQueue, runAssignCycle,
+    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, SEAT_WINDOW_MS };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerAssign;

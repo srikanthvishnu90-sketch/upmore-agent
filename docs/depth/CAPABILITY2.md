@@ -25,3 +25,9 @@ Run `node --test tests/capability2-grounding.test.cjs tests/capability2-bundle.t
 and `node evals/depth/CAPABILITY2.mutations.cjs`. The mutation runner uses isolated
 copies and records a targeted failing assertion for each defect. Results and
 limitations are recorded in docs/testing/runs/capability2-grounded-20261015/.
+
+Verified on source `48f919d202c469a5d2ad1497a6eaaebc0a006d0f`: **15/15**
+planted defects caught by their targeted assertions; grounding **138/138**,
+bundle/host **9/9**, adjacent contracts **236/236**, Agent100 dry **103/103**,
+local release harness **RELEASE OK**. Complete stdout, source hashes and the
+separate optional clock-guard blocker are in the run's results.json/REVIEW.md.

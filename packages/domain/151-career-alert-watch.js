@@ -273,6 +273,23 @@ const CareerAlertWatch = (() => {
     };
   }
 
+  // MI-028 (loss point L3): the gate's occupation match used to ride the
+  // alert record as data (occupation_match) but never as a fit line, and
+  // composeAlert's line derivation (proven skills + role-family/starred
+  // reasons) fires on neither when the profile watches occupations rather
+  // than 121 families — so an alert whose ONLY true basis is the watched
+  // occupation match carried zero fit lines, and 152 inherited the emptiness.
+  // This renders that basis as a line, labeled "match basis:", from the
+  // gate detail alone: the watched occupation, its term, where it matched
+  // (title, or the JD opening quoted verbatim from the gate's evidence).
+  function matchBasisLine(detail) {
+    if (!detail || !detail.term) return null;
+    const occ = detail.occupation || detail.term;
+    if (detail.basis === "jd_head" && detail.evidence)
+      return `match basis: watched occupation "${occ}" — its term "${detail.term}" matches this posting's opening text: "${detail.evidence}"`;
+    return `match basis: watched occupation "${occ}" — its term "${detail.term}" matches this posting's title`;
+  }
+
   async function deliver(sink, record) {
     if (typeof sink === "function") return sink(record);
     if (sink && typeof sink.emit === "function") return sink.emit(record);
@@ -330,6 +347,11 @@ const CareerAlertWatch = (() => {
       // alert record carries why it matched (occupation, basis, term, and —
       // for JD evidence — the JD fragment that named it).
       if (gate.occupation_match_detail) record.occupation_match = gate.occupation_match_detail;
+      // MI-028: the same basis also becomes a fit line on the alert, so the
+      // alert record itself explains the match and 152's inherited lines are
+      // never empty for an occupation-matched alert.
+      const mbLine = matchBasisLine(gate.occupation_match_detail);
+      if (mbLine && !record.fit_lines.includes(mbLine)) record.fit_lines.push(mbLine);
       try {
         await deliver(sink, record);
         alerts_emitted += 1;
@@ -572,7 +594,7 @@ const CareerAlertWatch = (() => {
     };
   }
 
-  return { runWatchCycle, watchCycle: runWatchCycle, runAdaptiveCycle, gatePosting, composeAlert, createMemoryStore, withDeadline,
+  return { runWatchCycle, watchCycle: runWatchCycle, runAdaptiveCycle, gatePosting, composeAlert, matchBasisLine, createMemoryStore, withDeadline,
     planCadence, feedsFromDirectory, boardIdOf, boardSnapshotKey, CADENCE,
     ALERT_BANDS, DEFAULT_SNAPSHOT_KEY, DEFAULT_BOARD_DEADLINE_MS, DEFAULT_STATE_KEY,
     POLL_MINUTES: Jobs ? Jobs.POLL_MINUTES : { starred: 15, default: 60 } };

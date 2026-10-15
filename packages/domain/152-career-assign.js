@@ -162,8 +162,19 @@ const CareerAssign = (() => {
     for (const t of role.terms || []) if (termIn(title, lc(t))) return { hit: true, basis: "title", term: t };
     // Multiword role terms also match in the posting's own opening text — a
     // "Summer Analyst" req whose body names the desk is a real match, labeled.
+    // MI-028: a jd_head hit also returns the posting's own words around the
+    // term as evidence, so the match-basis line can QUOTE the basis instead
+    // of merely asserting it (same ±40-char window 151's occupationHit uses).
     const head = lc(posting.jd_text || "").slice(0, 500);
-    for (const t of role.terms || []) if (t.includes(" ") && termIn(head, lc(t))) return { hit: true, basis: "jd_head", term: t };
+    for (const t of role.terms || []) {
+      if (!t.includes(" ")) continue;
+      const m = new RegExp(`(^|[^a-z0-9])${esc(lc(t))}([^a-z0-9]|$)`).exec(head);
+      if (m) {
+        const at = m.index + (m[1] ? m[1].length : 0);
+        const evidence = s(posting.jd_text || "").slice(0, 500).slice(Math.max(0, at - 40), at + t.length + 40).trim();
+        return { hit: true, basis: "jd_head", term: t, evidence };
+      }
+    }
     return { hit: false };
   }
 
@@ -178,7 +189,9 @@ const CareerAssign = (() => {
     const loc = canonLoc(posting.location || "");
     for (const want of filters.locations || []) {
       const w = canonLoc(want).split(",")[0].trim();
-      if (w && loc.includes(w)) return { ok: true, via: `location ${want}` };
+      // MI-028: carry WHICH watched location matched (`want`) — the true
+      // location basis of the match, previously discarded by matchInterest.
+      if (w && loc.includes(w)) return { ok: true, via: `location ${want}`, want };
     }
     if (!(filters.locations || []).length && filters.remote_ok === false) return { ok: true, via: "no location filter" };
     return { ok: false };
@@ -219,10 +232,56 @@ const CareerAssign = (() => {
       fit = posting._inherited_fit || (Jobs && scoringProfile ? Jobs.scoreFit(posting, scoringProfile) : null);
       if (fit && fit.excluded) reasons.push(...(fit.hard_fails || fit.reasons || []).map((r) => `scoreFit hard-excluded: ${r}`));
     }
-    return { matched: reasons.length === 0, reasons, fit, band, match_basis: rm.basis || null };
+    // MI-028 (loss point L1): the match's TRUE basis used to die here —
+    // roleMatch's term (and jd_head evidence), locationOk's via/want, and the
+    // band the interest watches were all computed, used as gates, and then
+    // thrown away; only the bare basis enum survived, so composeReminder had
+    // nothing truthful to render as a fit line for the 94% of reminders with
+    // no proven-skill match. match_detail carries them to the reminder.
+    const match_detail = reasons.length === 0 && rm.hit ? {
+      term: rm.term || null,
+      basis: rm.basis || null,
+      evidence: rm.evidence || null,
+      location_via: loc.ok ? loc.via : null,
+      location_want: loc.want || null,
+      band,
+      bands_watched: (f.bands || []).slice(),
+    } : null;
+    return { matched: reasons.length === 0, reasons, fit, band, match_basis: rm.basis || null, match_detail };
   }
 
   // ---- reminder ---------------------------------------------------------------
+  // MI-028 (loss points L2/L3): match-basis lines. A reminder's fit lines used
+  // to come ONLY from proven-skill derivation (151 composeAlert / inherited
+  // alert lines); when no proven skill matched — 808 of 858 Lane A reminders,
+  // 644 of them for profiles holding no skills at all — the reminder carried
+  // NO basis even though the match itself was fully evidenced. These lines
+  // state the match's own true basis, labeled "match basis:", built only from
+  // facts the matcher actually verified for THIS posting x interest: the
+  // watched role term and where it matched (title, or the JD opening quoted
+  // verbatim), the watched location (or accepted remote), and the watched
+  // band. A line is emitted only when its basis was a real criterion of the
+  // interest (no band line when the interest watches no bands; no location
+  // line when location was not how it matched). Nothing here invents a skill
+  // or a fact ID — proven-skill lines keep their own fact-cited form above.
+  function matchBasisLines(posting, interest, verdict) {
+    const d = (verdict && verdict.match_detail) || null;
+    if (!d || !d.term) return [];
+    const lines = [];
+    const roleTitle = (interest.role || {}).title || "";
+    if (d.basis === "jd_head" && d.evidence)
+      lines.push(`match basis: watched role term "${d.term}" matches this posting's opening text — "${d.evidence}" (watched role: ${roleTitle})`);
+    else
+      lines.push(`match basis: watched role term "${d.term}" matches this posting's title (watched role: ${roleTitle})`);
+    if (d.location_via === "remote")
+      lines.push("match basis: this posting is remote and this interest accepts remote postings");
+    else if (d.location_want)
+      lines.push(`match basis: posting location "${posting.location || ""}" matches watched location "${d.location_want}"`);
+    if ((d.bands_watched || []).length && d.band)
+      lines.push(`match basis: seniority band "${d.band}" is one this interest watches`);
+    return lines;
+  }
+
   function composeReminder(posting, interest, verdict, wp, now) {
     const fit = verdict.fit || posting._inherited_fit || null;
     let fitLines = [], factIds = [], score = null, bucket = null;
@@ -235,6 +294,17 @@ const CareerAssign = (() => {
       const rec = Watch ? Watch.composeAlert(posting, fit, wp.scoring_profile || {}, now) : null;
       if (rec) { fitLines = rec.fit_lines; factIds = rec.matched_fact_ids; }
       score = fit.score; bucket = fit.bucket;
+    }
+    // MI-028: append the match-basis lines after any proven-skill lines.
+    // Dedupe: an inherited 151 match-basis role line already citing the same
+    // term covers the role basis (never state the same basis twice); the
+    // location/band lines are 152-only and always append when true.
+    for (const line of matchBasisLines(posting, interest, verdict)) {
+      if (fitLines.includes(line)) continue;
+      const term = verdict.match_detail && verdict.match_detail.term;
+      if (term && /^match basis: watched role term /.test(line)
+        && fitLines.some((l) => /^match basis:/.test(l) && lc(l).includes(`"${lc(term)}"`))) continue;
+      fitLines.push(line);
     }
     const company = s(posting.company) || null;
     return {
@@ -257,6 +327,7 @@ const CareerAssign = (() => {
       deadline: extractDeadline(posting),
       fit: { score, bucket, lines: fitLines, matched_fact_ids: factIds },
       match_basis: verdict.match_basis || null,
+      match_detail: verdict.match_detail || null, // MI-028: the auditable basis behind the match-basis fit lines
       dedupe_key: Jobs ? Jobs.dedupeKey({ company: company || "not-stated", title: posting.title, location: posting.location || "" }) : `${company || "not-stated"}|${posting.title}`,
       status: "queued",
       queued_at: new Date(now).toISOString(),
@@ -406,7 +477,7 @@ const CareerAssign = (() => {
   }
 
   return { createWatchProfile, validateWatchProfile, upsertInterest, removeInterest, setOptOut,
-    saveWatchProfile, loadWatchProfile, roleSpecFor, SPLITS, matchInterest, composeReminder,
+    saveWatchProfile, loadWatchProfile, roleSpecFor, SPLITS, matchInterest, matchBasisLines, composeReminder,
     speakLine, extractDeadline, createReminderQueue, runAssignCycle,
     PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, SEAT_WINDOW_MS };
 })();

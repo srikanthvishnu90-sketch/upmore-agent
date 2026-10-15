@@ -22,6 +22,13 @@
 "use strict";
 
 const CareerHost = (() => {
+  // Reachable pure domain code is not a connected execution worker. This
+  // hosted seam attaches neither the Node-only 150 driver nor an alerts
+  // scheduler/channel. Runtime capabilities never ride user snapshots.
+  const WORKER_CAPABILITIES = Object.freeze({
+    portal_browser: Object.freeze({ status: "NOT_WIRED", reason: "The Node browser worker is not connected to this Edge handler." }),
+    job_alert_delivery: Object.freeze({ status: "NOT_WIRED", reason: "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only." }),
+  });
   // Whitelist of ctx keys that carry durable per-thread career state.
   // Anything not listed here is a per-turn input or a host service and is
   // never persisted.
@@ -95,6 +102,7 @@ const CareerHost = (() => {
         threadId: o.threadId || null,
         postings: Array.isArray(o.postings) ? o.postings : [],
         containmentRecords: [],
+        workerCapabilities: WORKER_CAPABILITIES,
       };
       const stores = o.snapshot && typeof o.snapshot === "object" ? o.snapshot.stores : null;
       if (stores && typeof stores === "object") {
@@ -134,9 +142,15 @@ const CareerHost = (() => {
         sessionId: ctx.threadId || "live",
       });
       if (outcome.contained) {
-        return { reply: outcome.replyText, intent: null, resultStatus: null, handler, contained: true, result: null };
+        return { reply: outcome.replyText, intent: null, resultStatus: null, handler, contained: true, result: null, capabilities: WORKER_CAPABILITIES };
       }
-      const result = outcome.result;
+      let result = outcome.result;
+      if (result && ["application_packet", "doorstep_fill", "doorstep_status"].includes(result.intent)) {
+        // Packet preparation remains available; a local doorstep is never
+        // presented as an opened employer form or a connected submit leg.
+        result = { ...result, worker: WORKER_CAPABILITIES.portal_browser,
+          reply: `Live browser execution is not wired in this handler; no employer form has been opened or submitted.\n${result.reply}` };
+      }
       return {
         reply: CareerContainment.extractReplyText(result),
         intent: (result && result.intent) || null,
@@ -144,6 +158,7 @@ const CareerHost = (() => {
         handler,
         contained: false,
         result,
+        capabilities: WORKER_CAPABILITIES,
       };
     }
 

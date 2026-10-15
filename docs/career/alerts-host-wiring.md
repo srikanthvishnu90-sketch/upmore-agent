@@ -8,6 +8,15 @@ store and expects the host to run 151's cycle, then `runAssignCycle`,
 then drain the queue through its channel. This note is that host, and
 `scripts/career/alerts-host.mjs` is its host-tier implementation.
 
+2026-10-15 bundle repair (source only): guidance 144, watch 151 and
+assignment 152 now join the generated bundles. The staged career entry
+executes them without CommonJS `require` (regression:
+`tests/career-bundle-reachability.test.cjs`). Node browser driver 150
+remains outside Edge. The career handler explicitly reports browser
+execution and automatic alert delivery as `NOT_WIRED`; saving a watch
+does not poll, deliver, or submit anything. Its snapshot is scoped to the
+current conversation, pending the shared-store bridge described below.
+
 Reminder shape baseline: PD-1 has landed — a reminder
 (`career_job_reminder`, 152 `composeReminder`) carries `deadline`
 (quoted verbatim from the posting's own text, `null` when unstated,
@@ -200,8 +209,10 @@ with this precedence:
 The watch profile is keyed by `ctx.userId` (the handler sets it from
 the authenticated user; the `"user-1"` fallback matches 142's
 existing convention for harness turns). Because the profile record
-itself is user-scoped (`career:watch-profile:<user_id>`), threads are
-views onto one per-user record, never separate profiles.
+itself is user-scoped (`career:watch-profile:<user_id>`), it prevents
+cross-user mixing inside a store. It does not make independent thread
+rows share state: the handler loads by thread ID. Sharing across threads
+and handing chat watches to the scheduler still needs a store bridge.
 
 ## 5. Deploy vs data-only
 
@@ -212,13 +223,14 @@ views onto one per-user record, never separate profiles.
 - The tier-1 probe: reading the test user's existing product rows.
 
 **Needs a deploy (none done by this lane):**
-1. Coordinator integrates the 142 patch + rebuilds the router bundle
-   (`python3 scripts/build-router-core.py`) — 151/152 join the bundle
-   only if the coordinator chooses; the intents degrade honestly
-   (step aside) when 152 is absent from the bundle.
+1. Bundle integration is built in the source-only bundle repair:
+   `python3 scripts/build-router-core.py` and `--career-only` include
+   144/151/152 in dependency order. The staged-entry regression exercises
+   guidance and watch creation through the actual handler, without require.
 2. Host: add `"alertWatchState"` to `career_host.js` `STATE_KEYS`
-   (or inject a sync `ctx.alertStore`) so chat-created watches persist
-   across threads in the deployed product. **DONE — MI-032 step 2
+   so chat-created watches survive snapshot reload within a thread.
+   Cross-thread sharing needs a store bridge, not just STATE_KEYS.
+   **Snapshot whitelist DONE — MI-032 step 2
    (Crew A, branch `work/crewa-mi032-host`), with the Supabase adapter
    wired and the tier-2 E2E green (14/14); rides the step-5 deploy.**
 3. Migration: create `public.career_watch_kv` (§1) — owner-run.

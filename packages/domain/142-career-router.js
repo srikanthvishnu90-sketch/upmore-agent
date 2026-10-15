@@ -69,9 +69,8 @@ const CareerRouter = (() => {
   // an eager top-level read hits the const TDZ inside the bundle. Resolve
   // lazily at call time instead (post-initialization in every host).
   const getIntake = () => { try { return typeof CareerIntake !== "undefined" ? CareerIntake : req("./146-career-intake.js"); } catch { return req("./146-career-intake.js"); } };
-  // ALERTS HOST WIRING (Crew B Cycle 2, W4): 152 (assignment layer) is not in
-  // the router bundle today — resolve lazily at call time; absent, the watch
-  // intents below step aside (return null) rather than crash the turn.
+  // 152 follows the router in the generated bundle. Resolve lazily after
+  // initialization; direct Node consumers retain their guarded fallback.
   const getAssign = () => { try { return typeof CareerAssign !== "undefined" ? CareerAssign : req("./152-career-assign.js"); } catch { return req("./152-career-assign.js"); } };
   const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch { return null; } })();
 
@@ -6184,7 +6183,10 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "That watch did not save — the profile it built failed validation, so nothing was recorded.", facts: ["Nothing polls on a watch that is not saved; a half-saved watch would be worse than none."], nextStep: "Say the watch again with the role and city named plainly, and I will set it." });
       return { intent: "career_watch_create", reply, resultStatus: "blocked", sends: 0 };
     }
-    const facts = [`Watching: ${watchInterestLine(interest)}.`, "The record is per-user, not per-thread: the host's scheduler reads this same profile, polls the boards on the standing cadence (starred companies every 15 minutes, the rest hourly), and a matching new posting becomes a reminder with the posting's own deadline quoted and the match basis stated.", wp.opt_out && wp.opt_out.global ? "Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts." : "The watch is live the moment the host's next tick runs — creating it here sends nothing and applies to nothing."];
+    const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
+    const facts = delivery && delivery.status === "NOT_WIRED"
+      ? [`Watching: ${watchInterestLine(interest)}.`, "The watch is saved in this conversation only; automatic alert delivery is not wired in this handler.", "No reminder has been delivered and no application has been submitted."]
+      : [`Watching: ${watchInterestLine(interest)}.`, "The record is per-user, not per-thread: the host's scheduler reads this same profile, polls the boards on the standing cadence (starred companies every 15 minutes, the rest hourly), and a matching new posting becomes a reminder with the posting's own deadline quoted and the match basis stated.", wp.opt_out && wp.opt_out.global ? "Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts." : "The watch is live the moment the host's next tick runs — creating it here sends nothing and applies to nothing."];
     const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep: "Want another role watched, or the list of what you are watching now?" });
     return { intent: "career_watch_create", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp, artifact: wp };
   }
@@ -6204,9 +6206,10 @@ const CareerRouter = (() => {
     if (isPause || isResume) {
       A.setOptOut(wp, { global: isPause, companies: ((wp.opt_out || {}).companies || []) });
       if (!saveWatchProfileSync(ctx, wp)) return null;
+      const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
       const reply = isPause
-        ? compose({ headline: "Job alerts paused.", facts: ["Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." })
-        : compose({ headline: "Job alerts resumed.", facts: ["Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
+        ? compose({ headline: "Job alerts paused.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." })
+        : compose({ headline: "Job alerts resumed.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are no longer paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
       return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
     }
     if (isList) {
@@ -6216,6 +6219,8 @@ const CareerRouter = (() => {
         ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`)
         : ["Your watch profile exists but holds no interests right now — it polls nothing and reminds nothing."];
       if (wp.opt_out && wp.opt_out.global) facts.push("Job alerts are PAUSED for you: watches are recorded, and no reminders go out until you resume them.");
+      const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
+      if (delivery && delivery.status === "NOT_WIRED") facts.push("Automatic alert delivery is not wired in this handler; these watches are saved in this conversation only.");
       if (queued) facts.push(`${queued} reminder${queued === 1 ? " is" : "s are"} already queued for delivery.`);
       const reply = compose({ headline: wp.interests.length ? `You are watching ${wp.interests.length} role${wp.interests.length === 1 ? "" : "s"}.` : "Your watch list is empty.", facts, nextStep: "Add a role, remove one by name, or pause alerts — say which." });
       return { intent: "career_watch_manage", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp };

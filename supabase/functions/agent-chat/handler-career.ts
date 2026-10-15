@@ -171,7 +171,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     );
     if (saveErr) console.error("career state save failed:", saveErr.message);
     await supabase.from("agent_messages").insert({ thread_id: tid, role: "assistant", content: out.reply, meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } });
-    return json(cors, { thread_id: tid, reply: out.reply, action: null });
+    return json(cors, { thread_id: tid, reply: out.reply, action: null, capabilities: out.capabilities });
   } catch (e) {
     console.error(e);
     return json(cors, { error: "internal" }, 500);

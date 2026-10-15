@@ -2989,19 +2989,24 @@ const CareerRouter = (() => {
     }
     const name = cirShortName(cir);
     try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: name }); } catch { /* memo only */ }
-    // COMPLEXITY WAVE (BUG-174): a two-firm compare where only ONE
-    // firm has a file is answered as exactly that — the filed side
-    // from its file, the other side named as missing — never as a
-    // silent one-firm summary wearing a comparison's clothes.
+    // COMPLEXITY WAVE (BUG-174): a two-firm compare where the OTHER
+    // side is a NAMED firm with no file is answered as exactly that —
+    // the filed side from its file, the named side stated missing.
+    // A generic other ("a boutique", "a big bank") is NOT this
+    // branch's: the comparison composition further down owns it
+    // (BUG-121's third-person screen rule lives there).
     {
       const cmpM = s(text).match(/\bcompare\s+([A-Z][A-Za-z&. ]{3,40}?)\s+(?:and|with|vs\.?|versus)\s+([A-Z][A-Za-z&. ]{3,40}?)(?=[\s—–-]|$)/i) || s(text).match(/\b([A-Z][A-Za-z&. ]{3,40}?)\s+(?:vs\.?|versus)\s+([A-Z][A-Za-z&. ]{3,40}?)(?=[\s—–-]|$)/i);
       if (cmpM) {
         const others = [cmpM[1], cmpM[2]].map((x) => x.trim()).filter((x) => x && lc(x) !== lc(name) && !lc(name).startsWith(lc(x)) && !lc(x).startsWith(lc(name)));
-        const other = others.find((x) => !cirFor(x, ctx));
+        const other = others.find((x) => /^[A-Z]/.test(x) && !/^(a|an|the)\s/i.test(x) && !cirFor(x, ctx));
         if (other) {
           const firstOf = (v) => { const tx = cirFieldText(v); return tx ? tx.split(/(?<=[.!?])\s/)[0] : null; };
+          // BUG-121 conformance: the firm's screen is reported in
+          // third person, never re-addressed to the user.
+          const third = (v) => v ? v.replace(/\byou must\b/gi, "candidates must").replace(/\byou need to\b/gi, "candidates need to").replace(/\byou have to\b/gi, "candidates have to").replace(/\byou should\b/gi, "candidates should").replace(/\byou are expected to\b/gi, "candidates are expected to").replace(/\byour\b/gi, "their") : v;
           const facts = [];
-          const bar = firstOf(cir.hiring_bar_summary); if (bar) facts.push(`${name}'s bar, from its file: ${bar}`);
+          const bar = firstOf(cir.hiring_bar_summary); if (bar) facts.push(`${name}'s bar, from its file: ${third(bar)}`);
           const cult = firstOf(cir.values_culture_signals || cir.culture_notes); if (cult) facts.push(`On culture: ${cult}`);
           facts.push(`${other} has no company file in the library, so its culture, hours, deal flow, and exits cannot be compared from record — anything said about them here would be invention.`);
           if (cir.as_of) facts.push(`Source: the ${name} company file (public sources), as of ${cir.as_of}.`);

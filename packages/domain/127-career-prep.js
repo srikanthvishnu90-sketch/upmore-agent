@@ -245,6 +245,14 @@ const CareerPrep = (() => {
     }
     for (const g of GENERIC_BEHAVIORAL) push(g, "behavioral", { type: "generic_behavioral_bank", company_id: null });
     if (/quant|trading|finance/i.test(s(opts.roleFamily) + " " + s(opts.role))) {
+      // WORDING-BACKLOG (BUG-133): a quant ask gets the quant drills
+      // themselves FIRST — probability, a market-making game, mental
+      // math — not the banking technicals wearing a quant headline.
+      if (/quant/i.test(s(opts.role))) {
+        push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+        push("You make a market on the value of a fair die roll: quote your bid and ask. The roll comes up 2 — what do you do, and what is your position worth now?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+        push("Mental math, no paper: what is 17 times 24, and 15% of 840? Talk through the method as you go.", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+      }
       // BUG-117: the finance drill set covers the canonical technicals
       // the asks name — three statements, DCF, comps, LBO basics —
       // not just the DCF prompt.
@@ -252,7 +260,17 @@ const CareerPrep = (() => {
       push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
       push("How do you build a set of trading comps, and which multiples do you reach for first?", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
       push("Walk me through an LBO: sources and uses, and what actually drives the returns.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+      if (!/quant/i.test(s(opts.role))) push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+    }
+    if (/product/i.test(s(opts.roleFamily))) {
+      // WORDING-BACKLOG (BUG-133): the PM drill set — product sense
+      // through the candidate's own shipped work, an execution
+      // scenario, and an estimation tree. Before this, a PM prep ask
+      // was served the generic behavioral bank.
+      push("Pick a product you use every day: how would you improve it, and how would you know the improvement worked?", "product_sense", { type: "pm_drill_bank", company_id: null });
+      push("Your flagship metric drops 20% overnight. Walk me through your first day.", "execution", { type: "pm_drill_bank", company_id: null });
+      push("Tell me about the thing you shipped: what it was, who it was for, and the number that proves it mattered.", "product_behavioral", { type: "pm_drill_bank", company_id: null });
+      push("Estimate how many rides a ride-hailing service completes in one city in a day — talk through the tree out loud.", "estimation", { type: "pm_drill_bank", company_id: null });
     }
     if (/swe|software|coding|engineering/i.test(s(opts.roleFamily) + " " + s(opts.role))) {
       // BUG-117: the SWE coding set — before this, a coding ask was

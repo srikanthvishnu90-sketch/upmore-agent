@@ -1700,11 +1700,12 @@ const CareerRouter = (() => {
     // no company file grounds a full brief: the NO_CIR brief wrapper
     // shadowed the bank's own record (the BUG-115 shape).
     const bankArgs = () => {
-      const roleFamily = /\btechnicals?\b|\bdcf\b|\blbo\b|\bcomps\b|three statements/.test(t) ? "finance"
+      const roleFamily = /\btechnicals?\b|\bdcf\b|\blbo\b|\bcomps\b|three statements|\bquant\b|\bprobability\b|market[- ]making/.test(t) ? "finance"
+        : /\bpm prep\b|\bproduct sense\b|\bproduct management\b/.test(t) ? "product"
         : /\bswe\b|\bcoding\b|\bsoftware\b/.test(t) ? "swe" : null;
       let stories = [];
       try { stories = (Prep.buildStoryBank ? Prep.buildStoryBank(profile).stories : []) || []; } catch { stories = []; }
-      return { args: { company: company || null, role: null, roleFamily, cir: cirFor(text, ctx), stories }, roleFamily };
+      return { args: { company: company || null, role: /\bquant\b/.test(t) ? "quant" : null, roleFamily, cir: cirFor(text, ctx), stories }, roleFamily };
     };
     const payloadFor = (bank) => { const bp = briefPayload(); return (bp && bp.status === "OK") ? bp : bank; };
     try {
@@ -1722,7 +1723,10 @@ const CareerRouter = (() => {
       if (/\bmock scored\b|\bscored low\b|\blow on structure\b|\bstructure\b[^.]*\bscore\b/.test(t) && Prep.structureDrill) {
         const dr = Prep.structureDrill({ answer: s(text) });
         if (dr) {
-          const reply = compose({ headline: "The structure drill starts now — same story, signposted.", facts: [(dr.scaffold || []).slice(0, 2).join(" "), dr.note || "The drill changes ordering and signposting only; it never adds facts."], nextStep: dr.re_mock && dr.re_mock.instruction ? dr.re_mock.instruction : "Re-answer with the four signposts, in order." });
+          // WORDING-BACKLOG (BUG-135): the four signposts are NAMED
+          // in plain words — never the scaffold's raw <placeholder>
+          // templates, which read as a form to fill, not a fix.
+          const reply = compose({ headline: "The structure drill starts now — same story, signposted.", facts: ["The scaffold, in order: Situation — one line: where, and what was at stake; Task — your specific job, not the team's; Action — two or three moves, with named tools; Result — a number, measured how, over what period.", dr.note || "The drill changes ordering and signposting only; it never adds facts."], nextStep: dr.re_mock && dr.re_mock.instruction ? dr.re_mock.instruction : "Re-answer with the four signposts, in order." });
           return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: dr, payload: dr, drill: dr };
         }
       }
@@ -1753,10 +1757,17 @@ const CareerRouter = (() => {
       if (/\bday[ -]of checklist\b/.test(t) && Prep.dayOfChecklist) {
         const ck = Prep.dayOfChecklist(profile, {});
         const items = (ck && (ck.items || ck.checklist)) || [];
-        const reply = compose({ headline: "Your day-of checklist.", facts: (Array.isArray(items) && items.length ? items.slice(0, 4).map((i) => s(typeof i === "string" ? i : i.text || i.label || "")).filter(Boolean) : ["Logistics, links, tech check, materials — verified the night before, not the morning of."]), nextStep: "Anything on it you want changed?" });
+        // WORDING-BACKLOG (BUG-135): the checklist is enumerated in
+        // the reply (the groups' own items, up to the fact budget),
+        // fixture labels never ride into prose, and the missing
+        // inputs are named once, plainly.
+        const cleanItem = (i) => s(typeof i === "string" ? i : i.text || i.label || "").replace(/\s*\((?:TEST)[^)]*\)/g, "").replace(/^NO LINK SUPPLIED.*$/i, "Interview link: not supplied yet — flagged, not invented.").trim();
+        const facts = (Array.isArray(items) && items.length ? items.slice(0, 6).map(cleanItem).filter(Boolean) : ["Logistics, links, tech check, materials — verified the night before, not the morning of."]);
+        if (ck && Array.isArray(ck.missing) && ck.missing.length) facts.push(`Not supplied yet, so flagged rather than invented: ${ck.missing.join(", ")}.`);
+        const reply = compose({ headline: "Your day-of checklist.", facts, nextStep: "Anything on it you want changed?" });
         return { intent: "prep_mock_checklist", reply, resultStatus: "prepared", sends: 0, checklist: ck, payload: ck };
       }
-      if (/\bprep set\b|\bprep plan\b|\bdrill\b|\btechnicals\b/.test(t) && Prep.questionBank) {
+      if (/\bprep set\b|\bprep plan\b|\bdrills?\b|\btechnicals\b|\bquant prep\b|\bpm prep\b/.test(t) && Prep.questionBank) {
         // BUG-117: the bank is built from the ask (track, company
         // file, mined stories); for a track ask the delivered set
         // leads with the track's questions, not the behavioral five.
@@ -1766,16 +1777,36 @@ const CareerRouter = (() => {
         const rows = Array.isArray(qs) ? qs : [];
         const ordered = roleFamily ? [...rows.filter((q) => q && q.round !== "behavioral"), ...rows.filter((q) => q && q.round === "behavioral")] : rows;
         const list = ordered.slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
-        const reply = compose({ headline: `Your prep set${company ? ` for ${company}` : ""}, matched to how this round actually runs.`, facts: list.length ? list : ["The set is built from the question bank for this track, in the order the gaps on your profile demand."], nextStep: "Start the first one as a timed drill?" });
+        // WORDING-BACKLOG (BUG-133): the matched-to-this-round claim
+        // is spoken only when a company file grounds it. A track-only
+        // set names its track and says plainly that it is the track's
+        // standard set; a finance drill also names how gaps get named
+        // (from answers, never from the set itself).
+        const grounded = !!(bank && bank.cir_grounded);
+        const trackLabel = roleFamily === "finance" ? (/\bquant\b|\bprobability\b|market[- ]making/.test(t) ? "quant" : "finance technicals") : roleFamily === "swe" ? "SWE coding" : roleFamily === "product" ? "PM" : null;
+        const headline = company && grounded ? `Your prep set for ${company}, matched to how this round actually runs.` : trackLabel ? `Your ${trackLabel} prep set.` : "Your prep set for this track.";
+        const facts = list.length ? [...list] : ["The set is built from the question bank for this track, in the order the gaps on your profile demand."];
+        if (!grounded) facts.push(company ? `No company file is on record for ${company}, so this is the track's standard set — add the company file and it re-orders to that company's known style.` : "No company is named in this session, so this is the track's standard set, not one matched to a company's style — name the company and it re-orders to theirs.");
+        if (roleFamily === "finance") facts.push("Gaps are named from your answers as the drill runs — each answer is scored, and the topics it could not cover are listed; a question list alone cannot name them, and this set does not pretend to.");
+        const reply = compose({ headline, facts, nextStep: "Start the first one as a timed drill?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: payloadFor(bank) };
       }
       if (/\bquestion bank\b/.test(t) && Prep.questionBank) {
         const { args } = bankArgs();
         const bank = Prep.questionBank(args);
         const qs = (bank && (bank.questions || bank)) || [];
-        const list = (Array.isArray(qs) ? qs : []).slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
+        const rows = Array.isArray(qs) ? qs : [];
+        const list = rows.slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         if (list.length) {
-          const reply = compose({ headline: `The question bank${company ? ` for ${company}` : " for this round"}, with your best story matched to each.`, facts: list.map((q) => `${q}`), nextStep: "Pick one and we drill it." });
+          // WORDING-BACKLOG (BUG-134): the story match is spoken per
+          // the bank's own record — a matched story is named; an
+          // empty match is stated as empty. The headline never
+          // promises a match the record does not hold.
+          const mapped = rows.filter((q) => q && q.matched_story);
+          const mapFact = mapped.length
+            ? `Matched: ${mapped.slice(0, 2).map((q) => `"${s(q.q).slice(0, 60)}" — your story "${q.matched_story.title}"`).join("; ")}.`
+            : "No story is matched to any question yet — the profile holds no mineable story, so the match is stated as empty rather than invented.";
+          const reply = compose({ headline: `The question bank${company ? ` for ${company}` : " for this round"}, with the story match stated per question.`, facts: [...list, mapFact], nextStep: "Pick one and we drill it." });
           return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: payloadFor(bank) };
         }
       }
@@ -1786,16 +1817,117 @@ const CareerRouter = (() => {
           const reply = compose({ headline: `Your STAR bank: ${stories.length} reusable stories, mined from your real experiences.`, facts: stories.slice(0, 3).map((x) => s(typeof x === "string" ? x : x.title || x.name || "").split(/(?<=[.!?])\s/)[0]).filter(Boolean), nextStep: "Want the weakest one drilled first?" });
           return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, story_bank: bank, payload: bank };
         }
+        // WORDING-BACKLOG (BUG-134): an empty bank is answered as an
+        // empty bank — never with the generic brief's question list
+        // wearing the bank's name. The ask's own count is carried as
+        // the build target.
+        const wantN = Number((t.match(/(\d+)\s+(reusable\s+)?stories/) || [])[1]) || null;
+        const reply = compose({ headline: "Your STAR bank is empty — no stories are mined from your profile yet.", facts: [`A bank is your real experiences shaped into Situation, Task, Action, Result stories you can reuse across rounds; the profile on record names your roles and facts, but no experience is attached as a mineable story yet, so ${wantN ? `the ${wantN} reusable stories you asked for do` : "the bank does"} not exist to hand you.`, "Nothing gets invented to fill it: a rehearsed story you cannot defend collapses under the first follow-up question."], nextStep: "Name one real experience — a project, a deadline, a team that shipped — and I will shape it into your first story." });
+        return { intent: "prep_brief", reply, resultStatus: "awaiting_user", sends: 0, story_bank: bank, payload: bank };
       }
+      // The brief's own record, spoken: bar, loop, screening
+      // signals, the story-mapping state, and the likely questions —
+      // in that order, one fact each. Shared by the composeBrief
+      // producer route and the brief fallthrough (BUG-136).
+      const briefFacts = (brief) => {
+        const F = [];
+        if (!brief || typeof brief !== "object") return F;
+        const barText = brief.bar ? s(typeof brief.bar === "string" ? brief.bar : brief.bar.text || brief.bar.statement || "") : "";
+        if (barText) F.push(`The bar${brief.company ? ` at ${brief.company}` : ""}: ${barText}`);
+        if (Array.isArray(brief.stages) && brief.stages.length) F.push(`The loop, from the company file: ${brief.stages.map((x) => s(typeof x === "string" ? x : x.name || "")).filter(Boolean).join(" · ")}.`);
+        if (Array.isArray(brief.emphasis) && brief.emphasis.length) {
+          const pts = brief.emphasis.slice(0, 2).map((e) => s(e && (e.point || e.text) || e)).filter(Boolean);
+          F.push(`What they screen for: ${(pts.length && pts[0].length > 200 ? pts.slice(0, 1) : pts).join(" · ")}`);
+        }
+        if (brief.status === "NO_CIR" && Array.isArray(brief.gaps) && brief.gaps.length) F.push(s(brief.gaps[0]));
+        if (Array.isArray(brief.story_map) && brief.story_map.length) F.push(`Your story "${brief.story_map[0].title}" is matched to: ${s((brief.story_map[0].mapped_to_questions || [])[0] || "").slice(0, 90)}.`);
+        else if (brief.stories_note || brief.status) F.push("No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.");
+        const qs2 = brief.likely_questions || [];
+        if (qs2.length) F.push(`Likely first questions: ${qs2.slice(0, 3).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean).join(" · ")}`);
+        return F.slice(0, 5);
+      };
+      // WORDING-BACKLOG (BUG-135): every producer's reply speaks its
+      // OWN record — the prompts, framework, changes, scripts,
+      // questions, or pattern the product actually built. The old
+      // composition read one body string (most producers have none)
+      // and filled the space with the same grounding sentence twice.
+      const producerFacts = (fn, out) => {
+        const F = [];
+        const push = (x) => { const v = s(x).trim(); if (v) F.push(v); };
+        if (!out || typeof out !== "object") return F;
+        if (fn === "systemDesignPrep") {
+          if (Array.isArray(out.prompts) && out.prompts.length) push(`Work these prompts at experienced-hire depth: ${out.prompts.join(" · ")}`);
+          if (Array.isArray(out.framework) && out.framework.length) push(`The framework, in order: ${out.framework.join("; ")}.`);
+          if (Array.isArray(out.level_notes) && out.level_notes.length) push(out.level_notes[0]);
+        } else if (fn === "coffeeChatPrep") {
+          for (const tp of (out.talking_points || []).slice(0, 3)) push(tp);
+          if (Array.isArray(out.questions) && out.questions.length) push(`Questions to ask them: ${out.questions.slice(0, 2).join(" · ")}`);
+          if (!out.cir_grounded) push("No company file is on record for this chat, so nothing about the firm is claimed — the brief stands on their path and your own work.");
+        } else if (fn === "finalRoundDelta" || fn === "superdayPlan") {
+          for (const c of (out.changes || []).slice(0, 3)) push(c);
+          if (Array.isArray(out.drill_topics)) for (const d of out.drill_topics.slice(0, 2)) push(typeof d === "string" ? d : (d && d.text) || "");
+          if (out.status === "NO_CIR") {
+            // (the record's own gap text says "CIR" — the composer's
+            // lint strips that token from prose, so it is spoken as
+            // "company file" here or the fact never reaches the user)
+            push(s((out.gaps || [])[0] || "No company file is on record, so the company-specific shape of this round is not claimed.").replace(/\bCIR\b/g, "company file"));
+            push(fn === "superdayPlan"
+              ? "What a superday is, in general: a half-day of back-to-back rounds — behavioral, technicals, and a case or market discussion — with almost no gaps between them; the survival plan paces the days before, sets a night-before cutoff, and lines your stories up per round type."
+              : "What changes in a final round, in general: breadth screens give way to depth — fewer screeners, longer follow-ups on your own stories and the technical core, and the people in the room who can actually say yes.");
+          }
+        } else if (fn === "salaryDeflectionScripts") {
+          // The scripts ARE the deliverable: each script's sentences
+          // ride as their own facts (the composer keeps one sentence
+          // per fact), the "when" label on the first.
+          for (const sc of (out.scripts || []).slice(0, 3)) if (sc && sc.text) {
+            const sents = s(sc.text).split(/(?<=[.!?])\s+/).filter(Boolean);
+            sents.forEach((sent, i) => push(i === 0 ? `When ${sc.when}, say: ${sent}` : sent));
+          }
+          if (out.anchor_rule) push(out.anchor_rule);
+        } else if (fn === "questionsToAsk") {
+          for (const q of (out.questions || []).slice(0, 3)) if (q) push(typeof q === "string" ? q : q.text || "");
+          if (out.note && out.team_unknown) push(s(out.note).replace(/\bCIR\b/g, "company file"));
+        } else if (fn === "videoInterviewPractice") {
+          push("Practice only: your answers are scored on content here and are never submitted to any employer by the agent — a submission, if any, is your own act in the employer's portal.");
+          push("Record an answer, paste its transcript, and it is scored on structure, specificity, and whether the result lands — the same rubric as the text mock.");
+        } else if (fn === "takeHomePlan") {
+          push("Plan only: the agent scopes and schedules the take-home — the work itself stays yours, and nothing is drafted or submitted for you.");
+          if (out.warning) push(out.warning);
+          else push("The schedule comes back hour by hour once the deliverables and your real time blocks are named, with a checkpoint after the first deliverable and a hard stop 30 minutes before the deadline for the write-up.");
+        } else if (fn === "debriefRetro") {
+          if (out.total_debriefs) {
+            for (const p of (out.patterns || []).slice(0, 2)) push(`Pattern: ${s(p.theme || p.text || p)} — in ${p.count != null ? p.count : "?"} debriefs.`);
+            if (out.top_miss) push(`The recurring miss: ${out.top_miss}.`);
+          } else {
+            push("No debrief is captured yet in this session, so there is no pattern to mine — a retro on zero records would be invented.");
+            push("When debriefs exist, the retro mines them for the recurring miss — the question type or stage where rounds keep stalling — and names the top one with its count.");
+          }
+        } else if (fn === "composeBrief") {
+          return briefFacts(out);
+        }
+        return F;
+      };
+      const producerNext = {
+        videoInterviewPractice: "Paste your first answer's transcript and I will score it against the rubric.",
+        takeHomePlan: "Tell me the deliverables and your time blocks and I will lay out the hours.",
+        finalRoundDelta: "Name the company and the file turns this into its actual final stage — or want the general version run as a mock?",
+        superdayPlan: "Tell me the firm and I will rebuild this from its company file — or want the general plan turned into a day-by-day schedule?",
+        questionsToAsk: "Want to rehearse your strongest one out loud?",
+        salaryDeflectionScripts: "Want to rehearse the pressed-for-a-number one out loud?",
+        systemDesignPrep: "Want to run the first prompt as a timed design drill?",
+        coffeeChatPrep: "Want to rehearse your 60-second opener before the chat?",
+        debriefRetro: "Tell me the last round in your own words — what they asked, where it snagged — and the debrief record starts there.",
+        composeBrief: "Want to run it as a mock, one question at a time?",
+      };
       // IB-F5F7-4: the interview-shaped producers answer their own
       // asks (these used to fall to the OS capability template).
       const producerRoutes = [
         [/\bvideo\b[^.]*\b(practice|interview)\b|\bpractice\b[^.]*\bcamera\b/, "videoInterviewPractice", "Your video-interview practice plan."],
         [/\btake[ -]home\b/, "takeHomePlan", "Your take-home plan, hour by hour."],
-        [/\bfinal[ -]round\b|\bfinal round\b/, "finalRoundDelta", "The final-round delta: what changes at this stage."],
         [/\bsuperday\b/, "superdayPlan", "Your superday plan."],
+        [/\bfinal[ -]round\b|\bfinal round\b/, "finalRoundDelta", "The final-round delta: what changes at this stage."],
         [/\bquestions[ -]to[ -]ask\b|\bquestions i should ask\b|\bask the (panel|interviewer)\b/, "questionsToAsk", "Your questions to ask, matched to this panel."],
-        [/\bdebrief\b/, "debriefRetro", "The debrief, mined for the pattern."],
+        [/\bdebriefs?\b|\bretro\b/, "debriefRetro", "The debrief, mined for the pattern."],
         [/\bcoffee[ -]chat\b/, "coffeeChatPrep", "Your coffee-chat brief."],
         [/\bdeflect|\bsalary\b[^.]*\b(script|deflect|say)\b|\bwhat do i say\b[^.]*\bsalary\b/, "salaryDeflectionScripts", "Your salary-deflection scripts, word for word."],
         [/\bsystem[ -]design\b/, "systemDesignPrep", "Your system-design prep set."],
@@ -1806,8 +1938,12 @@ const CareerRouter = (() => {
           try {
             const out = fn === "debriefRetro" ? Prep.debriefRetro({ debriefs: (ctx.debriefs || []) }) : Prep[fn]({ cir: cirFor(text, ctx), company: company || undefined, profile });
             if (out) {
-              const body = digText(out, ["text", "summary"], ["plan", "scripts", "questions", "lines", "sections", "schedule", "items"]);
-              const reply = compose({ headline, facts: [body ? body.split(/(?<=[.!?])\s/).slice(0, 2).join(" ") : "Built from the prep bank for this round and the facts on your profile — nothing rehearsed that you cannot defend.", "Every line is built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: "Want to run the first piece as a timed drill?" });
+              const facts = producerFacts(fn, out);
+              if (fn === "debriefRetro" && /thank[ -]you/.test(t)) facts.push("The thank-you is drafted from the debrief and held for your yes — it goes out only when you approve the exact text.");
+              // A panel-less questions ask is not "matched to this
+              // panel" — the headline says which set it is.
+              const head = fn === "questionsToAsk" && out.team_unknown ? "Your questions to ask — no panel is named yet, so these are the round's standard set." : headline;
+              const reply = compose({ headline: head, facts: facts.length ? facts : ["Built from the prep bank for this round and the facts on your profile — nothing rehearsed that you cannot defend."], nextStep: producerNext[fn] || "Want to run the first piece as a timed drill?" });
               return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: out, payload: out };
             }
           } catch { /* fall through to the brief */ }
@@ -1818,13 +1954,21 @@ const CareerRouter = (() => {
         // IB-F5F7-3: the company file rides into the brief — a null CIR
         // produced NO_CIR briefs that cannot validate or cite.
         const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
-        const qs = (brief && (brief.likely_questions || brief.questions)) || [];
-        const facts = [];
-        if (qs.length) facts.push(`Likely first questions: ${qs.slice(0, 3).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean).join(" · ")}`);
-        facts.push("Every answer gets built from facts on your profile — nothing rehearsed that you cannot defend.");
+        // WORDING-BACKLOG (BUG-136): the brief reply speaks the
+        // brief's own record (bar, loop, signals, story-mapping
+        // state, questions) under a headline that names the ask's
+        // shape — never a question list plus a grounding slogan
+        // serving every brief-shaped ask alike.
+        const facts = briefFacts(brief);
+        if (/\bportfolio walkthrough\b/.test(t)) facts.push("The walkthrough runs project by project, in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
+        if (/\bhiring[ -]manager\b/.test(t)) facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap.");
         if (/\btwo interviews\b|\bsame day\b/.test(t)) facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue.");
         if (/\bnight[ -]before\b|\bthursday\b|\btomorrow\b/.test(t)) facts.push("The pack lands the day before, so the morning itself is only logistics: links, tech check, materials.");
-        const reply = compose({ headline: `Your interview brief${company ? ` for ${company}` : ""}.`, facts, nextStep: "Want to run it as a mock, one question at a time?" });
+        const headline = /\bnight[ -]before\b/.test(t) ? `Your night-before brief${company ? ` for ${company}` : ""}.`
+          : /\bhiring[ -]manager\b/.test(t) ? `Your hiring-manager brief${company ? ` for ${company}` : ""}.`
+          : /\bportfolio walkthrough\b/.test(t) ? `Your portfolio walkthrough prep${company ? ` for ${company}` : ""}.`
+          : `Your interview brief${company ? ` for ${company}` : ""}.`;
+        const reply = compose({ headline, facts: facts.length ? facts : ["Every answer gets built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: /\bportfolio walkthrough\b/.test(t) ? "Want to run the walkthrough now, project by project, the way the round will?" : "Want to run it as a mock, one question at a time?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief, payload: brief };
       }
     } catch { return null; }
@@ -3319,9 +3463,12 @@ const CareerRouter = (() => {
     if (profile && typeof profile === "object") profile._careerRouterPrep = state;
     const facts = [];
     if (state.role) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
-    facts.push("One question at a time — answer in your own words and I will score it against a rubric.");
     facts.push(`Grounded in your own profile record and public interview-pattern data, as of ${asOfMonthYear(ctx)}.`);
-    const reply = compose({ headline: state.currentQ, facts });
+    facts.push("Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end.");
+    // WORDING-BACKLOG (BUG-135): the posed question CLOSES the reply
+    // (as the next step) — a mock whose last line is a grounding
+    // sentence collects the generic closer behind it.
+    const reply = compose({ headline: "Your mock starts now — one question at a time, scored feedback at the end.", facts, nextStep: state.currentQ });
     return { intent: "prep_mock_start", reply, resultStatus: "running", mock: { id: state.mockId, question: state.currentQ, role: state.role } };
   }
   function handlePrepAnswer(text, ctx) {

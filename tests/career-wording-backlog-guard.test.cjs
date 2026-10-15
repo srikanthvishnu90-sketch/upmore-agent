@@ -152,3 +152,78 @@ test("BUG-125: no two plan replies in the family are byte-identical", () => {
     seen.set(id, t);
   }
 });
+
+// ================= PREP (BUG-133..BUG-136) =================
+
+// ---- BUG-133: a prep-set headline claims a company match only when
+// a company file grounds it; track sets name their track; a quant
+// ask leads with the quant drills; a PM set exists ----
+test("BUG-133: prep sets speak their true track and grounding", () => {
+  const t183 = text(turn("SC-183"));
+  assert.ok(/Your SWE coding prep set\./.test(t183), `SC-183: ${t183.slice(0, 90)}`);
+  assert.ok(!/matched to how this round actually runs/.test(t183), "SC-183: ungrounded match claim");
+  assert.ok(/track's standard set/.test(t183), "SC-183: honest grounding line");
+  const t186 = text(turn("SC-186"));
+  assert.ok(/Your quant prep set\./.test(t186), `SC-186: ${t186.slice(0, 80)}`);
+  assert.ok(/two heads in a row/.test(t186) && /make a market/.test(t186), "SC-186: quant drills lead");
+  assert.ok(!/three financial statements/.test(t186.split("Gaps are named")[0].slice(0, 400)) || t186.indexOf("two heads") < t186.indexOf("three financial"), "SC-186: quant before banking");
+  const t187 = text(turn("SC-187"));
+  assert.ok(/Your finance technicals prep set\./.test(t187) && /Gaps are named from your answers/.test(t187), `SC-187: ${t187.slice(0, 120)}`);
+  const t188 = text(turn("SC-188"));
+  assert.ok(/Your PM prep set\./.test(t188) && /thing you shipped/.test(t188) && /improve it/.test(t188), `SC-188: ${t188.slice(0, 120)}`);
+});
+
+// ---- BUG-134: story matching is spoken from the record; an empty
+// STAR bank is answered as an empty bank ----
+test("BUG-134: question bank and STAR bank speak their true match state", () => {
+  const t177 = text(turn("SC-177"));
+  assert.ok(/story match stated per question/.test(t177), `SC-177: ${t177.slice(0, 90)}`);
+  assert.ok(/No story is matched to any question yet/.test(t177), "SC-177: empty match stated");
+  assert.ok(!/your best story matched to each/.test(t177), "SC-177: no promised match");
+  const t180 = text(turn("SC-180"));
+  assert.ok(/^Your STAR bank is empty/.test(t180), `SC-180: ${t180.slice(0, 90)}`);
+  assert.ok(/the 8 reusable stories you asked for do not exist/.test(t180), "SC-180: the ask's count carried honestly");
+  assert.ok(!/Likely first questions/.test(t180), "SC-180: no canned brief questions");
+});
+
+// ---- BUG-135: producer replies speak their own records, once ----
+test("BUG-135: producer replies speak their records with per-shape next steps", () => {
+  const t184 = text(turn("SC-184"));
+  assert.ok(/Work these prompts/.test(t184) && /The framework, in order/.test(t184), `SC-184: ${t184.slice(0, 160)}`);
+  const t194 = text(turn("SC-194"));
+  assert.ok(/say: I'm focused on the role/.test(t194) && /Do not anchor early/.test(t194), `SC-194: ${t194.slice(0, 200)}`);
+  const t197 = text(turn("SC-197"));
+  for (const w of ["Situation", "Task", "Action", "Result"]) assert.ok(t197.includes(w), `SC-197 missing ${w}`);
+  assert.ok(!/<one line/.test(t197), "SC-197: raw scaffold template leaked");
+  const t198 = text(turn("SC-198"));
+  assert.ok(!/\(TEST/.test(t198), "SC-198: fixture label in prose");
+  assert.ok(/Camera, mic and speaker test/.test(t198), "SC-198: checklist enumerated past logistics");
+  const t199 = text(turn("SC-199"));
+  assert.ok(/No debrief is captured yet/.test(t199) && !/Your interview brief/.test(t199), `SC-199: ${t199.slice(0, 120)}`);
+  const t178 = text(turn("SC-178"));
+  assert.ok(t178.trimEnd().endsWith("Tell me about yourself and why this role."), `SC-178 must end on the question: ${t178.slice(-120)}`);
+  assert.ok(!/Tell me what you'd like to do next/.test(t178), "SC-178: generic closer");
+  // the doubled grounding filler is gone family-wide
+  for (const id of ["SC-184", "SC-189", "SC-191", "SC-192", "SC-193", "SC-200", "SC-201"]) {
+    const t = text(turn(id));
+    const n = (t.match(/nothing rehearsed that you cannot defend/g) || []).length;
+    assert.ok(n <= 1, `${id}: grounding filler appears ${n} times`);
+    assert.ok(!/Want to run the first piece as a timed drill\?/.test(t), `${id}: shared drill closer survived`);
+  }
+});
+
+// ---- BUG-136: briefs and coffee chats speak their records ----
+test("BUG-136: brief replies speak bar, loop, and story state; coffee chats speak their points", () => {
+  const t176 = text(turn("SC-176"));
+  assert.ok(/Your night-before brief for Stripe\./.test(t176) && /The bar at Stripe:/.test(t176) && /The loop, from the company file:/.test(t176), `SC-176: ${t176.slice(0, 200)}`);
+  const t190 = text(turn("SC-190"));
+  assert.ok(/Questions to ask them:/.test(t190) && /Palantir/.test(t190), `SC-190: ${t190.slice(0, 200)}`);
+  const t182 = text(turn("SC-182"));
+  assert.ok(/Questions to ask them:/.test(t182) && /No company file is on record for this chat/.test(t182), `SC-182: ${t182.slice(0, 200)}`);
+  const t203 = text(turn("SC-203"));
+  assert.ok(/Your portfolio walkthrough prep\./.test(t203) && /walkthrough runs project by project/.test(t203), `SC-203: ${t203.slice(0, 160)}`);
+  const t200 = text(turn("SC-200"));
+  assert.ok(/Your superday plan\./.test(t200) && /No merged company file/.test(t200) && /back-to-back rounds/.test(t200), `SC-200: ${t200.slice(0, 200)}`);
+  const t195 = text(turn("SC-195"));
+  assert.ok(!/matched to this panel/.test(t195) && /No team fact was supplied/.test(t195), `SC-195: ${t195.slice(0, 200)}`);
+});

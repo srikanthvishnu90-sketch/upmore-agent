@@ -252,11 +252,11 @@ test("BUG-137: announcements name the event, its source, and its next step", () 
 // ---- BUG-138: an empty tracker answers in the shape of the ask ----
 test("BUG-138: empty-tracker replies take the ask's shape", () => {
   const t134 = text(turn("SC-134"));
-  assert.ok(/Your offer expires Friday — I will flag it daily until you decide/.test(t134), `SC-134: ${t134.slice(0, 120)}`);
+  assert.ok(/Your offer expires Friday, [A-Z][a-z]+ \d+ — I will flag it daily until you decide/.test(t134), `SC-134: ${t134.slice(0, 120)}`);
   const t139 = text(turn("SC-139"));
   assert.ok(/labeled ghosted/.test(t139) && /one follow-up/.test(t139), `SC-139: ${t139.slice(0, 140)}`);
   const t140 = text(turn("SC-140"));
-  assert.ok(/Done — low-priority alerts are folded into the morning digest during your quiet hours\./.test(t140), `SC-140: ${t140.slice(0, 120)}`);
+  assert.ok(/The quiet-hours rule is ready/.test(t140) && /fold into the morning digest during your quiet hours/.test(t140), `SC-140: ${t140.slice(0, 120)}`);
   const t121 = text(turn("SC-121"));
   assert.ok(/Tell me about any application already out under your own name, and I will log it first\./.test(t121), `SC-121: ${t121.slice(-120)}`);
   assert.ok(!/Find a role and I will start the tracker with it\./.test(t121), "SC-121: generic closer gone");
@@ -359,6 +359,56 @@ test("BUG-191: empty-record deliverables state their zero with the arithmetic sh
   assert.ok(/zero on both sides/.test(t41) && !/Open the current list and I will show/.test(t41), `SC-041: ${t41.slice(0, 200)}`);
   const t34 = text(turn("SC-034"));
   assert.ok(/pattern check ran over this session's record/.test(t34) && !/Say the word and I run the pattern check/.test(t34), `SC-034: ${t34.slice(0, 200)}`);
+});
+
+// ================= TRACK PASS 2 (BUG-197..BUG-200) =================
+// The Track wording judge's new defects: announce claims the
+// record didn't carry, past calendar slots, status shapes that
+// asserted state they didn't write, and brief residuals.
+
+// ---- BUG-197: announce claims are read off the record; drafts are shown; gates are surfaced ----
+test("BUG-197: no deadline or expiry is claimed without a value on the record; the clarifying draft is shown; the nudge blocker names its gate", () => {
+  const t126 = text(turn("SC-126"));
+  assert.ok(!/its deadline is set/.test(t126) && /no deadline was stated, so none is set/.test(t126), `SC-126: ${t126.slice(0, 200)}`);
+  const t127 = text(turn("SC-127"));
+  assert.ok(!/expiry clock is running/.test(t127) && /no clock is invented/.test(t127), `SC-127: ${t127.slice(0, 200)}`);
+  const t123 = text(turn("SC-123"));
+  assert.ok(/flags a pattern only when the record holds more than one rejection/.test(t123), `SC-123: ${t123.slice(0, 260)}`);
+  const t125 = text(turn("SC-125"));
+  assert.ok(/The draft asks exactly this:/.test(t125) && /waits on its card for your yes/.test(t125), `SC-125: ${t125.slice(0, 260)}`);
+  const t128 = text(turn("SC-128"));
+  assert.ok(/nothing goes out without your yes/.test(t128) && /quiet spell you named is 21 days/.test(t128), `SC-128: ${t128.slice(0, 300)}`);
+});
+
+// ---- BUG-198: a calendar proposal never offers a past time ----
+test("BUG-198: offered slots that have all passed are re-proposed for the next day, disclosed", () => {
+  const t143 = text(turn("SC-143"));
+  assert.ok(/proposes the same times tomorrow/.test(t143), `SC-143: ${t143.slice(0, 300)}`);
+  assert.ok(!/already passed today" ;|— that time has already passed/.test(t143), "SC-143: a past slot is still being offered");
+});
+
+// ---- BUG-199: status shapes assert only the state they hold ----
+test("BUG-199: ghosted names a pattern, quiet hours arm conditionally, expiries carry dates, the dashboard addresses the plan, the retro delivers the plan", () => {
+  const t139 = text(turn("SC-139"));
+  assert.ok(/that pattern is labeled ghosted/.test(t139) && !/The label goes on the record/.test(t139), `SC-139: ${t139.slice(0, 200)}`);
+  const t140 = text(turn("SC-140"));
+  assert.ok(!/^Done —/.test(t140) && /cannot run from tonight against hours/.test(t140), `SC-140: ${t140.slice(0, 200)}`);
+  const t134 = text(turn("SC-134"));
+  assert.ok(/expires (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), (January|February|March|April|May|June|July|August|September|October|November|December) \d+/.test(t134) && !/starting now/.test(t134), `SC-134: ${t134.slice(0, 160)}`);
+  const t141 = text(turn("SC-141"));
+  assert.ok(/that half of your ask is missing, not zero/.test(t141) && !/retro view, or the week ahead/.test(t141), `SC-141: ${t141.slice(0, 240)}`);
+  const t145 = text(turn("SC-145"));
+  assert.ok(/a floor, not a forecast/.test(t145) && /first retro checkpoint at 10 applications/.test(t145), `SC-145: ${t145.slice(0, 260)}`);
+});
+
+// ---- BUG-200: a named appointment carries its timezone; two interviews are individuated or the gap is stated ----
+test("BUG-200: interview times carry a timezone, the interviewer gap is stated, and a two-interview pack is marked as its own shape", () => {
+  const t135 = text(turn("SC-135"));
+  assert.ok(/2:00 PM (CDT|CST|EDT|EST|MDT|MST|PDT|PST)\b/.test(t135) && /no interviewer brief to build/.test(t135), `SC-135: ${t135.slice(0, 240)}`);
+  const r136 = turn("SC-136");
+  const t136 = text(r136);
+  assert.ok(/Neither interview is identified in this session/.test(t136), `SC-136: ${t136.slice(0, 240)}`);
+  assert.ok(r136.result && r136.result.payload && r136.result.payload.ask_shape === "two_interviews_same_day", "SC-136: the two-interview pack must be its own typed shape, not SC-135's payload");
 });
 
 // ================= PREP PASS 2 (BUG-192..BUG-195) =================

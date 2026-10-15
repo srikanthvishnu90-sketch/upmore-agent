@@ -2003,7 +2003,7 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 248 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 353
+Counts: ENFORCED 252 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 357
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2360,8 +2360,12 @@ Counts: ENFORCED 248 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-351 (BUG-194) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-194 |
 | FR-352 (BUG-195) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-195 |
 | FR-353 (BUG-196) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-196 |
+| FR-354 (BUG-197) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-197 |
+| FR-355 (BUG-198) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-198 |
+| FR-356 (BUG-199) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-199 |
+| FR-357 (BUG-200) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-200 |
 
-<!-- totals: total=353 enforced=248 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=357 enforced=252 guarded_red=1 hard_shut=1 unenforced=103 -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2458,3 +2462,19 @@ Counts: ENFORCED 248 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-353 — A claim verb claims in every clothing; set replies name their head (BUG-196)
 - **RULE:** The words sent / applied / confirmed (and the rest of the claim class) are never used in a reply — as verb, noun, or adjective — for a state the turn's record does not show; record language is used instead ("went out", "on the record", "reaches its doorstep"). A reply that speaks a set names the head of it and rides the rest on the typed record; a bubble reciting a whole list reads as a canned shortlist. Every tracking read — including an application-status answer — carries the 141 tracker doorstep record on its result.
 - **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-196 (SC-036/037/068/069/096/106/115 shapes).
+
+### FR-354 — An announcement claims only the values on its record (BUG-197)
+- **RULE:** A deadline, an expiry, or a pattern is spoken only when the record carries the value or the count: one rejection names no repeated gap, and a letter that states no expiry date gets no clock. A draft that exists is shown (its own words quoted), never merely offered; and an outward-action blocker always surfaces the approval gate the user set.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-197 (SC-123/125/126/127/128 shapes).
+
+### FR-355 — A proposal never offers a time that has already passed (BUG-198)
+- **RULE:** Offered times are checked against the turn's own clock. All-past offers are re-evaluated for the next day at the same local times (conflict checks rerun) with the shift disclosed in the reply and recorded in the payload; a past slot is never presented as available.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-198 (SC-143 shape).
+
+### FR-356 — A status shape asserts only the state it holds (BUG-199)
+- **RULE:** A label is spoken as the name of a pattern unless a write put it on a row this turn; a setting is never "done" before the inputs it depends on exist; every deadline carries its absolute date on first mention; a missing comparison (a plan, a base) is stated as missing, not dropped and not zero; and a retro or dashboard delivers its forward plan from the numbers it has — from zero, an honest floor.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-199 (SC-134/139/140/141/145 shapes).
+
+### FR-357 — A named appointment is fully specified, and every ask shape is its own (BUG-200)
+- **RULE:** A stated time carries its timezone; a named deliverable the record cannot support (an interviewer brief with no interviewer named) states its gap and unlocking input instead of passing silently; and two different asks never receive byte-identical payloads — a shape that differs (two interviews in one day) carries its own typed marker and its own spoken treatment.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-200 (SC-135/136 shapes).

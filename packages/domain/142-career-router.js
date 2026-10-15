@@ -2096,7 +2096,8 @@ const CareerRouter = (() => {
               // standard story-to-round mapping — not described as
               // a plan that exists somewhere else.
               push("The plan's pacing: arrive 15 minutes early; between rounds you get minutes, not breaks — water and a breath at every gap, phone face-down, and one line written per interviewer (their name, one specific) before the next room.");
-              push("Night-before cutoff: prep stops at 9:00 PM — after that only logistics (links, outfit, route) and sleep; morning-of cramming is the known failure mode.");
+              let tzA = ""; try { tzA = new Intl.DateTimeFormat("en-US", { timeZone: (ctx && ctx.timezone) || "America/Chicago", timeZoneName: "short" }).formatToParts(new Date(nowOf(ctx))).find((p) => p.type === "timeZoneName").value; } catch { tzA = ""; }
+              push(`Night-before cutoff: prep stops at 9:00 PM${tzA ? ` ${tzA}` : ""} — after that only logistics (links, outfit, route) and sleep; morning-of cramming is the known failure mode.`);
               push("Story-to-round mapping, the standard shape: your strongest project story leads the behavioral rounds, the hardest-problem story covers the technicals, and the team-under-pressure story is held for the case or market round.");
             } else {
               push("What changes in a final round, in general: breadth screens give way to depth — fewer screeners, longer follow-ups on your own stories and the technical core, and the people in the room who can actually say yes.");
@@ -2137,8 +2138,8 @@ const CareerRouter = (() => {
       const producerNext = {
         videoInterviewPractice: "Paste your first answer's transcript and I will score it against the rubric.",
         takeHomePlan: "Tell me the deliverables and your time blocks and I will lay out the hours.",
-        finalRoundDelta: "Name the company and the file turns this into its actual final stage.",
-        superdayPlan: "Name the firm and the file sharpens this mapping to its actual rounds.",
+        finalRoundDelta: "Name the company and the file turns this into its actual final stage?",
+        superdayPlan: "Name the firm and the file sharpens this mapping to its actual rounds?",
         questionsToAsk: "Want to rehearse your strongest one out loud?",
         salaryDeflectionScripts: "Want to rehearse the pressed-for-a-number one out loud?",
         systemDesignPrep: "Want to run the first prompt as a timed design drill?",
@@ -2235,7 +2236,8 @@ const CareerRouter = (() => {
           for (const p of projects) { const pn = s(p.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim(); facts.push(`Opener for ${pn}: "Walk me through ${pn} — why that stack, what broke first, and what you would change now."`); }
         }
         if (/\bhiring[ -]manager\b/.test(t)) facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap.");
-        if (/\btwo interviews\b|\bsame day\b/.test(t)) facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue.");
+        if (/\binterviewer brief\b/.test(t)) facts.push("No interviewer is named in this session, so there is no interviewer brief to build — paste the invite names and each brief is built from public sources only.");
+        if (/\btwo interviews\b|\bsame day\b/.test(t)) { facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue."); facts.push("Neither interview is identified in this session — no companies or times are on record — so that order is the rule; it becomes concrete, per interview, the moment the two are named."); try { brief.ask_shape = "two_interviews_same_day"; } catch { /* payload marker is best-effort */ } }
         // WORDING-BACKLOG (BUG-140): a named appointment is spoken
         // with its absolute date — the weekday the ask names, dated
         // from the turn's own clock, and the pack day named as the
@@ -2251,7 +2253,11 @@ const CareerRouter = (() => {
             d.setDate(d.getDate() + add);
             const pack = new Date(d); pack.setDate(pack.getDate() - 1);
             const fmt = (x) => new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(x);
-            const time = `${Number(apptM[2])}:${apptM[3] || "00"} ${apptM[4].toUpperCase()}`;
+            // WORDING-BACKLOG (BUG-200): a stated time carries its
+            // timezone (H-14) — the turn's own zone, abbreviated.
+            let tzAbbr = "";
+            try { const zp = new Intl.DateTimeFormat("en-US", { timeZone: (ctx && ctx.timezone) || "America/Chicago", timeZoneName: "short" }).formatToParts(d).find((p) => p.type === "timeZoneName"); tzAbbr = zp ? ` ${zp.value}` : ""; } catch { tzAbbr = ""; }
+            const time = `${Number(apptM[2])}:${apptM[3] || "00"} ${apptM[4].toUpperCase()}${tzAbbr}`;
             apptFact = `Your interview is ${fmt(d)} at ${time} — the pack lands ${fmt(pack)}, the day before, so the morning itself is only logistics: links, tech check, materials.`;
             facts.unshift(apptFact);
           } catch { apptFact = null; }
@@ -2515,20 +2521,42 @@ const CareerRouter = (() => {
       if (/\boffer\b[^.]*\bexpir|\bexpiring\b/.test(tt)) {
         const dayM = tt.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
         const day = dayM ? dayM[1][0].toUpperCase() + dayM[1].slice(1) : null;
-        const reply = compose({ headline: day ? `Your offer expires ${day} — I will flag it daily until you decide, starting now.` : "Your offer is expiring — I will flag it daily until you decide, starting now.", facts: ["The tracker in this session holds no application to pin the flag to yet, so the escalation arms the moment the offer is on the record.", "Each flag repeats until you decide — accept, decline, or ask for more time — and stops the day you do."], nextStep: "Tell me the company and the role, and I will pin the daily flag to that offer." });
+        // WORDING-BACKLOG (BUG-199): the deadline carries its
+        // absolute date on first mention (H-14) — the next such
+        // weekday from the turn's own clock, dated.
+        let dayFull = day;
+        if (dayM) {
+          try {
+            const wantDay = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 }[dayM[1].toLowerCase()];
+            const base = new Date(nowOf(ctx)); const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+            let add = (wantDay - d.getDay() + 7) % 7; if (add === 0) add = 7;
+            d.setDate(d.getDate() + add);
+            dayFull = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(d);
+          } catch { dayFull = day; }
+        }
+        const reply = compose({ headline: dayFull ? `Your offer expires ${dayFull} — I will flag it daily until you decide.` : "Your offer is expiring — I will flag it daily until you decide.", facts: ["The tracker in this session holds no application to pin the flag to yet, so the escalation arms the moment the offer is on the record.", "Each flag repeats until you decide — accept, decline, or ask for more time — and stops the day you do."], nextStep: "Tell me the company and the role, and I will pin the daily flag to that offer." });
         let sum0 = null;
         try { sum0 = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum0 = null; }
         return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum0 ? { summary: sum0 } : { summary: { total: 0 } });
       }
       if (/\bghost|\bsilent\b|\bsilence\b/.test(tt) && /\bfinal\b|\b(thirty|30|weeks?|month)\b/.test(tt)) {
         const daysM = tt.match(/\b(thirty|30)\b/);
-        const reply = compose({ headline: daysM ? "Thirty days of silence after a final round — this one is labeled ghosted." : "Silence that long after a final round — this one is labeled ghosted.", facts: ["The label goes on the record with the final round as the last signal, so the season view shows it honestly.", "Your options: one follow-up — a short closer that asks for a decision — or close it and free the slot."], nextStep: "Tell me the company, and I will draft the follow-up — or close it on your word." });
+        // WORDING-BACKLOG (BUG-199): the ghosted label is SPOKEN as
+        // the tracker's name for the pattern — no label is claimed
+        // as written to a row this turn (the record here is a
+        // summary over zero applications; there is no row to write
+        // it on). The write is future-framed, on the user's input.
+        const reply = compose({ headline: daysM ? "Thirty days of silence after a final round — that pattern is labeled ghosted." : "Silence that long after a final round — that pattern is labeled ghosted.", facts: ["The label names the pattern, not a guess about their intent: a final round, then thirty days of no signal.", "Your options: one follow-up — a short closer that asks for a decision — or close it and free the slot."], nextStep: "Tell me the company, and the label goes on its row — with the follow-up drafted, or the slot closed on your word." });
         let sum0 = null;
         try { sum0 = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum0 = null; }
         return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum0 ? { summary: sum0 } : { summary: { total: 0 } });
       }
       if (/\bquiet hours\b/.test(tt)) {
-        const reply = compose({ headline: "Done — low-priority alerts are folded into the morning digest during your quiet hours.", facts: ["High-priority alerts — an offer, an interview invite, a deadline — still break through immediately; only the low-priority kind waits for the digest.", "The fold-in runs from tonight until you change it."], nextStep: "Tell me your quiet hours — start and end — and I will set the fold-in to them." });
+        // WORDING-BACKLOG (BUG-199): the setting is not "done"
+        // before the hours it depends on exist — the rule is
+        // stated, its start is honestly conditional, and the
+        // closer collects the one input that arms it.
+        const reply = compose({ headline: "The quiet-hours rule is ready — it arms the moment your hours are on record.", facts: ["Under it, low-priority alerts fold into the morning digest during your quiet hours; high-priority alerts — an offer, an interview invite, a deadline — still break through immediately.", "It cannot run from tonight against hours that do not exist yet — no start or end is on record in this session, so none is assumed."], nextStep: "Tell me your quiet hours — start and end — and the fold-in is set to them from tonight." });
         let sum0 = null;
         try { sum0 = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum0 = null; }
         return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum0 ? { summary: sum0 } : { summary: { total: 0 } });
@@ -3315,9 +3343,10 @@ const CareerRouter = (() => {
       // would carry blanks.
       const aimed = !!(realDraft && realDraft.company && (realDraft.role || realDraft.title));
       const appliedDay = realDraft && realDraft.basis && realDraft.basis.applied_at ? new Date(realDraft.basis.applied_at).toLocaleDateString("en-US", { month: "long", day: "numeric" }) : null;
+      const quietDays = Number((t.match(/\bquiet (\d+) days\b/) || [])[1]) || (realDraft && realDraft.days_quiet) || null;
       const reply = aimed
         ? compose({ headline: `The nudge is drafted — ${realDraft.days_quiet != null ? `${realDraft.days_quiet} days quiet` : "quiet too long"} on your ${realDraft.role || realDraft.title} application at ${realDraft.company}.`, facts: [`It reads: "I'm following up on my application for ${realDraft.role || realDraft.title}."`, `It names the application date from the record${appliedDay ? ` — ${appliedDay}` : ""} — and closes by saying you are still very interested and asking for any update on the timeline, with no apology for existing.`], nextStep: "Approve the nudge, or let it ride three more days?" })
-        : compose({ headline: "A nudge is ready to draft — it needs the application it belongs to.", facts: ["No application in this session's tracker matches that quiet spell, so a draft written now would carry blanks where the role and the date belong.", "Once aimed, the nudge quotes the exact role and the day the application went in, and asks for a status without apologizing for existing."], nextStep: "Tell me the company and the role, and the draft is written around them." });
+        : compose({ headline: "A nudge is ready to draft — it needs the application it belongs to.", facts: ["No application in this session's tracker matches that quiet spell, so a draft written now would carry blanks where the role and the date belong.", `The gate is yours, exactly as you set it: nothing goes out without your yes — the draft waits on its card for your exact-text approval${quietDays ? `, and the quiet spell you named is ${quietDays} days` : ""}.`, "Once aimed, the nudge quotes the exact role and the day the application went in, and asks for a status without apologizing for existing."], nextStep: "Tell me the company and the role, and the draft is written around them." });
       const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, draft: realDraft || undefined, nudge_draft: realDraft || { kind: "recruiter_nudge", company } };
       return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
@@ -3331,13 +3360,20 @@ const CareerRouter = (() => {
       const readFact = /positive/.test(clsLabel)
         ? "Closest read: the recruiter sounds positive but has not confirmed anything — the safe move is a short clarifying draft, not an assumption."
         : clsLabel ? `Closest read: ${clsLabel} — and the safe move is a short clarifying draft, not an assumption.` : "The safe move is a short clarifying draft, not an assumption.";
-      const reply = compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it.", facts: [readFact, "The draft waits for your yes; nothing answers a recruiter without it."], nextStep: "Want the clarifying draft now?" });
       // IB-TN-1c: the classified reply gets its real response draft.
       let realDraft = null;
       try {
         const app = company && store && Array.isArray(store.rows) ? store.rows.find((r) => lc(r.company) === lc(company)) : null;
         if (Track && Track.draftRecruiterReply) { const d = Track.draftRecruiterReply(app || { company: company || "", role: "", title: "" }, cls || {}, {}); if (d && d.kind) realDraft = d; }
       } catch { realDraft = null; }
+      // WORDING-BACKLOG (BUG-197): the draft is SHOWN, not offered —
+      // its own asking sentence rides the reply (the rest of the
+      // draft waits on its card, word for word, for the yes).
+      const draftBody = realDraft ? s(realDraft.body || realDraft.text || (realDraft.draft && (realDraft.draft.body || realDraft.draft.text)) || "") : "";
+      const qSent = (draftBody.match(/[^.!?\n]*\?/) || [null])[0];
+      const reply = realDraft
+        ? compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it — and the clarifying draft is written.", facts: [readFact, ...(qSent ? [`The draft asks exactly this: "${qSent.trim()}"`] : []), "The full draft waits on its card for your yes; nothing answers a recruiter without it."], nextStep: "Approve the draft as written, or tell me what to soften?" })
+        : compose({ headline: "That reply is ambiguous, so it gets classified before anyone answers it.", facts: [readFact, "The draft waits for your yes; nothing answers a recruiter without it."], nextStep: "Want the clarifying draft now?" });
       const res = { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, classification: cls, draft: realDraft || undefined };
       return realDraft ? emitTrack(ctx, res, { company: company || undefined, draft: realDraft }) : res;
     }
@@ -3370,20 +3406,31 @@ const CareerRouter = (() => {
     // provenance sentence that was wrong for chat-reported events
     // (SC-138: "came from the email itself" for a chat message) and a
     // detail-tease closer served all five event kinds before this.
-    const stageLine = { confirmed: "the confirmation is on the record and the row now shows it", rejected: "the rejection is on the record, with a what-to-tighten note started from the pattern", offer: "the offer is on the record and its expiry clock is running", interview: "the interview is attached to the right application and prep is queued", oa: "the assessment is on the record with its deadline set" }[stageFor];
+    const stageLine = { confirmed: "the confirmation is on the record and the row now shows it", rejected: "the rejection is on the record, with a what-to-tighten note started", offer: "the offer is on the record and intake has started", interview: "the interview is attached to the right application and prep is queued", oa: "the assessment is on the record and the prep pack is queued" }[stageFor];
     const byChat = /\bby chat\b|\bmanual update\b|\bi (got|had|received)\b/i.test(s(text));
     const srcFact = byChat ? "This came from your message just now, not from an email." : { confirmed: "This update came from the confirmation email itself.", rejected: "This update came from the rejection email itself.", interview: "This update came from the interview invite itself.", oa: "This update came from the assessment email itself.", offer: "This update came from the offer letter itself." }[stageFor];
+    // WORDING-BACKLOG (BUG-197): a deadline or an expiry clock is
+    // claimed only when the value is ON THE RECORD — the row the
+    // write just made carries the field, or it does not. The old
+    // headlines asserted both unconditionally ("its deadline is
+    // set", "its expiry clock is running") over records whose
+    // deadline fields were null.
+    const rowNow = store && Array.isArray(store.rows) && company ? store.rows.find((r) => lc(r.company) === lc(company)) : null;
+    const dlRaw = rowNow ? (rowNow.assessment_deadline || rowNow.offer_deadline || rowNow.deadline || null) : null;
+    let dlText = null;
+    if (dlRaw) { try { const dd = new Date(dlRaw); if (!Number.isNaN(dd.getTime())) dlText = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(dd); } catch { dlText = null; } if (!dlText) dlText = s(dlRaw); }
     const headFor = {
       confirmed: company ? `Confirmation on the record for ${company} — the row now shows it.` : "Confirmation on the record — the tracker moved itself.",
       rejected: company ? `Rejection on the record for ${company}, with a what-to-tighten note started.` : "Rejection on the record, with a what-to-tighten note started.",
       interview: company ? `Interview at ${company} — on the record, and prep is queued.` : "Interview on the record — prep is queued.",
-      oa: company ? `Assessment on the record for ${company} — its deadline is set, and the prep pack is queued.` : "Assessment on the record — its deadline is set, and the prep pack is queued.",
-      offer: company ? `Offer on the record for ${company} — intake starts, and its expiry clock is running.` : "Offer on the record — intake starts, and its expiry clock is running.",
+      oa: dlText ? `Assessment on the record${company ? ` for ${company}` : ""} — deadline ${dlText}, and the prep pack is queued.` : `Assessment on the record${company ? ` for ${company}` : ""} — the prep pack is queued, and no deadline was stated, so none is set.`,
+      offer: dlText ? `Offer on the record${company ? ` for ${company}` : ""} — intake starts, and it expires ${dlText}.` : `Offer on the record${company ? ` for ${company}` : ""} — intake starts; the letter states no expiry date, so no clock is invented for it.`,
     }[stageFor];
     const factsFor = [srcFact];
     if (!company && !byChat) factsFor.push("The message names no company, so the row is carried as company not stated — the stage is real, and the company is never invented.");
-    if (stageFor === "rejected") factsFor.push("The note names the repeated gap this rejection points to — the stage where your applications stall — so the next round tightens there first.");
+    if (stageFor === "rejected") factsFor.push("The note names the gap this rejection itself carries — the stage it came at and the reason the email gives — and it flags a pattern only when the record holds more than one rejection; from a single rejection, a 'repeated gap' would be invented.");
     if (stageFor === "offer") factsFor.push("The terms get read from the letter itself — base, bonus, expiry — never from a benchmark.");
+    if (stageFor === "oa" && !dlText) factsFor.push("When a deadline is known — stated in the message or given by you — it lands on the row and the prep pack re-times itself to it.");
     const nextFor = {
       confirmed: company ? "Want me to show the company, role, and date this confirmation belongs to?" : "Tell me the email's sender line and I will bind it to the right application — until then the row stands as company not stated.",
       rejected: "Want the full what-to-tighten note now?",
@@ -3887,9 +3934,15 @@ const CareerRouter = (() => {
           // 0% to 0% — spoken, they would crown a converting channel
           // that does not exist. The retro states the zero plainly.
           facts.push("The retro in numbers: 0 applications on the season record — nothing converted and nothing missed, because the record is empty.");
-          facts.push("The retro reads only the log: channel rates, the worst-converting version, and next season's plan all compute the moment real rows exist.");
+          // WORDING-BACKLOG (BUG-199): next season's plan is
+          // DELIVERED from the numbers — from a zero record the
+          // honest plan is a floor (logging discipline + the first
+          // checkpoint where rates become real), never an offer to
+          // draft a plan later and never a forecast from nothing.
+          facts.push("Next season's plan, from these numbers: the record gives no conversion rate to extrapolate, so the plan is a floor, not a forecast — every application logged the day it goes out, and the first retro checkpoint at 10 applications, where channel rates stop being noise.");
+          facts.push("The biggest miss the empty record already proves: a season with no log has no retro — logging is the fix, and it starts with the first application.");
         }
-        const reply = compose({ headline: "Your career retro: outcomes versus plan, from the record.", facts: facts.length ? facts : ["Applications, advancement, and offers are counted from the season record — the misses are in it too, unedited.", "Next year's targets get set from the same numbers, not from the story we prefer."], nextStep: "Want next season's targets drafted from these numbers?" });
+        const reply = compose({ headline: "Your career retro: outcomes versus plan, from the record.", facts: facts.length ? facts : ["Applications, advancement, and offers are counted from the season record — the misses are in it too, unedited.", "Next year's targets get set from the same numbers, not from the story we prefer."], nextStep: r && r.total > 0 ? "Want next season's targets drafted from these numbers?" : "Want the logging rule and the 10-application checkpoint pinned as next season's standing targets?" });
         // IB-TN-1f: season turns ride the log-wide summary doorstep.
         const res = { intent: "season_dashboard", reply, resultStatus: "prepared", sends: 0, retro: r };
         const spec = summarySpec(ctx, trackStoreOf(ctx));
@@ -3908,8 +3961,13 @@ const CareerRouter = (() => {
           for (const w of d.by_week.slice(0, 4)) facts.push(`Week of ${w.week_start}: ${w.applied} applied, ${w.interviews} interview${w.interviews === 1 ? "" : "s"}, ${w.offers} offer${w.offers === 1 ? "" : "s"}.`);
           if (!d.by_week.length) facts.push("The season record in this session is empty, so there is no week to break down — the first application on the record opens week one.");
           else if (d.on_pace != null) facts.push(d.on_pace ? "On pace against the plan." : "Behind the plan's pace — the week split above shows where it slipped.");
+          // WORDING-BACKLOG (BUG-199): the "against my plan" half
+          // of the ask is addressed even when it is missing — a
+          // plan that is not on record is stated as missing, never
+          // silently dropped — and the reply ends with ONE step.
+          if (!d.plan_target) facts.push("No weekly plan is on record in this session, so there is nothing to compare the weeks against — that half of your ask is missing, not zero.");
         }
-        const reply = compose({ headline: "Your season so far, from the record.", facts: facts.length ? facts : ["Every count comes from your season record."], nextStep: "Want the retro view, or the week ahead?" });
+        const reply = compose({ headline: "Your season so far, from the record.", facts: facts.length ? facts : ["Every count comes from your season record."], nextStep: d && d.plan_target ? "Want the week ahead paced against this plan?" : "State the weekly plan (applications per week) and every week reads against it from the first application on." });
         const res = { intent: "season_dashboard", reply, resultStatus: "prepared", sends: 0, dashboard: d };
         const spec = summarySpec(ctx, trackStoreOf(ctx));
         return spec ? emitTrack(ctx, res, spec) : res;

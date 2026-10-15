@@ -1243,8 +1243,30 @@ const CareerDoorstep = (() => {
     const defaultTz = spec.timezone || spec.tz || (cal && cal.candidate && cal.candidate.timezone) || c.timezone || "America/Chicago";
     const busy = busyEventsOf(c, cal);
     const quiet = quietWindowOf(c, cal);
-    const evaluations = slotsIn.map((s, i) => evaluateSlot(s, i, c, cal, busy, quiet, defaultTz, spec.durationMin || spec.duration_min));
-    const proposed = evaluations.find((e) => !e.conflict) || evaluations[0];
+    let evaluations = slotsIn.map((s, i) => evaluateSlot(s, i, c, cal, busy, quiet, defaultTz, spec.durationMin || spec.duration_min));
+    // WORDING-BACKLOG (BUG-198): a proposal may never offer a time
+    // that has already passed at the turn's own clock. When every
+    // offered slot is past, the same local times are re-evaluated
+    // for the next day (busy and quiet checks rerun) and the card
+    // says so; when only some are past, the proposal prefers a
+    // future free slot and each past slot's verdict says it passed.
+    const nowMs = (() => { const n = Date.parse(c.now || ""); return Number.isNaN(n) ? Date.now() : n; })();
+    const slotMsOf = (e) => Date.parse(e.utc || e.start_iso || e.start || "");
+    let shiftedNote = null;
+    if (evaluations.length && evaluations.every((e) => { const m = slotMsOf(e); return !Number.isNaN(m) && m < nowMs; })) {
+      const shiftedSpecs = slotsIn.map((sp) => {
+        const raw = sp.start || sp.stated || sp.utc || sp.candidate_local || sp.begin;
+        const m = Date.parse(raw || "");
+        if (Number.isNaN(m)) return sp;
+        const out = Object.assign({}, sp, { start: new Date(m + 86400000).toISOString() });
+        const re2 = sp.end || sp.end_utc; const em = Date.parse(re2 || "");
+        if (!Number.isNaN(em)) { out.end = new Date(em + 86400000).toISOString(); if (out.end_utc) out.end_utc = out.end; }
+        return out;
+      });
+      const reEval = shiftedSpecs.map((sp2, i) => evaluateSlot(sp2, i, c, cal, busy, quiet, defaultTz, spec.durationMin || spec.duration_min));
+      if (reEval.length) { evaluations = reEval; shiftedNote = "Every offered time had already passed today, so the card proposes the same times tomorrow, re-checked against the calendar."; }
+    }
+    let proposed = evaluations.find((e) => !e.conflict && !(slotMsOf(e) < nowMs)) || evaluations.find((e) => !e.conflict) || evaluations[0];
     const attendees = (spec.attendees || spec.attendee || []).map((a) =>
       typeof a === "string" ? { email: a } : { name: a.name || a.full_name || null, email: a.email || a.work_email || null });
     const title = spec.title || spec.event_title || spec.eventTitle;
@@ -1257,6 +1279,7 @@ const CareerDoorstep = (() => {
       kind: "calendar_proposal_card", family: "calendar",
       card, proposed, conflict: proposed.conflict, conflicts: proposed.conflicts,
       slot_evaluations: evaluations, attendees, title,
+      slots_shifted_next_day: !!shiftedNote,
       timezone: defaultTz, committed: false, invite_sent: false,
     };
     const stepLog = [
@@ -1284,13 +1307,13 @@ const CareerDoorstep = (() => {
     // Wednesday Oct 14 is free" lumped two slots into one ambiguous
     // clause and left the user unable to tell which time was free.
     const byTime = [...evaluations].sort((a, b) => (Date.parse(a.utc || a.start_iso || a.start) || 0) - (Date.parse(b.utc || b.start_iso || b.start) || 0));
-    const verdicts = byTime.map((e) => `${fmtSlot(e)} — ${e.conflict ? `not free: ${e.conflicts.map((x) => x.kind).join(", ")}` : "free on the calendar in context and outside quiet hours"}`).join("; ");
+    const verdicts = byTime.map((e) => `${fmtSlot(e)} — ${e.conflict ? `not free: ${e.conflicts.map((x) => x.kind).join(", ")}` : slotMsOf(e) < nowMs ? "that time has already passed today" : "free on the calendar in context and outside quiet hours"}`).join("; ");
     return {
       intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
       ...art,
       reply: proposed.conflict
         ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. The offered times were ${offered}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
-        : `Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}. Nothing has been booked or sent: approve the card and the proposed time (${fmtSlot(proposed)}) goes to them as the proposal — nothing is booked until they confirm.`,
+        : `Prepared the calendar proposal card for "${title}" — the offered times, checked one by one: ${verdicts}.${shiftedNote ? ` ${shiftedNote}` : ""} Nothing has been booked or sent: approve the card and the proposed time (${fmtSlot(proposed)}) goes to them as the proposal — nothing is booked until they confirm.`,
     };
   }
 

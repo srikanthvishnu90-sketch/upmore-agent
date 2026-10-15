@@ -195,8 +195,8 @@ Source: `docs/bug-ledger.md`, main table. FR numbers in this section match bug n
 ### FR-031 — Module 126 vendored twice; dedupe unguarded
 - **FORBIDDEN:** The tree must never carry two copies of module 126; when the upstream branch merges, the vendored copy is dropped and exactly one 126 remains.
 - **FROM:** BUG-031 — Module 126 vendored twice; dedupe unguarded.
-- **ENFORCEMENT:** UNENFORCED — tests/career-graph.test.cjs passes against the vendored copy, but no test or check found that fails if two 126 modules exist. Enforcement should be: a tree check asserting exactly one 126-career-track.js.
-- **STATUS:** UNENFORCED
+- **ENFORCEMENT:** tests/career-gc-guards.test.cjs FR-031 — a tree check asserting exactly one 126-career-track.js (stood up 2026-10-15, GC pass #1, MI-045; green at standing: exactly one copy, packages/domain/126-career-track.js).
+- **STATUS:** ENFORCED
 
 ### FR-032 — Rejected cold applications counted as 'advanced'
 - **FORBIDDEN:** A season retro must never count Rejected/Ghosted/Withdrawn applications as advanced past confirmation, and its headline must follow the log, not a preset claim.
@@ -2037,7 +2037,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-028 (BUG-028) | ENFORCED | tests/career-graph.test.cjs prep test (raw CIR throws TypeError; adapted Stripe + Datadog briefs OK) |
 | FR-029 (BUG-029) | ENFORCED | tests/career-w11-ext.test.cjs 'BUG-141 adapter' (asserts the raw crash AND the adapted OK compose) |
 | FR-030 (BUG-030) | ENFORCED | tests/career-w11-ext.test.cjs SC-215 BUG-142 guard (quotes 'Senior Software Engineer' + 'NOT your anchor') |
-| FR-031 (BUG-031) | UNENFORCED | UNENFORCED |
+| FR-031 (BUG-031) | ENFORCED | tests/career-gc-guards.test.cjs FR-031 |
 | FR-032 (BUG-032) | ENFORCED | tests/career-graph.test.cjs SC-145 test. |
 | FR-033 (BUG-033) | ENFORCED | tests/career-apply.test.cjs inbox-reconciliation test (failed before, passes after). |
 | FR-034 (BUG-034) | ENFORCED | tests/career-apply.test.cjs BUG-005 replay test + SC-068 (Match pool 0 → 63). |
@@ -2375,7 +2375,7 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-366 (BUG-208) | UNENFORCED | UNENFORCED (see section) |
 | FR-367 (BUG-198 class) | ENFORCED | tests/career-clock-source-guard.test.cjs |
 
-<!-- totals: total=367 enforced=271 guarded_red=0 hard_shut=1 unenforced=95 (reconciled 2026-10-15, GC pass #1: index rows added for FR-363..FR-366, whose sections already stood UNENFORCED; prior comment claimed unenforced=103, matching no count) -->
+<!-- totals: total=367 enforced=272 guarded_red=0 hard_shut=1 unenforced=94 (reconciled 2026-10-15, GC pass #1: FR-031 flipped ENFORCED by its tree-check guard) -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.

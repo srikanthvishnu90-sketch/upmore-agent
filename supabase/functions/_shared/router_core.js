@@ -37264,10 +37264,14 @@ const CareerRouter = (() => {
     if (!CANCEL_RE.test(t) || !QUEUE_CONTEXT_RE.test(t) || LEGACY_HALT_RE.test(t)) return null;
     if (questionVetoesCancel(text)) return null;
     if (!ctx || (!ctx.queueState && !ctx.queueStatePath)) {
-      // COMPLEXITY WAVE (adjacent to BUG-169's audit): a cancel with
-      // no queue in state is answered honestly — nothing queued,
-      // nothing to cancel, nothing sent — instead of falling through
-      // to the generic fallback as if the words were not understood.
+      // COMPLEXITY WAVE (adjacent to BUG-169's audit): an explicit
+      // queue-cancel with no queue in state is answered honestly —
+      // nothing queued, nothing to cancel — instead of falling
+      // through to the generic fallback. The branch is narrow on
+      // purpose: it fires only when the queue is the named object
+      // of the cancel; looser stop-shaped asks (the day-15 close)
+      // keep falling through to their own handlers.
+      if (!/\bcancel\w*\b[^.?!]*\bqueue\b|\bqueue\b[^.?!]*\bcancel\w*\b/.test(t)) return null;
       const reply = compose({ headline: "There is no queue standing to cancel.", facts: ["No outreach queue is loaded in this conversation — nothing is standing in one, and no wave is out the door.", "The moment a queue exists, 'cancel the queue' halts it on the spot and the halt is saved."], nextStep: "Start a campaign whenever you are ready and the queue exists to be cancelled." });
       return { intent: "queue_halt", resultStatus: "completed", reply, sends: 0, halted_count: 0 };
     }

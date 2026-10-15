@@ -1202,7 +1202,7 @@ const CareerRouter = (() => {
       if (/fortune 500/.test(askLc)) return "The universe is the Fortune 500 list itself — the strategy teams of those companies, reached through their own team pages and your alumni directory.";
       if (/dream companies/.test(askLc)) return "The universe is your dream companies — the ones you named — searched at those companies only.";
       if (/fintech|insurtech/.test(askLc)) return "The universe is fintech and insurtech employers — payments, banking-infrastructure, and insurance carriers and startups — built from their own team pages and rosters.";
-      if (/series a/.test(askLc) && /\bai\b|artificial intelligence|ml\b/.test(askLc)) return "The universe is Series A AI companies — tracked from funding announcements and their own team pages, so the stage filter is read off each company's own record.";
+      if (/series a/.test(askLc) && /\bai\b|artificial intelligence|ml\b/.test(askLc)) return "The universe is Series A AI companies — read from funding announcements and their own team pages, so the stage filter is read off each company's own record.";
       if (bf.prior_career) return `The universe is people whose public record shows that exact move — ${bf.prior_career} first, this field now — found through your export and alumni directories, not a general list.`;
       if (q.high_school_alumni) return "The universe is your high school's alumni now working in tech — its alumni directory is the pool, and every name is checked against it.";
       if (/consumer startups/.test(askLc)) return "The universe is consumer startups — their own team pages and rosters, in the geography you named.";
@@ -3722,7 +3722,7 @@ const CareerRouter = (() => {
     // step that exists — log it, or name another company. "The
     // full timeline for it" offered a timeline for an application
     // the same reply just said does not exist.
-    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands and I will log it — or name another company and I will check that one." });
+    const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: rows.length ? "Want the full timeline for it, or another company's status?" : "Tell me the role and where it stands and I will log it — or name another company and I will check that one instead." });
     // The status answer rides the tracker doorstep record like
     // every other tracking read (IB-TN-1e pattern): the typed 141
     // record is this turn's product, carried on the result.

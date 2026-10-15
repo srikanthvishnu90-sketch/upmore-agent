@@ -2003,7 +2003,7 @@ Source: `docs/career/gauntlet-ledger.md`. Checked against Registers 5/6 first: a
 
 ## Summary (machine-checkable)
 
-Counts: ENFORCED 243 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 348
+Counts: ENFORCED 248 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 353
 
 | rule | status | enforcement |
 |---|---|---|
@@ -2355,8 +2355,13 @@ Counts: ENFORCED 243 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 | FR-346 (BUG-189) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-189 |
 | FR-347 (BUG-190) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-190 |
 | FR-348 (BUG-191) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-191 |
+| FR-349 (BUG-192) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-192 |
+| FR-350 (BUG-193) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-193 |
+| FR-351 (BUG-194) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-194 |
+| FR-352 (BUG-195) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-195 |
+| FR-353 (BUG-196) | ENFORCED | tests/career-wording-backlog-guard.test.cjs BUG-196 |
 
-<!-- totals: total=348 enforced=243 guarded_red=1 hard_shut=1 unenforced=103 -->
+<!-- totals: total=353 enforced=248 guarded_red=1 hard_shut=1 unenforced=103 -->
 
 ### FR-330 — A prep set claims a company match only when a company file grounds it (BUG-133)
 - **RULE:** A prep-set or drill headline may claim a match to a company's known style only when the bank record is grounded in that company's file; otherwise the headline names the track and the reply states it is the track's standard set. A quant ask is served the quant drills (probability, market-making, mental math) first; a PM ask is served the product set. A drill that promises named gaps states that gaps are named from scored answers, never from the set itself.
@@ -2433,3 +2438,23 @@ Counts: ENFORCED 243 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-348 — A deliverable is computed in the reply, even when the answer is zero (BUG-191)
 - **RULE:** A wave, a re-count, or a diagnosis the user asked for is produced in the reply from the record that exists: the count with its arithmetic, or the check reported as run with its true result. Describing the deliverable and offering to produce it later is forbidden; an empty record yields a stated zero, never an estimate and never a deferral.
 - **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-191 (SC-034/036/041 shapes).
+
+### FR-349 — Every distinct round shape gets its own brief (BUG-192)
+- **RULE:** A research talk, a teaching demo, a bar-raiser panel, a portfolio walkthrough, and a hiring-manager round are different products: each brief is composed from that shape's own arc, questions, and next step. One template body serving several shapes — with only the headline changed — is forbidden, and a walkthrough's openers are built from the candidate's own projects.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-192 (SC-201/202/203/204/205 shapes, pairwise-distinct bodies).
+
+### FR-350 — Spoken fragments are whole: no repeats, no scaffolding, no mid-word cuts (BUG-193)
+- **RULE:** A brief's facts never repeat a sentence under two labels; listing scaffolding (stage plumbing, "how you will handle" fragments) never poses as a likely question; and text quoted from a company file is cut at a word boundary when shortened — a fragment may end early, never mid-word.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-193 (SC-176 shape).
+
+### FR-351 — A producer's reply asserts only what its record holds (BUG-194)
+- **RULE:** Counts are spoken from the record with shortfalls named; an empty record mines nothing and drafts nothing, and headlines say so; a deliverable the user asked for (a plan, a question set, a checklist) is delivered in the reply in usable form — one item per sentence for a checklist, the standard set whole for questions — never described as existing elsewhere; a rejection in the ask is acknowledged before mechanics.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-194 (SC-182/189/193/195/198/199/200 shapes).
+
+### FR-352 — A prep set carries only its own track's drills, each whole (BUG-195)
+- **RULE:** A track's set contains that track's drills (a quant set holds no banking technicals); every drill is a single sentence so its question survives reply composition; a standard-set disclaimer is spoken only where the ask premises a company match; the PM set runs product sense through the candidate's own shipped work and names its metrics piece.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-195 (SC-183/186/187/188 shapes).
+
+### FR-353 — A claim verb claims in every clothing; set replies name their head (BUG-196)
+- **RULE:** The words sent / applied / confirmed (and the rest of the claim class) are never used in a reply — as verb, noun, or adjective — for a state the turn's record does not show; record language is used instead ("went out", "on the record", "reaches its doorstep"). A reply that speaks a set names the head of it and rides the rest on the typed record; a bubble reciting a whole list reads as a canned shortlist. Every tracking read — including an application-status answer — carries the 141 tracker doorstep record on its result.
+- **ENFORCEMENT:** tests/career-wording-backlog-guard.test.cjs BUG-196 (SC-036/037/068/069/096/106/115 shapes).

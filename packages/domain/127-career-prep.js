@@ -248,19 +248,25 @@ const CareerPrep = (() => {
       // WORDING-BACKLOG (BUG-133): a quant ask gets the quant drills
       // themselves FIRST — probability, a market-making game, mental
       // math — not the banking technicals wearing a quant headline.
-      if (/quant/i.test(s(opts.role))) {
-        push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
-        push("You make a market on the value of a fair die roll: quote your bid and ask. The roll comes up 2 — what do you do, and what is your position worth now?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
-        push("Mental math, no paper: what is 17 times 24, and 15% of 840? Talk through the method as you go.", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+      // WORDING-BACKLOG (BUG-195): a quant set is ONLY quant — the
+      // banking technicals no longer ride it at all; and every drill
+      // is ONE sentence, because the composer speaks one sentence
+      // per fact and a two-sentence drill lost its actual question.
+      const isQuant = /quant/i.test(s(opts.role));
+      if (isQuant) {
+        push("How many flips do you expect before a fair coin lands two heads in a row?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+        push("Quote your bid and ask as you make a market on a fair die roll — the roll comes up 2, so what do you do and what is your position worth now?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+        push("Mental math, no paper: what is 17 times 24, and 15% of 840 — talk through the method as you go?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+      } else {
+        // BUG-117: the finance drill set covers the canonical technicals
+        // the asks name — three statements, DCF, comps, LBO basics —
+        // not just the DCF prompt.
+        push("Walk me through the three financial statements and how they link.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("How do you build a set of trading comps, and which multiples do you reach for first?", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("Walk me through an LBO: sources and uses, and what actually drives the returns.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("How many flips do you expect before a fair coin lands two heads in a row?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
       }
-      // BUG-117: the finance drill set covers the canonical technicals
-      // the asks name — three statements, DCF, comps, LBO basics —
-      // not just the DCF prompt.
-      push("Walk me through the three financial statements and how they link.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("How do you build a set of trading comps, and which multiples do you reach for first?", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("Walk me through an LBO: sources and uses, and what actually drives the returns.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      if (!/quant/i.test(s(opts.role))) push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
     }
     if (/product/i.test(s(opts.roleFamily))) {
       // WORDING-BACKLOG (BUG-133): the PM drill set — product sense
@@ -268,7 +274,7 @@ const CareerPrep = (() => {
       // scenario, and an estimation tree. Before this, a PM prep ask
       // was served the generic behavioral bank.
       push("Pick a product you use every day: how would you improve it, and how would you know the improvement worked?", "product_sense", { type: "pm_drill_bank", company_id: null });
-      push("Your flagship metric drops 20% overnight. Walk me through your first day.", "execution", { type: "pm_drill_bank", company_id: null });
+      push("Your flagship metric drops 20% overnight — walk me through your first day.", "execution", { type: "pm_drill_bank", company_id: null });
       push("Tell me about the thing you shipped: what it was, who it was for, and the number that proves it mattered.", "product_behavioral", { type: "pm_drill_bank", company_id: null });
       push("Estimate how many rides a ride-hailing service completes in one city in a day — talk through the tree out loud.", "estimation", { type: "pm_drill_bank", company_id: null });
     }
@@ -759,7 +765,7 @@ const CareerPrep = (() => {
     const stylePoint = n && n.styles[0] ? n.styles[0].text : null;
     const questions = [
       "What does your team actually spend its week on — and what would surprise an outsider about that split?",
-      stylePoint ? `Your firm's signature round is described as: ${stylePoint.slice(0, 140)} — what separates people who do well in it from people who prepare generically?` : "Which round or conversation in your process separates strong candidates, and what does 'strong' look like in it?",
+      stylePoint ? `Your firm's signature round is described as: ${stylePoint.length > 140 ? stylePoint.slice(0, 140).replace(/\s+\S*$/, "") : stylePoint} — what separates people who do well in it from people who prepare generically?` : "Which round or conversation in your process separates strong candidates, and what does 'strong' look like in it?",
       "What did you misunderstand about this role before you started, and when did it click?",
       "If you were starting again from my seat this semester, what would you do in the next 30 days — and what would you stop doing?",
       "Who else should I learn from, and may I mention you connected us?"];
@@ -910,7 +916,17 @@ const CareerPrep = (() => {
       for (const v of n.values.slice(0, 2)) questions.push({ text: `The record for this company stresses: ${v.text} — how does that show up in your team's day-to-day decisions?`, source: { type: "CIR values_culture_signals", company_id: n.company_id } });
       for (const sg of n.signals.slice(0, 1)) questions.push({ text: `You screen for ${sg.text} — what does great look like on that in this team specifically?`, source: { type: "CIR screening_signals", company_id: n.company_id } }); }
     questions.push({ text: "What would you want someone in this seat to have accomplished by the end of the first term?", source: { type: "generic_good_question" } });
-    return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? "No team fact was supplied for this interviewer, so no team is invented — questions are CIR-grounded; ask the team question once you learn the team." : "Team-tailored question is first; the rest are grounded in the company CIR." };
+    // WORDING-BACKLOG (BUG-194): with no team and no company file,
+    // the deliverable is the round's STANDARD SET — delivered whole,
+    // the team question itself included — and the note says exactly
+    // that. The old set shipped one question and claimed company-
+    // file grounding the same record elsewhere denied.
+    if (!team && !teamFact && !n) {
+      questions.unshift({ text: "What does this team's next term look like, and where does this seat plug into it?", source: { type: "standard_set" } });
+      questions.push({ text: "What separates the people who thrive here in the first six months from the people who stall?", source: { type: "standard_set" } });
+      questions.push({ text: "How is this seat's success measured at the first review, and by whom?", source: { type: "standard_set" } });
+    }
+    return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? (n ? "No team fact was supplied for this interviewer, so no team is invented — the questions are grounded in the company file on record." : "No team or company file was supplied for this interviewer, so no team is invented — these are the round's standard questions, none written for a team or company that isn't named.") : "Team-tailored question is first; the rest are grounded in the company CIR." };
   }
   function failureStoryFromFacts(opts) {
     opts = opts || {};

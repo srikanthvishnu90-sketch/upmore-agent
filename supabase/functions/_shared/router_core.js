@@ -25755,19 +25755,25 @@ const CareerPrep = (() => {
       // WORDING-BACKLOG (BUG-133): a quant ask gets the quant drills
       // themselves FIRST — probability, a market-making game, mental
       // math — not the banking technicals wearing a quant headline.
-      if (/quant/i.test(s(opts.role))) {
-        push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
-        push("You make a market on the value of a fair die roll: quote your bid and ask. The roll comes up 2 — what do you do, and what is your position worth now?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
-        push("Mental math, no paper: what is 17 times 24, and 15% of 840? Talk through the method as you go.", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+      // WORDING-BACKLOG (BUG-195): a quant set is ONLY quant — the
+      // banking technicals no longer ride it at all; and every drill
+      // is ONE sentence, because the composer speaks one sentence
+      // per fact and a two-sentence drill lost its actual question.
+      const isQuant = /quant/i.test(s(opts.role));
+      if (isQuant) {
+        push("How many flips do you expect before a fair coin lands two heads in a row?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+        push("Quote your bid and ask as you make a market on a fair die roll — the roll comes up 2, so what do you do and what is your position worth now?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+        push("Mental math, no paper: what is 17 times 24, and 15% of 840 — talk through the method as you go?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+      } else {
+        // BUG-117: the finance drill set covers the canonical technicals
+        // the asks name — three statements, DCF, comps, LBO basics —
+        // not just the DCF prompt.
+        push("Walk me through the three financial statements and how they link.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("How do you build a set of trading comps, and which multiples do you reach for first?", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("Walk me through an LBO: sources and uses, and what actually drives the returns.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+        push("How many flips do you expect before a fair coin lands two heads in a row?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
       }
-      // BUG-117: the finance drill set covers the canonical technicals
-      // the asks name — three statements, DCF, comps, LBO basics —
-      // not just the DCF prompt.
-      push("Walk me through the three financial statements and how they link.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("How do you build a set of trading comps, and which multiples do you reach for first?", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      push("Walk me through an LBO: sources and uses, and what actually drives the returns.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
-      if (!/quant/i.test(s(opts.role))) push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
     }
     if (/product/i.test(s(opts.roleFamily))) {
       // WORDING-BACKLOG (BUG-133): the PM drill set — product sense
@@ -25775,7 +25781,7 @@ const CareerPrep = (() => {
       // scenario, and an estimation tree. Before this, a PM prep ask
       // was served the generic behavioral bank.
       push("Pick a product you use every day: how would you improve it, and how would you know the improvement worked?", "product_sense", { type: "pm_drill_bank", company_id: null });
-      push("Your flagship metric drops 20% overnight. Walk me through your first day.", "execution", { type: "pm_drill_bank", company_id: null });
+      push("Your flagship metric drops 20% overnight — walk me through your first day.", "execution", { type: "pm_drill_bank", company_id: null });
       push("Tell me about the thing you shipped: what it was, who it was for, and the number that proves it mattered.", "product_behavioral", { type: "pm_drill_bank", company_id: null });
       push("Estimate how many rides a ride-hailing service completes in one city in a day — talk through the tree out loud.", "estimation", { type: "pm_drill_bank", company_id: null });
     }
@@ -26266,7 +26272,7 @@ const CareerPrep = (() => {
     const stylePoint = n && n.styles[0] ? n.styles[0].text : null;
     const questions = [
       "What does your team actually spend its week on — and what would surprise an outsider about that split?",
-      stylePoint ? `Your firm's signature round is described as: ${stylePoint.slice(0, 140)} — what separates people who do well in it from people who prepare generically?` : "Which round or conversation in your process separates strong candidates, and what does 'strong' look like in it?",
+      stylePoint ? `Your firm's signature round is described as: ${stylePoint.length > 140 ? stylePoint.slice(0, 140).replace(/\s+\S*$/, "") : stylePoint} — what separates people who do well in it from people who prepare generically?` : "Which round or conversation in your process separates strong candidates, and what does 'strong' look like in it?",
       "What did you misunderstand about this role before you started, and when did it click?",
       "If you were starting again from my seat this semester, what would you do in the next 30 days — and what would you stop doing?",
       "Who else should I learn from, and may I mention you connected us?"];
@@ -26417,7 +26423,17 @@ const CareerPrep = (() => {
       for (const v of n.values.slice(0, 2)) questions.push({ text: `The record for this company stresses: ${v.text} — how does that show up in your team's day-to-day decisions?`, source: { type: "CIR values_culture_signals", company_id: n.company_id } });
       for (const sg of n.signals.slice(0, 1)) questions.push({ text: `You screen for ${sg.text} — what does great look like on that in this team specifically?`, source: { type: "CIR screening_signals", company_id: n.company_id } }); }
     questions.push({ text: "What would you want someone in this seat to have accomplished by the end of the first term?", source: { type: "generic_good_question" } });
-    return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? "No team fact was supplied for this interviewer, so no team is invented — questions are CIR-grounded; ask the team question once you learn the team." : "Team-tailored question is first; the rest are grounded in the company CIR." };
+    // WORDING-BACKLOG (BUG-194): with no team and no company file,
+    // the deliverable is the round's STANDARD SET — delivered whole,
+    // the team question itself included — and the note says exactly
+    // that. The old set shipped one question and claimed company-
+    // file grounding the same record elsewhere denied.
+    if (!team && !teamFact && !n) {
+      questions.unshift({ text: "What does this team's next term look like, and where does this seat plug into it?", source: { type: "standard_set" } });
+      questions.push({ text: "What separates the people who thrive here in the first six months from the people who stall?", source: { type: "standard_set" } });
+      questions.push({ text: "How is this seat's success measured at the first review, and by whom?", source: { type: "standard_set" } });
+    }
+    return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? (n ? "No team fact was supplied for this interviewer, so no team is invented — the questions are grounded in the company file on record." : "No team or company file was supplied for this interviewer, so no team is invented — these are the round's standard questions, none written for a team or company that isn't named.") : "Team-tailored question is first; the rest are grounded in the company CIR." };
   }
   function failureStoryFromFacts(opts) {
     opts = opts || {};
@@ -32398,7 +32414,7 @@ const CareerRouter = (() => {
     if (r && r.ok) {
       const outlineCount = (r.essays[0] && r.essays[0].outline.length) || 0;
       const payload = { kind: "essay_packet", ok: true, essays: r.essays, themes_requested: askedThemes, themes_on_file: themesOnFile, missing_themes: missingThemes };
-      const factsOut = [`The packet holds ${r.essays.length} essay outline${r.essays.length === 1 ? "" : "s"} built from ${outlineCount} confirmed experiences on your profile — every outline point cites the fact it comes from, and the prose stays yours to write.`];
+      const factsOut = [`The packet holds ${r.essays.length} essay outline${r.essays.length === 1 ? "" : "s"} built from the ${outlineCount} experiences on your profile — every outline point cites the fact it comes from, and the prose stays yours to write.`];
       // WORDING-BACKLOG (BUG-182): when an asked-for theme is
       // missing from the record, the HEADLINE leads with the gap
       // and the caveat is one clean pass — the packet is never
@@ -32447,7 +32463,11 @@ const CareerRouter = (() => {
         if (extra.length) {
           chained.artifacts = [chained.artifact, ...extra];
           chained.batch.review_tailored = 1 + extra.length;
-          const names = [disc.shortlist[0], ...disc.shortlist.slice(1, 1 + extra.length)].map((x) => `${(x && (x.title || x.role)) || ""} at ${(x && x.company) || ""}`);
+          // The bubble names the head of the set (two roles with
+          // their companies); the rest ride the batch card by title
+          // — a bubble that recites a whole staged list reads as a
+          // discovery shortlist, which this turn is not.
+          const names = [disc.shortlist[0], ...disc.shortlist.slice(1, 1 + extra.length)].map((x, i) => i < 2 ? `${(x && (x.title || x.role)) || ""} at ${(x && x.company) || ""}` : `${(x && (x.title || x.role)) || ""} (on the batch card)`);
           const wantNB = (String(text || "").match(/(\d+)\s+(?:[a-z][a-z-]*\s+){0,3}?(roles?|internships?|jobs?|positions?)/i) || [])[1];
           chained.reply = compose({ headline: `Your review set is tailored — the first ${1 + extra.length}, ready together.`, facts: [`All ${1 + extra.length} review copies are tailored and saved: ${names.join("; ")} — each as PDF and DOCX for your review.`, `The batch holds ${disc.shortlist.length} staged roles${wantNB ? ` of the ${wantNB} you named` : ""}; the rest tailor only when their turn comes — nothing submits until the card yes you described.`], nextStep: "Review the set — approve the batch card and each role goes to its own doorstep?" });
         }
@@ -32504,7 +32524,11 @@ const CareerRouter = (() => {
     // that is empty.
     const ordered = [...buckets.Match, ...buckets.Safety, ...buckets.Reach];
     const bucketOf = (r) => buckets.Match.includes(r) ? "Match" : buckets.Safety.includes(r) ? "Safety" : "Reach";
-    for (const r of ordered.slice(0, 3)) facts.push(`${r.title} at ${r.company} — ${bucketOf(r)}: ${r.reason || "scored from its fit against your profile"}.`);
+    // The head of the set is named with its companies; further
+    // roles ride by title (their companies live on the bucket
+    // record) — a bubble reciting the whole staged list reads as a
+    // discovery shortlist, which this turn is not.
+    ordered.slice(0, 3).forEach((r, i) => facts.push(i < 2 ? `${r.title} at ${r.company} — ${bucketOf(r)}: ${r.reason || "scored from its fit against your profile"}.` : `${r.title} — ${bucketOf(r)}: ${r.reason || "scored from its fit against your profile"}; its company rides the bucket record.`));
     const strongest = buckets.Match.length ? "Match" : buckets.Safety.length ? "Safety" : "Reach";
     const reply = compose({ headline: "Bucketed by fit — Reach, Match, and Safety, each role with its reason.", facts, nextStep: buckets.Match.length ? "Want the Match bucket tailored first?" : strongest === "Reach" ? "Every scored role landed in Reach — want the top Reach roles tailored with their gaps named, or the list widened first?" : `The ${strongest} bucket is where the real shots are — want those tailored first, or the list widened?` });
     return { intent: "career_discovery", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
@@ -32516,13 +32540,13 @@ const CareerRouter = (() => {
     const companies = (profile.preferences && (profile.preferences.starredCompanies || profile.preferences.starred_companies)) || [];
     const mode = /\bspeed run\b|\bwithin the hour\b/.test(t) ? "speed_run" : /\bapply to\b/.test(t) ? "apply_queue" : "ping";
     const winM = t.match(/last (\d+)\s*hours?/);
-    const rec = { kind: "starred_watch", mode, companies, matched: [], window_hours: winM ? Number(winM[1]) : null, cadence: mode === "speed_run" ? "starred feeds polled first; a fitting role is applied within the hour it posts" : mode === "ping" ? "a fitting role pings within minutes of posting" : "new roles at starred companies enter the apply queue" };
+    const rec = { kind: "starred_watch", mode, companies, matched: [], window_hours: winM ? Number(winM[1]) : null, cadence: mode === "speed_run" ? "starred feeds polled first; a fitting role reaches its doorstep within the hour it posts" : mode === "ping" ? "a fitting role pings within minutes of posting" : "new roles at starred companies enter the apply queue" };
     const empty = !companies.length;
     // WORDING-BACKLOG (BUG-185): the ask's own terms are carried —
     // the look-back window when one is named (SC-063's 48 hours),
     // and for a speed run the within-the-hour commitment itself,
     // which is the whole point of the mode (SC-106).
-    const facts = [empty ? "Your profile has no starred companies on file, so the watch matches nothing today — that is the true state, not a quiet pass." : `${companies.length} starred companies are on the watch; fitting roles surface the moment they post.`, ...(empty ? ["The moment you star a company, every fitting role it posts lands in this watch."] : []), ...(winM ? [`Your window: only roles posted in the last ${winM[1]} hours qualify — an older posting at a starred company does not enter the queue.`] : []), ...(/\bany fitting role\b/.test(t) ? ["The rule as set: any fitting role, at any of your companies — no role type is filtered out of the watch."] : []), mode === "apply_queue" ? "Mode: apply queue — a fitting new-grad role at a starred company goes straight into the apply queue at its doorstep, inside the daily cap." : mode === "speed_run" ? "Mode: speed run — starred feeds are polled first, ahead of the general boards, and a fitting role is applied within the hour it posts, stopping at its doorstep for your tap." : "Mode: ping — any fitting role at a starred company pings you within minutes."];
+    const facts = [empty ? "Your profile has no starred companies on file, so the watch matches nothing today — that is the true state, not a quiet pass." : `${companies.length} starred companies are on the watch; fitting roles surface the moment they post.`, ...(empty ? ["The moment you star a company, every fitting role it posts lands in this watch."] : []), ...(winM ? [`Your window: only roles posted in the last ${winM[1]} hours qualify — an older posting at a starred company does not enter the queue.`] : []), ...(/\bany fitting role\b/.test(t) ? ["The rule as set: any fitting role, at any of your companies — no role type is filtered out of the watch."] : []), mode === "apply_queue" ? "Mode: apply queue — a fitting new-grad role at a starred company goes straight into the apply queue at its doorstep, inside the daily cap." : mode === "speed_run" ? "Mode: speed run — starred feeds are polled first, ahead of the general boards, and a fitting role reaches its doorstep within the hour it posts, stopping there for your tap." : "Mode: ping — any fitting role at a starred company pings you within minutes."];
     const reply = compose({ headline: empty ? "The watch is set — and it covers zero companies right now." : `Watching your ${companies.length} starred companies.`, facts, nextStep: "Name the companies to star and the watch starts covering them?" });
     return { intent: "career_watch", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }
@@ -33159,8 +33183,8 @@ const CareerRouter = (() => {
     // its arithmetic shown (sent − replies − bounces − suppressed),
     // never a described wave plus an offer to draft it later.
     const reply = fin
-      ? compose({ headline: "The day-15 close wave: 0 drafts — no campaign is on record in this session to close.", facts: ["The count is read off the campaign record — sent, minus replies, minus bounces, minus the never-contact list — and that record is empty here, so the wave is empty, never estimated.", "When a campaign is on record, the close thanks them, leaves the door open, and asks for nothing; after it, follow-ups for that campaign stop for good — no third touch, ever."], nextStep: "Load the campaign (or paste its sent list) and the close wave drafts against its real non-responders?" })
-      : compose({ headline: "The day-6 wave: 0 drafts — no campaign is on record in this session.", facts: ["The count is read off the campaign record — sent, minus replies, minus bounces, minus the never-contact list — and that record is empty here, so the wave is empty, never estimated.", "When a campaign is on record, each follow-up threads onto the first email and takes a new angle — a short proof point or a specific observation about their firm — nothing in it repeats the first ask."], nextStep: "Load the campaign (or paste its sent list) and the wave drafts against its real non-responders?" });
+      ? compose({ headline: "The day-15 close wave: 0 drafts — no campaign is on record in this session to close.", facts: ["The count is arithmetic on the campaign record: how many went out, minus replies, minus bounces, minus the never-contact list — and that record is empty here, so the wave is empty, never estimated.", "When a campaign is on record, the close thanks them, leaves the door open, and asks for nothing; after it, follow-ups for that campaign stop for good — no third touch, ever."], nextStep: "Load the campaign (or paste its recipient list) and the close wave drafts against its real non-responders?" })
+      : compose({ headline: "The day-6 wave: 0 drafts — no campaign is on record in this session.", facts: ["The count is arithmetic on the campaign record: how many went out, minus replies, minus bounces, minus the never-contact list — and that record is empty here, so the wave is empty, never estimated.", "When a campaign is on record, each follow-up threads onto the first email and takes a new angle — a short proof point or a specific observation about their firm — nothing in it repeats the first ask."], nextStep: "Load the campaign (or paste its recipient list) and the wave drafts against its real non-responders?" });
     // BUG-108: the wave PLAN is the typed record when no campaign is
     // loaded to run the wave against — touch, audience, threading.
     const wave = { kind: "followup_wave_plan", touch: fin ? 2 : 1, final: fin, audience: "non_responders_only", threaded: true, campaign_on_file: false };
@@ -33698,15 +33722,29 @@ const CareerRouter = (() => {
       }
       if (/\bday[ -]of checklist\b/.test(t) && Prep.dayOfChecklist) {
         const ck = Prep.dayOfChecklist(profile, {});
-        const items = (ck && (ck.items || ck.checklist)) || [];
-        // WORDING-BACKLOG (BUG-135): the checklist is enumerated in
-        // the reply (the groups' own items, up to the fact budget),
-        // fixture labels never ride into prose, and the missing
-        // inputs are named once, plainly.
-        const cleanItem = (i) => s(typeof i === "string" ? i : i.text || i.label || "").replace(/\s*\((?:TEST)[^)]*\)/g, "").replace(/^NO LINK SUPPLIED.*$/i, "Interview link: not supplied yet — flagged, not invented.").trim();
-        const facts = (Array.isArray(items) && items.length ? items.slice(0, 6).map(cleanItem).filter(Boolean) : ["Logistics, links, tech check, materials — verified the night before, not the morning of."]);
-        if (ck && Array.isArray(ck.missing) && ck.missing.length) facts.push(`Not supplied yet, so flagged rather than invented: ${ck.missing.join(", ")}.`);
-        const reply = compose({ headline: "Your day-of checklist.", facts, nextStep: "Anything on it you want changed?" });
+        // WORDING-BACKLOG (BUG-194): the checklist is spoken as a
+        // checklist — one tick-off item per fact, every fact ending
+        // in its own sentence so the bubbles break item by item;
+        // the unsupplied inputs collapse into ONE flagged line
+        // (never the same flag repeated per item), and the
+        // materials group is always represented.
+        const period = (x) => { const v = s(x).trim(); return !v ? v : /[.!?]$/.test(v) ? v : v + "."; };
+        const facts = [];
+        if (ck && ck.groups) {
+          const missingLabels = [];
+          for (const line of ck.groups.logistics || []) {
+            const clean = s(line).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim();
+            if (/not supplied yet/.test(clean)) { const lab = clean.split(":")[0]; if (lab) missingLabels.push(lab.toLowerCase()); continue; }
+            facts.push(period(clean.replace(/^Arrive \/ join/i, "Arrive or join")));
+          }
+          for (const line of ck.groups.links || []) if (/^NO LINK/i.test(s(line))) missingLabels.push("interview link");
+          const tech = (ck.groups.tech_check || [])[0]; if (tech) facts.push(period(tech));
+          const mats = (ck.groups.materials || []).filter(Boolean);
+          if (mats.length) facts.push(period(`Materials: ${mats.join("; ")}`));
+          if (missingLabels.length) facts.unshift(`Not supplied yet, so flagged rather than invented: ${missingLabels.join(", ")}.`);
+        }
+        if (!facts.length) facts.push("Logistics, links, tech check, materials — verified the night before, not the morning of.");
+        const reply = compose({ headline: "Your day-of checklist.", facts: facts.slice(0, 6), nextStep: "Anything on it you want changed?" });
         return { intent: "prep_mock_checklist", reply, resultStatus: "prepared", sends: 0, checklist: ck, payload: ck };
       }
       if (/\bprep set\b|\bprep plan\b|\bdrills?\b|\btechnicals\b|\bquant prep\b|\bpm prep\b/.test(t) && Prep.questionBank) {
@@ -33727,9 +33765,24 @@ const CareerRouter = (() => {
         const grounded = !!(bank && bank.cir_grounded);
         const trackLabel = roleFamily === "finance" ? (/\bquant\b|\bprobability\b|market[- ]making/.test(t) ? "quant" : "finance technicals") : roleFamily === "swe" ? "SWE coding" : roleFamily === "product" ? "PM" : null;
         const headline = company && grounded ? `Your prep set for ${company}, matched to how this round actually runs.` : trackLabel ? `Your ${trackLabel} prep set.` : "Your prep set for this track.";
-        const facts = list.length ? [...list] : ["The set is built from the question bank for this track, in the order the gaps on your profile demand."];
-        if (!grounded) facts.push(company ? `No company file is on record for ${company}, so this is the track's standard set — add the company file and it re-orders to that company's known style.` : "No company is named in this session, so this is the track's standard set, not one matched to a company's style — name the company and it re-orders to theirs.");
-        if (roleFamily === "finance") facts.push("Gaps are named from your answers as the drill runs — each answer is scored, and the topics it could not cover are listed; a question list alone cannot name them, and this set does not pretend to.");
+        let facts = list.length ? [...list] : ["The set is built from the question bank for this track, in the order the gaps on your profile demand."];
+        // WORDING-BACKLOG (BUG-195): the standard-set disclaimer is
+        // spoken only where the ask premises a company match — an
+        // ask that names no company and premises none (a quant drill
+        // set, a PM set) gets its track's own contents line instead
+        // of the same disclaimer verbatim in every reply.
+        if (!grounded && company) facts.push(`No company file is on record for ${company}, so this is the track's standard set — add the company file and it re-orders to that company's known style.`);
+        else if (!grounded && /style|match|matched|known for|how they interview/.test(t)) facts.push("No company is named in this session, so this is the track's standard set, not one matched to a company's style — name the company and it re-orders to theirs.");
+        if (roleFamily === "product") {
+          // The set speaks the user's own shipped work (the ask's
+          // premise) and names its metrics piece as delivered.
+          const projF = (profile.facts || []).find((f) => f && /project/i.test(s(f.type || f.kind || "")) && f.title);
+          const proj = projF ? s(projF.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim() : null;
+          facts = facts.map((f) => /product you use every day/.test(f) && proj ? `Product sense, through your shipped thing: ${proj} — how would you improve it, and how would you know the improvement worked?` : f);
+          if (facts.some((f) => /drops 20%/.test(f))) facts.push("Metrics: the drop drill above is your metrics piece — a flagship metric down 20%, worked end to end: first hour, first cuts, first call.");
+          if (proj) facts.push(`Your own product's numbers are not on your profile yet — add ${proj}'s real metrics and the metrics piece runs on them instead of the standard scenario.`);
+        }
+        if (roleFamily === "finance") facts.push("Gaps get named from your answers as the drill runs — each answer is scored, and the topics it missed are listed.");
         const reply = compose({ headline, facts, nextStep: "Start the first one as a timed drill?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: payloadFor(bank) };
       }
@@ -33774,18 +33827,27 @@ const CareerRouter = (() => {
       const briefFacts = (brief) => {
         const F = [];
         if (!brief || typeof brief !== "object") return F;
+        // WORDING-BACKLOG (BUG-193): spoken brief facts are cut at
+        // word boundaries (a scraped fragment never ends mid-word),
+        // listing scaffolding never poses as a likely question
+        // ("[Stripe stage] Walk me through how you will handle:
+        // Application…" is the loop's plumbing, not a question), and
+        // no fact repeats — the night-before pack used to print the
+        // same evidence line twice under two labels.
+        const cutWords = (str, n) => { const v = s(str); if (v.length <= n) return v; const cut = v.slice(0, n); const sp = cut.lastIndexOf(" "); return (sp > 40 ? cut.slice(0, sp) : cut).replace(/[\s,;:—-]+$/, ""); };
+        const push = (x) => { const v = s(x).trim(); if (v && !F.some((y) => y.toLowerCase() === v.toLowerCase())) F.push(v); };
         const barText = brief.bar ? s(typeof brief.bar === "string" ? brief.bar : brief.bar.text || brief.bar.statement || "") : "";
-        if (barText) F.push(`The bar${brief.company ? ` at ${brief.company}` : ""}: ${barText}`);
-        if (Array.isArray(brief.stages) && brief.stages.length) F.push(`The loop, from the company file: ${brief.stages.map((x) => s(typeof x === "string" ? x : x.name || "")).filter(Boolean).join(" · ")}.`);
+        if (barText) push(`The bar${brief.company ? ` at ${brief.company}` : ""}: ${barText}`);
+        if (Array.isArray(brief.stages) && brief.stages.length) push(`The loop, from the company file: ${brief.stages.map((x) => s(typeof x === "string" ? x : x.name || "")).filter(Boolean).join(" · ")}.`);
         if (Array.isArray(brief.emphasis) && brief.emphasis.length) {
-          const pts = brief.emphasis.slice(0, 2).map((e) => s(e && (e.point || e.text) || e)).filter(Boolean);
-          F.push(`What they screen for: ${(pts.length && pts[0].length > 200 ? pts.slice(0, 1) : pts).join(" · ")}`);
+          const pts = brief.emphasis.slice(0, 2).map((e) => cutWords(e && (e.point || e.text) || e, 170)).filter(Boolean);
+          push(`What they screen for: ${pts.join(" · ")}`);
         }
-        if (brief.status === "NO_CIR" && Array.isArray(brief.gaps) && brief.gaps.length) F.push(s(brief.gaps[0]));
-        if (Array.isArray(brief.story_map) && brief.story_map.length) F.push(`Your story "${brief.story_map[0].title}" is matched to: ${s((brief.story_map[0].mapped_to_questions || [])[0] || "").slice(0, 90)}.`);
-        else if (brief.stories_note || brief.status) F.push("No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.");
-        const qs2 = brief.likely_questions || [];
-        if (qs2.length) F.push(`Likely first questions: ${qs2.slice(0, 3).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean).join(" · ")}`);
+        if (brief.status === "NO_CIR" && Array.isArray(brief.gaps) && brief.gaps.length) push(s(brief.gaps[0]));
+        if (Array.isArray(brief.story_map) && brief.story_map.length) push(`Your story "${brief.story_map[0].title}" is matched to: ${cutWords((brief.story_map[0].mapped_to_questions || [])[0] || "", 110)}.`);
+        else if (brief.stories_note || brief.status) push("No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.");
+        const qs2 = (brief.likely_questions || []).map((q) => s(typeof q === "string" ? q : q.q || "")).filter((q) => q && q.length <= 110 && !/\bstage\b|walk me through how you will handle/i.test(q));
+        if (qs2.length) push(`Likely first questions: ${qs2.slice(0, 3).join(" · ")}`);
         return F.slice(0, 5);
       };
       // WORDING-BACKLOG (BUG-135): every producer's reply speaks its
@@ -33803,7 +33865,15 @@ const CareerRouter = (() => {
           if (Array.isArray(out.level_notes) && out.level_notes.length) push(out.level_notes[0]);
         } else if (fn === "coffeeChatPrep") {
           for (const tp of (out.talking_points || []).slice(0, 3)) push(tp);
-          if (Array.isArray(out.questions) && out.questions.length) push(`Questions to ask them: ${out.questions.slice(0, 2).join(" · ")}`);
+          // WORDING-BACKLOG (BUG-194): the counts the user asked for
+          // are answered truthfully — what the brief holds, and the
+          // shortfall with its reason — and what-not-to-ask is part
+          // of the brief, not an omission.
+          const wantQ = Number((s(text).match(/(\d+)\s+(?:sharp\s+)?questions/) || [])[1]) || null;
+          const heldQ = (out.questions || []).length;
+          if (Array.isArray(out.questions) && out.questions.length) push(`Questions to ask them — ${(out.talking_points || []).length} talking points above, ${heldQ} questions in the brief: ${out.questions.slice(0, 3).join(" · ")}`);
+          if (wantQ && heldQ < wantQ) push(`You asked for ${wantQ} questions; the brief holds ${heldQ} sharp ones grounded in what is on record — the rest would need the person's role and team, which the file does not hold, so they are not padded in.`);
+          push("What not to ask: comp, headcount plans, and anything about other candidates — those end chats early and close the door you are opening.");
           if (!out.cir_grounded) push("No company file is on record for this chat, so nothing about the firm is claimed — the brief stands on their path and your own work.");
         } else if (fn === "finalRoundDelta" || fn === "superdayPlan") {
           for (const c of (out.changes || []).slice(0, 3)) push(c);
@@ -33813,9 +33883,17 @@ const CareerRouter = (() => {
             // lint strips that token from prose, so it is spoken as
             // "company file" here or the fact never reaches the user)
             push(s((out.gaps || [])[0] || "No company file is on record, so the company-specific shape of this round is not claimed.").replace(/\bCIR\b/g, "company file"));
-            push(fn === "superdayPlan"
-              ? "What a superday is, in general: a half-day of back-to-back rounds — behavioral, technicals, and a case or market discussion — with almost no gaps between them; the survival plan paces the days before, sets a night-before cutoff, and lines your stories up per round type."
-              : "What changes in a final round, in general: breadth screens give way to depth — fewer screeners, longer follow-ups on your own stories and the technical core, and the people in the room who can actually say yes.");
+            if (fn === "superdayPlan") {
+              // WORDING-BACKLOG (BUG-194): the general plan is
+              // DELIVERED — pacing, a named night-before cutoff, the
+              // standard story-to-round mapping — not described as
+              // a plan that exists somewhere else.
+              push("The plan's pacing: arrive 15 minutes early; between rounds you get minutes, not breaks — water and a breath at every gap, phone face-down, and one line written per interviewer (their name, one specific) before the next room.");
+              push("Night-before cutoff: prep stops at 9:00 PM — after that only logistics (links, outfit, route) and sleep; morning-of cramming is the known failure mode.");
+              push("Story-to-round mapping, the standard shape: your strongest project story leads the behavioral rounds, the hardest-problem story covers the technicals, and the team-under-pressure story is held for the case or market round.");
+            } else {
+              push("What changes in a final round, in general: breadth screens give way to depth — fewer screeners, longer follow-ups on your own stories and the technical core, and the people in the room who can actually say yes.");
+            }
           }
         } else if (fn === "salaryDeflectionScripts") {
           // The scripts ARE the deliverable: each script's sentences
@@ -33852,8 +33930,8 @@ const CareerRouter = (() => {
       const producerNext = {
         videoInterviewPractice: "Paste your first answer's transcript and I will score it against the rubric.",
         takeHomePlan: "Tell me the deliverables and your time blocks and I will lay out the hours.",
-        finalRoundDelta: "Name the company and the file turns this into its actual final stage — or want the general version run as a mock?",
-        superdayPlan: "Tell me the firm and I will rebuild this from its company file — or want the general plan turned into a day-by-day schedule?",
+        finalRoundDelta: "Name the company and the file turns this into its actual final stage.",
+        superdayPlan: "Name the firm and the file sharpens this mapping to its actual rounds.",
         questionsToAsk: "Want to rehearse your strongest one out loud?",
         salaryDeflectionScripts: "Want to rehearse the pressed-for-a-number one out loud?",
         systemDesignPrep: "Want to run the first prompt as a timed design drill?",
@@ -33865,7 +33943,7 @@ const CareerRouter = (() => {
       // asks (these used to fall to the OS capability template).
       const producerRoutes = [
         [/\bvideo\b[^.]*\b(practice|interview)\b|\bpractice\b[^.]*\bcamera\b/, "videoInterviewPractice", "Your video-interview practice plan."],
-        [/\btake[ -]home\b/, "takeHomePlan", "Your take-home plan, hour by hour."],
+        [/\btake[ -]home\b/, "takeHomePlan", "Your take-home plan — the shape now, the hours when the blocks are named."],
         [/\bsuperday\b/, "superdayPlan", "Your superday plan."],
         [/\bfinal[ -]round\b|\bfinal round\b/, "finalRoundDelta", "The final-round delta: what changes at this stage."],
         [/\bquestions[ -]to[ -]ask\b|\bquestions i should ask\b|\bask the (panel|interviewer)\b/, "questionsToAsk", "Your questions to ask, matched to this panel."],
@@ -33880,12 +33958,50 @@ const CareerRouter = (() => {
           try {
             const out = fn === "debriefRetro" ? Prep.debriefRetro({ debriefs: (ctx.debriefs || []) }) : Prep[fn]({ cir: cirFor(text, ctx), company: company || undefined, profile });
             if (out) {
-              const facts = producerFacts(fn, out);
-              if (fn === "debriefRetro" && /thank[ -]you/.test(t)) facts.push("The thank-you is drafted from the debrief and held for your yes — it goes out only when you approve the exact text.");
+              let facts = producerFacts(fn, out);
+              let head = headline;
+              let nextStep = producerNext[fn] || "Want to run the first piece as a timed drill?";
+              if (fn === "debriefRetro") {
+                // WORDING-BACKLOG (BUG-194): an empty debrief mines
+                // nothing and drafts nothing — the headline says so,
+                // the thank-you is conditional on a debrief
+                // existing, and a rejection in the ask is
+                // acknowledged before the retro mechanics (W1).
+                if (!out.total_debriefs) head = "The debrief — nothing captured yet, so nothing is mined.";
+                if (/thank[ -]you/.test(t)) facts.push(out.total_debriefs
+                  ? "The thank-you is drafted from the debrief and held for your yes — it goes out only when you approve the exact text."
+                  : "The thank-you waits on the debrief: there is nothing captured to draft it from yet — tell me the round in your words and the note drafts from that, still sent only on your yes.");
+                if (/reject|turned down|didn'?t get/.test(t)) {
+                  facts.unshift("First — a rejection after a final round is a real loss, and it says nothing about the next one.");
+                  head = "The post-rejection retro — read from what is actually captured.";
+                }
+              }
+              if (fn === "composeBrief") {
+                // WORDING-BACKLOG (BUG-192): research talks,
+                // teaching demos, and bar-raiser rounds each get
+                // their OWN brief — the shape's arc, its real
+                // questions, its own next step — never one generic
+                // template rump under three different asks, and at
+                // most one honest-gap line, phrased per shape.
+                const shape = /\bresearch[ -]talk\b/.test(t) ? "research" : /\bteaching[ -]demo\b/.test(t) ? "teaching" : /\bbar[ -]raiser\b/.test(t) ? "barraiser" : null;
+                if (shape === "research") {
+                  head = "Your research-talk brief.";
+                  facts = ["The talk runs on one arc: the problem and why it matters, your approach, the result, and the open questions it leaves — panels interrupt on the approach, so that section carries the depth.", "Their questions cluster on method: why this approach over the obvious alternative, what the result does NOT show, and what you would run next with more time.", "No company file is on record for this panel, so no question is invented in their voice — the arc and the method probes are the research-talk standard."];
+                  nextStep = "Paste the abstract or the slide titles and the arc gets built on your actual work?";
+                } else if (shape === "teaching") {
+                  head = "Your teaching-demo brief.";
+                  facts = ["The demo is judged on the teaching, not the content: open with the learning goal in one sentence, build one worked example live, and check understanding twice before the close.", "Expect the panel to play the confused student — the recovery (a second, smaller example) is what they are actually scoring.", "No company file is on record for this panel, so the school's own format is not claimed — the beats above are the teaching-demo standard."];
+                  nextStep = "Tell me the topic and the class length and the beats get timed to it?";
+                } else if (shape === "barraiser") {
+                  head = "Your bar-raiser brief.";
+                  facts = ["A bar-raiser round probes three things: ownership — a decision that was yours alone; disagreement — a time you pushed back with data; and a failure you can dissect without flinching.", "Answers come from your real facts only: an invented war story collapses on the second follow-up, and the second follow-up is the bar raiser's whole job.", "No company file is on record for this round, so its named bar is not claimed — the three probes above are what the round is built to test."];
+                  nextStep = "Want to pick your ownership story first and stress-test it?";
+                }
+              }
               // A panel-less questions ask is not "matched to this
               // panel" — the headline says which set it is.
-              const head = fn === "questionsToAsk" && out.team_unknown ? "Your questions to ask — no panel is named yet, so these are the round's standard set." : headline;
-              const reply = compose({ headline: head, facts: facts.length ? facts : ["Built from the prep bank for this round and the facts on your profile — nothing rehearsed that you cannot defend."], nextStep: producerNext[fn] || "Want to run the first piece as a timed drill?" });
+              if (fn === "questionsToAsk" && out.team_unknown) head = "Your questions to ask — no panel is named yet, so these are the round's standard set.";
+              const reply = compose({ headline: head, facts: facts.length ? facts : ["Built from the prep bank for this round and the facts on your profile — nothing rehearsed that you cannot defend."], nextStep });
               return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief: out, payload: out };
             }
           } catch { /* fall through to the brief */ }
@@ -33901,8 +34017,16 @@ const CareerRouter = (() => {
         // state, questions) under a headline that names the ask's
         // shape — never a question list plus a grounding slogan
         // serving every brief-shaped ask alike.
-        const facts = briefFacts(brief);
-        if (/\bportfolio walkthrough\b/.test(t)) facts.push("Each project runs in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
+        let facts = briefFacts(brief);
+        if (/\bportfolio walkthrough\b/.test(t)) {
+          // WORDING-BACKLOG (BUG-192): a walkthrough's openers are
+          // per project, from the profile's own project facts —
+          // the generic behavioral trio is not a walkthrough prep.
+          facts = facts.filter((f) => !/^Likely first questions/.test(f));
+          facts.push("Each project runs in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
+          const projects = (profile.facts || []).filter((f) => f && /project/i.test(s(f.type || f.kind || "")) && f.title).slice(0, 2);
+          for (const p of projects) { const pn = s(p.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim(); facts.push(`Opener for ${pn}: "Walk me through ${pn} — why that stack, what broke first, and what you would change now."`); }
+        }
         if (/\bhiring[ -]manager\b/.test(t)) facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap.");
         if (/\btwo interviews\b|\bsame day\b/.test(t)) facts.push("Two in one day: the heavier panel goes second in prep order, and the schedule gets a sanity check for back-to-back fatigue.");
         // WORDING-BACKLOG (BUG-140): a named appointment is spoken
@@ -33932,7 +34056,7 @@ const CareerRouter = (() => {
           : /\btwo interviews\b|\bsame day\b/.test(t) ? "Your prep order for both interviews."
           : apptM ? `Your interview brief for ${apptM[1][0].toUpperCase() + apptM[1].slice(1).toLowerCase()} at ${Number(apptM[2])}:${apptM[3] || "00"} ${apptM[4].toUpperCase()}.`
           : `Your interview brief${company ? ` for ${company}` : ""}.`;
-        const reply = compose({ headline, facts: facts.length ? facts : ["Every answer gets built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: /\bportfolio walkthrough\b/.test(t) ? "Want to run the walkthrough now, project by project, the way the round will?" : "Want to run it as a mock, one question at a time?" });
+        const reply = compose({ headline, facts: facts.length ? facts : ["Every answer gets built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: /\bnight[ -]before\b/.test(t) ? "Want me to walk the pack once tonight, question by question?" : /\bportfolio walkthrough\b/.test(t) ? "Want to run the walkthrough now, project by project, the way the round will?" : /\bhiring[ -]manager\b/.test(t) ? "Want the first-month plan run as the mock — you pitch it, I push on the calls you would make?" : "Want to run it as a mock, one question at a time?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief, payload: brief };
       }
     } catch { return null; }
@@ -35116,7 +35240,12 @@ const CareerRouter = (() => {
       : [`No application to ${company} is on your record in this session, and no inbox message references one — the honest status is: nothing logged, nothing hidden.`, "Log it and the status is spoken from the record plus the inbox proof from then on."];
     facts.push(`Grounded in your own application log and inbox record, as of ${asOfMonthYear(ctx)}.`);
     const reply = compose({ headline: rows.length ? `Your ${company} application status, from the record.` : `No ${company} application on record.`, facts, nextStep: "Want the full timeline for it, or another company's status?" });
-    return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, status_rows: rows };
+    // The status answer rides the tracker doorstep record like
+    // every other tracking read (IB-TN-1e pattern): the typed 141
+    // record is this turn's product, carried on the result.
+    const spec = summarySpec(ctx, trackStoreOf(ctx));
+    const res = { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, status_rows: rows };
+    return emitTrack(ctx, res, spec || { summary: { total: rows.length } });
   }
 
   function summarySpec(ctx, store) {

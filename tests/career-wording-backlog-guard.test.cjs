@@ -168,7 +168,7 @@ test("BUG-133: prep sets speak their true track and grounding", () => {
   assert.ok(/two heads in a row/.test(t186) && /make a market/.test(t186), "SC-186: quant drills lead");
   assert.ok(!/three financial statements/.test(t186.split("Gaps are named")[0].slice(0, 400)) || t186.indexOf("two heads") < t186.indexOf("three financial"), "SC-186: quant before banking");
   const t187 = text(turn("SC-187"));
-  assert.ok(/Your finance technicals prep set\./.test(t187) && /Gaps are named from your answers/.test(t187), `SC-187: ${t187.slice(0, 120)}`);
+  assert.ok(/Your finance technicals prep set\./.test(t187) && /Gaps get named from your answers/.test(t187), `SC-187: ${t187.slice(0, 120)}`);
   const t188 = text(turn("SC-188"));
   assert.ok(/Your PM prep set\./.test(t188) && /thing you shipped/.test(t188) && /improve it/.test(t188), `SC-188: ${t188.slice(0, 120)}`);
 });
@@ -217,15 +217,15 @@ test("BUG-136: brief replies speak bar, loop, and story state; coffee chats spea
   const t176 = text(turn("SC-176"));
   assert.ok(/Your night-before brief for Stripe\./.test(t176) && /The bar at Stripe:/.test(t176) && /The loop, from the company file:/.test(t176), `SC-176: ${t176.slice(0, 200)}`);
   const t190 = text(turn("SC-190"));
-  assert.ok(/Questions to ask them:/.test(t190) && /Palantir/.test(t190), `SC-190: ${t190.slice(0, 200)}`);
+  assert.ok(/Questions to ask them/.test(t190) && /Palantir/.test(t190), `SC-190: ${t190.slice(0, 200)}`);
   const t182 = text(turn("SC-182"));
-  assert.ok(/Questions to ask them:/.test(t182) && /No company file is on record for this chat/.test(t182), `SC-182: ${t182.slice(0, 200)}`);
+  assert.ok(/Questions to ask them/.test(t182) && /No company file is on record for this chat/.test(t182), `SC-182: ${t182.slice(0, 200)}`);
   const t203 = text(turn("SC-203"));
   assert.ok(/The portfolio walkthrough, project by project\./.test(t203) && /Each project runs in this order/.test(t203), `SC-203: ${t203.slice(0, 160)}`);
   const t200 = text(turn("SC-200"));
-  assert.ok(/Your superday plan\./.test(t200) && /No merged company file/.test(t200) && /back-to-back rounds/.test(t200), `SC-200: ${t200.slice(0, 200)}`);
+  assert.ok(/Your superday plan\./.test(t200) && /No merged company file/.test(t200) && /prep stops at 9:00 PM/.test(t200), `SC-200: ${t200.slice(0, 200)}`);
   const t195 = text(turn("SC-195"));
-  assert.ok(!/matched to this panel/.test(t195) && /No team fact was supplied/.test(t195), `SC-195: ${t195.slice(0, 200)}`);
+  assert.ok(!/matched to this panel/.test(t195) && /No team or company file was supplied/.test(t195), `SC-195: ${t195.slice(0, 200)}`);
 });
 
 // ================= TRACK (BUG-137..BUG-140) =================
@@ -353,12 +353,93 @@ test("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap 
 // ---- BUG-191: waves, surgery counts, and the bounce check are computed in the reply ----
 test("BUG-191: empty-record deliverables state their zero with the arithmetic shown", () => {
   const t36 = text(turn("SC-036"));
-  assert.ok(/day-6 wave: 0 drafts/.test(t36) && /sent, minus replies, minus bounces/.test(t36), `SC-036: ${t36.slice(0, 200)}`);
+  assert.ok(/day-6 wave: 0 drafts/.test(t36) && /how many went out, minus replies, minus bounces/.test(t36), `SC-036: ${t36.slice(0, 200)}`);
   assert.ok(!/Want the wave drafted against/.test(t36), "SC-036: draft-it-later closer is back");
   const t41 = text(turn("SC-041"));
   assert.ok(/zero on both sides/.test(t41) && !/Open the current list and I will show/.test(t41), `SC-041: ${t41.slice(0, 200)}`);
   const t34 = text(turn("SC-034"));
   assert.ok(/pattern check ran over this session's record/.test(t34) && !/Say the word and I run the pattern check/.test(t34), `SC-034: ${t34.slice(0, 200)}`);
+});
+
+// ================= PREP PASS 2 (BUG-192..BUG-195) =================
+// The wordingfix judge's Prep rows: three round shapes sharing one
+// template rump, brief-fact hygiene (duplicates, scaffolding,
+// mid-word cuts), producers whose conditions were asserted over
+// empty records, and prep sets carrying other tracks' drills.
+
+// ---- BUG-192: every round shape gets its own brief ----
+test("BUG-192: research talk, teaching demo, and bar-raiser briefs are three different briefs", () => {
+  const t201 = text(turn("SC-201")), t202 = text(turn("SC-202")), t205 = text(turn("SC-205"));
+  assert.ok(/research-talk brief/i.test(t201) && /one arc/.test(t201), `SC-201: ${t201.slice(0, 160)}`);
+  assert.ok(/teaching-demo brief/i.test(t202) && /learning goal/.test(t202), `SC-202: ${t202.slice(0, 160)}`);
+  assert.ok(/bar-raiser brief/i.test(t205) && /ownership/.test(t205), `SC-205: ${t205.slice(0, 160)}`);
+  assert.ok(t201 !== t202 && t202 !== t205 && t201 !== t205, "the three shapes share a body again");
+  for (const t of [t201, t202, t205]) assert.ok(!/No story is mapped to these questions/.test(t), "template rump line is back");
+  const t203 = text(turn("SC-203"));
+  assert.ok(/Opener for StudyBoard/.test(t203) && !/Likely first questions/.test(t203), `SC-203: ${t203.slice(0, 200)}`);
+  const t204 = text(turn("SC-204"));
+  assert.ok(/first-month plan run as the mock/.test(t204), `SC-204 closer: ${t204.slice(-160)}`);
+});
+
+// ---- BUG-193: brief facts never repeat, never carry scaffolding, never end mid-word ----
+test("BUG-193: the night-before pack has no repeated sentence and no listing scaffolding", () => {
+  const t = text(turn("SC-176"));
+  const sents = t.split(/(?<=[.!?])\s+/).map((x) => x.trim().toLowerCase()).filter((x) => x.length > 30);
+  assert.equal(new Set(sents).size, sents.length, `SC-176 repeats a sentence: ${t.slice(0, 300)}`);
+  assert.ok(!/how you will handle:/i.test(t), "listing scaffolding spoken as a question");
+  assert.ok(/walk the pack once tonight/.test(t), `SC-176 closer: ${t.slice(-140)}`);
+});
+
+// ---- BUG-194: producer replies assert only what their record holds ----
+test("BUG-194: counts are spoken truthfully, empty debriefs mine and draft nothing, the standard set is delivered", () => {
+  const t182 = text(turn("SC-182"));
+  assert.ok(/5 questions in the brief/.test(t182) && /What not to ask/.test(t182), `SC-182: ${t182.slice(0, 200)}`);
+  const t189 = text(turn("SC-189"));
+  assert.ok(/nothing captured yet, so nothing is mined/.test(t189) && !/drafted from the debrief/.test(t189) && /thank-you waits on the debrief/.test(t189), `SC-189: ${t189.slice(0, 200)}`);
+  const t199 = text(turn("SC-199"));
+  assert.ok(/a rejection after a final round is a real loss/.test(t199), `SC-199 acknowledgment: ${t199.slice(0, 160)}`);
+  const t195 = text(turn("SC-195"));
+  assert.ok(/team's next term look like/.test(t195) && /standard questions, none written for a team/.test(t195) && !/questions are company file-grounded/.test(t195), `SC-195: ${t195.slice(0, 240)}`);
+  const t198 = text(turn("SC-198"));
+  assert.ok(/Materials: Resume/.test(t198) && (t198.match(/flagged/g) || []).length <= 2, `SC-198: ${t198.slice(0, 240)}`);
+  const t200 = text(turn("SC-200"));
+  assert.ok(/prep stops at 9:00 PM/.test(t200) && /Story-to-round mapping/.test(t200), `SC-200: ${t200.slice(0, 240)}`);
+  const t193 = text(turn("SC-193"));
+  assert.ok(/actual final stage\./.test(t193.trim()) || /actual final stage/.test(t193) && !/or want the general version/.test(t193), `SC-193 closer: ${t193.slice(-140)}`);
+});
+
+// ---- BUG-195: a prep set carries its own track's drills, whole ----
+test("BUG-195: the quant set is only quant, the finance set is complete, the PM set speaks the shipped work", () => {
+  const t186 = text(turn("SC-186"));
+  assert.ok(!/three financial statements/.test(t186) && /How many flips do you expect/.test(t186) && !/No company is named in this session/.test(t186), `SC-186: ${t186.slice(0, 240)}`);
+  const t187 = text(turn("SC-187"));
+  assert.ok(/Walk me through a DCF/.test(t187) && /LBO/.test(t187) && /Gaps get named from your answers/.test(t187), `SC-187: ${t187.slice(0, 240)}`);
+  const t188 = text(turn("SC-188"));
+  assert.ok(/through your shipped thing: StudyBoard/.test(t188) && /your metrics piece/.test(t188) && !/\(TEST/.test(t188), `SC-188: ${t188.slice(0, 240)}`);
+  const t183 = text(turn("SC-183"));
+  assert.ok(/standard set, not one matched to a company's style/.test(t183), `SC-183 disclaimer: ${t183.slice(0, 200)}`);
+});
+
+// ---- BUG-196: the verification wave's own repairs — claim verbs
+// in noun clothing, set replies that read as canned shortlists,
+// and tracking reads that must carry their doorstep record ----
+test("BUG-196: no claim-verb nouns in wave replies; set replies name their head, not a shortlist; status answers carry the record", () => {
+  for (const id of ["SC-036", "SC-037"]) {
+    const t = text(turn(id));
+    assert.ok(!/\bsent\b/.test(t), `${id}: the word "sent" in any clothing trips the claim check (H-7): ${t.slice(0, 200)}`);
+  }
+  const t106 = text(turn("SC-106"));
+  assert.ok(!/\bis applied\b/.test(t106), `SC-106: the doorstep cadence may not claim an application happened: ${t106.slice(0, 240)}`);
+  const t096 = text(turn("SC-096"));
+  assert.ok(!/confirmed experiences/.test(t096), `SC-096: ${t096.slice(0, 200)}`);
+  const CANNED = ["Northwind Ledger", "Lakefront Cloud", "Eastbank Systems", "Copperline Infra", "Fieldnote Software"];
+  for (const id of ["SC-068", "SC-069"]) {
+    const t = text(turn(id));
+    const hits = CANNED.filter((c) => t.includes(c));
+    assert.ok(hits.length < 3, `${id}: reply names ${hits.length} fixture-set companies — reads as the canned shortlist: ${hits.join(", ")}`);
+  }
+  const r115 = turn("SC-115");
+  assert.ok(r115.result && r115.result.doorstep && r115.result.doorstep.gap === null, "SC-115: the status answer must carry the 141 tracker doorstep record");
 });
 
 // ================= APPLY (BUG-181..BUG-186) =================
@@ -447,7 +528,7 @@ test("BUG-185: autopilot rule restated in full; watch carries the window and the
   const t63 = text(turn("SC-063"));
   assert.ok(/only roles posted in the last 48 hours qualify/.test(t63), `SC-063: ${t63.slice(0, 200)}`);
   const t106 = text(turn("SC-106"));
-  assert.ok(/applied within the hour it posts/.test(t106), `SC-106: ${t106.slice(0, 200)}`);
+  assert.ok(/reaches its doorstep within the hour/.test(t106), `SC-106: ${t106.slice(0, 200)}`);
   const t114 = text(turn("SC-114"));
   assert.ok(/clearance-blocked/.test(t114), `SC-114: ${t114.slice(0, 200)}`);
   const t79 = text(turn("SC-079"));

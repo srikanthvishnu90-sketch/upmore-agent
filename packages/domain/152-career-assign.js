@@ -305,7 +305,12 @@ const CareerAssign = (() => {
         job_id: c.job_id, company: c.company || "", title: c.title, location: c.location || "",
         remote: /remote/i.test(c.location || "") ? "remote" : "onsite",
         url: c.url, posted_at: c.posted_at || null, source: c.source,
-        seniority_band: c.seniority_band, role_family: c.role_family, jd_text: "",
+        seniority_band: c.seniority_band, role_family: c.role_family,
+        // BUG-207 / FR-364: preserve the posting's own text the alert record
+        // carries (151 composeAlert, BUG-207) — blanking it here made
+        // extractDeadline see an empty string (deadline null on every
+        // alert-fed reminder) and removed roleMatch's JD-head leg.
+        jd_text: c.jd_text || "",
         _inherited_fit: c.fit || null, _inherited_fit_lines: c.fit_lines || [], _inherited_fact_ids: c.matched_fact_ids || [],
       };
     }

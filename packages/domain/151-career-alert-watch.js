@@ -149,6 +149,53 @@ const CareerAlertWatch = (() => {
     return { pass: reasons.length === 0, reasons, occupation_match: occHit };
   }
 
+  // BUG-207: proven-skill derivation for fit lines. 121 scoreFit matches skills from
+  // BOTH profile shapes — the pre-derived profile.skills array AND the canonical
+  // facts shape (kind:"skill" facts, via 121 profileSkills' facts fallback) — but
+  // the hand-rolled filter that used to live in composeAlert read ONLY
+  // profile.skills, so a facts-shaped profile scored matches it could never explain
+  // (zero fit lines for a user whose proven skill the JD names). 121 does not
+  // export profileSkills, so this mirrors its semantics faithfully, with the
+  // fact-citation strictness of 121's own profileFromPersona builders: a facts-held
+  // skill is proven only when it is not flagged unproven AND carries evidence, and
+  // its citation id is fact_id || id. Pre-derived skills entries keep their existing
+  // verdict (their proven flag already encodes the evidence check), except an
+  // explicitly empty evidence array, which is itself a statement of no evidence.
+  function skillNameOf(text) {
+    const t = s(text).replace(/^Skill:\s*/i, "").trim();
+    const m = t.match(/^(.*?)\s*\(([^()]*)\)\s*$/); // annotation is provenance, not the name (121 BUG-097)
+    return m && m[1].trim() ? m[1].trim() : t;
+  }
+  function provenSkillFacts(profile) {
+    const out = [];
+    const seen = new Set();
+    const push = (name, proven, factId) => {
+      const n = s(name).trim();
+      if (!n || !proven || !factId || seen.has(lc(n))) return;
+      seen.add(lc(n));
+      out.push({ name: n, fact_id: factId });
+    };
+    const fromEntry = (x) => {
+      if (!x || typeof x === "string") return;
+      push(x.name || x.skill,
+        x.proven !== false && !x.unproven && !(Array.isArray(x.evidence) && x.evidence.length === 0),
+        x.fact_id || x.id);
+    };
+    for (const x of (profile && profile.skills) || []) fromEntry(x);
+    const facts = profile && profile.facts;
+    if (Array.isArray(facts)) {
+      for (const f of facts) {
+        if (!f || f.kind !== "skill") continue;
+        push(f.name || skillNameOf(f.text || ""),
+          !f.unproven && f.proven !== false && (f.evidence || []).length > 0,
+          f.fact_id || f.id);
+      }
+    } else if (facts && Array.isArray(facts.skills)) {
+      for (const x of facts.skills) fromEntry(x); // 121 profileSkills' facts.skills shape: skill entries, not facts
+    }
+    return out;
+  }
+
   // Typed alert record (G2's artifact, at watch tier): identity + board timestamps +
   // latency + fit lines sourced ONLY from the profile's proven facts, each citing its
   // fact ID (scoreFit already refuses unproven skills any match credit — BUG-002 — and
@@ -162,10 +209,9 @@ const CareerAlertWatch = (() => {
     // artifact, not a 40-day detection latency — flag it so latency statistics and
     // the reader never mistake one for the other.
     const posted_at_quality = isNaN(postedMs) ? "missing" : (detectedMs - postedMs <= 48 * 3600 * 1000 ? "fresh" : "backdated");
-    const skills = (profile && profile.skills) || [];
     const matchedNames = (fit && fit.matched_skills) || [];
-    const matchedFacts = skills.filter((x) => x && x.proven !== false && x.fact_id
-      && matchedNames.some((m) => lc(m) === lc(x.name)));
+    const matchedFacts = provenSkillFacts(profile).filter((x) =>
+      matchedNames.some((m) => lc(m) === lc(x.name)));
     const fit_lines = matchedFacts.map((x) => `proven skill ${x.name} (fact ${x.fact_id}) matches this posting`);
     for (const r of (fit && fit.reasons) || [])
       if (/role family .* is one you asked for|is a company you starred/.test(r)) fit_lines.push(r);
@@ -179,6 +225,11 @@ const CareerAlertWatch = (() => {
       role_family: posting.role_family,
       seniority_band: posting.seniority_band,
       source: posting.source,
+      // BUG-207 / FR-364: the posting's own text rides the alert record verbatim
+      // (the text 121 normalized, nothing rewritten). Without it the 152 reminder
+      // path had no posting text to quote a deadline from or match a JD head
+      // against — every alert-fed reminder silently lost its stated deadline.
+      jd_text: posting.jd_text || "",
       posted_at: posting.posted_at || null,
       posted_at_quality,
       detected_at,

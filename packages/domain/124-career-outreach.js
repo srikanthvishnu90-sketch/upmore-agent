@@ -284,6 +284,12 @@ const CareerOutreach = (() => {
     else if (/fintech/.test(w) && /insurtech/.test(w)) q.universe_label = "fintech and insurtech companies";
     else if (/fintechs?\b/.test(w)) q.universe_label = "fintechs";
     else if (/dream (50|companies|firms)/.test(w)) { const dm = raw.match(/(\d+)\s+dream companies/i); q.universe_label = dm ? `your ${dm[1]} dream companies` : "your dream companies"; }
+    // BUG-216 (DEPTH WAVE): a healthcare ask names its own universe.
+    // The recognizer knew "consulting" but no label ever formed, so
+    // a healthcare-consulting ask fell through to the bulge-bracket
+    // default — investment banks proposed for a healthcare ask. The
+    // category the user named IS the universe, as with healthtech.
+    if (/\bhealthcare\b|\bhealth care\b/.test(w)) q.universe_label = /\bconsult/.test(w) ? "healthcare consulting firms" : (/health/.test(q.universe_label || "") ? q.universe_label : "healthcare companies");
     q.role_phrase = rolePhraseOf(w);
     if (/\binvestment bank|bankers?\b|ib analyst|\bm&a\b|levfin/.test(w)) { q.industry = "investment_banking"; q.role_family = q.role_family || "investment_banking"; }
     if (/\bconsult/.test(w)) { q.industry = "consulting"; q.role_family = q.role_family || "consulting"; }
@@ -336,6 +342,22 @@ const CareerOutreach = (() => {
         // substituted for a category the user named.
         q.proposed_default = { kind: "category", label: q.universe_label, count: q.count, note: "Vague ask: the category the user named is the proposed starting universe (Doc 1 §2.1)." };
         q.firms = [];
+        q.firms_source = "default";
+      } else if (q.industry === "consulting" || q.role_family === "consulting") {
+        // BUG-216 (DEPTH WAVE): the proposal set is keyed to the
+        // ask's own family. A firm-less CONSULTING ask is proposed
+        // the consulting peer set (MBB) — never the bulge bracket,
+        // which is a banking universe and answers a different ask.
+        q.proposed_default = { industry: "consulting", firm_set: "mbb", role_family: "consulting", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
+        Object.assign(q, { firm_set: "mbb", role_family: q.role_family || "consulting" });
+        q.firms = (firmSets().sets.mbb ? firmSets().sets.mbb.firms.map((f) => f.name) : []);
+        q.firms_source = "default";
+      } else if (q.industry === "law" || q.role_family === "law") {
+        // BUG-216 (DEPTH WAVE): same law for a firm-less LAW ask —
+        // the big-law set is its domain-shaped proposal.
+        q.proposed_default = { industry: "law", firm_set: "big_law", role_family: "law", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
+        Object.assign(q, { firm_set: "big_law", role_family: q.role_family || "law" });
+        q.firms = (firmSets().sets.big_law ? firmSets().sets.big_law.firms.map((f) => f.name) : []);
         q.firms_source = "default";
       } else {
         q.proposed_default = { industry: "investment_banking", firm_set: "bulge_bracket", role_family: "investment_banking", seniority_band: "analyst_associate", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };

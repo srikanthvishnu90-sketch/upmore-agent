@@ -1232,6 +1232,33 @@ const CareerRouter = (() => {
   }
   function handleCampaignPlan(text, ctx) {
     const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null;
+    // DEPTH WAVE (BUG-214 / FR-371): the plan is composed from the
+    // THREAD's facts before any generic set — a firm, city, or level
+    // the user named earlier in this conversation (or in this turn's
+    // capture) outranks the parser's default proposal, so a follow-up
+    // ("find analysts there first") never re-plans onto a generic
+    // set while the named target stands on the record.
+    if (q) {
+      const facts = statedFactsOf(ctx);
+      const firmF = facts.find((f) => f.kind === "target_firm");
+      if (firmF && !(q.firms_named && q.firms.length)) {
+        q.firms = [firmF.value]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
+      }
+      const geoF = facts.find((f) => f.kind === "geography");
+      if (geoF && !q.geography) q.geography = geoF.value;
+      const lvlF = facts.find((f) => f.kind === "level");
+      if (lvlF && !q.seniority_band) {
+        if (/analyst/i.test(lvlF.value)) q.seniority_band = "analyst";
+        else if (/associate/i.test(lvlF.value)) q.seniority_band = "associate";
+        if (!q.role_phrase) q.role_phrase = lvlF.value;
+      }
+      // And this ask's own named target joins the thread record (a
+      // declarative plan ask is the user's own statement of target).
+      if (!interrogativeTurn(text)) {
+        if (q.firms_named && q.firms.length === 1) recordThreadFact(ctx, "target_firm", q.firms[0], text);
+        if (q.geography) recordThreadFact(ctx, "geography", q.geography, text);
+      }
+    }
     const count = (q && q.count) || Number((lc(text).match(/\b(\d+)\b/) || [])[1]) || 40;
     const pool = poolOf(ctx);
     if (pool && pool.length && Outreach.buildList) {
@@ -1528,16 +1555,26 @@ const CareerRouter = (() => {
     const prev = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
     const merged = Object.assign({}, prev);
     const firmM = s(text).match(/\boffer is from\s+(?:a\s+|an\s+|the\s+)?(.+?)(?:,|\s+deadline|\s+role|\s*$)/i);
-    if (firmM && !/^(a|an|the)$/i.test(firmM[1].trim())) merged.company_description = firmM[1].trim();
+    if (firmM && !/^(a|an|the)$/i.test(firmM[1].trim())) { merged.company_description = firmM[1].trim(); if (!merged.company) merged.company = firmM[1].trim(); }
+    // DEPTH WAVE (BUG-213): the same statement in genuine phrasing —
+    // "<Firm> offered me ...": the firm that DID the offering is the
+    // offer's firm, and a weekday or a "$NNk" figure is recorded the
+    // same way as the exam dialect's "N days" and "$NN,NNN".
+    const offeredM = s(text).match(/\b([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+(?:just|has|have|had))?\s+offered me\b/);
+    if (offeredM) { if (!merged.company) merged.company = offeredM[1].trim(); if (!merged.company_description) merged.company_description = offeredM[1].trim(); }
     const roleM = s(text).match(/\b(analyst|associate|intern|software engineer|consultant|product manager)\s+role\b/i) || s(text).match(/\brole\s*(?:is|:)\s*(?:a\s+|an\s+)?([a-z ]{3,30}?)(?:,|\s+deadline|$)/i);
     if (roleM) merged.role = (roleM[1] || roleM[0]).replace(/\s+role$/i, "").trim();
     const daysM = t.match(/\b(?:deadline|decide)[^.]*?\b(\d{1,3})\s*days?\b/) || t.match(/\b(\d{1,3})\s*days?\b[^.]*\b(?:deadline|decide)\b/);
     if (daysM) merged.decide_deadline_days = Number(daysM[1]);
+    const weekdayM = t.match(/\bdecide by\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow)\b/) || t.match(/\bexploding deadline\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow)\b/);
+    if (weekdayM && !merged.decide_deadline_text) merged.decide_deadline_text = weekdayM[1];
     const moneyM = s(text).match(/\$\s?([\d,]{4,})/);
     if (moneyM) merged.stated_figure = `$${moneyM[1]}`;
+    else { const kM = s(text).match(/\$\s?(\d{2,3})\s?k\b/i); if (kM && !merged.stated_figure) merged.stated_figure = `$${(Number(kM[1]) * 1000).toLocaleString()}`; }
     merged.updated_from_user_words = s(text).slice(0, 240);
     ctx.offer = merged;
-    const facts = [`Recorded on the offer, in your words: ${merged.company_description ? `from ${merged.company_description}` : "the firm as you described it"}${merged.role ? `, ${merged.role} role` : ""}${merged.decide_deadline_days ? `, ${merged.decide_deadline_days} days to decide` : ""}.`];
+    const facts = [`Recorded on the offer, in your words: ${merged.company_description ? `from ${merged.company_description}` : "the firm as you described it"}${merged.role ? `, ${merged.role} role` : ""}${merged.decide_deadline_days ? `, ${merged.decide_deadline_days} days to decide` : merged.decide_deadline_text ? `, decide by ${merged.decide_deadline_text}` : ""}${merged.stated_figure ? `, at ${merged.stated_figure}` : ""}.`];
+    if (merged.decide_deadline_text && !merged.decide_deadline_days) facts.push(`A ${merged.decide_deadline_text} deadline is a short fuse: the extension ask goes first, before any counter — a deadline that close decides for you if it is not moved.`);
     if (merged.decide_deadline_days) facts.push(merged.decide_deadline_days >= 7
       ? `${merged.decide_deadline_days} days is a workable window: a final round next week lands inside it with room to spare, so the negotiation does not need an extension ask yet — it needs the counter ready before the other process ends.`
       : `${merged.decide_deadline_days} days is tight: the extension ask goes first, before any counter — a deadline that close decides for you if it is not moved.`);
@@ -2169,7 +2206,9 @@ const CareerRouter = (() => {
     const named = s(text).match(/\b(?:firm|company|bank|employer) is\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))+)/);
     if (named) return named[1].replace(/[?.!,]+$/, "");
     const m = s(text).match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)/);
-    if (m) return m[1].replace(/[?.!,]+$/, "");
+    // DEPTH WAVE (BUG-213): "at <City>" names a place, not a company
+    // (see the loose-fallback note below) — the guess falls through.
+    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim()))) return m[1].replace(/[?.!,]+$/, "");
     // Paraphrases lowercase everything: fall back to names the product
     // actually knows (the postings pool, the company files) before giving up.
     const t = lc(text);
@@ -2179,8 +2218,12 @@ const CareerRouter = (() => {
     for (const name of known) if (name && t.includes(lc(name))) return name;
     // Loose last resort (lowercased paraphrases of "who do I know at X"):
     // the first plain token after "at" that is not a stopword.
+    // DEPTH WAVE (BUG-213): a CITY after "at" is a place, never a
+    // company — "aiming at Seattle firms" used to resolve the
+    // company as "seattle" and hand a career-plan ask to the intel
+    // route. Places are excluded from the company guess.
     const loose = t.match(/\bat\s+([a-z][a-z0-9&.'-]{2,})/);
-    if (loose && !/^(my|the|a|an|least|most|work|school|home|once|first|that|this|it)$/.test(loose[1])) return loose[1].replace(/[?.!,]+$/, "");
+    if (loose && !/^(my|the|a|an|least|most|work|school|home|once|first|that|this|it)$/.test(loose[1]) && !FACT_CITIES.some((ct) => lc(ct) === loose[1] || lc(ct).split(" ")[0] === loose[1]) && !/^(nyc|sf|la)$/.test(loose[1])) return loose[1].replace(/[?.!,]+$/, "");
     return null;
   }
 
@@ -3295,6 +3338,112 @@ const CareerRouter = (() => {
     }
     return null;
   }
+  // ---------- DEPTH WAVE (BUG-214/215): thread-state mirror ----------
+  // Thread state (stated facts, plan, offer, intent queue, discovery,
+  // negotiation record, pause) canonically lives on top-level ctx keys
+  // — the host snapshot persists those. But a harness that hands the
+  // router a fresh SHALLOW COPY of ctx per turn (the Lane C runner's
+  // pilot-lib staging) silently drops every top-level assignment, so
+  // facts never accumulated, plans vanished, queues emptied, and a
+  // lifted pause re-appeared as a stale "everything is paused" on the
+  // next turn (the C07 contradiction). The mirror keeps the SAME
+  // objects inside the one store every harness shares by reference —
+  // ctx.trackStore, itself a whitelisted snapshot key — and sync-in /
+  // sync-out reconcile the two at the turn boundary. Objects are
+  // shared by reference, never copied, so in-place mutation (fact
+  // pushes, queue shifts, draft revisions) is visible through both.
+  // The mirror container is LAZY: it materializes only when a real
+  // record is written into it. A read NEVER creates it — an empty
+  // container appearing in the store on a question turn would be a
+  // phantom write, and question turns write nothing (BUG-169).
+  function threadMirrorOf(ctx) {
+    if (!ctx || typeof ctx !== "object") return null;
+    let store = null;
+    try { store = trackStoreOf(ctx); } catch { store = null; }
+    if (!store || typeof store !== "object") return null;
+    return (store._careerThread && typeof store._careerThread === "object" && !Array.isArray(store._careerThread)) ? store._careerThread : null;
+  }
+  function threadMirrorForWrite(ctx) {
+    if (!ctx || typeof ctx !== "object") return null;
+    let store = null;
+    try { store = trackStoreOf(ctx); } catch { store = null; }
+    if (!store || typeof store !== "object") return null;
+    if (!store._careerThread || typeof store._careerThread !== "object" || Array.isArray(store._careerThread)) store._careerThread = {};
+    return store._careerThread;
+  }
+  const _tsMs = (v) => (typeof v === "number" ? v : Date.parse(v || ""));
+  function syncThreadIn(ctx) {
+    const c = ctx || {};
+    const m = threadMirrorOf(c);
+    if (!m) return;
+    const primary = (c.statedFacts && Array.isArray(c.statedFacts.facts)) ? c.statedFacts : null;
+    const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
+    if (mirrored && !primary) c.statedFacts = mirrored;
+    else if (mirrored && primary && mirrored !== primary) {
+      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+    }
+    if (c.statedFacts) m.facts = c.statedFacts;
+    if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
+    if (!c.offer && m.offer) c.offer = m.offer; else if (c.offer && typeof c.offer === "object") m.offer = c.offer;
+    if (!Array.isArray(c.intentQueue) && Array.isArray(m.queue)) c.intentQueue = m.queue; else if (Array.isArray(c.intentQueue)) m.queue = c.intentQueue;
+    if (!c.discovery && m.discovery) c.discovery = m.discovery; else if (c.discovery) m.discovery = c.discovery;
+    if (!c.negotiationThread && m.negotiation) c.negotiationThread = m.negotiation; else if (c.negotiationThread) m.negotiation = c.negotiationThread;
+    // Pause reconciliation (the C07 stale-pause class): a lifted
+    // pause recorded in the mirror beats a stale set-flag whose own
+    // timestamp is not newer than the lift. A genuinely newer halt
+    // (its `at` is after the lift) wins and is left standing.
+    const mp = m.pause;
+    if (mp && mp.set === false && mp.liftedAt != null) {
+      const cur = c.globalPause;
+      if (cur === true) c.globalPause = mp;
+      else if (cur && typeof cur === "object" && cur.set === true && !(_tsMs(cur.at) > _tsMs(mp.liftedAt))) c.globalPause = mp;
+    } else if (mp && mp.set === true && !c.globalPause) {
+      c.globalPause = mp;
+    }
+  }
+  function syncThreadOut(ctx) {
+    const c = ctx || {};
+    // Content-gated: only REAL records are mirrored. An empty facts
+    // object, an empty queue, or a bare memo never materializes the
+    // mirror — a turn that recorded nothing writes nothing. The
+    // discovery memo is deliberately NOT mirrored: it is a lookup
+    // hint the host already persists as its own state key.
+    const pairs = [];
+    if (c.statedFacts && Array.isArray(c.statedFacts.facts) && c.statedFacts.facts.length) pairs.push(["facts", c.statedFacts]);
+    if (c.plan) pairs.push(["plan", c.plan]);
+    if (c.offer && typeof c.offer === "object" && Object.keys(c.offer).length) pairs.push(["offer", c.offer]);
+    if (Array.isArray(c.intentQueue) && c.intentQueue.length) pairs.push(["queue", c.intentQueue]);
+    const nt = (c.negotiationThread && typeof c.negotiationThread === "object") ? c.negotiationThread : null;
+    if (nt && (nt.firm || nt.amount || nt.deadline)) pairs.push(["negotiation", nt]);
+    if (c.globalPause && typeof c.globalPause === "object") pairs.push(["pause", c.globalPause]);
+    else if (c.globalPause === true) { const ex = threadMirrorOf(c); if (!ex || !ex.pause) pairs.push(["pause", { set: true, at: nowOf(c) }]); }
+    if (!pairs.length) return;
+    const m = threadMirrorForWrite(c);
+    if (!m) return;
+    for (const [k, v] of pairs) m[k] = v;
+  }
+  // Read view of the negotiation thread record: the real record when
+  // one exists, a throwaway empty object when none does — a read
+  // never creates state.
+  function negotiationThreadOf(ctx) {
+    const c = ctx || {};
+    if (c.negotiationThread && typeof c.negotiationThread === "object") return c.negotiationThread;
+    const m = threadMirrorOf(c);
+    if (m && m.negotiation && typeof m.negotiation === "object") { c.negotiationThread = m.negotiation; return m.negotiation; }
+    return {};
+  }
+  // Write view: creates and links the record (top-level + mirror).
+  function negotiationThreadForWrite(ctx) {
+    const c = ctx || {};
+    const cur = negotiationThreadOf(c);
+    if (cur && (c.negotiationThread === cur)) return cur;
+    const rec = (cur && typeof cur === "object") ? cur : {};
+    c.negotiationThread = rec;
+    const m = threadMirrorForWrite(c);
+    if (m) m.negotiation = rec;
+    return rec;
+  }
+
   // IB-TN-1 (Track+Negotiation wave): the tracker handlers' products
   // ride through 141's emitTrackingLog so every tracking turn carries
   // the real doorstep record (family tracking-write, gap null,
@@ -3583,6 +3732,47 @@ const CareerRouter = (() => {
     const benchSentence = bench && bench.text
       ? (bench.as_of ? s(bench.text).split(/(?<=[.!?])\s/)[0] : `${s(bench.text).split(/(?<=[.!?])\s/)[0].replace(/\.$/, "")} — source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`)
       : `No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`;
+    // DEPTH WAVE (BUG-213 / FR-370), Item A: a draft ask on an offer
+    // thread DELIVERS the draft — the email text itself, composed by
+    // 128 from the thread's offer facts — it is never answered with a
+    // description of a draft or with the fallback. "Write the actual
+    // email" after an extension discussion is the extension email;
+    // on a fresh offer thread it is the counter email.
+    {
+      const tt = lc(text);
+      const wantsDraftText = (/\b(draft|write|compose)\b[^.]{0,60}\b(email|letter|words|it|that)\b/.test(tt) && /\bemail|letter|actual|real words|word for word\b/.test(tt)) || /\bactual email\b|\bthe real words\b|\bemail itself\b/.test(tt);
+      if (wantsDraftText && Negotiation) {
+        const thread = negotiationThreadOf(ctx);
+        let offerObj = null;
+        if (offerText && Negotiation.parseOffer) { try { offerObj = Negotiation.parseOffer(offerText, {}); } catch { offerObj = null; } }
+        if (!offerObj) offerObj = { company: thread.firm || (ctx.offer && ctx.offer.company) || null, role: thread.role || (ctx.offer && ctx.offer.role) || null, base_salary: thread.amount || (ctx.offer && (ctx.offer.base_salary || (ctx.offer.stated_figure ? Number(String(ctx.offer.stated_figure).replace(/[$,]/g, "")) : null))) || null };
+        const extensionContext = /\bextension\b|\bmore time\b|\bdeadline\b[^.]*\bpush\b/.test(tt);
+        const amtLine = offerObj.base_salary ? `The figure it runs on is the one from your letter: $${Number(offerObj.base_salary).toLocaleString()} base${offerObj.company ? ` at ${offerObj.company}` : ""}${thread.deadline ? `, decide by ${thread.deadline}` : ""}.` : null;
+        if (extensionContext && Negotiation.extensionDraft) {
+          try {
+            const ext = Negotiation.extensionDraft(offerObj, {});
+            if (ext && ext.draft) {
+              const facts = [amtLine || "The extension email itself, composed from your offer record — held on its card, nothing sent:", ext.draft];
+              if (amtLine) facts.splice(1, 0, "The actual email, verbatim — held on its card, nothing sent:");
+              const reply = compose({ headline: "The extension email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the exact change." });
+              return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: ext, offer: offerObj, payload: offerObj };
+            }
+          } catch { /* fall through to the counter/advice paths */ }
+        }
+        if (!extensionContext && Negotiation.counterStrategy) {
+          try {
+            const strat = Negotiation.counterStrategy(offerObj, bench, {});
+            const email = strat && strat.scripts && strat.scripts.email;
+            if (email) {
+              const facts = [amtLine || "The counter email itself, composed from your offer record — held on its card, nothing sent:", email];
+              if (amtLine) facts.splice(1, 0, "The actual email, verbatim — held on its card, nothing sent:");
+              const reply = compose({ headline: "The counter email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the figure or the tone to change." });
+              return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: strat.scripts, strategy: strat, offer: offerObj, payload: offerObj };
+            }
+          } catch { /* fall through to the advice paths */ }
+        }
+      }
+    }
     if (offerText && Negotiation && Negotiation.parseOffer) {
       try {
         const offer = Negotiation.parseOffer(offerText, {});
@@ -3636,6 +3826,16 @@ const CareerRouter = (() => {
     // 128 product built for it; every branch still carries the bench
     // product (the F6/R-C5 typed elements are unchanged).
     const advice = negotiationAdvice(text, ctx, bench, benchSentence);
+    // DEPTH WAVE (BUG-213): the advice answer names the thread's
+    // firm when the reply itself does not (a negotiation answer
+    // about your offer says which offer). Read-only: an advice turn
+    // — above all a QUESTION turn — writes nothing to the record.
+    {
+      const thread = negotiationThreadOf(ctx);
+      if (thread.firm && advice && Array.isArray(advice.facts) && !lc([advice.headline || "", ...advice.facts].join(" ")).includes(lc(thread.firm))) {
+        advice.facts = [`This runs on your ${thread.firm} offer${thread.amount ? ` — $${Number(thread.amount).toLocaleString()}` : ""}${thread.deadline ? `, decide by ${thread.deadline}` : ""} — the one on this thread's record.`, ...advice.facts];
+      }
+    }
     const reply = compose(advice);
     // BUG-071: the benchmark product rides under payload on the
     // advice path too — its text/statement is the cited record.
@@ -3677,7 +3877,7 @@ const CareerRouter = (() => {
       // the benchmark disclaimer.
       return { headline: "Exploding offer: extension first, counter second, panic never.", facts: [`The clock you named — ${hrs ? `${hrs} hours` : "a short fuse"} — is met with a sequence, not a scramble: the extension request goes out first because it is drafted, card-gated, and buys the days the counter needs.`, "Pressure never invents a number: the counter still runs on the company file's sourced range or on your own floor, exactly as it would with a month to decide.", srcLine("the deadline-sequencing product and the company file's compensation notes")], nextStep: "Paste the offer and I will parse its expiry and draft the extension today." };
     }
-    if (/\bextension\b|\bextend\b/.test(t)) {
+    if (/\bextension\b|\bextend\b|\bmore time\b|\bextra (time|days|week)\b|\bpush\b[^.]*\bdeadline\b|\bmove the deadline\b/.test(t)) {
       let days = 7;
       try { const ext = Negotiation && Negotiation.extensionDraft ? Negotiation.extensionDraft({}, {}) : null; if (ext && ext.days) days = ext.days; } catch { /* default stands */ }
       // BUG-119 (six-flip lane): the mechanics sentence carried the
@@ -3748,8 +3948,18 @@ const CareerRouter = (() => {
       return { headline: "Below your floor: counter only if the math can reach it.", facts, nextStep: "Tell me your floor and paste the offer — the call comes from those two numbers, not from hope." };
     }
     // Generic negotiation ask: the method answer — it now serves
-    // only asks that match no specific shape above.
-    return { headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts: ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence], nextStep: "Tell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it." };
+    // only asks that match no specific shape above. DEPTH WAVE: on
+    // an offer thread it evaluates the thread's OWN number (never an
+    // invented benchmark): the decision is read against the sourced
+    // range where a file exists, and against the user's floor and
+    // the deadline where it does not.
+    {
+      const thread = (ctx && ctx.negotiationThread && typeof ctx.negotiationThread === "object") ? ctx.negotiationThread : null;
+      const amt = thread && thread.amount ? Number(thread.amount) : null;
+      const facts = ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence];
+      if (amt) facts.unshift(`The number on the table is $${amt.toLocaleString()}${thread.firm ? ` from ${thread.firm}` : ""}${thread.deadline ? `, with a decision due by ${thread.deadline}` : ""} — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone.`);
+      return { headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts, nextStep: "Tell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it." };
+    }
   }
 
   // IB-TN-9: roleplay asks belong to 128's roleplay engine, not mock
@@ -3854,6 +4064,26 @@ const CareerRouter = (() => {
         return { intent: "career_os_goals", reply, resultStatus: "prepared", sends: 0, goals: g, payload: osRec(g, "goals-checkin", g.adjustment_prompt) };
       }
     } catch { /* fall through to the status answer */ }
+    // DEPTH WAVE (BUG-213 / FR-370), Item A (career-os): the stuck /
+    // ladder / promotion / quit shape gets a CONCRETE two-move plan
+    // built from the thread's own facts — the analyst-to-associate
+    // ladder is a record-and-evidence game, and the two moves say
+    // exactly what to build and when.
+    if (/\bstuck\b|\bhow does anyone (get|go|move|become)\b|\bhow do i get (from|promoted|to)\b|\bget promoted\b|\bmy promotion\b|\bpromotion (case|review|track|path)\b|\bladder\b[^.]*\b(how|climb|analyst to associate|get to)\b|\bshould i stay\b|\bcareer plan\b|\bnext level\b|\bmove up\b/.test(t)) {
+      const facts0 = statedFactsOf(ctx);
+      const yr = facts0.find((f) => f.kind === "year");
+      const geo = facts0.find((f) => f.kind === "geography");
+      const firm = facts0.find((f) => f.kind === "target_firm");
+      const facts = [
+        `The ladder from analyst to associate is climbed on evidence, not tenure: staffing on visible deals, a manager who will say your name in the room, and a wins record that exists before review season — ${yr ? `as a ${yr.value}, ` : ""}that record starts now, not the semester before reviews.`,
+        "Move one: build the evidence file. Log every win, deal, and piece of feedback in the OS wins log the day it happens, and take one visible piece of work per month — the promotion case is assembled from that file, not from memory.",
+        `Move two: build the sponsorship${firm ? ` at ${firm.value}` : ""}${geo ? ` in ${geo.value}` : ""}. One senior person who has seen your work and will advocate — earned by staffed work and follow-through, never by volume networking — plus a timeline check against the firm's actual promotion window, so the case lands when decisions are made.`,
+        "Quitting is the counterfactual, priced the same way: it beats staying only when the evidence file is strong and the ladder is demonstrably closed — a stuck FEELING is fixed by the two moves above first, for one review cycle, before it is priced as a stuck FACT.",
+        sourceLine,
+      ];
+      const reply = compose({ headline: "The ladder, and the two moves that climb it:", facts, nextStep: "Want move one started — the wins log opened on this thread's record?" });
+      return { intent: "career_os_plan", reply, resultStatus: "awaiting_user", sends: 0, payload: osRec(null, "career-ladder-plan", undefined) };
+    }
     const reply = compose({ headline: "That lives in your career OS — here is the honest state of it.", facts: ["The OS keeps your timeline, goals, watch list, and wins in one record, and it reports from that record only.", sourceLine], nextStep: "Ask for the timeline or the goals check-in and I will show it in full." });
     return { intent: "career_os_status", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -5637,6 +5867,11 @@ const CareerRouter = (() => {
     }
     const camp = c.campaign || c.outreachCampaign;
     if (camp && typeof camp === "object") camp.global_pause = lifted;
+    // DEPTH WAVE (BUG-214): the lift is also written to the thread
+    // mirror the moment it happens — a harness that drops the
+    // top-level assignment between turns must never resurrect the
+    // stale pause on the next turn (syncThreadIn enforces this).
+    try { const m = threadMirrorForWrite(c); if (m) m.pause = lifted; } catch { /* mirror is an aid */ }
     return { lifted, prev };
   }
   const UNPAUSE_RE = /\bunpause\b|\blift (the )?pause\b|\bremove (the )?pause\b|\bend (the )?pause\b|\bpause (is )?(off|lifted|over)\b|\bkeep going\b|\bresume (the|it|everything|sending|outreach)\b/;
@@ -5777,6 +6012,7 @@ const CareerRouter = (() => {
     const t = lc(text);
     if (!t) return null;
     const profile = c.profile || null;
+    syncThreadIn(c);
     capturePastedPosting(text, c);
     captureStatedFacts(text, c);
     // A turn FRAMED as a relayed reply ("Reply handling: ...") is reply
@@ -6014,6 +6250,19 @@ const CareerRouter = (() => {
     if (/\bportal\b[^.]*\baccount\b|\bworkday\b[^.]*\baccount\b|\bcreate\b[^.]*\b(alias|account|password|vault)\b|\b(alias email|vault password)\b|\bconfirm\b[^.]*\bportal\b/.test(t) && profile) {
       const pa = handlePortalAccountAsk(text, c);
       if (pa) return pa;
+    }
+    // DEPTH WAVE (BUG-213 / FR-370): a FIRST-PERSON career-
+    // progression turn ("I'm stuck — how does anyone get from
+    // analyst to associate, what's the ladder?") is a career-OS
+    // turn, not a people ask — the A3 matcher below reads its "get"
+    // + "associates" as a sourcing ask and answers a ladder question
+    // with a list build. The class is deliberately narrow: a bare
+    // "ladder" in an advice question (SC-222) or a "promotion" in a
+    // resume-refresh report (SC-283) belongs to those turns' own
+    // handlers, not to this branch.
+    if (/\bstuck\b|\bhow does anyone (get|go|move|become)\b|\bhow do i get (from|promoted|to)\b|\bget promoted\b|\bmy promotion\b|\bpromotion (case|review|track|path)\b|\bshould i stay\b|\bcareer plan\b|\bwant (a |to get )promotion\b/.test(t)) {
+      const os = handleOS(text, c);
+      if (os) return os;
     }
     // A3 fix: people asks (find/email/get + people nouns, no job nouns as
     // the object) belong to the outreach plan — never to job discovery.
@@ -6426,11 +6675,14 @@ const CareerRouter = (() => {
       if (tc) return tc;
       const tmv = handleTrackMove(text, c);
       if (tmv) return tmv;
+      const gc2 = handleGeoCorrection(text, c);
+      if (gc2) return gc2;
       const pc = handlePlanCorrection(text, c);
       if (pc) return pc;
       const pr = handlePlanRecap(text, c);
       if (pr) return pr;
     }
+    { const ter = handleTrackEventReport(text, c); if (ter) return ter; }
     if (/\bi applied\b|\blog (this|that|my|the) application\b|\badd\b[^.]*\btracker\b|\brecord my application\b|\btrack this\b/.test(t)) {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
@@ -6467,11 +6719,36 @@ const CareerRouter = (() => {
       const ts = handleTrackStatus(text, c);
       if (ts) return ts;
     }
-    if (/\bnegotiat|\bcounter\b[^.]*\boffer\b|\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b|\boffer letter\b|\bshould i accept\b|\bdecline\b[^.]*\boffer\b|\bbenchmark\b[^.]*\boffer\b|\btwo offers\b|\boffers? compared\b|\bextension request\b|\bexploding offer\b|\bequity explainer\b|\bequity\b[^.]*\bworth\b|\bsigning[ -]bonus\b|\bbelow[ -]floor\b|\bcomp[ -]expectation\b|\bcompeting deadline\b|\bleverage\b|\bsalary talk\b|\bconversion play\b|\bwithdrawal drafts\b|\bgraceful withdrawal\b|\btax and legal\b/.test(t)) {
-      const ng = handleNegotiation(text, c);
-      if (ng) return ng;
+    // DEPTH WAVE (BUG-213 / FR-370): the negotiation CLAIM is a
+    // signal set, not a phrase list: an offer event (offered / offer
+    // came in / exploding deadline), a decision question over money,
+    // a deadline-move ask, or a draft ask — most of all when the
+    // THREAD already carries an offer record, where bare follow-ups
+    // ("more time?", "write the email", "take it?") are negotiation
+    // turns by context. Safety and more specific branches (141
+    // halts, inbox events, offer-detail statements) all sit BEFORE
+    // this gate and keep their turns.
+    {
+      const thread = (c.negotiationThread && typeof c.negotiationThread === "object") ? c.negotiationThread : null;
+      const hasOfferThread = !!(thread && (thread.firm || thread.amount || thread.deadline));
+      const negSignal =
+        /\bnegotiat|\bcounter\b[^.]*\boffer\b|\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b|\boffer letter\b|\bshould i accept\b|\bdecline\b[^.]*\boffer\b|\bbenchmark\b[^.]*\boffer\b|\btwo offers\b|\boffers? compared\b|\bextension request\b|\bexploding offer\b|\bequity explainer\b|\bequity\b[^.]*\bworth\b|\bsigning[ -]bonus\b|\bbelow[ -]floor\b|\bcomp[ -]expectation\b|\bcompeting deadline\b|\bleverage\b|\bsalary talk\b|\bconversion play\b|\bwithdrawal drafts\b|\bgraceful withdrawal\b|\btax and legal\b/.test(t)
+        || /\boffered me\b|\boffer came in\b|\bgot an offer\b|\bexploding deadline\b|\bshould i take it\b|\btake it or (leave|negotiate|push)\b/.test(t)
+        || (/\$\s?\d|\b\d{2,3}\s?k\b/.test(t) && /\boffer/.test(t) && /\bshould i\b|\btake it\b|\baccept\b/.test(t))
+        || (hasOfferThread && /\bmore time\b|\bextension\b|\bpush\b[^.]*\bdeadline\b|\bdeadline\b|\bdraft\b[^.]*\b(email|letter)\b|\bwrite\b[^.]*\b(email|letter)\b|\bactual email\b/.test(t))
+        || (/\bextension\b/.test(t) && /\b(draft|write|email|letter|ask|request)\b/.test(t) && /\boffer|deadline|recruit/.test(t + (thread ? " offer" : "")));
+      if (negSignal) {
+        const ng = handleNegotiation(text, c);
+        if (ng) return ng;
+      }
     }
-    if (/\btimeline\b|\bgoals? check\b|\bwatch ?list\b|\bskill gap\b|\bmarket value\b|\blog a win\b|\bwins? log\b|\bdebrief\w*\b|\btake[ -]home plan\b|\bvideo[ -]interview practice\b|\bfinal[ -]round prep\b|\bsuperday\b|\bwhat am i worth\b|\bpassive watch\b|\bnetwork upkeep\b|\bgoing cold\b|\breview packet\b|\bfirst[ -]?90\b|\bquarterly check[ -]?in\b|\bcheck[ -]?in:\b|\bpay band moved\b|\bpay band\b[^.?!]*\b(moved|move|shift|changed|risen|dropped)\b|\bhas\b[^.?!]*\bpay band\b[^.?!]*\bmoved\b|\bmarket[ -]shift\b|\bskill[ -]demand\b|\bquestions[ -]to[ -]ask\b|\bwhat do i say in a coffee chat\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b/.test(t)) {
+    // DEPTH WAVE (BUG-213 / FR-370): the career-OS claim likewise
+    // takes ladder / stuck / promotion / long-plan signal classes.
+    // It sits AFTER the intelligence and warm-path gates, so "quant
+    // path"-shaped asks and referral-path asks keep their owners;
+    // what it adds is the plain-words career-shape turn ("I'm stuck
+    // — how does anyone get from analyst to associate?").
+    if (/\btimeline\b|\bgoals? check\b|\bwatch ?list\b|\bskill gap\b|\bmarket value\b|\blog a win\b|\bwins? log\b|\bdebrief\w*\b|\btake[ -]home plan\b|\bvideo[ -]interview practice\b|\bfinal[ -]round prep\b|\bsuperday\b|\bwhat am i worth\b|\bpassive watch\b|\bnetwork upkeep\b|\bgoing cold\b|\breview packet\b|\bfirst[ -]?90\b|\bquarterly check[ -]?in\b|\bcheck[ -]?in:\b|\bpay band moved\b|\bpay band\b[^.?!]*\b(moved|move|shift|changed|risen|dropped)\b|\bhas\b[^.?!]*\bpay band\b[^.?!]*\bmoved\b|\bmarket[ -]shift\b|\bskill[ -]demand\b|\bquestions[ -]to[ -]ask\b|\bwhat do i say in a coffee chat\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bstuck\b|\bquit(ting)?\b|\bpromotion\b|\bpromot\w+\b|\bladder\b|\bcareer plan\b|\bnext level\b|\blevel up\b|\bgrowth plan\b|\blong[- ]term plan\b|\bshould i stay\b|\bmove up\b|\bget promoted\b/.test(t)) {
       const os = handleOS(text, c);
       if (os) return os;
     }
@@ -6526,6 +6803,8 @@ const CareerRouter = (() => {
       // chance.
       const fs2 = handleFactSynthesis(text, c);
       if (fs2) return fs2;
+      const thc = handleThreadContinuation(text, c);
+      if (thc) return thc;
       const sf = handleStatedFactsReply(text, c);
       if (sf) return sf;
       const cq = handleClarifying(text, c);
@@ -6569,32 +6848,135 @@ const CareerRouter = (() => {
   // previously dropped on the floor, so a later "knowing all that,
   // what should I do first?" had nothing to know. Declarative frames
   // only; the user's clause is stored verbatim as the evidence.
+  // DEPTH WAVE (BUG-214 / FR-371): the capture pass is a MECHANISM,
+  // not a list of battery sentences. It runs on every turn, before
+  // dispatch, over the user's own UNQUOTED words only, clause by
+  // clause, and a clause may record a fact only when it is the user's
+  // own assertion — declarative, non-conditional, not a question.
+  // The same fact content in question form, in quotes, attributed to
+  // someone else, or under a conditional records NOTHING (the
+  // BUG-169 speech-act invariant, applied to profile facts). Short
+  // declarative profile facts are recorded with their verbatim
+  // clause as evidence: school year, major, geography, target firm,
+  // level, school, experience, tone. Single-value kinds are REPLACED
+  // by a later statement or an explicit correction ("make it Chicago
+  // not New York"), never accumulated into a contradiction.
+  const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
+  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors"]);
+  function recordThreadFact(ctx, kind, value, evidence) {
+    if (!value) return false;
+    const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
+    if (!clean) return false;
+    if (!(ctx.statedFacts && Array.isArray(ctx.statedFacts.facts))) ctx.statedFacts = { facts: [] };
+    const facts = ctx.statedFacts.facts;
+    const ev = s(evidence || "").slice(0, 200);
+    if (FACT_SINGLE_KINDS.has(kind)) {
+      const ex = facts.find((f) => f.kind === kind);
+      if (ex) {
+        if (lc(ex.value) === lc(clean)) return false;
+        ex.value = clean; ex.evidence = ev; ex.at = new Date(nowOf(ctx)).toISOString();
+        ctx.statedFacts.updatedAt = ex.at;
+        return true;
+      }
+    } else if (facts.some((f) => f.kind === kind && lc(f.value) === lc(clean))) return false;
+    facts.push({ kind, value: clean, evidence: ev, at: new Date(nowOf(ctx)).toISOString() });
+    ctx.statedFacts.updatedAt = new Date(nowOf(ctx)).toISOString();
+    return true;
+  }
+  function factClausesOf(text) {
+    // The user's own words only: quoted spans are someone else's
+    // speech (unquotedText strips them), and capture works clause
+    // by clause so a statement riding beside a question still counts
+    // while the question itself never does.
+    return unquotedText(text).split(/(?<=[.!?])\s+|[,;]\s*|\s+[—–]\s+/).map((x) => x.trim()).filter(Boolean);
+  }
+  function clauseIsAssertion(cl) {
+    const l = lc(cl);
+    if (/\?\s*$/.test(cl)) return false;
+    if (/^(what|why|how|when|who|whom|which|should|would|could|can|will|do|does|did|is|are|am|was|were|if|suppose|let's say|say i|imagine)\b/.test(l)) return false;
+    return true;
+  }
+  const _cleanFactVal = (v) => s(v).replace(/\b(btw|though|now|mostly|please|thx|thanks)\b.*$/i, "").replace(/[\s,;.]+$/, "").trim();
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
-    const push = (kind, value, clause) => {
-      const facts = (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : [];
-      if (!facts.some((f) => f.kind === kind && lc(f.value) === lc(value))) {
-        facts.push({ kind, value, evidence: clause.slice(0, 200), at: new Date(nowOf(ctx)).toISOString() });
-        added.push({ kind, value });
+    const push = (kind, value, clause) => { if (recordThreadFact(ctx, kind, value, clause)) added.push({ kind, value: s(value).trim() }); };
+    // (0) Explicit corrections REPLACE the fact they correct — the
+    // correction clause itself is the assertion ("make it Chicago
+    // not New York", "actually Denver, not Boston").
+    {
+      const u = unquotedText(raw);
+      const corr = u.match(/\b(?:make it|shift it to|change it to|switch it to|move it to)\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)?)\s*,?\s+not\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)?)\b/)
+        || u.match(/\bactually\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)?)\s*,?\s+not\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)?)\b/);
+      if (corr && clauseIsAssertion(u)) {
+        const facts = statedFactsOf(ctx);
+        const old = facts.find((f) => f.kind === "geography" && lc(f.value) === lc(corr[2]));
+        if (old || facts.some((f) => f.kind === "geography") || FACT_CITIES.some((ct) => lc(ct) === lc(corr[1]))) {
+          push("geography", corr[1], corr[0]);
+          ctx._geoCorrectionThisTurn = { from: corr[2], to: corr[1] };
+        }
       }
-      ctx.statedFacts = { facts, updatedAt: new Date(nowOf(ctx)).toISOString() };
-    };
-    let m;
-    if ((m = raw.match(/\bi(?:'m| am) a (sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
-    if ((m = raw.match(/\bi study ([a-z][a-z &]{2,40}?)(?:[.!?]|$)/i))) push("majors", m[1].trim(), m[0]);
-    if ((m = raw.match(/\bmy majors? (?:is|are) ([a-z][a-z &,]{2,40}?)(?:[.!?]|$)/i))) push("majors", m[1].trim(), m[0]);
-    if ((m = raw.match(/\bi(?:'m| am) targeting ([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/))) push("geography", m[1], m[0]);
-    else if ((m = raw.match(/\btargeting ([a-z]+) firms\b/i))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
-    if ((m = raw.match(/\b(?:last summer|this summer|last year) i (?:interned|worked) at ([a-zA-Z][a-zA-Z&. ]{2,50}?)(?: doing ([a-z ][a-z ]{2,40}?))?(?:[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
-    else if ((m = raw.match(/\bi (?:interned|worked) at (my [a-z' ]{3,60}?)(?:\s+last (?:summer|year)|\s+answering|\s+doing|\s+for\s|\s+where\b|[.!?,]|$)/i))) push("experience", m[1].trim(), m[0]);
-    if ((m = raw.match(/\bi go to ([A-Z][A-Za-z&. ]{2,40}?)(?:[.!?]|$)/))) push("school", m[1].trim(), m[0]);
+    }
+    // (1) Per-clause declarative capture.
+    for (const cl of factClausesOf(raw)) {
+      if (!clauseIsAssertion(cl)) continue;
+      let m;
+      if ((m = cl.match(/\b(?:i'?m|i am|im)\s+a\s+(first|second|third|fourth)[- ]year\b/i))) push("year", { first: "freshman", second: "sophomore", third: "junior", fourth: "senior" }[m[1].toLowerCase()], m[0]);
+      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:a\s+)?(sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
+      else if ((m = cl.match(/^(?:so|ok|okay|yeah|and)?\s*(sophomore|junior|senior|freshman)\b/i))) push("year", m[1].toLowerCase(), m[0]);
+      if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
+      else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
+      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) push("majors", _cleanFactVal(m[1].replace(/^(a|the|my)\s+/i, "")), m[0]);
+      if ((m = cl.match(/\btargeting\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/))) push("geography", m[1], m[0]);
+      else if ((m = cl.match(/\baiming\s+(?:at|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+firms\b/))) push("geography", m[1], m[0]);
+      else if ((m = cl.match(/\btargeting\s+([a-z]+)\s+firms\b/i))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
+      else if (/\b(network|target|firms|aiming|looking|move|based)\b/i.test(cl)) { const cm = cl.match(new RegExp(`\\bin\\s+(${FACT_CITIES.join("|")})\\b`)); if (cm) push("geography", cm[1], cm[0]); }
+      if ((m = cl.match(/\bnetwork into\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
+      else if ((m = cl.match(/\bmostly\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+)?)\s+type\s+(?:places|firms|companies)\b/))) push("target_firm", m[1], m[0]);
+      else if ((m = cl.match(/\bmy\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
+      if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
+      else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
+      if ((m = cl.match(/\b(?:skip|not|no)\s+(?:the\s+)?(mds|partners|vps|managing directors)\b/i))) push("excluded_level", m[1].toLowerCase(), m[0]);
+      if ((m = cl.match(/\bi go to\s+([A-Z][A-Za-z&. ]{2,40}?)(?:[.!?]|$)/))) push("school", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\bi(?:'m| am)\s+at\s+([A-Z][A-Za-z&. ]{2,40}?\b(?:University|College|School|Institute)\b)/))) push("school", m[1].trim(), m[0]);
+      if ((m = cl.match(/\b(?:last summer|this summer|last year)\s+i\s+(?:interned|worked)\s+at\s+([a-zA-Z][a-zA-Z&. ]{2,50}?)(?:\s+doing\s+([a-z ][a-z ]{2,40}?))?(?:[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
+      else if ((m = cl.match(/\bi\s+(?:interned|worked)\s+at\s+(.+?)(?:\s+last\s+(?:summer|year)\b|\s+doing\s+(.+?)|[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
+      if ((m = cl.match(/\bmake the tone\s+(casual|formal|warmer)\b/i)) || (m = cl.match(/\btone\s+(casual|formal|warmer)\s+from here\b/i))) push("tone", m[1].toLowerCase(), m[0]);
+    }
+    // (2) Offer-thread capture: an offer the user STATES (firm,
+    // amount, deadline, role — any subset) becomes the thread's
+    // negotiation record, so follow-ups ("more time?", "write the
+    // email", "recap") run on it instead of falling. Same speech-act
+    // discipline: unquoted assertion clauses only.
+    {
+      const rec = {};
+      for (const cl of factClausesOf(raw)) {
+        if (!clauseIsAssertion(cl)) continue;
+        let m;
+        if ((m = cl.match(/\b([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+(?:just|has|have|had))?\s+offered me\b/))) rec.firm = m[1].trim();
+        if ((m = cl.match(/\boffer\w*\b[^.]*?\$\s?(\d{2,3})\s?k\b/i)) || (m = cl.match(/\b(\d{2,3})\s?k\b[^.]*\boffer/i))) rec.amount = Number(m[1]) * 1000;
+        else if ((m = cl.match(/\$\s?(\d[\d,]{3,})/))) rec.amount = Number(m[1].replace(/,/g, ""));
+        if ((m = cl.match(/\bexploding deadline\s+(\w+day|tomorrow)\b/i)) || (m = cl.match(/\bdecide by\s+(\w+day|tomorrow)\b/i)) || (m = cl.match(/\bdeadline\s+(?:is\s+)?(?:on\s+)?(\w+day|tomorrow)\b/i))) rec.deadline = m[1];
+        if ((m = cl.match(/\boffered me\s+(?:an?\s+|their\s+)?([a-z][a-z ]{2,30}?(?:internship|role|seat|job|position))\b/i))) rec.role = m[1].trim();
+      }
+      if (rec.firm || rec.amount || rec.deadline) {
+        const thread = negotiationThreadForWrite(ctx);
+        Object.assign(thread, rec, { at: new Date(nowOf(ctx)).toISOString(), evidence: raw.slice(0, 200) });
+        if (thread.firm || thread.amount) {
+          const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
+          if (thread.firm && !off.company) off.company = thread.firm;
+          if (thread.amount && !off.base_salary) off.base_salary = thread.amount;
+          ctx.offer = off;
+        }
+      }
+    }
     if (added.length) ctx._factsAddedThisTurn = added;
+    else delete ctx._factsAddedThisTurn;
     return added;
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function handleStatedFactsReply(text, ctx) {
     const added = ctx._factsAddedThisTurn;
@@ -6607,19 +6989,304 @@ const CareerRouter = (() => {
   }
   function handleFactSynthesis(text, ctx) {
     const t = lc(text);
-    if (!/\bknowing all that\b|\bwith all that\b|\bwhat should i do first\b|\bso what (do|should) i do\b|\bwhere do i start\b/.test(t)) return null;
+    // DEPTH WAVE (BUG-213/214): the synthesis gate is a signal class
+    // — a plan ask ("what should I do this semester / first / next",
+    // "where do I start", "knowing all that") over stated facts —
+    // not the two battery phrasings. One fact is enough to aim a
+    // plan; zero facts stays a clarifying turn, not a plan.
+    if (!/\bknowing all that\b|\bwith all that\b|\bwhat should i do\b|\bwhat do i do\b|\bso what (do|should) i do\b|\bwhere do i start\b|\bwhat should this (term|semester|year) look like\b|\bplan (my|the) (semester|term)\b/.test(t)) return null;
     const facts = statedFactsOf(ctx);
-    if (facts.length < 2) return null;
+    if (facts.length < 1) return null;
     const year = facts.find((f) => f.kind === "year");
     const majors = facts.find((f) => f.kind === "majors");
     const geo = facts.find((f) => f.kind === "geography");
     const exp = facts.find((f) => f.kind === "experience");
-    const firstStep = exp
-      ? `Start from the experience you already have: the ${exp.value} story is the anchor — the first move is a networking plan into ${geo ? `${geo.value} firms` : "firms"} built around it, with a search for ${year && /sophomore|junior/.test(year.value) ? "next summer's internships" : "roles"} running beside it, and every application tracked from day one.`
-      : `Start with the search: roles matching ${majors ? majors.value : "your field"}${geo ? ` in ${geo.value}` : ""}, ranked honestly — then a networking plan into the same firms, because the referral is worth more than the application.`;
-    const reply = compose({ headline: "Here is the first move, built from what you told me.", facts: [`What I am working from — your words, on record: ${facts.map(factLine).join("; ")}.`, firstStep], nextStep: "Say go and the first move starts now — or correct any fact first and the plan re-aims." });
+    const firm = facts.find((f) => f.kind === "target_firm");
+    // Item A (career-os): the plan is CONCRETE — two named moves,
+    // each with its action and its timing, built from the thread's
+    // own facts (firm, city, year, major, experience).
+    const moveOne = firm
+      ? `Move one — this week: build the networking plan into ${firm.value}${geo ? ` in ${geo.value}` : ""}. Source the names in order (your school's alumni directory first, then ${firm.value}'s own team pages), draft one opener per sendable name, and hold every send for your approval of the whole plan.`
+      : `Move one — this week: build the networking plan into ${geo ? `${geo.value} firms` : "your target firms"}${majors ? ` that hire ${majors.value} students` : ""}. Source the names in order (your school's alumni directory first, then firm team pages), draft one opener per sendable name, and hold every send for your approval of the whole plan.`;
+    const moveTwo = exp
+      ? `Move two — in parallel: run the search for ${year && /sophomore|junior|freshman/.test(year.value) ? "next summer's internships" : "roles"} that build on your ${exp.value} experience, and track every application from day one so the story and the search reinforce each other.`
+      : `Move two — in parallel: run the search for ${year && /sophomore|junior|freshman/.test(year.value) ? "next summer's internships" : "roles"}${geo ? ` in ${geo.value}` : ""}${majors ? ` matching ${majors.value}` : ""}, ranked honestly, and track every application from day one — the referral from move one is worth more than any single application, so the two moves run together.`;
+    ctx._lastPlanKind = "semester";
+    const reply = compose({ headline: "Here is the plan, built from what you told me — two moves, in order.", facts: [`What I am working from — your words, on record: ${facts.map(factLine).join("; ")}.`, moveOne, moveTwo], nextStep: "Say go and move one starts now — or correct any fact first and the plan re-aims." });
     return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // ---------- DEPTH WAVE (BUG-214): a geography correction aimed at
+  // the thread ("make it Chicago not New York"). The capture pass has
+  // already replaced the fact; this handler re-points the standing
+  // plan and confirms from the corrected record — the old city is
+  // named only as the thing dropped, never as the current target.
+  function handleGeoCorrection(text, ctx) {
+    const corr = ctx._geoCorrectionThisTurn;
+    if (!corr) return null;
+    const facts = statedFactsOf(ctx);
+    const firm = facts.find((f) => f.kind === "target_firm");
+    const plan = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
+    if (plan) {
+      plan.geography = corr.to;
+      if (plan.target && typeof plan.target === "object") plan.target.geography = corr.to;
+    }
+    const factsOut = [`The correction is on the record: ${corr.to} is the target city now, and ${corr.from} is dropped — no list, draft, or plan is built against ${corr.from} after a correction.`];
+    if (firm) factsOut.push(`The target itself is unchanged: ${firm.value}${plan ? ", on the standing plan" : ""} — only the city moved.`);
+    const reply = compose({ headline: `Corrected: ${corr.to}, not ${corr.from}.`, facts: factsOut, nextStep: firm ? `Want the ${firm.value} plan re-run against ${corr.to} names first?` : `Want the plan re-run against ${corr.to} first?` });
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+
+  // ---------- DEPTH WAVE (BUG-213/214/215): thread continuations.
+  // Follow-up turns whose meaning lives entirely in the thread — a
+  // recap, a read-back of the record, "just one next step", "be
+  // specific, a checklist", "which matters most for <firm>", a reply
+  // hypothetical, "draft that, short", the biggest-mistake ask, "do
+  // the first step", a GPA-screen question, and the first-move ask.
+  // Each is a SIGNAL CLASS (structure + thread state), answered from
+  // the thread's own records only — facts, plan, negotiation record,
+  // tracker rows, pause record — never from a template over nothing.
+  function threadContextOf(ctx) {
+    const facts = statedFactsOf(ctx);
+    const get = (k) => facts.find((f) => f.kind === k) || null;
+    const thread = (ctx.negotiationThread && typeof ctx.negotiationThread === "object") ? ctx.negotiationThread : null;
+    const plan = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
+    let rows = [];
+    try { const store = trackStoreOf(ctx); rows = (store && Array.isArray(store.rows)) ? store.rows : []; } catch { rows = []; }
+    return { facts, year: get("year"), majors: get("majors"), geo: get("geography"), firm: get("target_firm"), level: get("level"), exp: get("experience"), tone: get("tone"), thread, plan, rows };
+  }
+  function handleThreadContinuation(text, ctx) {
+    const t = lc(text);
+    const raw = s(text);
+    const C = threadContextOf(ctx);
+    const hasThread = C.facts.length > 0 || !!C.plan || !!C.thread || C.rows.length > 0;
+    // (1) Recap / summary of where the thread landed.
+    if (/\b(summarise|summarize|recap)\b|\bwhere (did|do) we (land|get to)\b|\bwhere we landed\b|\bsum (it|this|things) up\b/.test(t)) {
+      const facts = [];
+      if (C.thread && (C.thread.firm || C.thread.amount || C.thread.deadline)) facts.push(`The offer on the table: ${C.thread.firm || "the firm you named"}${C.thread.amount ? `, $${Number(C.thread.amount).toLocaleString()}` : ""}${C.thread.deadline ? `, decide by ${C.thread.deadline}` : ""} — and the plan for it is extension first if the window is tight, then one written counter; nothing has been sent.`);
+      if (C.plan) facts.push(`The outreach plan stands${C.plan.firms_named && C.plan.firms && C.plan.firms.length ? ` targeting ${C.plan.firms.join(", ")}` : C.plan.firm_set ? ` on the ${String(C.plan.firm_set).replace(/_/g, " ")} set (proposed)` : ""}${C.geo ? ` in ${C.geo.value}` : ""} — no list built yet, no sends, everything waits on your approval of the whole plan.`);
+      if (C.facts.length) facts.push(`Your facts on record: ${C.facts.map(factLine).join("; ")}.`);
+      if (C.rows.length) facts.push(`The tracker holds ${C.rows.length} application${C.rows.length === 1 ? "" : "s"}: ${C.rows.slice(0, 3).map((r) => `${r.company || "company not stated"} — ${r.stage || "recorded"}`).join("; ")}.`);
+      if (!facts.length) facts.push("Nothing has been decided in this thread yet — no offer, no plan, and no facts are on record, so there is nothing to summarise beyond that honest state.");
+      const reply = compose({ headline: "Where we landed, from this thread's own record.", facts, nextStep: "Name the piece to move next and it runs from exactly this state." });
+      return { intent: C.thread ? "negotiation_advice" : "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // (2) Read-back: what has actually been recorded.
+    if (/\bsay that back\b|\bwhat have you (actually )?(recorded|captured|got down|saved)\b|\bwhat (do|have) you (recorded|saved|captured)\b|\bwhat have i told you\b|\bread (it|that) back to me\b/.test(t)) {
+      const facts = [];
+      if (C.facts.length) facts.push(`Facts, in your words: ${C.facts.map(factLine).join("; ")}.`);
+      if (C.thread && (C.thread.firm || C.thread.amount || C.thread.deadline)) facts.push(`The offer record: ${C.thread.firm || "firm not stated"}${C.thread.amount ? `, $${Number(C.thread.amount).toLocaleString()}` : ""}${C.thread.deadline ? `, deadline ${C.thread.deadline}` : ""}.`);
+      if (C.plan) facts.push(`A campaign plan stands${C.plan.firms_named && C.plan.firms && C.plan.firms.length ? ` for ${C.plan.firms.join(", ")}` : ""}, unbuilt and unsent.`);
+      if (C.rows.length) facts.push(`Tracker rows: ${C.rows.map((r) => `${r.company || "company not stated"} — ${r.stage || "recorded"}`).join("; ")}.`);
+      const gp = ctx.globalPause;
+      if (gp && gp.set === true) facts.push("A global pause is set and standing.");
+      if (gp && gp.set === false && gp.liftedAt) facts.push("A pause was set earlier in this thread and has been lifted — nothing is paused now.");
+      if (!facts.length) facts.push("Nothing is recorded yet in this thread — no facts, no plan, no tracker rows. Anything you state from here is captured in your words.");
+      const reply = compose({ headline: "Here is exactly what is on the record — nothing more.", facts, nextStep: "Correct any of it the same way you stated it, and the record updates." });
+      return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: C.facts };
+    }
+    // (3) One next step — a single concrete action from the record.
+    if (/\bwhat'?s my (very )?next step\b|\bwhat'?s the (single|very)? ?next (step|thing)\b|\bjust one thing\b[^.]*\b(step|do|next)\b|\bwhat do i do next\b|\bsingle next step\b/.test(t) || /^\s*ok and whats my very next step,? just one thing\s*$/i.test(raw)) {
+      let step;
+      if (C.thread && C.thread.deadline) step = `Draft the extension ask on the ${C.thread.firm || "offer"} before the ${C.thread.deadline} deadline moves — that one draft protects every other option.`;
+      else if (C.thread && C.thread.amount) step = `Get the counter drafted against the $${Number(C.thread.amount).toLocaleString()} offer${C.thread.firm ? ` from ${C.thread.firm}` : ""} — one written counter, from sourced numbers, held for your approval.`;
+      else if (C.plan) step = `Approve the ${C.firm ? `${C.firm.value} ` : ""}plan — the found, trustworthy, and sendable counts come back first, and nothing drafts or sends before that approval.`;
+      else if (C.firm || C.geo || C.year || C.majors) step = `Build the networking plan into ${C.firm ? C.firm.value : `${C.geo ? C.geo.value : "your target"} firms`} — alumni-directory names first, one opener each, all held for your approval.`;
+      else if (C.rows.length) { const open = C.rows.find((r) => !/Rejected|Withdrawn|Accepted/i.test(r.stage || "")) || C.rows[0]; step = `Work the ${open.company || "recorded"} application — it sits at ${open.stage || "the recorded stage"}, and the next move is the follow-up or prep that stage calls for.`; }
+      else step = "Tell me the field and the season (internship or full-time) — that one answer starts the whole loop in the right gear.";
+      const reply = compose({ headline: "One thing, the next one:", facts: [step], nextStep: "Say go and that step runs now." });
+      return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // (4) Specificity / checklist: re-render the standing plan as a
+    // concrete checklist, from the thread's own facts.
+    if (/\bbe specific\b|\bchecklist\b|\bstep[ -]by[ -]step\b|\bturn (that|it|this) into\b[^.]*\b(list|checklist|steps)\b|\bconcrete steps\b/.test(t) && hasThread) {
+      const where = C.geo ? ` in ${C.geo.value}` : "";
+      const who = C.firm ? C.firm.value : null;
+      const items = [
+        `Source 10 names${who ? ` at ${who}` : `${where}`} from your school's alumni directory and firm team pages — every name carries its source.`,
+        `Filter to ${C.level ? C.level.value : "analyst-level"} people first; senior names wait for a warm path.`,
+        "Draft one opener per sendable name, each built on one fact you share — no guessed email addresses, ever.",
+        "Approve the whole plan once; only then do the found / trustworthy / sendable counts turn into sends, inside the daily caps.",
+        `Run the ${C.year && /freshman|sophomore|junior/.test(C.year.value) ? "next-summer internship" : "role"} search${where} beside the outreach and track every application from day one.`,
+        "Log every reply and stage change to the tracker the day it lands — the record is what the next step is read from.",
+      ];
+      const reply = compose({ headline: "The plan, as a checklist:", facts: items.map((x, i) => `${i + 1}. ${x}`), nextStep: "Say go and item 1 starts now." });
+      return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // (5) Priority for a named firm: "which of those matters most
+    // for <Firm>" — the firm is used in the answer, never recorded
+    // from a question (capture's invariant stands).
+    {
+      const pm = raw.match(/\bwhich of those matters most for\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/i) || raw.match(/\bwhat matters most for\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/i);
+      if (pm) {
+        const firm = pm[1].replace(/[?.!,]+$/, "").trim();
+        let cirFact = null;
+        try { const cir = cirFor(text, ctx); if (cir) { const bar = cirFieldText(cir.hiring_bar_summary); if (bar) cirFact = bar.split(/(?<=[.!?])\s/)[0]; } } catch { cirFact = null; }
+        const facts = [`For ${firm}, the step that matters most is the warm path in — a sourced name who can refer you — because ${firm}'s screen rewards a referral and a precise fit story over application volume.`];
+        if (cirFact) facts.push(`From ${firm}'s own file: ${cirFact}`);
+        facts.push(`Concretely: one alumni-directory name at ${firm}, one opener built on a shared fact, and the application tailored to the posting — in that order. The search and the tracking matter, but they support that step, not replace it.`);
+        const reply = compose({ headline: `For ${firm}: the warm path matters most.`, facts, nextStep: `Want the ${firm} networking plan built first?` });
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: firm };
+      }
+    }
+    // (6) Reply hypothetical: if/when they reply tomorrow.
+    if (/\bif (they|he|she|the recruiter) repl\w*\b|\bwhen (they|he|she|the recruiter) repl\w*\b|\bwhat if\b[^.]*\brepl\w*\b/.test(t)) {
+      ctx._lastSuggested = "reply_handling";
+      const reply = compose({ headline: "If a reply lands tomorrow, the handling is fixed — here it is.", facts: ["Read it for its actual ask first: a call offer, a question, or a soft no each get a different answer — never a reflex thank-you.", "Answer inside a day with a short draft: thank them by name, answer the ask in one line, and offer two concrete times if a call is on the table.", "The draft waits for your approval before anything sends — a reply is a send, and sends are approval-gated here like everything else."], nextStep: "Want that reply drafted now, short version, so it is ready before the reply lands?" });
+      return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // (7) "Draft that, short version" — the draft itself, composed
+    // from the thread (the reply draft the last step pointed at, or
+    // the negotiation draft when an offer thread stands).
+    if (/\bdraft that\b|\bdraft it for me\b|\bwrite that (up|out)\b/.test(t) && (/\bshort\b/.test(t) || hasThread)) {
+      if (C.thread && (C.thread.firm || C.thread.amount)) {
+        const ext = Negotiation && Negotiation.extensionDraft ? Negotiation.extensionDraft({ company: C.thread.firm || null, role: C.thread.role || null }, {}) : null;
+        const body = ext && ext.draft ? ext.draft : `Subject: Thank you — and a short request\n\nHi [Recruiter name],\n\nThank you for the offer${C.thread.amount ? ` of $${Number(C.thread.amount).toLocaleString()}` : ""}. I am excited about ${C.thread.firm || "the role"} and want to give it the review it deserves — could I have a few more days before the ${C.thread.deadline || "deadline"}?\n\nThank you,\n[Your name]`;
+        const reply = compose({ headline: "The short draft, held for your approval — nothing sent:", facts: [body], nextStep: "Approve it as written, or tell me what to change." });
+        return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: ext || { kind: "extension_email", body } };
+      }
+      const firmBit = C.firm ? ` about ${C.firm.value}` : "";
+      const body = `Hi [Name],\n\nThank you for getting back to me — I really appreciate it. I would love to talk${firmBit}: would either of the two times below work for a short call this week? If not, I will work around your schedule.\n\nThanks again,\n[Your name]`;
+      const reply = compose({ headline: "The short draft, held for your approval — nothing sent:", facts: [body, "The bracketed slots fill only from real records — the recipient's name from the reply itself, yours from your profile."], nextStep: "Approve it as written, or tell me what to soften." });
+      return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: { kind: "reply_short", body } };
+    }
+    // (8) The biggest-mistake ask — one concrete pitfall, grounded
+    // in the thread's own activity.
+    if (/\bwhat should i not do\b|\bbiggest mistake\b|\bwhat to avoid\b|\bmistakes?\s+(people|ppl|everyone)\s+make\b|\bworst move\b/.test(t)) {
+      const pitfall = C.thread
+        ? "Letting the deadline decide by silence. An exploding or tight deadline that lapses with no extension ask and no answer reads as a no — the extension request costs one polite email and keeps every option alive; silence spends the offer itself."
+        : C.plan
+          ? "Blasting the list before it is verified. One wave to guessed or unverified addresses burns your name at those firms and trips the bounce breaker — the shortlist gets verified first, counts come back, and only sendable names ever see a draft."
+          : "Applying everywhere with one generic packet and no record. Untracked, untailored volume produces silence you cannot learn from — a short sourced list, a tailored packet per firm, and every stage logged is what turns applications into a pattern you can fix.";
+      const reply = compose({ headline: "The one mistake that costs the most here:", facts: [pitfall], nextStep: "Want the plan re-checked against that pitfall before anything moves?" });
+      return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // (9) "Do the first step now" — the in-conversation first step
+    // is performed and reported honestly: what was built here, and
+    // what (by law) still waits for approval.
+    if (/\bdo the first step\b|\bstart the first step\b|\bdo step one\b|\bgo ahead with (the )?first step\b/.test(t) && hasThread) {
+      const what = C.thread
+        ? `the extension draft on the ${C.thread.firm || "offer"} is composed and held above — it sends only on your approval`
+        : C.plan
+          ? `the ${C.firm ? `${C.firm.value} ` : ""}plan's first item — the sourcing order and the caps — is set on the record; the list itself builds when you approve the plan`
+          : `the checklist from your facts (${C.facts.map(factLine).join("; ")}) is built and item one — sourcing names ${C.geo ? `in ${C.geo.value}` : ""} from the alumni directory — is ready to run the moment you approve the plan`;
+      const reply = compose({ headline: "First step done — here is exactly what that means.", facts: [`Done in this conversation: ${what}.`, "Nothing was sent, submitted, or promised to anyone — the going-out actions stay behind your approval, as always; what is done is the preparation, and it is on the record."], nextStep: "Approve the next step and it moves; or correct the target and the preparation re-aims." });
+      return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // (10) GPA screen question — answered as doctrine, with no
+    // invented firm figure (a company file speaks when one exists).
+    if (/\bgpa\b/.test(t) && /\b(bar|cutoff|cut-off|minimum|hard|screen|matter)\b/.test(t)) {
+      let cirFact = null;
+      try { const cir = cirFor(text, ctx); if (cir) { const bar = cirFieldText(cir.hiring_bar_summary); if (bar) cirFact = bar.split(/(?<=[.!?])\s/)[0]; } } catch { cirFact = null; }
+      const facts = ["A GPA screen is a first-pass filter, not the decision: some firms state a minimum and screen on it mechanically in the portal, most treat it as one signal beside school, experience, and the referral path — which is why a warm referral matters more at the margin than a tenth of a point."];
+      if (cirFact) facts.push(`The company file on record says: ${cirFact}`);
+      else facts.push("No company file on record here publishes a GPA figure, so no specific cutoff is claimed for a specific firm — anyone quoting you one without the file is guessing.");
+      const reply = compose({ headline: "The GPA bar, honestly:", facts, nextStep: "Name the firm and I will check its file for a stated screen before you spend an application on it." });
+      return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0 };
+    }
+    // (11) First move / opening move — spoken from the corrected
+    // thread record (firm, city, level, year).
+    if (/\bfirst move\b|\bopening move\b/.test(t)) {
+      if (C.firm || C.geo) {
+        const reply = compose({ headline: `Your opening move${C.firm ? ` at ${C.firm.value}` : ""}${C.geo ? ` in ${C.geo.value}` : ""}:`, facts: [`Start with ${C.level ? C.level.value : "analysts"}${C.firm ? ` at ${C.firm.value}` : ""} — sourced from your school's alumni directory and ${C.firm ? `${C.firm.value}'s` : "the firms'"} team pages, warmest path first. One opener, built on one shared fact${C.majors ? ` (your ${C.majors.value} background)` : ""}, held for your approval before anything sends.`, "That order is deliberate: the referral conversation comes before the application, because at a target firm the referral is worth more than the posting."], nextStep: "Say go and the sourcing starts — counts come back before any draft." });
+        return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      if (hasThread) {
+        const reply = compose({ headline: "Your first move, from the record:", facts: [`Build the networking plan first — names sourced in order (alumni directory, then team pages)${C.geo ? ` for ${C.geo.value}` : ""}, one opener per sendable name, every send held for your approval — with the role search running beside it and every application tracked from day one.`], nextStep: "Say go and the plan builds now." });
+        return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+    }
+    return null;
+  }
+
+  // ---------- DEPTH WAVE, Item C (claim class: track_event_report).
+  // A user's plain-words report of an application event — "they just
+  // emailed me a rejection, ugh", "got an interview invite from
+  // Stripe!", "offer came in — 85k" — is CLAIMED here as a tracking
+  // turn and routed to 126's ingest/write API. The speech-act
+  // discipline is the BUG-169 invariant: the write happens only for
+  // the user's own first-person report (that report IS the
+  // assertion, and its verbatim text is the event's evidence), and
+  // only inside 126 (ingestMessage / addApplication / moveStage). A
+  // question about an event, or someone else's event, claims the
+  // turn for a clarification at most and writes nothing.
+  function trackEventClassOf(t) {
+    if (/\b(rejection|rejected|turned (me|it down)|didn'?t get (it|the role|in)|not moving forward with me)\b/.test(t)) return "rejected";
+    if (/\b(interview invite|interview invitation|invited (me |us )?to (an )?interview|got an interview|interview (is )?scheduled|phone screen invite)\b/.test(t)) return "interview";
+    if (/\b(offer came in|got an offer|received an offer|offer letter (came|arrived|landed)|they offered me|extended (me )?an offer|offer just (came|landed))\b/.test(t)) return "offer";
+    if (/\b(assessment invite|online assessment (invite|invitation)|hackerrank invite|coding challenge invite)\b/.test(t)) return "oa";
+    if (/\b(application confirmed|confirmation email (came|landed|arrived|just))\b/.test(t)) return "confirmed";
+    return null;
+  }
+  function handleTrackEventReport(text, ctx) {
+    const u = unquotedText(text);
+    const t = lc(u);
+    const ev = trackEventClassOf(t);
+    if (!ev) return null;
+    const store = trackStoreOf(ctx);
+    if (!store || !Track) return null;
+    // Someone else's event is not the user's tracker record.
+    if (/\bmy (friend|roommate|brother|sister|classmate|cousin)\b/.test(t) || /\b(good for|happy for) (him|her|them)\b/.test(t)) {
+      const reply = compose({ headline: "That one is not yours to log — it is someone else's news.", facts: ["Your tracker records your own applications and their events; a friend's invite or rejection never lands on your rows, and I will not write it there."], nextStep: "Tell me about one of your own applications and it is logged from your words." });
+      return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // A question ANYWHERE in the turn means this is not a pure event
+    // report: "they offered me 85k — should I take it or negotiate?"
+    // is a NEGOTIATION turn that happens to report an offer, and a
+    // question about an event ("did they email me a rejection?")
+    // reports nothing at all. Either way this claim stands down and
+    // the turn's real owner answers it — nothing is written here.
+    if (interrogativeTurn(text) || s(text).includes("?") || /\bshould i\b/.test(t)) return null;
+    // The report must be framed as the user's own: a first-person
+    // marker, a bare event-arrival verb, or a named company acting
+    // toward the user. Anything else is left to other routes.
+    const userFramed = /\b(me|my|mine|i|we|us)\b/.test(t) || /^(got|offer came|rejection came|it came|just got)\b/.test(t.trim());
+    if (!userFramed) return null;
+    let company = companyFromText(text, ctx) || companyFromApplicationText(text);
+    const rows = Array.isArray(store.rows) ? store.rows : [];
+    if (!company && rows.length) {
+      const open = rows.filter((r) => !/Rejected|Withdrawn|Accepted/i.test(r.stage || ""));
+      company = (open.length === 1 ? open[0] : rows.length === 1 ? rows[0] : null)?.company || null;
+      if (!company && rows.length === 1) company = rows[0].company;
+    }
+    if (!company) {
+      const facts = statedFactsOf(ctx);
+      const tf = facts.find((f) => f.kind === "target_firm");
+      if (tf) company = tf.value;
+    }
+    // The write, inside 126 only: ingest first (its classifier links
+    // and moves the row when the report's words carry a signal), and
+    // where ingest cannot link a named company's row, 126's own
+    // add/move API lands the user's asserted event on it.
+    let ing = null;
+    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", subject: `${ev} reported in chat`, body: s(text), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
+    let row = null;
+    if (ing && ing.linked && company) row = rows.find((r) => lc(r.company) === lc(company)) || null;
+    if (!row && company) {
+      row = rows.find((r) => r.company && lc(r.company) === lc(company)) || null;
+      if (!row) {
+        try { row = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: STAGE_FOR_126[ev], event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { row = null; }
+      } else if (row.stage !== STAGE_FOR_126[ev] && Track.moveStage) {
+        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: `user reported in chat: "${s(text).slice(0, 120)}"`, evidence: s(text).slice(0, 200) }, nowOf(ctx)); } catch { /* the read-back below decides what is claimed */ }
+      }
+    }
+    if (!row) {
+      // Claimed, but the event cannot be bound to a row yet: one
+      // precise question, and (beyond any not-stated row 126 itself
+      // opened from the assertion) nothing is invented.
+      const reply = compose({ headline: `Noted — a ${ev === "oa" ? "assessment" : ev} landed. Which application is it for?`, facts: ["The event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it."], nextStep: "Name the company and the row moves in the same turn, from your words." });
+      return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, stage: ev };
+    }
+    // Read-back before the claim: the stage spoken is the row's own.
+    const stageNow = row.stage || STAGE_FOR_126[ev];
+    const label = { rejected: "Rejection", interview: "Interview invite", offer: "Offer", oa: "Assessment invite", confirmed: "Confirmation" }[ev];
+    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(text).slice(0, 120)}".`];
+    if (ev === "offer") facts.push("The offer also starts the negotiation record: its terms get read from the letter itself, and the deadline clock runs from the letter, never from a guess.");
+    if (ev === "rejected") facts.push("One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.");
+    const reply = compose({ headline: `${label} on the record for ${row.company} — the row now shows ${stageNow}.`, facts, nextStep: ev === "interview" ? "Want the prep pack for it now?" : ev === "offer" ? "Want the offer terms laid out and the counter plan started?" : "Want the status of the rest of the tracker?" });
+    const res = { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, stage: ev, company: row.company, track_event: { class: ev, stage_after: stageNow, source: "user_reported_chat" } };
+    return emitTrack(ctx, res, { company: row.company, stage: stageNow, event_type: EVENT_FOR_126[ev], source: "inbox", note: `${label} reported by the user in chat` });
+  }
+
   function handleClarifying(text, ctx) {
     const raw = s(text);
     const t = lc(text);
@@ -6664,18 +7331,23 @@ const CareerRouter = (() => {
     const t = lc(text);
     const parts = [];
     const add = (key, label, re) => { const m = t.match(re); if (m) parts.push({ key, label, idx: m.index }); };
-    add("find", "the search", /\bfind\b[^.]*\b(internships?|roles|jobs)\b|\bfind me\b/);
-    add("networking", "the networking plan", /\bnetwork(ing)?\s+plan\b|\bnetwork into\b|\bfind people\b|\bplan outreach\b|\bstart networking\b/);
+    add("find", "the search", /\bfind\b[^.]*\b(internships?|roles|jobs)\b|\bfind me\b|\bhunt down\b[^.]*\b(internships?|roles|jobs)\b|\bsearch for\b[^.]*\b(internships?|roles|jobs)\b/);
+    add("networking", "the networking plan", /\bnetwork(ing)?\s+plan\b|\bnetwork into\b|\bfind people\b|\bplan outreach\b|\bstart networking\b|\bput together\b[^.]*\bnetwork/);
     add("tracking", "application tracking", /\bset up\b[^.]*\btrack|\btracking for\b|\btrack(ing)? my applications\b|\bset up tracking\b/);
     add("negotiation", "the negotiation", /\bnegotiat\w*\b/);
     add("prep", "the interview prep", /\bprep\b[^.]*\binterview\b|\bprep for (the|my|a) interview\b|\bprepare me for\b/);
+    add("draft", "the draft", /\bdraft\b[^.]*\b(email|opener|note|message|letter)\b/);
     add("finance", "the money question", /\bhow much did i spend\b|\bspend on\b|\bspending\b|\bbudget\b|\binvest(ing|ment)?\b[^.]*\b(my|the)\b|\bmy portfolio\b|\bstocks?\b/);
     parts.sort((a, b) => a.idx - b.idx);
     const seen = new Set();
     return parts.filter((p) => (seen.has(p.key) ? false : (seen.add(p.key), true)));
   }
   function multiMarkerOf(text) {
-    return /\b(two|three|four)\s+things\b|\bat once\b|\bboth\b|\band also\b|\bas well as\b|\balso,?\s+(find|start|set up|prep|track)\b/i.test(s(text));
+    // DEPTH WAVE (BUG-215 / FR-372): the marker set is structural —
+    // enumerated asks ("two asks"), list punctuation between two
+    // detected parts, or a coordinator between them — not a fixed
+    // list of battery markers.
+    return /\b(two|three|four)\s+(things|asks|parts|requests)\b|\bat once\b|\bboth\b|\band also\b|\bas well as\b|\balso,?\s+(find|start|set up|prep|track)\b/i.test(s(text));
   }
   function financeScopeResult() {
     const reply = compose({ headline: "That part is the money product — and this build is the career agent.", facts: ["The finance side of Upmore is shelved in this build: spending questions, budgets, and investing are not answered here, and I will not guess at your bank data from a career thread.", "What is live, and fully staffed, is the career loop: find roles, apply at the doorstep, track, outreach, prep, negotiate."], nextStep: "Ask me for any part of the career loop and it runs now." });
@@ -6693,6 +7365,10 @@ const CareerRouter = (() => {
       }
       if (part.key === "negotiation") return handleNegotiation(text, ctx);
       if (part.key === "prep") return handlePrepExtras(text, ctx) || handlePrepQuestion(text, ctx) || handlePrepNeedsProfile(text, ctx);
+      if (part.key === "draft") {
+        const reply = compose({ headline: "The draft part is queued behind the plan it belongs to.", facts: ["A draft is written from the plan's sendable names and your confirmed facts — until the plan stands and the counts come back, there is no one to draft TO, and a draft without a recipient is fiction.", "The moment the plan is approved, drafting is the very next step — the text is composed then, from the real names, and held for your approval."], nextStep: "Approve the plan part and the draft follows in the same flow." });
+        return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
       if (part.key === "finance") return financeScopeResult();
     } catch { return null; }
     return null;
@@ -6701,8 +7377,14 @@ const CareerRouter = (() => {
     const queue = Array.isArray(ctx.intentQueue) ? ctx.intentQueue : null;
     if (!queue || !queue.length) return null;
     const t = lc(text);
-    if (!/^(start|begin|do|take|run)\b[^.]*\b(first|next|that|it|one)\b|^next\b[^.?!]*$|\bthe (second|next) one\b|\bnext one\b|\bcontinue with (the|it|that)\b/.test(t)) return null;
-    const part = queue.shift();
+    // DEPTH WAVE (BUG-215 / FR-372): continuation is a speech-act
+    // class — kick off / start with / now / next / continue, aimed at
+    // an ordinal or the queue head — not the battery's three wordings.
+    if (!/^(start|begin|do|take|run|kick off|go)\b[^.]*\b(first|next|that|it|one|opening)\b|^next\b[^.?!]*$|\bthe (second|next|first) one\b|\bnext one\b|\bnext part\b|\bfirst one\b|\bopening one\b|\bcontinue\b|\bkeep going\b|\bnow the\b/.test(t)) return null;
+    // "The second one" (or "now the second") pops the SECOND queued
+    // part when it exists; every other continuation pops the head.
+    const secondWanted = /\bsecond one\b|\bnow the second\b/.test(t);
+    const part = secondWanted && queue.length > 1 ? queue.splice(1, 1)[0] : queue.shift();
     ctx.intentQueue = queue;
     const res = runIntentPart(part, part.ask || text, ctx);
     if (!res) return null;
@@ -6766,9 +7448,10 @@ const CareerRouter = (() => {
     // is queued and NAMED, never dropped. A finance-only ask in this
     // career build gets the honest scope answer.
     const parts = intentPartsOf(text);
-    const multi = parts.length >= 2 && (multiMarkerOf(text) || parts.length >= 3);
+    const multi = parts.length >= 2 && (multiMarkerOf(text) || parts.length >= 3 || /\band\b|;/.test(lc(text)));
     const res = dispatchChat(text, c);
     if (parts.length === 1 && parts[0].key === "finance" && (!res || res.intent === "career_fallback")) {
+      syncThreadOut(c);
       return financeScopeResult();
     }
     if (multi && res && res.intent !== "career_fallback") {
@@ -6786,6 +7469,7 @@ const CareerRouter = (() => {
     // The 140 unmatched fallback and the capability-absent honest
     // replies are exact-text contracts of their own — never appended to.
     if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);
+    syncThreadOut(c);
     return res;
   }
   return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };

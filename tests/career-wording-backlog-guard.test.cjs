@@ -750,6 +750,7 @@ test("BUG-205 referrals: keep-warm and timing answers are per-ask, closers name 
   assert.match(T205("SC-148"), /the alumni directory is the backup route/);
   assert.match(T205("SC-165"), /will not write to the departed contact blindly/);
   assert.match(T205("SC-152"), /the moment it is marked in/);
+  assert.match(T205("SC-154"), /tell me one firm to map first/);
   assert.match(T205("SC-160"), /A new hire from your school is flagged only with/);
 });
 test("BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked steps", () => {

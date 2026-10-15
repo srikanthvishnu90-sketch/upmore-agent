@@ -620,6 +620,18 @@ const CareerJobs = (() => {
   function seniorityBand(title, jd) {
     const t = lc(title), j = lc(jd);
     if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
+    // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
+    // winter forms) ARE the finance/consulting internship titles and carry no
+    // intern token; without this they fell through to "mid" and intern-band
+    // watches silently missed them (witness: Lane A seed LA-0043). The
+    // analyst-track noun is required — seasonal titles without it are
+    // seasonal JOBS (customer service, housekeeping), never internships. A
+    // title that also names a management role ("Summer Analyst Program
+    // Manager") is the manager's posting and falls through to the checks
+    // below.
+    if (/\b(summer|winter)\s+(business\s+)?(analyst|associate)\b/.test(t)
+        && !/\b(manager|director|vp|vice president|head of|chief)\b/.test(t)) return "intern";
     if (/\b(director|vp|vice president|head of|chief)\b/.test(t)) return "director";
     if (/\bmanager\b/.test(t)) return "manager";
     if (/\b(staff|principal)\b/.test(t)) return "staff";

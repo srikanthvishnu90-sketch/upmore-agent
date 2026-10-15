@@ -862,7 +862,25 @@ const CareerTailor = (() => {
     const wc = wordCount(text);
     if (wc < 150 || wc > 250) return { ok: false, reason: `cover letter is ${wc} words, outside the 150-250 window`, text: null, wordCount: wc };
     const auditResult = auditResume([{ text: proof.text, factIds: [proof.id] }], profile);
-    return { ok: true, text, wordCount: wc, companyFact: companyFact.text || companyFact, proofFactId: proof.id, factIds: selected.map((x) => x.fact.id), banned: [], groundedAuditOk: auditResult.ok };
+    const out = { ok: true, text, wordCount: wc, companyFact: companyFact.text || companyFact, proofFactId: proof.id, factIds: selected.map((x) => x.fact.id), banned: [], groundedAuditOk: auditResult.ok };
+    // Writing-pattern scorecard (module 154, MI-097): attached ONLY
+    // when the caller enables it (opts.writingPattern.enabled). The G0
+    // prohibition gate runs FIRST in that mode: a blocked context
+    // (e.g. a program whose rules make the statement owner-write-only)
+    // degrades to the same outline-only refusal the CIR ban uses.
+    // Default off: no behavior change for any existing caller.
+    if (o.writingPattern && o.writingPattern.enabled) {
+      let W = null;
+      try { W = typeof CareerWriting !== "undefined" ? CareerWriting : require("./154-career-writing.js"); } catch { W = null; }
+      if (W) {
+        const wp = o.writingPattern;
+        const g0 = W.gate0({ kind: wp.kind || "cover_letter", program: wp.program || null, context: wp.context || {} });
+        if (!g0.allowed) return { ok: false, mode: "outline", reason: g0.explanation, outline: coverOutline(profile, jd, cir), text: null, writing: { gate0: g0 } };
+        const pack = [...selected.map((x) => ({ id: x.fact.id, kind: "sender", text: x.fact.text })), ...companyFacts.map((f) => ({ kind: "recipient", text: f.text || String(f) }))];
+        out.writing = { gate0: g0, scorecard: W.slopGate(text, { factPack: pack, factIds: pack.map((p) => p.id).filter(Boolean), recipient: { full_name: cir.company, current_firm: cir.company }, senderName: name, profile: wp.profile || null }) };
+      }
+    }
+    return out;
   }
   function coverOutline(profile, jd, cir) {
     const selected = selectFacts(profile, jd, { limit: 3 });

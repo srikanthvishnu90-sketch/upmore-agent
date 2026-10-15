@@ -1016,6 +1016,27 @@ const CareerOutreach = (() => {
     const draft = draftFor(candidate, user, opts);
     if (draft && draft.refused) return Object.assign({}, draft, { draft: null, gate: { pass: false, failures: ["suppressed_recipient"] }, queued: false, sends: 0, status: "refused" });
     const gate = qualityGate(draft, candidate, opts);
+    // Writing-pattern scorecard (module 154, MI-097): attached ONLY
+    // when the caller enables it (opts.writingPattern.enabled) — the
+    // draft gains a `writing` scorecard (G0 policy verdict + slop gate
+    // + batch verdict when sibling drafts are supplied). Default off:
+    // no behavior change for any existing caller.
+    if (opts.writingPattern && opts.writingPattern.enabled && draft) {
+      let W = null;
+      try { W = typeof CareerWriting !== "undefined" ? CareerWriting : require("./154-career-writing.js"); } catch { W = null; }
+      if (W) {
+        const wp = opts.writingPattern;
+        const pack = [];
+        for (const w of draft.why_this_line || []) if (w && w.fact) pack.push({ id: w.fact_id || null, kind: "recipient", text: w.fact });
+        if (draft.fact_text) pack.push({ kind: "recipient", text: draft.fact_text });
+        const g0 = W.gate0({ kind: wp.kind || "outreach_email", program: wp.program || null, context: wp.context || {} });
+        const card = W.slopGate(draft.body || "", { factPack: pack, factIds: pack.map((p) => p.id).filter(Boolean), recipient: c, senderName: (user && user.name) || null, profile: wp.profile || null });
+        draft.writing = { gate0: g0, scorecard: card };
+        if (Array.isArray(wp.batchDrafts) && wp.batchDrafts.length) {
+          draft.writing.batch = W.batchGate([...wp.batchDrafts, { subject: draft.subject, body: draft.body, firm: c.current_firm || c.firm || null, recipientName: c.full_name || null, title: c.title || null, leadFactKind: wp.leadFactKind || null, factTexts: pack.map((p) => p.text) }]);
+        }
+      }
+    }
     // W3 (j)/(l): Tier C drafts (no sourced fact) and departed recipients
     // are HELD by default — never awaiting_approval, never queued.
     let status, held = false, held_reason = null;

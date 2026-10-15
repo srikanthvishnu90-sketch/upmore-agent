@@ -27,6 +27,13 @@
        scripts are reported as captchaTech evidence, never interacted with;
      - the resume file is uploaded only after its bytes hash to the exact
        sha256 the profile carries (RESUME_SHA_MISMATCH otherwise);
+     - every fill is VERIFIED (BUG-207 / D11): the helper reads each
+       field back after the board settles and re-fills a fresh node when
+       a remount cycle dropped the value; a fill the board will not hold
+       is a recorded fill failure, never a silent success;
+     - a confirmation is read ONLY from a labeled confirmation context
+       (BUG-208 / D12), and never from a page where the application form
+       itself is still open — posting prose cannot mint a SUBMITTED;
      - the submit leg is ARMED-ONLY: board.submit() throws
        REAL_SUBMIT_DISABLED unless the board is armed. Arming happens
        exactly two ways (BUG-063 / lane defect D3): (a) the board was
@@ -99,14 +106,29 @@ const CareerPortalBrowser = (() => {
 
   // ---------- field classification: raw DOM fields -> 149 field defs ----------
   const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48);
-  // Conservative confirmation reading: an ID counts only when the page
-  // labels it as one; success counts only on unambiguous employer wording.
-  // Anything weaker leaves the outcome unknown — never upgraded.
-  function extractConfirmation(text) {
+  // Conservative confirmation reading — D12 (BUG-208 / FR-366): the
+  // pre-fix extractor matched an ID-shaped token after the mere WORD
+  // "application" anywhere in the landing text, and on 2026-10-15 it
+  // minted confirmationId "security" out of the Labelbox posting's own
+  // prose, manufacturing a SUBMITTED for a form that never transmitted.
+  // The rules now: (1) an ID counts ONLY in a labeled confirmation
+  // context — a confirmation-class label word (application /
+  // confirmation / reference / submission / tracking) TOGETHER WITH an
+  // id-word (id / number / no / #) AND a [:#] separator, followed by a
+  // token that carries at least one digit (prose words are not IDs);
+  // (2) when the helper reports the application form itself still open
+  // on the landing page (validation errors, or a live submit control
+  // beside empty required fields), NOTHING on that page mints anything —
+  // a still-open form is an unsubmitted form by construction. Success
+  // counts only on unambiguous employer wording. Anything weaker leaves
+  // the outcome unknown — never upgraded.
+  function extractConfirmation(text, opts) {
     const t = String(text || "");
-    const idMatch = t.match(/(?:application|confirmation|reference|submission|tracking)\s*(?:id|number|no\.?|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/i);
+    if (opts && opts.formStillOpen) return { confirmationId: null, successText: false, formStillOpen: true };
+    const idMatch = t.match(/(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i);
+    const confirmationId = idMatch && /\d/.test(idMatch[1]) ? idMatch[1] : null;
     const successText = /(application (has been |was )?(submitted|received)|thank you for applying|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i.test(t);
-    return { confirmationId: idMatch ? idMatch[1] : null, successText };
+    return { confirmationId, successText };
   }
 
   function classifyFields(rawFields) {
@@ -120,7 +142,7 @@ const CareerPortalBrowser = (() => {
     const consumed = new Set();
     if (first && last) {
       defs.push({ field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: !!(first.required || last.required) });
-      bindings.full_name = { field_id: "full_name", inputType: "name_pair", selectors: [first.selector, last.selector] };
+      bindings.full_name = { field_id: "full_name", inputType: "name_pair", profile_key: "name", selectors: [first.selector, last.selector] };
       consumed.add(first); consumed.add(last);
     }
     // radio / checkbox groups collapse by name
@@ -178,6 +200,7 @@ const CareerPortalBrowser = (() => {
         defs.push(def);
         bindings[gid] = {
           field_id: gid, inputType: f.inputType === "radio" ? "radio_group" : "checkbox_group",
+          profile_key: kind.profile_key || null,
           options: members.map((m) => ({ selector: m.selector, label: (m.label || "").replace(/[*✱]\s*$/, "").trim() || m.value || "" })),
         };
         continue;
@@ -256,11 +279,21 @@ const CareerPortalBrowser = (() => {
     return { kind: "unknown" };
   }
   function bindingFor(f, kind) {
-    if (f.tag === "select") return { field_id: null, inputType: "select", selector: f.selector, options: f.options || [] };
-    if (f.inputType === "file") return { field_id: null, inputType: "file", selector: f.selector };
-    if (f.inputType === "checkbox") return { field_id: null, inputType: "checkbox", selector: f.selector };
-    if (f.inputType === "radio") return { field_id: null, inputType: "radio_group", options: [{ selector: f.selector, label: f.label || "" }] };
-    return { field_id: null, inputType: "text", selector: f.selector };
+    // profile_key rides the binding so the helper can apply the right
+    // interaction for widget-backed fields (BUG-207: the location
+    // typeahead clears free text that was never picked from its
+    // suggestion list — the fill must drive the widget, not just the
+    // input's value).
+    const pk = kind && kind.profile_key ? kind.profile_key : null;
+    // The react-select marker (BUG-207): an input the board renders as a
+    // select__input search box is a widget whose value is a chosen
+    // option, never its text — the helper drives it as one.
+    const widget = f && /select__input/.test(f.cls || "") ? "react-select" : null;
+    if (f.tag === "select") return { field_id: null, inputType: "select", profile_key: pk, widget, selector: f.selector, options: f.options || [] };
+    if (f.inputType === "file") return { field_id: null, inputType: "file", profile_key: pk, widget, selector: f.selector };
+    if (f.inputType === "checkbox") return { field_id: null, inputType: "checkbox", profile_key: pk, widget, selector: f.selector };
+    if (f.inputType === "radio") return { field_id: null, inputType: "radio_group", profile_key: pk, widget, options: [{ selector: f.selector, label: f.label || "" }] };
+    return { field_id: null, inputType: "text", profile_key: pk, widget, selector: f.selector };
   }
 
   // ---------- the sync bridge to the helper process ----------
@@ -429,9 +462,18 @@ const CareerPortalBrowser = (() => {
           if (!value || value.sha256 !== state.resumeShaChecked) {
             throw coded("RESUME_SHA_MISMATCH", "the local resume file's bytes do not hash to the profile's resume sha256 — refused, never uploaded");
           }
-          call(boardId, { type: "fill", binding, value, filePath: o.resumePath }, 30000);
+          const fr = call(boardId, { type: "fill", binding, value, filePath: o.resumePath }, 60000);
+          // D11 (BUG-207): the upload counts only when the helper verified
+          // the file is still attached after the board's settle/remount
+          // cycle. A dropped upload is a fill failure like any other —
+          // never a filledValues entry the doorstep would trust.
+          if (fr && fr.filled === false) {
+            state.fillFailures.push({ field_id: fieldId, reason: fr.reason || "fill_failed", wanted: value.filename });
+            log("fill_failed", { field_id: fieldId, reason: fr.reason || "fill_failed", source: "file_upload" });
+            return undefined;
+          }
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
-          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename });
+          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null });
           return value;
         }
         // Non-file fills DEGRADE, never abort: a widget that times out or
@@ -443,7 +485,7 @@ const CareerPortalBrowser = (() => {
         // claims a resume it failed to upload would be a lie.)
         let r;
         try {
-          r = call(boardId, { type: "fill", binding, value }, 30000);
+          r = call(boardId, { type: "fill", binding, value }, 60000);
         } catch (e) {
           state.fillFailures.push({ field_id: fieldId, reason: "fill_error:" + (e.code || "DRIVER_ERROR"), wanted: String(value) });
           log("fill_failed", { field_id: fieldId, reason: "fill_error:" + (e.code || "DRIVER_ERROR"), message: String(e.message || e).slice(0, 160) });
@@ -455,7 +497,7 @@ const CareerPortalBrowser = (() => {
           return undefined;
         }
         state.filledValues[fieldId] = value;
-        log("fill", { field_id: fieldId });
+        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null });
         return value;
       },
       answers() {
@@ -465,7 +507,20 @@ const CareerPortalBrowser = (() => {
         const out = Object.assign({}, r.answers || {});
         for (const [k, v] of Object.entries(state.filledValues)) {
           const b = state.bindings[k];
-          if (b && b.inputType === "file") out[k] = v;
+          if (b && b.inputType === "file") {
+            // D11 (BUG-207): a file value counts at readback only when
+            // the live input still holds the file. An input that exists
+            // but is empty means the board dropped the upload after it
+            // verified (the employer's widget errored on Arc's form) —
+            // the value is OMITTED so 149's repair re-uploads it and
+            // the D13 gate sees the truth. An input the widget replaced
+            // outright reports "gone": presence is unknowable, the
+            // driver-side record stands, nothing is fabricated either way.
+            let present = "unknown";
+            try { present = call(boardId, { type: "file_present", selector: b.selector }, 15000).present; } catch (e) { present = "unknown"; }
+            if (present === "empty") { log("file_readback_missing", { field_id: k }); continue; }
+            out[k] = v;
+          }
         }
         return out;
       },
@@ -526,13 +581,16 @@ const CareerPortalBrowser = (() => {
         // CONFIRMATION CAPTURE: the employer's answer is evidence, not a
         // vibe — landing text + any confirmation/application ID + a
         // screenshot. "Accepted" is spoken ONLY when the captured page
-        // carries an ID or unambiguous success text; anything else is
-        // outcome "unknown" and 149 records unknown_outcome (§8.3).
+        // carries a labeled confirmation ID or unambiguous success text
+        // AND the application form itself is not still open on that page
+        // (D12 / BUG-208: a still-open form vetoes the whole page);
+        // anything else is outcome "unknown" and 149 records
+        // unknown_outcome (§8.3).
         const capText = String(r.text || "").slice(0, 4000);
-        const ex = extractConfirmation(capText);
-        const cap = { text: capText, finalUrl: r.finalUrl || null, screenshotRef: r.screenshot || null, confirmationId: ex.confirmationId, successText: ex.successText };
+        const ex = extractConfirmation(capText, { formStillOpen: r.formStillOpen === true });
+        const cap = { text: capText, finalUrl: r.finalUrl || null, screenshotRef: r.screenshot || null, confirmationId: ex.confirmationId, successText: ex.successText, formStillOpen: r.formStillOpen === true };
         state.submitCapture = cap;
-        log("submit_capture", { confirmationId: cap.confirmationId, successText: cap.successText, finalUrl: cap.finalUrl, screenshotRef: cap.screenshotRef });
+        log("submit_capture", { confirmationId: cap.confirmationId, successText: cap.successText, formStillOpen: cap.formStillOpen, finalUrl: cap.finalUrl, screenshotRef: cap.screenshotRef });
         if (cap.confirmationId || cap.successText) {
           return { outcome: "accepted", confirmationId: cap.confirmationId, confirmationText: cap.text, screenshotRef: cap.screenshotRef, finalUrl: cap.finalUrl };
         }
@@ -563,6 +621,6 @@ const CareerPortalBrowser = (() => {
     return board;
   }
 
-  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, shutdownAll };
+  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, extractConfirmation, shutdownAll };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalBrowser;

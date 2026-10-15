@@ -176,6 +176,26 @@ const CareerPortalApply = (() => {
     }));
   }
 
+  // ---------- the required-field gate (BUG-209 / D13, FR-365) ----------
+  // A payload value counts as PRESENT only when the readback actually
+  // carries it: absent, null, an empty/whitespace string, or an empty
+  // selection is MISSING. The gate's question is never "is the payload
+  // non-empty" (the pre-fix rule — phone + resume surviving a fill loss
+  // kept hollow payloads "non-empty" and the gate clicked them into two
+  // real employers' validation errors on 2026-10-15) but "does EVERY
+  // required field carry a readback value."
+  function payloadValueMissing(v) {
+    if (v === undefined || v === null) return true;
+    if (typeof v === "string") return v.trim() === "";
+    if (Array.isArray(v)) return v.length === 0;
+    return false;
+  }
+  function missingRequiredFields(fields, payload) {
+    return (fields || [])
+      .filter((f) => f.required && payloadValueMissing(payload[f.field_id]))
+      .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
+  }
+
   function capReport(log, userId, posting, now) {
     const recs = (log && log.records) || [];
     const mine = recs.filter((r) => r.userId === userId && r.status === "submitted");
@@ -344,14 +364,17 @@ const CareerPortalApply = (() => {
       logStep("captcha_stop", { at: "review" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
-    const boardAnswers = board.answers();
-    const payload = {};
-    for (const f of formDef.fields) {
-      if (boardAnswers[f.field_id] === undefined) continue;
-      payload[f.field_id] = f.field_id === "resume"
-        ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
-        : boardAnswers[f.field_id];
-    }
+    const buildPayload = (boardAnswers) => {
+      const p = {};
+      for (const f of formDef.fields) {
+        if (boardAnswers[f.field_id] === undefined) continue;
+        p[f.field_id] = f.field_id === "resume"
+          ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
+          : boardAnswers[f.field_id];
+      }
+      return p;
+    };
+    let payload = buildPayload(board.answers());
     // D2 second half (BUG-061): a payload with no actual answers in it
     // (every fill failed or read back empty) is hollow even when the
     // form had fields — it must never be spoken as a doorstep.
@@ -359,9 +382,45 @@ const CareerPortalApply = (() => {
       logStep("empty_form_stop", { fieldCount: formDef.fields.length, filledCount: 0 });
       return blocked("EMPTY_FORM", { reason: "no field value landed on the board — the would-submit payload would carry nothing but the resume hash; this is a stop, not a doorstep", formAnalysis, asks });
     }
+    // D11 doorstep repair (BUG-207 / FR-364): a board can drop a value
+    // AFTER its own fill verified — the live board's delayed reset wiped
+    // Labelbox's name/email/country/phone/location between their
+    // verified fills and the doorstep readback (2026-10-15). So the
+    // doorstep readback is treated as a repair list: every field this
+    // run filled whose value the readback no longer carries is
+    // re-filled from the same confirmed value and the payload rebuilt,
+    // for up to two rounds. What repair cannot restore falls through
+    // to the D13 gate below and stops the run — repair never widens
+    // what may be submitted, it only restores what was already filled
+    // from confirmed facts.
+    for (let round = 1; round <= 2; round++) {
+      const lost = formDef.fields
+        .filter((f) => filled[f.field_id] && payloadValueMissing(payload[f.field_id]))
+        .map((f) => f.field_id);
+      if (!lost.length) break;
+      logStep("doorstep_repair", { round, fields: lost });
+      for (const fieldId of lost) {
+        const value = filled[fieldId].value;
+        try { board.fill(fieldId, value); } catch (e) { logStep("doorstep_repair_fill_failed", { round, field_id: fieldId, code: e.code || "FILL_ERROR" }); }
+      }
+      payload = buildPayload(board.answers());
+    }
+    // D13 (BUG-209 / FR-365): the payload must carry a readback value
+    // for EVERY required field. Fills were attempted above and required
+    // asks already returned awaiting_user — a required field missing
+    // HERE is one whose value did not survive to readback, even after
+    // the repair rounds (the board dropped it, BUG-207's class). That
+    // is a typed INCOMPLETE_PAYLOAD stop: no doorstep is recorded and
+    // no approval in this run can arm a click over it.
+    const missing = missingRequiredFields(formDef.fields, payload);
+    if (missing.length) {
+      logStep("incomplete_payload_stop", { missing: missing.map((m) => m.field_id) });
+      return blocked("INCOMPLETE_PAYLOAD", { reason: "the board's readback is missing values for required fields — the fills did not persist; submitting would send a hollow application, so the run stops here", missing, formAnalysis, asks });
+    }
     if (profile.resume) payload.resume_sha256 = profile.resume.sha256;
     const payloadSha256 = sha256(JSON.stringify(payload));
-    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, atFinalReview: true };
+    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, atFinalReview: true,
+      requiredFieldIds: formDef.fields.filter((f) => f.required).map((f) => f.field_id) };
     logStep("doorstep_reached", { payloadSha256 });
     const prepared = Object.assign(base(), {
       resultStatus: "prepared", asks, formAnalysis,
@@ -390,6 +449,17 @@ const CareerPortalApply = (() => {
     }
     if (!session.doorstep) {
       return { resultStatus: "blocked", code: "NO_DOORSTEP", reason: "no prepared doorstep payload in this session" };
+    }
+    // D13 (BUG-209 / FR-365) at the gate itself: the doorstep payload is
+    // re-verified before anything is armed — every required field the
+    // doorstep was built over must STILL carry a value in the stored
+    // payload. A hollowed payload is refused here, unarmed, unclicked.
+    const gateMissing = (session.doorstep.requiredFieldIds || [])
+      .filter((id) => payloadValueMissing(session.doorstep.payload[id]))
+      .map((id) => ({ field_id: id }));
+    if (gateMissing.length) {
+      return { resultStatus: "blocked", code: "INCOMPLETE_PAYLOAD", missing: gateMissing,
+        reason: "the doorstep payload is missing readback values for required fields — the submit gate refuses to arm or click over a hollow payload" };
     }
     const board = session.board;
     // THE ARMING WIRE (BUG-063 / D3): this approval gate is the ONLY

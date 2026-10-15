@@ -168,7 +168,7 @@ const CareerHost = (() => {
       let handler = null;
       const controls = applyHostControl(text, ctx);
       if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
-      if (ctx.globalPause === true || ctx.globalPause && ctx.globalPause.set === true) return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
+      if (ctx.globalPause === true || ctx.globalPause && ctx.globalPause.set === true) return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }

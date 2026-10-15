@@ -26,7 +26,6 @@ function resolvePlaywright() {
   const tries = [];
   if (process.env.UPMORE_PLAYWRIGHT_PATH) tries.push(process.env.UPMORE_PLAYWRIGHT_PATH);
   tries.push("playwright");
-  tries.push(path.join(__dirname, "..", "..", "..", "sporve-agent-clone", "node_modules", "playwright"));
   for (const t of tries) { try { return require(t); } catch (e) { /* next */ } }
   return null;
 }

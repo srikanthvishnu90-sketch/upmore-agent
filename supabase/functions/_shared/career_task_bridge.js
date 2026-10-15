@@ -34,7 +34,7 @@ export async function planCareerTaskIntent({ taskRequest, message, userId, threa
     const task = await persistence.readTask({ userId, taskId: taskRequest.taskId || null, intentId: taskRequest.intentId || null });
     return { intent: null, out: reply(task ? "The owned browser task's saved evidence is attached. No new browser action was started." : "No owned task evidence is available for that reference.", task?.status || "awaiting_user", task) };
   }
-  if (taskRequest.action === "approve" && message.trim().toLowerCase() !== "approve browser task " + taskRequest.taskId) {
+  if (taskRequest.action === "approve" && message !== "Approve browser task " + taskRequest.taskId) {
     return { intent: null, out: reply("Approve the specific browser task explicitly from its exact review; a bare yes authorizes nothing.", "awaiting_user") };
   }
   if (taskRequest.action === "prepare" && (!ctx.posting?.url || !ctx.posting?.canonicalKey)) {

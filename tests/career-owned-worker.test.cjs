@@ -169,7 +169,7 @@ test("HTTP task endpoint authenticates existing identity, rejects service role a
 test("worker refuses employer destinations even if the older driver recognizes their ATS", (t) => {
   const f = setup(t);
   assert.throws(() => f.worker.receive("user-a", { ...f.input, posting: { ...f.input.posting, url: "https://boards.greenhouse.io/employer/jobs/1" } }), { code: "DESTINATION_NOT_REGISTERED" });
-  assert.throws(() => createWorker({ store: f.store, resolveEquipment() {}, controlledPortals: [{ url: "https://boards.greenhouse.io/employer/jobs/1", submitUrl: "https://boards.greenhouse.io/employer/submit" }] }), { code: "CONTROLLED_LOCAL_PORTAL_REQUIRED" });
+  assert.throws(() => createWorker({ store: f.store, authority:f.authority, resolveEquipment() {}, controlledPortals: [{ url: "https://boards.greenhouse.io/employer/jobs/1", submitUrl: "https://boards.greenhouse.io/employer/submit" }] }), { code: "CONTROLLED_LOCAL_PORTAL_REQUIRED" });
 });
 
 test("149 repeatedly observes conditional fields and page transitions before final review", () => {

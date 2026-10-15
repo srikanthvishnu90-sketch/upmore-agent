@@ -49,3 +49,22 @@ The career chat now has an optional explicit task protocol to a separate
 durable worker; Muse's CareerHost storage and Crew A alerts remain unchanged.
 There is no connected production worker or new resource. Full interface,
 limitations and exact runtime blocker: `docs/career/owned-browser-worker.md`.
+
+## Atomic task / account authority integration
+
+Independent staged probes found that the optional HTTP worker bridge could
+run before the memory turn committed, bypass the host pause, ignore changed
+request bindings on replay, and omit structured evidence from saved replies.
+The bridge now plans only an immutable task intent, committed with the
+existing memory transaction through a new forward migration proposal.
+A separate worker uses the same account row/version/epoch/pause and lock for
+claims and one-use operation tokens. No parallel account authority was added.
+STOP/erase revoke pending work; uncertain effects keep no-retry fences.
+
+The old host test expected the deep domain's `paused_hold`, although the
+memory repair already returned host-level `career_paused`. The persisted
+pause response also lacked a typed result status. It now returns `blocked`;
+the regression test checks that status, host control ownership and null action.
+The frozen independent probes remain unchanged. Full protocol, active-copy
+erasure limits, local PostgreSQL evidence and the unchanged Chromium blocker
+are documented in `docs/career/owned-browser-worker.md`.

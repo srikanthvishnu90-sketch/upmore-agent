@@ -189,7 +189,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       return json(cors, saved.response, 200);
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
-      const conflict = ["turn_key_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
+      const conflict = ["turn_key_conflict", "task_event_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
       return json(cors, { error: code, reply: conflict ? "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started." : "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.", action: null, turn_key: turnKey }, conflict ? 409 : 503);
     }
   } catch (e) {

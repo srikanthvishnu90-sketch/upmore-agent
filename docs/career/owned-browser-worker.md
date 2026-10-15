@@ -7,6 +7,10 @@ HTTP portals. Employer execution remains NOT_WIRED, even for an ATS that
 149/150 recognizes. A successful result means the controlled local portal
 confirmed it, not that a real employer received an application.
 
+The combined release also remains blocked on Crew A’s independent module-130
+correction-cache privacy/rollback/epoch repair. That module is untouched here.
+Local authority checks do not establish overall release readiness.
+
 ## Runtime blocker
 
 The selected executor has Chromium and Playwright, but cannot start a
@@ -80,39 +84,66 @@ be recovered; age alone never steals a lease. A distributed deployment needs
 a transactional adapter with equivalent semantics; sharing these files over
 NFS is unsupported.
 
-`createWorker` requires synchronous trusted `resolveEquipment(userId,
-artifactId)` and an injected store. Optional `readReceipt(task)` must read the
-controlled destination's authoritative record; client-supplied receipts are
-never accepted. The resolver returns `{userId, profile, resumePath,
-attestations?}` with the user's confirmed facts/explicit attestations. It must
-resolve existing user-owned uploads; this patch creates no upload service.
+`createWorker` requires a synchronous trusted account/task authority and
+`resolveEquipment(userId, artifactId)`, plus an injected private task store.
+`authority.cjs` executes the task RPCs using an operator-injected trusted SQL
+transport. Missing, asynchronous or unavailable authority stops work. There is
+no production file-backed account authority or cached permission fallback.
+Test fixtures use an explicitly MOCK authority only in standalone engine tests.
+
+Equipment must be resolved from current owned artifacts and confirmed facts,
+and return `{userId, profile, resumePath, accountVersion, privacyEpoch,
+attestations?}`. The version and epoch must match the claimed intent. Existing
+uploads must remain owner/epoch scoped; this contribution creates no uploader.
+`readReceipt(task)` reads the controlled destination's authoritative record;
+client-supplied receipts never establish completion.
 
 `http.cjs` requires the existing user-JWT verifier as `authenticate`; it has no
-default bypass or newly minted secret. Body `userId` never determines ownership.
-Service-role bridge sessions are refused. `run.cjs` accepts an operator-owned
-configuration module, binds loopback only and processes queued preparations.
-It does not deploy itself or provision a public endpoint.
+default bypass or newly minted secret. Body identity never determines ownership.
+`run.cjs` accepts an operator-owned configuration, binds loopback only and
+processes committed intents separately. It provisions no public endpoint.
 
-The Edge-only `career_task_bridge.js` is imported by `handler-career.ts`.
-The handler continues to load/save through Muse's CareerHost unchanged; tasks
-are not added to its snapshot or memory keys. Crew A's alerts, shared-store
-adapter and memory are untouched. No Node driver/store enters the Edge graph.
+The staged `index-career.ts -> handler-career.ts -> router_core.career.js`
+graph stays Edge safe. Its task bridge only plans immutable intents. The forward
+proposal `20261015234000_career_task_intents_v1.sql` calls the existing memory
+repair's `career_host_commit` in the same transaction as intent insertion.
+Failure rolls back the turn pair, snapshot, receipt and intent together. Chat
+never calls the worker. There is no worker URL/JWT-forwarding dispatch path.
+Tasks stay outside CareerHost's version-1 snapshot and stores whitelist.
 
-The chat request's optional `career_task` object supports:
+The `career_task_intent/v1` contract uses the existing
+`career_watch_kv(user_id, 'career:account')` row and exactly its
+`pg_advisory_xact_lock(hashtextextended(user_id::text,0))` lock. Account version,
+privacy epoch and pause are checked when claiming and when reserving and
+consuming each one-use effect token. Every ordinary account version change is
+conservatively stale; the worker never refreshes an old intent or approval.
+A new explicit turn may authorize new work, but never a second admitted submit.
+Event tombstones reject replays under a different turn key, including after erase.
+
+STOP/erase revoke queued work and the next operation of running work. An effect
+already admitted before a control wins the lock cannot be recalled. Started or
+uncertain effects retain a no-retry fence; reconciliation admits destination
+readback only. Epoch changes scrub the central task input/result/bindings. The
+worker scrubs its active local profile/review/result copies when it next checks
+the epoch, before equipment or browser work. This is not a claim of immediate
+full erasure of historical messages, uploads, logs, backups or all local files.
+Direct service-role writers remain outside these semantic gates.
+
+The optional chat request supports:
 
 | action | fields | effect |
 | --- | --- | --- |
-| `prepare` | `eventId`, `artifactId`, `resumeSha256` | enqueue using the host's currently selected `ctx.posting` |
-| `status` | `taskId` | read owned task/review/result |
-| `approve` | `taskId`, `eventId`, `payloadSha256`, `resumeSha256`, `destination` | explicit message `Approve browser task <id>` plus bound review fields |
-| `reconcile` | `taskId` | authoritative readback, never another click |
+| `prepare` | `eventId`, `artifactId`, `resumeSha256` | atomically enqueue using the host's selected posting |
+| `status` | `taskId` or `intentId` | read saved owned evidence, with no new browser action |
+| `approve` | `taskId`, `eventId`, `payloadSha256`, `resumeSha256`, `destination`, optional `profileSha256` | exact message `Approve browser task <id>` plus bound review fields |
+| `reconcile` | `taskId`, `eventId` | enqueue authoritative readback, never another click |
 
-The response carries the structured `task` review/result. A messaging client
-must render that review and return its original binding fields with approval;
-a bare yes authorizes nothing. `UPMORE_CAREER_WORKER_URL` is configuration only
-and has not been set anywhere. The bridge forwards only the existing user JWT,
-refuses redirects, bounds its wait, and treats transport failure as uncertain.
-Without an endpoint it reports NOT_WIRED. No production worker, artifact
+A pending response contains an immutable intent reference and bindings. A
+preparation's task ID is null until claimed. Status returns the saved typed
+`career_task/v1` review/result; the receipt preserves structured evidence on
+replay. Changed accepted task fields under the same turn key conflict. A
+client must render the review and return its original binding fields. A bare
+yes authorizes nothing. No production authority transport, worker, artifact
 resolver, readback adapter or credential configuration was installed.
 
 ## Checks
@@ -125,7 +156,16 @@ multipart bytes, and real worker-process death after a simulated click.
 `node --experimental-vm-modules --test tests/career-bundle-reachability.test.cjs`
 executes the actual staged index -> handler -> generated bundle and the task
 bridge with in-memory remote-service stand-ins. It verifies that CareerHost
-stores survive unchanged and a duplicate approval cannot submit twice.
+stores retain their normal host behavior and task evidence is owner checked.
+The frozen four-test integration probe is unchanged and passes.
+
+`tests/career-task-authority-postgres.test.cjs` exercises the forward proposal
+on an explicitly isolated local PostgreSQL database. It covers rollback,
+replay, role/owner isolation, committed controls, concurrent owner-lock races,
+per-operation revocation, uncertainty fences, lost acknowledgements and the
+actual staged chat through SQL and a separate MOCK browser worker. The
+unchanged standalone account probe does not commit its host control patch;
+it still observes the disconnected MOCK path and is not a durable-control test.
 
 `node --test tests/career-owned-worker-browser.test.cjs` is the real Chromium
 test over the controlled multipart portal. Set `UPMORE_PLAYWRIGHT_PATH` to an

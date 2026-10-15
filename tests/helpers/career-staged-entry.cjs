@@ -20,5 +20,5 @@ module.exports=async function stagedEntry(root,client){
   }
   try{const entry=load(path.join(stage,'agent-chat/index.ts'));await entry.link((s,r)=>load(s.startsWith('https:')?s:path.resolve(path.dirname(r.identifier),s)));await entry.evaluate();}
   catch(e){fs.rmSync(stage,{recursive:true,force:true});throw e;}
-  return {async request(thread,message,key){const res=await handle(new Request('https://upmore.example.test/chat',{method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({thread_id:thread,message,turn_key:key})}));if(networkCalls)throw Error('external network was attempted');return {status:res.status,body:await res.json()};},close(){fs.rmSync(stage,{recursive:true,force:true});}};
+  return {async request(thread,message,key,careerTask){const res=await handle(new Request('https://upmore.example.test/chat',{method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({thread_id:thread,message,turn_key:key,career_task:careerTask})}));if(networkCalls)throw Error('external network was attempted');return {status:res.status,body:await res.json()};},close(){fs.rmSync(stage,{recursive:true,force:true});}};
 };

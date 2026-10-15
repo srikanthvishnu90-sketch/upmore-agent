@@ -28,3 +28,24 @@ It checks guidance, watch save/list/pause/resume/remove, explicit missing
 workers, and absence of phantom reminders or submissions. This is local
 verification; Deno is unavailable in this environment. No deployment,
 database mutation, employer submission, email or paid API call was made.
+
+## Owned browser worker continuation
+
+The prior module-150 helper explicitly launched Chromium with its sandbox
+disabled, accepted insecure TLS, and suspended destination checks during the
+submit landing. Those paths were unsuitable for the owner's restriction.
+The helper now requires Chromium sandboxing, uses normal TLS, and keeps the
+destination gate in place. Controlled tasks also restrict origin/frame,
+mutation method and exact destination, and stop redirects before following.
+
+Module 149 treated a first observed form and a successful tool call as enough
+to prepare a review. It now checks actual answers, repeats observation for
+conditional fields/pages, and requires an observed final review. Module 150
+binds actions to observation versions and real element handles, and reads back
+the uploaded File's byte hash. These changes are engine/protocol tested; real
+Chromium verification is blocked by the executor's sandbox configuration.
+
+The career chat now has an optional explicit task protocol to a separate
+durable worker; Muse's CareerHost storage and Crew A alerts remain unchanged.
+There is no connected production worker or new resource. Full interface,
+limitations and exact runtime blocker: `docs/career/owned-browser-worker.md`.

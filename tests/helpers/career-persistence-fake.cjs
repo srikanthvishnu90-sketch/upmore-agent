@@ -3,6 +3,14 @@
 module.exports=async function rpc(db,user,thread,name,args={}) {
   const copy=x=>JSON.parse(JSON.stringify(x));
   if(name==='agent_rl_bump')return {data:true,error:null};
+  if(name==='career_task_turn_commit_v1') {
+    const intent=args.p_intent,base=args.p_base;
+    if(intent.user_id!==user||intent.thread_id!==thread||intent.turn_key!==base.p_key||intent.request_hash!==base.p_hash)throw Error('fixture intent binding mismatch');
+    const saved=await module.exports(db,user,thread,'career_host_commit',base);
+    if(!saved.error&&!saved.data?.error) {db.taskIntents ||= new Map();db.taskIntents.set(intent.intent_id,copy(intent));}
+    return saved;
+  }
+  if(name==='career_task_result_v1')return {data:{task:db.taskResults?.get(args.p_intent||args.p_task)||null},error:null};
   if(!['career_host_load','career_host_commit'].includes(name))throw Error('unexpected RPC '+name);
   if(args.p_user!==user||args.p_thread!==thread)throw Error('fixture owner mismatch');
   db.receipts ||= new Map(); db.options ||= {};
@@ -11,7 +19,7 @@ module.exports=async function rpc(db,user,thread,name,args={}) {
   if(name==='career_host_load'){
     if(db.options.malformedLoad)return {data:{},error:null};
     if(db.options.failLoad)return {data:null,error:{message:'TEST LOAD FAILED'}};
-    return {data:{snapshot:copy(db.state.career),revision:db.state.career.revision||0,accountVersion:db.version||0,account:{},watchState:copy(db.state.career.stores.alertWatchState||{}),reminders:[]},error:null};
+    return {data:{snapshot:copy(db.state.career),revision:db.state.career.revision||0,accountVersion:db.version||0,account:copy(db.account||{}),watchState:copy(db.state.career.stores.alertWatchState||{}),reminders:[]},error:null};
   }
   if(db.options.failSave||db.options.failAssistant)return {data:null,error:{message:'TEST ATOMIC COMMIT FAILED'}};
   if(args.p_revision!==(db.state.career.revision||0)||args.p_account_version!==(db.version||0))return {data:{error:'revision_conflict'},error:null};

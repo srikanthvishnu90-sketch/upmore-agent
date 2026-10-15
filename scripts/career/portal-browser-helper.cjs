@@ -16,7 +16,8 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
-const net = require("node:net");
+const crypto = require("node:crypto");
+const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
@@ -34,46 +35,14 @@ if (!pw) { fs.writeFileSync(path.join(dir, "fatal.json"), JSON.stringify({ code:
 
 const boards = new Map(); // boardId -> { context, page, url }
 let browser = null;
-let relayServer = null;
 let lastActivity = Date.now();
 
-/* Sandbox egress (the ci-browse pattern): when the environment provides
- * *_PROXY variables, the VM reaches the internet only through an HTTP
- * CONNECT proxy that drops CONNECTs coming directly from Chromium's
- * network process. So Chromium is pointed at a loopback CONNECT relay run
- * by this process (forwarded unauthenticated), loopback bypasses the
- * relay, and contexts accept the sandbox MITM CA via ignoreHTTPSErrors.
- * With no proxy variables (a normal dev machine / CI) the launch is a
- * plain direct launch. */
+// Upmore-owned Chromium only. Failure to start with its sandbox enabled is
+// a runtime blocker, never a reason to disable isolation or add a proxy.
 async function getBrowser() {
   if (browser) return browser;
-  const launchOpts = { headless: true, args: ["--no-sandbox"] };
-  const proxyServer = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-  if (proxyServer) {
-    let upstreamHost = null, upstreamPort = 3128;
-    try { const u = new URL(proxyServer); upstreamHost = u.hostname; upstreamPort = Number(u.port) || 3128; } catch (e) { upstreamHost = null; }
-    if (upstreamHost) {
-      relayServer = net.createServer((client) => {
-        let buf = Buffer.alloc(0); let up = null; let sent = false;
-        client.on("data", (c) => {
-          if (!sent) {
-            buf = Buffer.concat([buf, c]);
-            if (buf.includes("\r\n\r\n")) {
-              sent = true; const head = buf;
-              up = net.connect(upstreamPort, upstreamHost, () => up.write(head));
-              up.on("data", (d) => client.write(d));
-              up.on("error", () => client.destroy());
-              up.on("close", () => client.end());
-            }
-          } else if (up) up.write(c);
-        });
-        client.on("error", () => { if (up) up.destroy(); });
-      });
-      await new Promise((r) => relayServer.listen(0, "127.0.0.1", r));
-      launchOpts.proxy = { server: "http://127.0.0.1:" + relayServer.address().port, bypass: "localhost,127.0.0.1,::1" };
-    }
-  }
-  browser = await pw.chromium.launch(launchOpts);
+  browser = await pw.chromium.launch({ headless: true, chromiumSandbox: true,
+    ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) });
   return browser;
 }
 // §6.3 hop gate (BUG-060 / D1): the allowlist holds on EVERY main-frame
@@ -82,7 +51,7 @@ async function getBrowser() {
 // redirect target must never even load. Only main-frame navigation
 // requests are gated — subresources (scripts, trackers, CDNs) pass
 // untouched, and the one armed submit's own landing navigation is
-// suspended by cmdSubmitCapture (the employer's answer is evidence).
+// checked during submission too; controlled tasks reject every redirect.
 const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];
 function navAllowed(url) {
   let u;
@@ -95,9 +64,9 @@ function navAllowed(url) {
 async function getBoard(boardId) {
   if (!boards.has(boardId)) {
     const b = await getBrowser();
-    const context = await b.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
+    const context = await b.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block" });
     const page = await context.newPage();
-    const entry = { context, page, url: null, blockedNav: null, submitInProgress: false };
+    const entry = { context, page, url: null, blockedNav: null, submitInProgress: false, scope: null, mutationSent: false };
     boards.set(boardId, entry);
     // Redirect hops never pass through page.route (a 302 target is part
     // of the initial request chain in Chromium/Playwright), but they DO
@@ -106,21 +75,50 @@ async function getBoard(boardId) {
     // module 150's post-load final-URL gate makes the typed refusal.
     page.on("request", (req) => {
       try {
-        if (!entry.submitInProgress && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
+        if (req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
           entry.blockedNav = entry.blockedNav || req.url();
         }
       } catch (e) { /* frame may be gone; the final-URL gate still decides */ }
     });
-    await page.route("**/*", async (route) => {
+    await context.route("**/*", async (route) => {
       try {
         const req = route.request();
-        if (!entry.submitInProgress && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
+        if (req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
           entry.blockedNav = req.url();
           await route.abort("blockedbyclient");
           return;
         }
+        if (entry.scope) {
+          if (req.frame() !== page.mainFrame()) { await route.abort("blockedbyclient"); return; }
+          const u = new URL(req.url());
+          if (u.origin !== entry.scope.origin) { await route.abort("blockedbyclient"); return; }
+          if (!["GET", "HEAD"].includes(req.method())) {
+            if (!entry.submitInProgress || entry.mutationSent || req.method() !== "POST" || req.url() !== entry.scope.submitUrl) {
+              await route.abort("blockedbyclient"); return;
+            }
+            entry.mutationSent = true;
+            const response = await route.fetch({ maxRedirects: 0, headers: { ...req.headers(), "x-upmore-task": entry.scope.taskId,
+              "x-upmore-user": entry.scope.userId, "x-upmore-review": entry.scope.payloadSha256,
+              "x-upmore-resume": entry.scope.resumeSha256 } });
+            if (response.status() >= 300 && response.status() < 400) {
+              entry.blockedNav = new URL(response.headers().location || "/", req.url()).href;
+              await route.fulfill({ status: 403, body: "Controlled portal redirect refused" }); return;
+            }
+            await route.fulfill({ response });
+            return;
+          }
+          // Following an HTTP redirect can escape request interception.
+          // Controlled local portals must answer directly; stop every redirect
+          // before a second request, including an authorized POST's landing.
+          const response = await route.fetch({ maxRedirects: 0 });
+          if (response.status() >= 300 && response.status() < 400) {
+            entry.blockedNav = new URL(response.headers().location || "/", req.url()).href;
+            await route.fulfill({ status: 403, body: "Controlled portal redirect refused" }); return;
+          }
+          await route.fulfill({ response }); return;
+        }
         await route.continue();
-      } catch (e) { try { await route.continue(); } catch (_) { /* already handled */ } }
+      } catch (e) { try { await route.abort("blockedbyclient"); } catch (_) { /* already handled */ } }
     });
   }
   return boards.get(boardId);
@@ -145,7 +143,7 @@ function fnCaptchaTech() {
   if (document.querySelector(".h-captcha")) tech.push("hcaptcha-widget");
   return tech;
 }
-function fnDiscoverFields() {
+function fnDiscoverFields(includeHidden) {
   const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'));
   const clean = (t) => (t || "").replace(/\s+/g, " ").trim().slice(0, 300);
   function labelFor(el) {
@@ -186,12 +184,13 @@ function fnDiscoverFields() {
   els.forEach((el, idx) => {
     const type = (el.getAttribute("type") || el.tagName).toLowerCase();
     if (type === "hidden" || type === "submit" || type === "button" || type === "image") return;
-    if (el.disabled) return;
     const visible = type === "file" ? true : (el.offsetParent !== null || el.getClientRects().length > 0);
-    if (!visible) return;
+    if (!visible && !includeHidden) return;
     const label = labelFor(el);
     const f = {
       domIndex: idx, selector: selectorFor(el, idx), tag: el.tagName.toLowerCase(),
+      disabled: !!el.disabled, readOnly: !!el.readOnly,
+      valid: !el.validity || el.validity.valid, validationMessage: clean(el.validationMessage || ""),
       inputType: type, name: el.getAttribute("name") || "", id: el.id || "", label,
       required: !!el.required || el.getAttribute("aria-required") === "true" || /(\*|✱)\s*$/.test(label) || /required/i.test(el.getAttribute("aria-label") || ""),
     };
@@ -219,65 +218,12 @@ function fnFindApplyControl() {
   }
   return null;
 }
-function fnReviewState() {
-  const btns = Array.from(document.querySelectorAll("button, input[type=submit], a[role=button]"));
-  const text = (b) => (b.innerText || b.value || "").replace(/\s+/g, " ").trim();
-  const vis = (b) => b.offsetParent !== null || b.getClientRects().length > 0;
-  const submit = btns.find((b) => vis(b) && /submit/i.test(text(b)));
-  const next = btns.find((b) => vis(b) && /^(next|continue|review application|save and continue)$/i.test(text(b)));
-  if (next) next.setAttribute("data-upmore-next", "1");
-  return { hasSubmit: !!submit, hasNext: !!next };
-}
-function fnMarkSubmit() {
-  const btns = Array.from(document.querySelectorAll("button, input[type=submit], a[role=button]"));
-  const text = (b) => (b.innerText || b.value || "").replace(/\s+/g, " ").trim();
-  const vis = (b) => b.offsetParent !== null || b.getClientRects().length > 0;
-  const submit = btns.find((b) => vis(b) && /submit/i.test(text(b)));
-  if (!submit) return false;
-  submit.setAttribute("data-upmore-submit", "1");
-  return true;
-}
-function fnReadback(bindings) {
-  const out = {};
-  for (const b of bindings) {
-    try {
-      if (b.inputType === "name_pair") {
-        const vals = b.selectors.map((s) => { const el = document.querySelector(s); return el ? el.value || "" : ""; });
-        const joined = vals.filter(Boolean).join(" ");
-        if (joined) out[b.field_id] = joined;
-        continue;
-      }
-      if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
-        const picked = [];
-        for (const opt of b.options || []) {
-          const el = document.querySelector(opt.selector);
-          if (el && el.checked) picked.push(opt.label);
-        }
-        if (picked.length) out[b.field_id] = b.inputType === "radio_group" ? picked[0] : picked;
-        continue;
-      }
-      const el = document.querySelector(b.selector);
-      if (!el) continue;
-      if (b.inputType === "checkbox") { if (el.checked) out[b.field_id] = true; continue; }
-      if (el.tagName === "SELECT") {
-        const o = el.options[el.selectedIndex];
-        const v = o ? (o.textContent || "").replace(/\s+/g, " ").trim() : "";
-        if (v && !/^select/i.test(v)) out[b.field_id] = v;
-        continue;
-      }
-      if (b.inputType === "file") continue; // file values are tracked driver-side (no path/sha in DOM)
-      const v = el.value;
-      if (v !== undefined && v !== "") out[b.field_id] = v;
-    } catch (e) { /* field vanished mid-read; omit it — absence is the honest answer */ }
-  }
-  return out;
-}
-
 // ---------- command implementations ----------
 async function cmdOpen(board, cmd) {
   const page = board.page;
   const navSteps = [];
   board.blockedNav = null;
+  board.scope = cmd.scope || null;
   // "commit" + a soft domcontentloaded wait: heavy ATS pages hang for a
   // long time on third-party subresources, and the form is usable long
   // before every tracker finishes (a hard domcontentloaded wait timed
@@ -308,7 +254,7 @@ async function cmdOpen(board, cmd) {
   let captcha = await page.evaluate(fnDetectChallenge);
   if (!captcha) {
     let fields = await page.evaluate(fnDiscoverFields);
-    if (fields.length < 2) {
+    if (fields.length < 2 && !board.scope) {
       const apply = await page.evaluate(fnFindApplyControl);
       if (apply) {
         try {
@@ -339,9 +285,51 @@ async function cmdOpen(board, cmd) {
 }
 
 async function cmdDiscover(board) {
-  const raw = await board.page.evaluate(fnDiscoverFields);
-  board.fieldCount = raw.length;
-  return { fields: raw };
+  const fields = await board.page.evaluate(fnDiscoverFields);
+  const version = crypto.randomUUID();
+  const handles = board.handles || new Map(); // retained only for rechecking prior steps before commit
+  for (const f of fields) {
+    f.ref = version + ":f:" + f.domIndex;
+    const h = f.selector.startsWith("upmore-idx-")
+      ? await board.page.locator("input,select,textarea").nth(f.domIndex).elementHandle()
+      : await board.page.locator(f.selector).elementHandle();
+    if (h) handles.set(f.ref, h);
+  }
+  const controls = [];
+  const buttons = await board.page.locator("button,input[type=submit],a[role=button]").elementHandles();
+  for (let i = 0; i < buttons.length; i++) {
+    const value = await buttons[i].evaluate((el) => ({ label: (el.innerText || el.value || "").trim().slice(0, 200),
+      disabled: !!el.disabled || el.getAttribute("aria-disabled") === "true", visible: !!el.getClientRects().length }));
+    if (!value.visible) continue;
+    const ref = version + ":b:" + i;
+    controls.push({ ref, ...value, kind: /^next$|^continue$|^review application$|^save and continue$/i.test(value.label) ? "next" : /submit/i.test(value.label) ? "submit" : "other" });
+    handles.set(ref, buttons[i]);
+  }
+  const text = await board.page.evaluate(() => {
+    const visible = (el) => !!el.getClientRects().length;
+    const lines = (selector) => Array.from(document.querySelectorAll(selector)).filter(visible).map((el) => (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 300)).filter(Boolean).slice(0, 12);
+    return { instructions: lines("h1,h2,p,legend,.instructions"), errors: lines('[role=alert],.error,.validation-error,[aria-invalid=true]') };
+  });
+  board.refMetadata = board.refMetadata || new Map();
+  for (const field of fields) board.refMetadata.set(field.ref, field);
+  board.observation = { version, frame: "main", origin: new URL(board.page.url()).origin, untrusted: true,
+    fields, controls, ...text };
+  board.handles = handles;
+  board.fieldCount = fields.length;
+  return { fields, observation: board.observation };
+}
+async function connected(board, ref) {
+  const h = board.handles && board.handles.get(ref);
+  if (!h || !await h.evaluate((el) => el.isConnected)) throw Object.assign(new Error("the observed DOM node changed; re-observe"), { code: "STALE_OBSERVATION" });
+  const previous = board.refMetadata && board.refMetadata.get(ref);
+  if (previous) {
+    const fields = await board.page.evaluate(fnDiscoverFields, true);
+    const current = fields.find((f) => f.selector === previous.selector);
+    if (!current || ["label", "name", "inputType", "groupLabel"].some((key) => current[key] !== previous[key])) {
+      throw Object.assign(new Error("the field meaning changed; re-observe"), { code: "STALE_OBSERVATION" });
+    }
+  }
+  return h;
 }
 
 const normOpt = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -368,67 +356,77 @@ function matchOption(options, value) {
 }
 
 async function cmdFill(board, cmd) {
-  const page = board.page;
-  const b = cmd.binding;
-  const value = cmd.value;
+  const b = cmd.binding, value = cmd.value;
+  const refs = b.elementRefs;
+  const nodes = [];
+  for (const ref of refs) nodes.push(await connected(board, ref));
   if (b.inputType === "name_pair") {
     const parts = String(value).trim().split(/\s+/);
-    const first = parts[0] || "";
-    const last = parts.slice(1).join(" ");
-    await page.fill(b.selectors[0], first, { timeout: 20000 });
-    if (b.selectors[1]) await page.fill(b.selectors[1], last, { timeout: 20000 });
-    return { filled: true };
-  }
-  if (b.inputType === "file") {
-    await page.setInputFiles(b.selector, cmd.filePath, { timeout: 20000 });
-    return { filled: true };
-  }
-  if (b.inputType === "select") {
+    await nodes[0].fill(parts[0] || ""); await nodes[1].fill(parts.slice(1).join(" "));
+  } else if (b.inputType === "file") {
+    const bytes = fs.readFileSync(cmd.filePath);
+    if (crypto.createHash("sha256").update(bytes).digest("hex") !== value.sha256) throw Object.assign(new Error("resume bytes changed before upload"), { code: "RESUME_SHA_MISMATCH" });
+    await nodes[0].setInputFiles({ name: value.filename, mimeType: "application/octet-stream", buffer: bytes });
+  } else if (b.inputType === "select") {
     const hit = matchOption(b.options || [], value);
-    if (!hit) return { filled: false, reason: "option_not_found", wanted: String(value) };
-    await page.selectOption(b.selector, { value: hit.value }, { timeout: 20000 });
-    return { filled: true, chosenLabel: hit.label };
-  }
-  if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
-    const wanted = Array.isArray(value) ? value : [value];
-    let any = false;
-    for (const w of wanted) {
-      const hit = (b.options || []).find((o) => normOpt(o.label) === normOpt(w)) || matchOption(b.options || [], w);
-      if (hit) { await page.check(hit.selector, { timeout: 20000 }).catch(async () => { await page.click(hit.selector, { timeout: 20000 }); }); any = true; }
+    if (!hit) return { filled: false, reason: "option_not_found" };
+    await nodes[0].selectOption({ value: hit.value });
+  } else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
+    for (const desired of (Array.isArray(value) ? value : [value])) {
+      const hit = matchOption(b.options || [], desired);
+      if (!hit) return { filled: false, reason: "option_not_found" };
+      await (await connected(board, hit.ref)).check();
     }
-    return any ? { filled: true } : { filled: false, reason: "option_not_found", wanted: wanted.join(", ") };
-  }
-  if (b.inputType === "checkbox") {
-    if (value === true || value === "true") await page.check(b.selector, { timeout: 20000 });
-    else await page.uncheck(b.selector, { timeout: 20000 }).catch(() => {});
-    return { filled: true };
-  }
-  // text-like
-  await page.fill(b.selector, String(value), { timeout: 20000 });
+  } else if (b.inputType === "checkbox") {
+    if (value === true || value === "true") await nodes[0].check(); else await nodes[0].uncheck();
+  } else await nodes[0].fill(String(value));
   return { filled: true };
 }
-
-async function cmdReview(board) {
-  const page = board.page;
-  board.blockedNav = null;
-  for (let step = 0; step < 8; step++) {
-    const captcha = await page.evaluate(fnDetectChallenge);
-    if (captcha) return { captcha: "challenge", finalUrl: page.url() };
-    const state = await page.evaluate(fnReviewState);
-    if (state.hasSubmit) return { ok: true, captcha: null, finalUrl: page.url() };
-    if (!state.hasNext) return { ok: true, captcha: null, finalUrl: page.url() };
-    try {
-      await page.click('[data-upmore-next="1"]', { timeout: 20000 });
-    } catch (e) {
-      if (board.blockedNav) return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav };
-      throw e;
-    }
-    await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
-    await page.waitForTimeout(700);
-    if (board.blockedNav) return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav };
+async function cmdReadback(board, cmd) {
+  const answers = {};
+  for (const b of cmd.bindings) {
+    const nodes = [];
+    for (const ref of b.elementRefs || []) nodes.push(await connected(board, ref));
+    if (!nodes.length) continue;
+    let value;
+    if (b.inputType === "name_pair") value = (await nodes[0].inputValue()) + " " + (await nodes[1].inputValue());
+    else if (b.inputType === "file") value = await nodes[0].evaluate(async (el) => {
+      const f = el.files && el.files[0]; if (!f) return null;
+      const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
+      return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
+    });
+    else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
+    else if (b.inputType === "checkbox") value = await nodes[0].isChecked();
+    else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
+      const chosen = [];
+      for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
+      value = b.inputType === "radio_group" ? chosen[0] : chosen;
+    } else value = await nodes[0].inputValue();
+    if (value !== null && value !== undefined && value !== "" && !/^select/i.test(String(value))) answers[b.field_id] = value;
   }
+  return { answers };
+}
+
+async function cmdReview(board, cmd) {
+  const page = board.page;
   const captcha = await page.evaluate(fnDetectChallenge);
-  return captcha ? { captcha: "challenge", finalUrl: page.url() } : { ok: true, captcha: null, finalUrl: page.url() };
+  if (captcha) return { captcha: "challenge", finalUrl: page.url() };
+  const fields = await page.evaluate(fnDiscoverFields);
+  if (fields.some((f) => !(cmd.knownSelectors || []).includes(f.selector))) return { needsFields: true, finalUrl: page.url() };
+  const invalid = fields.filter((f) => !f.disabled && f.required && !f.valid);
+  if (invalid.length) return { code: "FORM_VALIDATION_FAILED", finalUrl: page.url() };
+  for (const control of board.observation.controls) {
+    const handle = await connected(board, control.ref);
+    if (control.disabled === await handle.isEnabled()) return { needsFields: true, finalUrl: page.url() };
+  }
+  const next = board.observation.controls.find((c) => c.kind === "next" && !c.disabled);
+  if (next) {
+    await (await connected(board, next.ref)).click({ timeout: 20000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 2000 }).catch(() => {});
+    return { advanced: true, finalUrl: board.blockedNav || page.url(), blockedNavigation: board.blockedNav };
+  }
+  const submit = board.observation.controls.find((c) => c.kind === "submit" && !c.disabled);
+  return { atFinalReview: !!submit, finalUrl: page.url() };
 }
 
 /* The one submit click in this process — reachable only from an armed
@@ -440,18 +438,20 @@ async function cmdSubmitCapture(board, cmd) {
   const page = board.page;
   const captchaBefore = await page.evaluate(fnDetectChallenge);
   if (captchaBefore) return { captcha: "challenge", clicked: false };
-  const marked = await page.evaluate(fnMarkSubmit);
-  if (!marked) return { clicked: false, reason: "no_submit_control" };
-  // The click is ALREADY authorized (armed board, 149's gate): the
-  // employer's confirmation may legitimately land on another host, and
-  // capturing that answer is evidence, not driving — so the navigation
-  // gate is suspended for this one landing, then restored.
+  const submit = board.observation.controls.find((c) => c.kind === "submit" && !c.disabled);
+  if (!submit) return { clicked: false, reason: "no_submit_control" };
+  const handle = await connected(board, submit.ref);
+  if (!await handle.isEnabled()) return { clicked: false, reason: "submit_disabled" };
+  // Approval never suspends destination checks. Scoped tasks permit one
+  // POST to their exact controlled destination, with the task identity.
+  board.mutationSent = false;
   board.submitInProgress = true;
-  try { await page.click('[data-upmore-submit="1"]', { timeout: 20000 }); }
+  try { await handle.click({ timeout: 20000 }); }
   finally { /* landing waits below still belong to the submit capture */ }
   await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   board.submitInProgress = false;
+  if (board.blockedNav) return { clicked: true, finalUrl: board.blockedNav, text: "", blockedNavigation: board.blockedNav };
   const captcha = await page.evaluate(fnDetectChallenge);
   const text = await page.evaluate(() => ((document.body && document.body.innerText) || "").replace(/\s+/g, " ").slice(0, 6000)).catch(() => "");
   let screenshot = null;
@@ -462,14 +462,21 @@ async function cmdSubmitCapture(board, cmd) {
 }
 
 async function execute(boardId, cmd) {
+  validateAction(cmd);
   if (cmd.type === "shutdown") { setTimeout(() => process.exit(0), 50); return { ok: true }; }
   const board = await getBoard(boardId);
+  if (["fill", "readback", "verify_payload", "review", "submit_and_capture"].includes(cmd.type)) assertObservation(cmd, board.observation, board.scope, board.page.url());
   switch (cmd.type) {
     case "open": return await cmdOpen(board, cmd);
     case "discover": return await cmdDiscover(board);
     case "fill": return await cmdFill(board, cmd);
-    case "readback": return { answers: await board.page.evaluate(fnReadback, cmd.bindings) };
-    case "review": return await cmdReview(board);
+    case "readback": return await cmdReadback(board, cmd);
+    case "verify_payload": {
+      const { answers } = await cmdReadback(board, cmd);
+      if (answers.resume) answers.resume_sha256 = answers.resume.sha256;
+      return { matches: Object.entries(cmd.payload).every(([key, value]) => JSON.stringify(answers[key]) === JSON.stringify(value)) };
+    }
+    case "review": return await cmdReview(board, cmd);
     case "submit_and_capture": return await cmdSubmitCapture(board, cmd);
     case "screenshot": await board.page.screenshot({ path: cmd.path, fullPage: true }); return { path: cmd.path };
     case "close": await board.context.close().catch(() => {}); boards.delete(boardId); return { ok: true };
@@ -495,7 +502,7 @@ async function pump() {
       const data = await execute(cmd.boardId || "sys", cmd);
       fs.writeFileSync(path.join(dir, respName + ".tmp"), JSON.stringify({ ok: true, data }));
     } catch (e) {
-      fs.writeFileSync(path.join(dir, respName + ".tmp"), JSON.stringify({ ok: false, error: { code: e.code || "DRIVER_ERROR", message: String(e.message || e) } }));
+      fs.writeFileSync(path.join(dir, respName + ".tmp"), JSON.stringify({ ok: false, error: { code: /SUID sandbox|sandbox.*abort|No usable sandbox/i.test(String(e.message)) ? "BROWSER_SANDBOX_UNAVAILABLE" : e.code || "DRIVER_ERROR", message: String(e.message || e) } }));
     }
     try { fs.renameSync(path.join(dir, respName + ".tmp"), path.join(dir, respName)); } catch (e) {}
     try { fs.unlinkSync(full); } catch (e) {}

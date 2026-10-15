@@ -43607,11 +43607,17 @@ const CareerPortalApply = (() => {
 
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
+    session.preparationPayload = {};
+    session.preparationFields = [];
+    session.doorstep = null;
+    return prepareRound(session, input, false, 0, []);
+  }
+  function prepareRound(session, input, continued, round, priorSteps) {
     const inp = input || {};
     const posting = inp.posting || {};
     const profile = inp.profile || {};
     const log = inp.log || { records: [] };
-    const stepLog = [];
+    const stepLog = priorSteps;
     const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
     const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now) });
     const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
@@ -43646,8 +43652,8 @@ const CareerPortalApply = (() => {
     if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
 
     // open the board; a challenge here stops everything (§6.3)
-    const opened = board.open();
-    logStep("open", { host: board.host });
+    const opened = continued ? {} : board.open();
+    logStep(continued ? "resume_form" : "open", { host: board.host });
     // §6.3 host gate on EVERY hop (BUG-060 / D1): the driver reports a
     // navigation that landed off the allowlist (initial URL checked
     // above is not enough — boards redirect to employer sites) as a
@@ -43670,6 +43676,9 @@ const CareerPortalApply = (() => {
     // steps 3+4: analyze, then fill from confirmed facts only
     const formDef = board.form();
     const formAnalysis = analyzeForm(formDef);
+    for (const field of formDef.fields || []) {
+      if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
+    }
     // D2 (BUG-061): a board exposing ZERO fields is a stop, never a
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
@@ -43687,18 +43696,18 @@ const CareerPortalApply = (() => {
         if (raw === undefined || raw === null || raw === "") { asks.push({ field_id: f.field_id, reason: "no_confirmed_fact" }); continue; }
         const value = f.profile_key === "resume" ? { filename: raw.filename, sha256: raw.sha256 } : raw;
         board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
-        logStep("fill", Object.assign({}, entry, { source: "profile" }));
+        logStep("fill", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
       } else if (f.kind === "screening") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer" }));
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.draft === true) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_draft" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_draft" }));
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_draft", question_key: f.question_key }));
         } else { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
@@ -43720,6 +43729,27 @@ const CareerPortalApply = (() => {
     // §6.4 quality gate on everything that would be submitted
     const qHits = qualityGateHits(filled, posting);
     if (qHits.length) { logStep("quality_gate_stop", { hits: qHits }); return blocked("QUALITY_GATE", { hits: qHits }); }
+
+    // Check observations before moving pages: a successful tool call alone
+    // does not prove a required answer landed on the destination.
+    const observed = board.answers();
+    if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
+    const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
+    for (const [id, planned] of Object.entries(filled)) {
+      if (observed[id] === undefined) continue;
+      const wanted = planned.value, actual = observed[id];
+      const same = typeof wanted === "object" ? JSON.stringify(wanted) === JSON.stringify(actual)
+        : norm(wanted) === norm(actual)
+          || (/^(yes|no)\b/.test(norm(wanted)) && norm(wanted).match(/^(yes|no)\b/)[1] === norm(actual))
+          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
+      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+    }
+    for (const field of formDef.fields || []) {
+      if (field.required && observed[field.field_id] === undefined && !asks.some((a) => a.field_id === field.field_id)) {
+        asks.push({ field_id: field.field_id, reason: "answer_not_observed" });
+      }
+    }
+    Object.assign(session.preparationPayload, observed);
 
     // required asks outstanding -> the run waits on the user (nothing invented)
     const requiredAsks = asks.filter((a) => {
@@ -43743,9 +43773,14 @@ const CareerPortalApply = (() => {
       logStep("captcha_stop", { at: "review" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
-    const boardAnswers = board.answers();
+    if (review.needsFields || review.advanced) {
+      if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+      return prepareRound(session, inp, true, round + 1, stepLog);
+    }
+    if (review.atFinalReview === false) return blocked("FINAL_REVIEW_NOT_OBSERVED");
+    const boardAnswers = Object.assign({}, session.preparationPayload, board.answers());
     const payload = {};
-    for (const f of formDef.fields) {
+    for (const f of session.preparationFields) {
       if (boardAnswers[f.field_id] === undefined) continue;
       payload[f.field_id] = f.field_id === "resume"
         ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
@@ -43801,7 +43836,8 @@ const CareerPortalApply = (() => {
     // submit() throws REAL_SUBMIT_DISABLED, which propagates as before.
     const approvalRef = approval.approvalRef || approval.ref || c.approvalRef || null;
     if (board && typeof board.armForSubmit === "function") {
-      board.armForSubmit({ approvedByUser: true, approvalRef, canonicalKey: session.doorstep.postingKey });
+      board.armForSubmit({ approvedByUser: true, approvalRef, canonicalKey: session.doorstep.postingKey,
+        payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256 });
     }
     const out = board.submit();
     if (out.outcome === "accepted") {

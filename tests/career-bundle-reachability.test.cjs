@@ -40,7 +40,7 @@ if (!vm.SourceTextModule) {
   });
   after(() => { if (stage) fs.rmSync(stage, { recursive: true, force: true }); });
 
-  async function stagedEntry() {
+  async function stagedEntry(workerHandle) {
     const db = { state: { career: { v: 1, stores: { profile: clone(PROFILE) } } }, messages: [], writes: [] };
     const client = {
       auth: { getUser: async () => ({ data: { user: { id: USER } } }) },
@@ -86,8 +86,11 @@ if (!vm.SourceTextModule) {
       Request, Response, Headers, URL, TextEncoder, TextDecoder, AbortController, crypto: require("node:crypto").webcrypto,
       setTimeout, clearTimeout,
       console: { log() {}, error() {}, warn() {} },
-      fetch() { networkCalls++; throw new Error("External network forbidden in bundle regressions"); },
-      Deno: { env: { get: (name) => ({ SUPABASE_URL: "https://supabase.example.test", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service" })[name] } },
+      fetch(url, init) {
+        if (workerHandle && new URL(url).origin === "http://localhost:8124") return workerHandle(new Request(url, init));
+        networkCalls++; throw new Error("External network forbidden in bundle regressions");
+      },
+      Deno: { env: { get: (name) => ({ SUPABASE_URL: "https://supabase.example.test", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service", UPMORE_CAREER_WORKER_URL: workerHandle ? "http://localhost:8124" : undefined })[name] } },
     });
     assert.equal(vm.runInContext("typeof require", context), "undefined");
     const modules = new Map();
@@ -114,10 +117,10 @@ if (!vm.SourceTextModule) {
     const bundle = modules.get(path.join(stage, "_shared/router_core.career.js")).namespace;
     return {
       bundle, db,
-      async chat(message) {
+      async chat(message, careerTask) {
         const res = await handle(new Request("https://upmore.example.test/chat", {
           method: "POST", headers: { Authorization: "Bearer mock-user-token", "Content-Type": "application/json" },
-          body: JSON.stringify({ thread_id: THREAD, message }),
+          body: JSON.stringify({ thread_id: THREAD, message, career_task: careerTask }),
         }));
         const body = await res.json();
         assert.equal(res.status, 200, JSON.stringify(body));
@@ -228,5 +231,42 @@ if (!vm.SourceTextModule) {
     const repeat = await A.runAssignCycle({ alerts: cycle.alerts, watchProfile: wp, store, now: opts.now + 120000 });
     assert.equal(repeat.reminders.length, 0, "no duplicate reminders");
     assert.equal(app.db.messages.filter((m) => m.role === "assistant").length, 1, "only the requested chat reply, no phantom alert delivery");
+  });
+
+  test("actual staged chat bridges durable tasks while preserving CareerHost snapshot ownership", async () => {
+    const { fixture } = require("./fixtures/owned-worker-fixture.cjs");
+    const { createHttpHandler } = require("../workers/career-browser/http.cjs");
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "owned-chat-bridge-"));
+    try {
+      const f = fixture(root, { userId: USER });
+      const handleWorker = createHttpHandler({ worker: f.worker, authenticate: async (auth) => {
+        assert.equal(auth, "Bearer mock-user-token", "forward only the existing user token");
+        return { id: USER };
+      } });
+      const app = await stagedEntry(handleWorker);
+      app.db.state.career.stores.posting = f.input.posting;
+      const prior = clone(app.db.state.career.stores);
+      const queued = await app.chat("Prepare the chosen application in the browser", { action: "prepare", ...f.input });
+      assert.equal(queued.task.status, "queued");
+      assert.deepEqual(app.db.state.career.stores, prior, "worker tasks do not replace or extend CareerHost stores");
+      assert.equal(f.worker.runPending()[0].status, "review_ready");
+      const current = await app.chat("Show my browser task", { action: "status", taskId: queued.task.id });
+      assert.equal(current.task.review.kind, "career_browser_review");
+      const a = f.approval(current.task);
+      const request = { action: "approve", taskId: queued.task.id, eventId: a.approvalRef, ...a };
+      await app.chat("yes", request);
+      assert.equal(f.count().clicks, 0, "a bare yes never authorizes a task through the bridge");
+      const done = await app.chat("Approve browser task " + queued.task.id, request);
+      assert.equal(done.task.status, "completed");
+      assert.equal(done.task.result.receipt.source, "controlled_portal_readback");
+      assert.equal(f.count().clicks, 1);
+      await app.chat("Approve browser task " + queued.task.id, request);
+      assert.equal(f.count().clicks, 1, "a duplicate approval webhook cannot re-submit");
+      const wrongOwner = await stagedEntry(async () => new Response(JSON.stringify({ task: { id: queued.task.id, userId: "someone-else", status: "queued" } }), { headers: { "Content-Type": "application/json" } }));
+      wrongOwner.db.state.career.stores.posting = f.input.posting;
+      const refused = await wrongOwner.chat("Prepare the chosen application in the browser", { action: "prepare", ...f.input });
+      assert.equal(refused.meta.result_status, "blocked");
+      assert.equal(refused.task, undefined, "the bridge never presents another owner's task");
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 }

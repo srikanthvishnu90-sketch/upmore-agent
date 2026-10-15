@@ -172,6 +172,13 @@ const CareerTailor = (() => {
       const sl = sent.toLowerCase();
       const lic = sl.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
       if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sl)) out.push({ type: "license", requirement: `${lic[1].trim().split(/\s+/).slice(-4).join(" ")} license`, evidence: sent.slice(0, 220) });
+      // Named certification knockouts (BUG-209): 121's detectKnockouts has
+      // always caught this class ("Medical Assistant Certification" under a
+      // Requirements heading); 123's extractor missed it, so a certification
+      // knockout could be silently dropped by the tailor even though the
+      // jobs module would have flagged it. Same pattern family as 121.
+      const cert = sl.match(/([a-z][a-z&' -]{0,44}?)\s(certification|certificate)\b/);
+      if (cert && /(requirements?\s*:|required|must (hold|have|possess|maintain|be)|certification\s*$|certification\s+\d)/.test(sl) && !/degree|bachelor|master/.test(sl)) out.push({ type: "certification", requirement: `${cert[1].trim().split(/\s+/).slice(-3).join(" ")} certification`, evidence: sent.slice(0, 220) });
       if (/\bjd\b/.test(sl) && /(law school|juris|from a|degree)/.test(sl)) out.push({ type: "degree", level: "jd", requirement: "JD (Juris Doctor) degree", evidence: sent.slice(0, 220) });
       else if (/\bdegree\b/.test(sl) && /(required|must (hold|have|possess)|is required)/.test(sl) && !/(graduating|pursuing|currently enrolled|rising (senior|junior|sophomore))/.test(sl)) out.push({ type: "degree", level: /master/.test(sl) ? "master" : /associate/.test(sl) ? "associate" : "bachelor", requirement: "conferred degree", evidence: sent.slice(0, 220) });
       const ym = sl.match(/(?:minimum|min\.?|at least)\s*(?:of\s*)?(\d+)(?:\s*[-–]\s*\d+)?\s*\+?\s*years?\b[^.;]{0,40}?experience/) || sl.match(/(\d+)\s*\+\s*years?\s+of\s+[^.;]{0,90}?experience/) || sl.match(/(\d+)\s*[-–]\s*\d+\s*years?\s+of\s+[^.;]{0,60}?experience/);
@@ -295,12 +302,97 @@ const CareerTailor = (() => {
     const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
     return pool.map((f) => ({ fact: f, score: scoreFact(f, jd) })).sort((a, b) => b.score.total - a.score.total).slice(0, o.limit || 8);
   }
+  // ---- skill-fact names + proof (BUG-210 / BUG-211) ----
+  // A skill fact's name lives in different fields depending on who wrote
+  // the fixture: `name`, a bare "Skill: X" text label, the `skills[]` list
+  // (composite facts naming several skills), or a lexicon `title`. The old
+  // provenSkills read ONLY f.name — nameless facts produced nameless rows
+  // and the SKILLS line rendered as ", , ". Derivation is ordered and
+  // deduped, canonicalised to the lexicon spelling where one exists.
+  function skillNameParts(text) {
+    const t = String(text || "").replace(/^Skill:\s*/i, "").trim();
+    const m = t.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+    if (m && m[1].trim()) return { name: m[1].trim(), name_note: m[2].trim() };
+    return { name: t, name_note: "" };
+  }
+  const canonicalSkill = (n) => _lexLower.get(String(n || "").trim().toLowerCase()) || String(n || "").trim();
+  function derivedSkillNames(fact) {
+    const names = [];
+    const push = (n) => { const c = canonicalSkill(n); if (c && !names.some((x) => x.toLowerCase() === c.toLowerCase())) names.push(c); };
+    if (!fact) return names;
+    // A `name` that is really a composite label ("Research tools (TEST)")
+    // is not a skill name — the real names live in skills[] for those.
+    if (fact.name && !/[()]/.test(String(fact.name)) && String(fact.name).trim().split(/\s+/).length <= 4) push(fact.name);
+    if (/^Skill:\s*/i.test(String(fact.text || ""))) push(skillNameParts(fact.text).name);
+    for (const s of fact.skills || []) push(s);
+    if (!names.length && fact.title && _lexLower.has(String(fact.title).trim().toLowerCase())) push(fact.title);
+    return names;
+  }
+  // A skill fact whose own text is a substantive work statement ("Uses SQL
+  // and Tableau to automate recurring finance reporting", "Deployed
+  // containerised services on AWS and GCP using Terraform…") evidences the
+  // skills it states — the statement IS the evidence, the same treatment a
+  // non-skill fact gets. A bare label ("Skill: Rust") is a claim, not a
+  // statement, and never self-evidences.
+  function skillFactSelfEvidences(fact, name) {
+    const body = `${fact.text || ""} ${(fact.bullets || []).join(" ")}`.trim();
+    if (!body || /^Skill:\s*/i.test(body)) return false;
+    const low = ` ${body.toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
+    if (!low.includes(` ${String(name).toLowerCase()} `)) return false;
+    return body.split(/\s+/).filter(Boolean).length >= 6;
+  }
+  // Proof rule (BUG-211, aligned with 121's scoreFit semantics ~line 847):
+  // a skill fact is proven only when it is not flagged unproven AND carries
+  // evidence — an evidence LINK to a supporting fact, or its own
+  // substantive statement. A bare skill fact with evidence: [] and no
+  // unproven flag is NOT proven: it is excluded from the page, named as a
+  // gap when a posting wants it, and may never poison a refusal decision
+  // (the old code listed it as proven; the truth audit then refused the
+  // whole resume over a skill the assembler itself had put on the page).
+  function skillFactProven(fact, name) {
+    if (!fact || fact.needs_confirmation) return false;
+    if ((fact.evidence || []).length > 0 && !fact.unproven) return true;
+    if (skillFactSelfEvidences(fact, name)) return true;
+    return false;
+  }
   function provenSkills(profile, jd) {
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
     const all = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation);
-    const rows = all.map((f) => ({ name: f.name, factId: f.id, proven: !f.unproven, evidence: f.evidence || [] }));
+    const byName = new Map();
+    for (const f of all) {
+      for (const name of derivedSkillNames(f)) {
+        const proven = skillFactProven(f, name);
+        const key = name.toLowerCase();
+        const prev = byName.get(key);
+        if (!prev || (proven && !prev.proven)) byName.set(key, { name, factId: f.id, proven, evidence: f.evidence || [] });
+      }
+    }
+    const rows = [...byName.values()];
     // Wanted skills first, then the rest, each only ever listed with its proof state.
     return rows.sort((a, b) => (wanted.includes(b.name) - wanted.includes(a.name)));
+  }
+  // Skills evidenced by a NON-skill fact: the fact's own skills[] list plus
+  // lexicon skills stated in its title/text/bullets. The fact itself is the
+  // evidence (the truth audit's factEvidencesSkill reads the same fields).
+  function factEvidencedSkillNames(fact) {
+    const names = [];
+    const push = (n) => { const c = canonicalSkill(n); if (c && !names.some((x) => x.toLowerCase() === c.toLowerCase())) names.push(c); };
+    for (const s of (fact && fact.skills) || []) push(s);
+    for (const s of skillsInText(`${(fact && fact.title) || ""} ${(fact && fact.text) || ""} ${((fact && fact.bullets) || []).join(" ")}`)) push(s);
+    return names;
+  }
+  function nonSkillSkillRows(profile, jd) {
+    const wanted = new Set([...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((s) => s.toLowerCase()));
+    const byName = new Map();
+    for (const f of Profile.confirmedFacts(profile)) {
+      if (f.kind === "skill") continue;
+      for (const name of factEvidencedSkillNames(f)) {
+        if (!wanted.has(name.toLowerCase())) continue;
+        const key = name.toLowerCase();
+        if (!byName.has(key)) byName.set(key, { name, factId: f.id, proven: true, evidence: [f.id], derivedFromFact: f.kind });
+      }
+    }
+    return [...byName.values()];
   }
 
   // BUG-058 (FV-11/SS-12): the consulting X-by-Y-Z template concatenated the
@@ -376,20 +468,63 @@ const CareerTailor = (() => {
     const byKind = { experience: [], project: [], education: [], leadership: [], certification: [] };
     for (const { fact } of selected) if (byKind[fact.kind]) byKind[fact.kind].push(fact);
     const sections = [];
-    const skillsProven = provenSkills(profile, jd).filter((s) => s.proven);
+    // Skills line (BUG-210): proven skill-fact rows first (name-derived,
+    // proof-filtered — an unproven row never reaches the page), then
+    // JD-wanted skills evidenced by non-skill facts (their skills[] lists
+    // were previously rendered nowhere, so a fact could evidence a posting
+    // requirement in data while the term never reached the page).
+    const skillRowByName = new Map();
+    for (const s of provenSkills(profile, jd).filter((x) => x.proven && x.name)) skillRowByName.set(s.name.toLowerCase(), s);
+    for (const s of nonSkillSkillRows(profile, jd)) if (!skillRowByName.has(s.name.toLowerCase())) skillRowByName.set(s.name.toLowerCase(), s);
+    // Name-safety filter: a skill name may only PRINT when every word of
+    // it appears in the persona's fact prose (title/text/bullets/org of
+    // some fact). A name sourced only from a skills[] list, whose words no
+    // fact ever states in prose, would print as an unsupported proper name
+    // on the page — it stays a coverage miss, never an invention.
+    const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
+    const nameSafe = (name) => String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
+    const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
     const skillsLine = skillsProven.length ? { heading: "Skills", lines: [] } : null;
     if (skillsLine) {
+      const ids = [...new Set(skillsProven.map((s) => s.factId))];
       if (fam.skillsBlock === "technical-line") {
-        skillsLine.lines.push({ text: `Technical skills: ${skillsProven.map((s) => s.name).join(", ")}`, factIds: skillsProven.map((s) => s.factId), type: "skills" });
+        skillsLine.lines.push({ text: `Technical skills: ${skillsProven.map((s) => s.name).join(", ")}`, factIds: ids, type: "skills" });
       } else {
-        skillsLine.lines.push({ text: skillsProven.map((s) => s.name).join(", "), factIds: skillsProven.map((s) => s.factId), type: "skills" });
+        skillsLine.lines.push({ text: skillsProven.map((s) => s.name).join(", "), factIds: ids, type: "skills" });
       }
     }
-    const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...((f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" }))]) } : null;
+    // Operative clauses (BUG-212): when a fact carries bullets, its `text`
+    // was dropped entirely — and the dropped text is often a multi-clause
+    // sentence whose LAST clause carries the requirement term ("…and
+    // manages legal operations for a 12-client portfolio"). Preserve any
+    // clause of the fact's own text that carries a JD-wanted skill term no
+    // already-rendered line for this fact carries. The clause is the fact's
+    // own words, cited to the fact — nothing is paraphrased or invented.
+    const wantedLower = new Set([...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((s) => s.toLowerCase()));
+    const operativeClauses = (fact, coveredTexts) => {
+      if (!wantedLower.size || !fact.text || !(fact.bullets && fact.bullets.length)) return [];
+      const covered = new Set(skillsInText((coveredTexts || []).join(" ")).map((s) => s.toLowerCase()));
+      const out = [];
+      for (const sent of sentencesOf(fact.text)) {
+        for (let clause of sent.split(/,\s+and\s+/i)) {
+          clause = clause.trim();
+          if (clause.split(/\s+/).length < 3) continue;
+          const fresh = skillsInText(clause).filter((s) => wantedLower.has(s.toLowerCase()) && !covered.has(s.toLowerCase()));
+          if (!fresh.length) continue;
+          for (const s of skillsInText(clause)) covered.add(s.toLowerCase());
+          out.push({ text: clause.charAt(0).toUpperCase() + clause.slice(1), factIds: [fact.id], type: "bullet" });
+        }
+      }
+      return out;
+    };
+    const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => {
+      const bullets = (f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
+      return [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...bullets, ...operativeClauses(f, [entryTextFor(f), ...bullets.map((b) => b.text)])];
+    }) } : null;
     // consulting: one structured bullet per fact replaces the raw bullets
     const mkSection = (heading, facts) => {
       if (!facts.length) return null;
-      if (family === "consulting") return { heading, lines: facts.flatMap((f) => [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, bulletFor(f, family)]) };
+      if (family === "consulting") return { heading, lines: facts.flatMap((f) => { const b = bulletFor(f, family); return [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, b, ...operativeClauses(f, [entryTextFor(f), b.text])]; }) };
       return mk(heading, facts);
     };
     // Certifications (BUG-2026-10-14-NDER / FV-6): selected certification
@@ -448,7 +583,10 @@ const CareerTailor = (() => {
       // lines print the date range from exactly those fields
       // (assemble/entryTextFor), so the years must trace here — and ONLY
       // here; a year appearing in no field of the cited fact still refuses.
-      const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")} ${f.start || ""} ${f.end || ""}`).join(" ").toLowerCase();
+      // The fact's skills[] list and (for a skill fact) its name are part of
+      // the fact's own stated content — a skills line built from a cited
+      // fact's skills[] must trace to that fact, so both are in the corpus.
+      const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")} ${f.start || ""} ${f.end || ""} ${(f.skills || []).join(" ")} ${f.name || ""}`).join(" ").toLowerCase();
       // Keyword rule: any lexicon skill named in the line must be evidenced.
       // BUG-056: the evidence lookup must read the fact's BULLETS as well as
       // its text — a fact's own bullet is where the work is stated (the RE
@@ -458,7 +596,12 @@ const CareerTailor = (() => {
       // own facts (SS-G1/SS-G2 regression). Token-matched, confirmed facts
       // only — the gate's strength is unchanged for unevidenced skills.
       const factEvidencesSkill = (f, nm) => {
-        if (!f || f.needs_confirmation || f.kind === "skill") return false;
+        if (!f || f.needs_confirmation) return false;
+        // A skill fact evidences its own derived names ONLY under the same
+        // proof rule the assembler uses (BUG-211): an evidence link or a
+        // substantive self-statement. A bare "Skill: Rust" fact with
+        // evidence: [] evidences nothing and can support no line.
+        if (f.kind === "skill") return derivedSkillNames(f).some((n) => n.toLowerCase() === nm) && skillFactProven(f, nm);
         if ((f.skills || []).some((x) => String(x).toLowerCase() === nm)) return true;
         const corpus = ` ${`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`.toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
         return corpus.includes(` ${nm} `);
@@ -490,7 +633,12 @@ const CareerTailor = (() => {
       });
       // Support rule: a skill-fact-only line is fine (the skills line); other
       // lines must share meaningful tokens with their supporting facts.
-      const onlySkillFacts = facts.every((f) => f.kind === "skill");
+      // A skills-TYPE line is governed by the per-skill evidence rule above
+      // (every skill it names is individually checked against its cited
+      // facts) — token overlap on a bare name list, whose "Technical
+      // skills:" prefix alone is two of its tokens, is not a support test.
+      const lineType = typeof line === "string" ? null : line.type;
+      const onlySkillFacts = facts.every((f) => f.kind === "skill") || lineType === "skills";
       if (!onlySkillFacts) {
         const tokens = String(text).toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3);
         const hits = tokens.filter((w) => supportText.includes(w)).length;
@@ -546,7 +694,12 @@ const CareerTailor = (() => {
       textParts.push("", s.heading.toUpperCase(), ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
       mdParts.push("", `## ${s.heading}`, ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
     }
-    const base = { text: textParts.join("\n"), markdown: mdParts.join("\n"), singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()) };
+    // Packet gaps (BUG-208): the honest gap section rides on the rendered
+    // packet as its own field — deliberately NOT inside the resume body
+    // text, whose lines are claims the truth audit (and any ATS read) must
+    // be able to trust; a gap line naming an unevidenced skill inside the
+    // body would read as a claim of that skill.
+    const base = { text: textParts.join("\n"), markdown: mdParts.join("\n"), singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()), gaps: resume.gaps || [], gapsText: resume.gapSection ? resume.gapSection.text : null };
     const R = renderModule();
     if (!R) return { ...base, pdf: null, docx: null, filename: null, parseCheck: null, pdfNote: "Document renderer (148-career-render.js) is not loaded in this runtime; plain text is the ATS-safe extractable form and no document file was produced." };
     const pdfRes = o.format !== "docx" ? R.renderPdf(resume) : null;
@@ -624,6 +777,144 @@ const CareerTailor = (() => {
     return { ok: true, entries };
   }
 
+  // ---- GAP NAMING (BUG-208 / BUG-209) ----
+  // Silence is the defect: a tailored resume used to ship with no trace of
+  // the posting requirements the record cannot meet — zero-satisfiable
+  // pairings shipped as if tailored, and failed knockouts (license, degree,
+  // minimum years) were silently dropped. computeGaps names every such
+  // item as data, computed from the SAME requirement extraction the
+  // coverage is measured against (parseJD must/nice skills + knockouts +
+  // level), with satisfaction judged from PROVEN facts only, mirroring
+  // 121's evaluateKnockouts semantics (in-progress or negated credentials
+  // do not satisfy; full-time years exclude intern/extern/volunteer time).
+  const KO_FILLER = new Set(["active", "unrestricted", "current", "valid", "compact", "multistate", "state", "additional", "the", "a", "an", "in", "of", "or", "and", "required", "unexpired", "license", "licensure", "certification", "certificate"]);
+  const koTokensOf = (requirement) => String(requirement || "").toLowerCase().replace(/[^a-z ]/g, " ").split(/\s+/).filter((w) => w && !KO_FILLER.has(w));
+  const gapFactCorpus = (f) => `${(f && f.title) || ""} ${(f && f.text) || ""} ${((f && f.bullets) || []).join(" ")}`.toLowerCase();
+  const gapFactInProgress = (f) => /in progress|in-progress|pursuing|expected|graduating|enrolled|rising/i.test(gapFactCorpus(f));
+  const gapFactNegatesCredential = (f) => /does not hold|doesn't hold|has not (yet )?(passed|obtained|earned)|not yet (passed|obtained|earned)|no (active |valid |current )?[a-z ]{0,24}licen[cs]e|unlicensed|not licensed/i.test(gapFactCorpus(f));
+  function credentialSatisfied(tokens, profile) {
+    if (!tokens.length) return null;
+    const facts = Profile.confirmedFacts(profile);
+    const hasAll = (text) => tokens.every((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text));
+    const usable = facts.filter((f) => !gapFactInProgress(f) && !gapFactNegatesCredential(f));
+    for (const f of usable) if (f.kind === "certification" && hasAll(gapFactCorpus(f))) return true;
+    const phrase = tokens.join(" ");
+    for (const f of usable) {
+      const text = gapFactCorpus(f);
+      if (tokens.length >= 2 && text.includes(phrase)) return true;
+      if (tokens.length === 1 && new RegExp(`\\b${tokens[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text) && /licen[cs]e|licensed|registered|certified/.test(text)) return true;
+    }
+    return false;
+  }
+  const DEGREE_RANK = { associate: 1, bachelor: 2, master: 3, jd: 4 };
+  function degreeLevelOfFact(f) {
+    if (!f || (f.kind !== "education" && f.kind !== "certification")) return null;
+    if (gapFactInProgress(f)) return null;
+    const em = String(f.end || "").match(/(\d{4})-(\d{2})/);
+    if (em) { const now = new Date(); if (Number(em[1]) * 100 + Number(em[2]) > now.getFullYear() * 100 + (now.getMonth() + 1)) return null; }
+    const t = gapFactCorpus(f);
+    if (/juris doctor|\bjd\b/.test(t)) return "jd";
+    if (/master|\bmba\b|m\.s\.|m\.a\.|m\.eng|\bmph\b|ll\.m/.test(t)) return "master";
+    if (/bachelor|b\.s\.|b\.a\.|bsn|b\.b\.a|\bbba\b/.test(t)) return "bachelor";
+    if (/associate|a\.a\.|a\.s\./.test(t)) return "associate";
+    return null;
+  }
+  function degreeSatisfied(level, profile) {
+    const want = level || "bachelor";
+    const held = Profile.confirmedFacts(profile).map(degreeLevelOfFact).filter(Boolean);
+    if (want === "jd") return held.includes("jd");
+    return held.some((h) => DEGREE_RANK[h] >= (DEGREE_RANK[want] || 2));
+  }
+  function evidencedFullTimeYears(profile) {
+    const facts = (profile && profile.facts) || [];
+    let months = 0, any = false;
+    const now = new Date();
+    const nowMonths = now.getFullYear() * 12 + now.getMonth();
+    for (const f of facts) {
+      if (!f || f.kind !== "experience" || f.needs_confirmation) continue;
+      if (/\b(intern|internship|extern|volunteer)\b/i.test(String(f.title || ""))) continue;
+      const sm = String(f.start || "").match(/(\d{4})-(\d{2})/), em = String(f.end || "").match(/(\d{4})-(\d{2})/);
+      if (!sm) continue;
+      const startM = Number(sm[1]) * 12 + Number(sm[2]);
+      const endM = em ? Number(em[1]) * 12 + Number(em[2]) : (/present/i.test(String(f.end || "")) ? nowMonths : startM);
+      if (endM > startM) { months += endM - startM; any = true; }
+    }
+    return any ? Math.round((months / 12) * 10) / 10 : null;
+  }
+  function personaLevelOf(profile) {
+    const raw = String((profile && profile.level) || "").toLowerCase();
+    if (["intern", "early", "mid", "senior"].includes(raw)) return raw;
+    const grad = String((profile && profile.constraints && profile.constraints.graduationDate) || "").match(/(\d{4})-(\d{2})/);
+    if (grad) {
+      const now = new Date();
+      const gradM = Number(grad[1]) * 12 + Number(grad[2]);
+      const nowM = now.getFullYear() * 12 + (now.getMonth() + 1);
+      if (gradM > nowM) return "intern"; // still enrolled — a student record
+      if (nowM - gradM <= 24) return "early";
+    }
+    return null;
+  }
+  function computeGaps(profile, jd) {
+    const gaps = [];
+    const skillRows = provenSkills(profile, jd);
+    const provenNames = new Set(skillRows.filter((s) => s.proven).map((s) => s.name.toLowerCase()));
+    const unprovenNames = new Map();
+    for (const s of skillRows) if (!s.proven && !unprovenNames.has(s.name.toLowerCase())) unprovenNames.set(s.name.toLowerCase(), s);
+    const factEvNames = new Set();
+    for (const f of Profile.confirmedFacts(profile)) if (f.kind !== "skill") for (const n of factEvidencedSkillNames(f)) factEvNames.add(n.toLowerCase());
+    const skillSatisfied = (name) => provenNames.has(name.toLowerCase()) || factEvNames.has(name.toLowerCase());
+    // Knockouts first — a failed knockout is an eligibility fact, stated
+    // with the posting's own requirement text and evidence sentence.
+    const koCoveredSkills = new Set();
+    for (const ko of jd.knockouts || []) {
+      let satisfied = null, why = "";
+      if (ko.type === "license" || ko.type === "certification") {
+        satisfied = credentialSatisfied(koTokensOf(ko.requirement), profile);
+        why = `no confirmed fact on your record evidences that ${ko.type} — an in-progress, negated or different credential does not satisfy it`;
+      } else if (ko.type === "degree") {
+        satisfied = degreeSatisfied(ko.level, profile);
+        why = "your confirmed education facts do not evidence a conferred degree at that level (an in-progress degree is not conferred)";
+      } else if (ko.type === "min_experience") {
+        const years = evidencedFullTimeYears(profile);
+        if (years != null) { satisfied = years >= (ko.min_years || 0); why = `your confirmed facts evidence about ${years} years of full-time experience`; }
+      }
+      if (satisfied === false) {
+        gaps.push({ requirement: ko.requirement, kind: "knockout", type: ko.type, reasonClass: "knockout-failed", reason: `posting knockout not met — ${ko.requirement}: ${why}`, evidence: ko.evidence || null });
+        for (const s of skillsInText(ko.requirement)) koCoveredSkills.add(s.toLowerCase());
+      }
+    }
+    // Posting skills the record cannot satisfy from proven facts.
+    const skillGap = (name, tier) => {
+      if (skillSatisfied(name) || koCoveredSkills.has(name.toLowerCase())) return;
+      if (gaps.some((g) => g.requirement.toLowerCase() === name.toLowerCase())) return;
+      const unp = unprovenNames.get(name.toLowerCase());
+      gaps.push({ requirement: name, kind: "skill", tier, reasonClass: "no-evidence", reason: unp
+        ? `posting ${tier === "nice-to-have" ? "mentions" : "requires"} ${name}; the only record naming it is a skill fact with empty evidence (fact ${unp.factId}) — not proven, so it is not claimed`
+        : `posting ${tier === "nice-to-have" ? "mentions" : "requires"} ${name}; no proven fact on your record evidences it`, evidence: null });
+    };
+    for (const s of jd.mustHaveSkills || []) skillGap(s, "must-have");
+    for (const s of jd.niceToHaveSkills || []) skillGap(s, "nice-to-have");
+    // Seniority-band mismatch (BUG-209): where BOTH level data points
+    // exist — the posting's parsed band and the persona's level — a plain
+    // eligibility mismatch is named, never silently shipped as a fit.
+    const pl = personaLevelOf(profile);
+    const band = jd.level || "unspecified";
+    if (pl && (band === "senior" || band === "manager/lead") && (pl === "intern" || pl === "early")) {
+      gaps.push({ requirement: `posting level (${band}) vs your level (${pl})`, kind: "level", type: "level_mismatch", reasonClass: "knockout-failed", reason: `eligibility mismatch: this is a ${band} posting and your record is at ${pl} level — the tailored resume ships with this gap named, not as if the levels matched`, evidence: null });
+    } else if (pl === "senior" && band === "intern") {
+      gaps.push({ requirement: `posting level (intern) vs your level (senior)`, kind: "level", type: "level_mismatch", reasonClass: "knockout-failed", reason: "eligibility mismatch: this is an intern posting (an enrolled-student band) and your record is at senior level — the tailored resume ships with this gap named, not as if the levels matched", evidence: null });
+    }
+    return gaps;
+  }
+  function gapSectionFor(gaps) {
+    if (!gaps || !gaps.length) return null;
+    return {
+      heading: "Not covered by your record",
+      lines: gaps.map((g) => ({ text: `${g.requirement} — ${g.reason}`, type: "gap", kind: g.kind, reasonClass: g.reasonClass })),
+      text: `Not covered by your record: ${gaps.map((g) => g.requirement).join("; ")}`,
+    };
+  }
+
   // ---- main entry: tailor with the hard gate ----
   let versionSeq = 0;
   function tailorResume(profile, jdInput, opts) {
@@ -641,20 +932,26 @@ const CareerTailor = (() => {
     }
     const auditResult = auditResume(assembled, profile);
     if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null, rendered: null };
+    // Gaps are computed AFTER the hard gate, from proven facts only, and
+    // attached to the document model + the version snapshot + the result —
+    // a shipped resume always carries its uncovered requirements as data.
+    const gaps = computeGaps(profile, jd);
+    assembled.gaps = gaps;
+    assembled.gapSection = gapSectionFor(gaps);
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled, { profile });
-    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null };
+    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null, gaps };
     // §10.5: the approval snapshot records the exact rendered artifacts
     // (filename + sha256 + size) so a submitted resume can be reproduced.
     if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
-      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version };
+      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps };
     }
     const cover = o.wantCoverLetter ? generateCoverLetter(profile, jd, cir, o) : null;
-    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version };
+    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps };
   }
 
-  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;

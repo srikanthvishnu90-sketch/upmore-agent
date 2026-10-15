@@ -573,6 +573,20 @@ const CareerRender = (() => {
         else seenLine.add(k);
       }
     }
+    // BUG-210 (enforcement half): a SKILLS section that is PRESENT but
+    // whose body carries no alphanumeric skill token (empty, or
+    // punctuation-only like ", , ") is a content-empty document wearing a
+    // valid format — it must FAIL, not pass. The honest shapes are a
+    // skills body naming proven skills, or no SKILLS section at all.
+    if (resume) {
+      const secs = (Array.isArray(resume.sections) && resume.sections.length) ? resume.sections
+        : (() => { const grouped = new Map(); for (const l of resume.lines || []) { const h = l.section || ""; if (!grouped.has(h)) grouped.set(h, { heading: h, lines: [] }); grouped.get(h).lines.push(l); } return [...grouped.values()]; })();
+      for (const s of secs) {
+        if (!s || String(s.heading || "").toUpperCase() !== "SKILLS") continue;
+        const body = (s.lines || []).map((l) => String((l && l.text) || "")).join(" ").replace(/technical skills:/i, "");
+        if (!/[a-z0-9]/i.test(body)) add("empty_skills_section", "fail", `SKILLS section is present but its body names no skill (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty skills section fails; omit the section or list proven skills`);
+      }
+    }
     const profIn = inp.profile || o.profile || null;
     if (profIn && resume) {
       const factsById = new Map((profIn.facts || []).map((f) => [f.id, f]));

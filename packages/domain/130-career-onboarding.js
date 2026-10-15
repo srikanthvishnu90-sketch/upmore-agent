@@ -441,7 +441,10 @@ const CareerOnboarding = (() => {
         return { intent: "career_os_goals", resultStatus: "prepared", sends: 0, goals: g, payload: osPayload(g, "goals-checkin", g.adjustment_prompt, iso), reply: `Your goals check-in, against your own targets. On your record right now: ${r0.applications_logged} applications, ${r0.offers_logged} offers, ${r0.wins_logged} wins, ${r0.active_watches} active watches. ${goalLine} ${ownRecord} ${g.stated_goals.length ? "Want to adjust a target, or hold the line?" : "Tell me the first target — a role, a date, a number — and the next check-in measures against it."}` };
       }
       // SC-280 — market-shift alert (129 COS-001 + COS-003 compBandShift)
-      if (/\bmarket-shift\b|\bpay band moved\b|\bcomp band\b/.test(t)) {
+      // COMPLEXITY WAVE: the gate was declaration-only ("pay band
+      // moved"); the genuine question form ("has the pay band for my
+      // role moved lately?") fell through to 142's generic OS status.
+      if (/\bmarket-shift\b|\bpay band moved\b|\bcomp band\b|\bpay band\b[^.?!]*\b(moved|move|shift|changed|risen|dropped)\b|\bhas\b[^.?!]*\bpay band\b[^.?!]*\bmoved\b/.test(t)) {
         const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
         const shift = OS.compBandShift("your feed", [], postings);
         const env = mv.estimate ? `The current stated envelope on your feed is ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures.` : "No posting on your feed states a range yet, so there is no sourced envelope to compare.";

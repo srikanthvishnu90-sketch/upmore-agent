@@ -42,6 +42,13 @@ content += "const MARKET_DATA_JSON = " + json.dumps(json.loads((root / "packages
 content += "const PAYROLL_REF_JSON = " + json.dumps(json.loads((root / "packages/offers/payroll-reference.json").read_text()), separators=(",", ":")) + ";\n"
 content += "const GOVERNMENT_JSON = " + json.dumps(json.loads((root / "packages/offers/government.json").read_text()), separators=(",", ":")) + ";\n"
 content += "const MANUAL_PLAYBOOKS_JSON = " + json.dumps(json.loads((root / "packages/connectors/manual-playbooks.json").read_text())["playbooks"], separators=(",", ":")) + ";\n"
+# Career data the domain modules read from disk in Node (BUG-174): the firm sets
+# (124) and the company-file library (142's cirListOf). In the Deno bundle there
+# is no packages/career-data directory, so both readers silently degraded to
+# empty; the data is embedded here and read lazily at call time by the modules.
+content += "const CAREER_FIRM_SETS_JSON = " + json.dumps(json.loads((root / "packages/career-data/firm-sets.json").read_text()), separators=(",", ":")) + ";\n"
+_cir_files = sorted((root / "packages/career-data/cirs").glob("*.json"))
+content += "const CAREER_CIRS_JSON = " + json.dumps([json.loads(f.read_text()) for f in _cir_files], separators=(",", ":")) + ";\n"
 # The connector matrix without its research text and sources (those stay in packages/connectors/platforms.json).
 keep = ["n", "id", "platform", "category", "region", "route", "auth", "trade", "read", "adapter_state", "verification", "needs", "fallback_route", "same_account_as", "blocked_reason", "aliases", "notes"]
 platforms = [{k: r[k] for k in keep if k in r} for r in json.loads((root / "packages/connectors/platforms.json").read_text())["platforms"]]

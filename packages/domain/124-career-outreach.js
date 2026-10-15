@@ -13,8 +13,23 @@
    (only the opt-out fact is shared, campaign data stays per-user) and a suppression failure is severity-1. */
 const CareerOutreach = (() => {
   "use strict";
-  let FIRM_SETS = null;
-  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch { FIRM_SETS = { sets: {} }; }
+  // COMPLEXITY WAVE (BUG-174): the firm sets load LAZILY — in the
+  // shipped bundle the require below cannot see the repo's data
+  // directory, so the old top-level load cached {sets:{}} forever
+  // and every set-based plan degraded to "You named no firms". The
+  // build now embeds the sets as CAREER_FIRM_SETS_JSON (appended
+  // after the modules, so it can only be read at call time, never at
+  // load time); the accessor re-reads until it finds real data and
+  // only then caches.
+  let _firmSetsCache = null;
+  function firmSets() {
+    if (_firmSetsCache && _firmSetsCache.sets && Object.keys(_firmSetsCache.sets).length) return _firmSetsCache;
+    let data = null;
+    try { data = require("../career-data/firm-sets.json"); } catch { data = null; }
+    if (!data || !data.sets) { try { if (typeof CAREER_FIRM_SETS_JSON !== "undefined" && CAREER_FIRM_SETS_JSON && CAREER_FIRM_SETS_JSON.sets) data = CAREER_FIRM_SETS_JSON; } catch { /* embedded const not yet evaluated at load time */ } }
+    _firmSetsCache = data && data.sets ? data : { sets: {} };
+    return _firmSetsCache;
+  }
 
   const CAPS = Object.freeze({
     channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
@@ -64,8 +79,9 @@ const CareerOutreach = (() => {
   // the raw capital form, so "follow-ups" never yields UPS.
   const FIRM_TOKEN_STOP = new Set(["bank", "capital", "partners", "group", "global", "financial", "first", "national", "american", "united", "new", "city", "general", "white", "black", "real", "estate", "property", "securities", "management", "international", "holdings", "company", "fund", "funds", "chicago", "boston", "austin", "dallas", "houston", "seattle", "denver", "atlanta", "miami", "phoenix", "portland", "london", "toronto", "york"]);
   const FIRM_ABBREV = { bcg: "Boston Consulting Group" };
-  const _firmLexicon = (() => { const names = []; for (const set of Object.values(FIRM_SETS.sets || {})) for (const f of set.firms || []) if (f && f.name && !names.includes(f.name)) names.push(f.name); return names; })();
+  const firmLexicon = () => { const names = []; for (const set of Object.values(firmSets().sets || {})) for (const f of set.firms || []) if (f && f.name && !names.includes(f.name)) names.push(f.name); return names; };
   function extractNamedFirms(raw, w) {
+    const _firmLexicon = firmLexicon();
     const firstTokenCount = {};
     for (const n of _firmLexicon) { const tok = norm(n).split(" ")[0]; if (tok) firstTokenCount[tok] = (firstTokenCount[tok] || 0) + 1; }
     const hits = [];
@@ -209,7 +225,7 @@ const CareerOutreach = (() => {
     const named = extractNamedFirms(raw, w);
     for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
     if (named.length) { q.firms = named; q.firms_named = true; q.firms_source = "named"; }
-    else if (q.firm_set && FIRM_SETS.sets[q.firm_set]) { q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name); q.firms_source = "set"; }
+    else if (q.firm_set && firmSets().sets[q.firm_set]) { q.firms = firmSets().sets[q.firm_set].firms.map((f) => f.name); q.firms_source = "set"; }
     if (q.firm_set === "mbb") { q.industry = "consulting"; q.role_family = "consulting"; }
     if (/\bcivil engineers?\b/.test(w)) { q.industry = "engineering"; q.role_family = "civil_engineering"; }
     else if (/\b(ai\/ml|ml engineers?|machine learning)\b/.test(w)) { q.industry = q.industry || "tech"; q.role_family = "ml_engineering"; }
@@ -311,7 +327,7 @@ const CareerOutreach = (() => {
         // proposing it for a PE ask answers a different question.
         q.proposed_default = { industry: "private_equity", firm_set: "mega_fund_pe", role_family: "private_equity", seniority_band: "associate_principal", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
         Object.assign(q, { firm_set: "mega_fund_pe", role_family: q.role_family || "private_equity" });
-        q.firms = (FIRM_SETS.sets.mega_fund_pe ? FIRM_SETS.sets.mega_fund_pe.firms.map((f) => f.name) : []);
+        q.firms = (firmSets().sets.mega_fund_pe ? firmSets().sets.mega_fund_pe.firms.map((f) => f.name) : []);
         q.firms_source = "default";
       } else if (q.universe_label) {
         // BUG-129: a firm-less CATEGORY ask (healthtech companies,
@@ -331,7 +347,7 @@ const CareerOutreach = (() => {
         // BUG-110: the default stays available to list-building, but it
         // is marked as what it is — a PROPOSAL the user never chose —
         // so no reply may present these firms as the user's target.
-        q.firms = (FIRM_SETS.sets.bulge_bracket ? FIRM_SETS.sets.bulge_bracket.firms.map((f) => f.name) : []);
+        q.firms = (firmSets().sets.bulge_bracket ? firmSets().sets.bulge_bracket.firms.map((f) => f.name) : []);
         q.firms_source = "default";
       }
     }
@@ -1582,7 +1598,7 @@ const CareerOutreach = (() => {
     if (/drop associates?/.test(w)) dropBands.push("associate"); if (/drop analysts?/.test(w)) dropBands.push("analyst");
     let keepSchool = null; const sm = String(instruction || "").match(/only\s+([A-Z][A-Za-z& ]{2,30}?)\s+(and|people|folks|$)/); if (/michigan/.test(w)) keepSchool = "University of Michigan"; else if (sm && !/boutique/.test(sm[1].toLowerCase())) keepSchool = sm[1].trim();
     if (opts.keepSchool) keepSchool = opts.keepSchool;
-    let keepFirms = null; if (/boutique/.test(w) && FIRM_SETS.sets.elite_boutique) keepFirms = FIRM_SETS.sets.elite_boutique.firms.map((f) => norm(f.name));
+    let keepFirms = null; if (/boutique/.test(w) && firmSets().sets.elite_boutique) keepFirms = firmSets().sets.elite_boutique.firms.map((f) => norm(f.name));
     if (opts.keepFirms) keepFirms = opts.keepFirms.map(norm);
     if (dropBands.length) ops.push("drop_seniority:" + dropBands.join(","));
     if (keepSchool) ops.push("keep_school:" + keepSchool);
@@ -1794,7 +1810,7 @@ const CareerOutreach = (() => {
         contractions_per_email: bodies.length ? Math.round(10 * contractions / bodies.length) / 10 : 0,
         voice: { formality, warmth: 0.6, humor: 0, directness: avgSentence && avgSentence <= 14 ? 0.85 : 0.6, plain_student_voice: true } };
     }
-  return { CAPS, createSeedTest, learnVoice, bookFromReply, monitorHealth, reconcileBounceDomains, runFollowUps, scheduleCampaign, seedGate, setSeedResults, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
+  return { CAPS, createSeedTest, learnVoice, bookFromReply, monitorHealth, reconcileBounceDomains, runFollowUps, scheduleCampaign, seedGate, setSeedResults, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS: { get sets() { return firmSets().sets; } }, firmSets, isEuUk, parseTarget,
     applyListOps, safetyPlan, safetyPlanText, honestYield, suppressionReport, dailyDigest, closeOut, backfillFromReserve, tierMix,
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,

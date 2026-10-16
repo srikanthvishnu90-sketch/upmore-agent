@@ -15,7 +15,7 @@ run(process.execPath,['--experimental-vm-modules','-e',"if(typeof require('node:
 run('python3',['-c','import docx;print(docx.__version__)']);
 run('pdftotext',['-v']);run('pdfinfo',['-v']);
 const all=fs.readdirSync(path.join(root,'tests')).filter(x=>x.endsWith('.cjs')).sort();
-const sqlFiles=all.filter(x=>/process\.env\.CAREER_TEST_(?:CONTAINER|DATABASE|PORT)/.test(fs.readFileSync(path.join(root,'tests',x),'utf8')));
+const sqlFiles=all.filter(x=>x.endsWith('-postgres.test.cjs')||x==='privacy-research-composition.test.cjs'||/process\.env\.CAREER_TEST_(?:CONTAINER|DATABASE|PORT)/.test(fs.readFileSync(path.join(root,'tests',x),'utf8')));
 const sourceFiles=all.filter(x=>!sqlFiles.includes(x));
 const selected=argv.includes('--source-only')?sourceFiles:argv.includes('--postgres-only')?sqlFiles:all;
 const summary={token,commit:run('git',['rev-parse','HEAD']),evidenceTier:'MOCK_CONTRACT_AND_LOCAL_POSTGRES',selection:argv.length?argv[0]:'WHOLE_ROOT_NODE_SELECTION',rootFiles:all.length,selectedFiles:selected.length,sqlFiles,started:new Date().toISOString(),runs:[],out,paidCalls:0,browserOutcomes:0};

@@ -1,0 +1,117 @@
+{
+  "version": "research-conversation-independent/v1",
+  "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+  "inputs": {
+    "release": "f67db048599db308f2691a7be7feada841143da5",
+    "conversation": "73b868e8ae2eaaba8612bcfee7e5b04d439e2ffc",
+    "research": "c574352c11958f9a27242a273255d88e72997be5"
+  },
+  "authorTestsReadBeforeFreeze": false,
+  "execution": "Synthetic auth/profile/capture and fake network/driver for source probes; real isolated PostgreSQL for transaction/authority. No actual browser/network/provider outcomes.",
+  "probes": [
+    {
+      "id": "I01",
+      "expected": "Actual ordinary Research command queues one immutable research intent without entering onboarding/conversation dispatch."
+    },
+    {
+      "id": "I02",
+      "expected": "Typed research reaches the same planner; question text does not mutate career facts, queue actions, or expose applicant equipment."
+    },
+    {
+      "id": "I03",
+      "expected": "Normal conversation, location correction and a fresh snapshot still use conversation fixes after composition."
+    },
+    {
+      "id": "I04",
+      "expected": "Research URL rejects non-HTTPS, userinfo, IP literals, local names, fragments, disallowed query keys, encoded or multiply encoded restricted paths and controls before dispatch."
+    },
+    {
+      "id": "I05",
+      "expected": "Foreign owner or foreign thread cannot read or poll research evidence or cause a mutation under another owner."
+    },
+    {
+      "id": "I06",
+      "expected": "Client owner fields and injected research-profile/equipment data cannot override authenticated identity or accepted schema."
+    },
+    {
+      "id": "I07",
+      "expected": "Exact STOP or full-profile erasure wins over a typed research action on the same turn."
+    },
+    {
+      "id": "I08",
+      "expected": "STOP from another owned thread revokes queued and admitted-but-not-consumed research; no simulated read occurs."
+    },
+    {
+      "id": "I09",
+      "expected": "Epoch erasure removes active central and local research payload/result bindings, blocks stale observations and cannot leak a different account."
+    },
+    {
+      "id": "I10",
+      "expected": "Remote DNS resolving to loopback, RFC1918, link-local/metadata, CGNAT, mapped/private IPv6 or a mixed public/private answer is refused before HTTPS request creation."
+    },
+    {
+      "id": "I11",
+      "expected": "Validated DNS address is pinned for the request, TLS verification is not disabled, and no browser/security bypass is invoked."
+    },
+    {
+      "id": "I12",
+      "expected": "Every 3xx redirect is refused without issuing a second request; no redirect can reach a private or changed origin."
+    },
+    {
+      "id": "I13",
+      "expected": "Source instructions to send, apply, alter identity/profile, STOP or follow another URL remain labeled untrusted data and cause no such effect."
+    },
+    {
+      "id": "I14",
+      "expected": "Capture timestamp older than task execution by five minutes or in the future by five minutes is refused as stale/incoherent evidence."
+    },
+    {
+      "id": "I15",
+      "expected": "Wrong task, intent, URL, navigation method/source digest or missing session evidence cannot become evidence_ready."
+    },
+    {
+      "id": "I16",
+      "expected": "A matching hash around only a PNG signature or malformed PNG bytes does not establish screenshot evidence."
+    },
+    {
+      "id": "I17",
+      "expected": "Status delivery revalidates artifact digest and task/intent/source/provenance correlations; tampered persisted artifacts are refused rather than echoed."
+    },
+    {
+      "id": "I18",
+      "expected": "Repeated same-key or new-key status polling does not change account version, snapshots, turn receipts, messages, queued intent or browser-read count."
+    },
+    {
+      "id": "I19",
+      "expected": "Same-key changed research payload and same-event changed-key replay conflict without adding tasks or advancing authority."
+    },
+    {
+      "id": "I20",
+      "expected": "Read-effect uncertainty and repeated worker polling cannot cause another read; status questions cannot dispatch a worker."
+    },
+    {
+      "id": "I21",
+      "expected": "Public research tasks cannot use application prepare/approve/reconcile or submit operations; preserve Muse payloadSha256 forwarding for actual application tasks."
+    },
+    {
+      "id": "I22",
+      "expected": "A local captured artifact whose central finish failed can be published on retry without repeating the read; an uncertain committed finish reconciles by readback."
+    },
+    {
+      "id": "I23",
+      "expected": "Source capture is not a verified answer: objective remains requires_review, and job/model quality or live browser completion is never inferred from fixtures."
+    },
+    {
+      "id": "I24",
+      "expected": "Unrelated profile/application authority and another account remain unchanged while a research task completes/polls."
+    },
+    {
+      "id": "I25",
+      "expected": "Network byte limits/non-HTML/invalid status/timeouts fail honestly and never produce a source-ready artifact."
+    },
+    {
+      "id": "I26",
+      "expected": "Research page evidence is not ingested as verified career profile facts or as live job-feed evidence on the next ordinary chat turn."
+    }
+  ]
+}

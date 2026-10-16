@@ -14,7 +14,7 @@ create table public.career_model_campaign_v1 (
 create table public.career_model_reservations_v1 (
  id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade,
  thread_id uuid not null references agent_threads(id), turn_key text not null, request_hash text not null,
- payload_hash text not null, revision bigint not null, account_version bigint not null, epoch bigint not null,
+ payload_hash text not null, provider text not null, model text not null, price_key text not null, revision bigint not null, account_version bigint not null, epoch bigint not null,
  bound_micros bigint not null check(bound_micros between 1 and 25000),
  state text not null default 'reserved' check(state in ('reserved','started','recorded','unknown','not_sent')),
  cost_micros bigint, usage jsonb, expires_at timestamptz not null default now()+interval '30 seconds',
@@ -43,7 +43,7 @@ begin
  if r.id is not null then return jsonb_build_object('ok',false,'reason',case when r.request_hash<>p_hash or r.payload_hash<>p_payload then 'turn_key_conflict' else 'already_reserved' end);end if;
  if (select count(*) from career_model_reservations_v1 where state='unknown')>=3 then return jsonb_build_object('ok',false,'reason','usage_review_required');end if;
  if c.opening_micros+c.current_micros+p_bound>c.limit_micros then return jsonb_build_object('ok',false,'reason','budget_exhausted');end if;
- insert into career_model_reservations_v1(user_id,thread_id,turn_key,request_hash,payload_hash,revision,account_version,epoch,bound_micros)values(p_user,p_thread,p_key,p_hash,p_payload,p_revision,p_version,p_epoch,p_bound) returning * into r;
+ insert into career_model_reservations_v1(user_id,thread_id,turn_key,request_hash,payload_hash,provider,model,price_key,revision,account_version,epoch,bound_micros)values(p_user,p_thread,p_key,p_hash,p_payload,p_provider,p_model,p_price,p_revision,p_version,p_epoch,p_bound) returning * into r;
  update career_model_campaign_v1 set current_micros=current_micros+p_bound where campaign=c.campaign;
  return jsonb_build_object('ok',true,'ticket',r.id,'boundMicros',r.bound_micros);
 end $$;
@@ -53,7 +53,7 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
  select * into r from career_model_reservations_v1 where id=p_ticket and user_id=p_user for update;
  select * into c from career_model_campaign_v1 where campaign='owner-shared-5usd' for update;
- if r.id is null or r.state<>'reserved' or r.expires_at<=now() or c.campaign is null or not c.reconciled or c.expires_at<=now() or not career_model_context_current_v1(p_user,r.thread_id,r.revision,r.account_version,r.epoch) then return jsonb_build_object('ok',false,'reason','context_changed');end if;
+ if r.id is null or r.state<>'reserved' or r.expires_at<=now() or c.campaign is null or not c.reconciled or c.expires_at<=now() or c.provider is distinct from r.provider or c.model is distinct from r.model or c.price_key is distinct from r.price_key or not career_model_context_current_v1(p_user,r.thread_id,r.revision,r.account_version,r.epoch) then return jsonb_build_object('ok',false,'reason','context_changed');end if;
  update career_model_reservations_v1 set state='started' where id=r.id;
  return jsonb_build_object('ok',true,'ticket',r.id);
 end $$;

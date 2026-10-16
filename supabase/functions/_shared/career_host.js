@@ -66,6 +66,13 @@ const CareerHost = (() => {
     // guards the submit. Without this key a prepared batch would die
     // with the turn and the "yes" could never resume it.
     "batchApplyState",
+    // MI-121 (Crew A ruling, Registry note 7): a pending pasted-email
+    // proposal — the parse of an email the user pasted, provenance
+    // user_paste, unverified — rides the snapshot so the user's
+    // confirming turn can resolve it. It is a proposal only: tracker
+    // writes happen on the user's own-words confirmation, never
+    // from the paste itself.
+    "pendingPasteProposal",
   ];
 
   function cloneJson(v) {

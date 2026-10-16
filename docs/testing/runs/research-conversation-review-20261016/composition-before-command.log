@@ -1,0 +1,107 @@
+(node:227810) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:227810) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (3264.64106ms)
+✔ I03-I26 conversation corrections survive research and source text never becomes career evidence (5846.740986ms)
+✔ I05 authenticated owner and thread isolation protect research observations (3884.783505ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (1865.968479ms)
+✖ I08 STOP across owned threads revokes a reserved but unconsumed read (3365.064543ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (3333.882528ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (3716.42515ms)
+✔ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (6769.396191ms)
+✖ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (3872.566598ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (2198.363752ms)
+✔ I20 a failed research effect is not repeated by pending work or status polling (5397.193888ms)
+✔ I21 research authority refuses all application operations at the real SQL gate (3350.975617ms)
+✖ I22 central-result save recovery uses existing capture and never reads twice (3143.991757ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 10
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 50269.95632
+
+✖ failing tests:
+
+test at tests/research-conversation-independent-postgres.test.cjs:12:1
+✖ I08 STOP across owned threads revokes a reserved but unconsumed read (3365.064543ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   {
+  +     asks: [],
+  +     authority: {
+  +       accountVersion: 1,
+  +       intentId: '3bb0328cbfe62e3ff81500477f74fc3235f76dd1e4c7353cb351dc05f39703fb',
+  +       privacyEpoch: 0
+  +     },
+  +     blocker: 'TASK_AUTHORITY_REVOKED',
+  +     budget: {
+  +       limitActions: 120,
+  +       reservedActions: 0,
+  +       spendCents: 0,
+  +       spentActions: 0
+  +     },
+  +     capabilities: {
+  +       browser: 'PUBLIC_READ_ONLY',
+  +       employer_submission: 'NOT_WIRED'
+  +     },
+  +     id: 'e3954ee6b44c4da577842282596d0591',
+  +     kind: 'public_research/v1',
+  +     phase: 'check',
+  +     result: null,
+  +     review: null,
+  +     revision: 6,
+  +     status: 'cancelled',
+  +     userId: '00000000-0000-4000-8000-000000000001',
+  +     version: 'career_task/v1'
+  +   }
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:12:527)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { version: 'career_task/v1', kind: 'public_research/v1', id: 'e3954ee6b44c4da577842282596d0591', userId: '00000000-0000-4000-8000-000000000001', status: 'cancelled', phase: 'check', revision: 6, review: null, result: null, asks: [], blocker: 'TASK_AUTHORITY_REVOKED', budget: [Object], authority: [Object], capabilities: [Object] } ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:16:1
+✖ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (3872.566598ms)
+  AssertionError [ERR_ASSERTION]: tampered digest was delivered as source evidence
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:16:865)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:20:1
+✖ I22 central-result save recovery uses existing capture and never reads twice (3143.991757ms)
+  AssertionError [ERR_ASSERTION]: captured result stranded after unconfirmed finish
+  + actual - expected
+  
+  + 'claimed'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:20:346)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'claimed',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

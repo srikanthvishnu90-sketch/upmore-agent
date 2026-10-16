@@ -51,3 +51,17 @@ load (tests/career-clock-source-guard.test.cjs:42). That external artifact is
 absent here. Its frozen expectations and source were left unchanged; the
 failure is preserved in the verification evidence, rather than manufacturing
 a substitute scenario document or relabeling the check as passed.
+
+## Independent review supersedes capability-2 readiness (2026-10-16)
+
+The 3157b65 local regression/mutation passes did not prove semantic evidence or
+source-history boundaries. Independent frozen review found ten capability-2
+failures and one inherited 130 correction-cache failure. This follow-up adds
+performed-work relations, denial/conflict handling, stable legacy IDs, latest
+closed-observation suppression, mandatory geography, complete example-domain
+checks, and explicit skill/weekly-budget retention in chat. Coverage now includes
+mechanical/electrical/teaching/graphic-design work samples. Existing frozen
+inputs and expectations are unchanged. H20 remains with Crew A and blocks any
+combined-ready claim; no production or end-user quality verification is inferred
+from these local tests. The host contract now specifies atomic grounding retention
+rather than leaving the result as prose-only metadata.

@@ -8,12 +8,14 @@ const CareerInterviewJourney = (() => {
   const Pack=typeof InterviewJourneyPack!=='undefined'?InterviewJourneyPack:require('./pack.js');
   const VERSION='interview_journey_state/v1';
   const stages=['intake','research_pending','plan_ready','awaiting_answer','feedback_ready','targeted_practice','awaiting_revision','transfer_check','pack_ready','completed'];
+  function roleSupport(target){return target?.role_family==='software_engineering'&&target?.level==='early-career'?'early_career_software':target?.role_family&&target.role_family!=='software_engineering'||target?.level&&target.level!=='early-career'?'unsupported_full_slice':'generic_project_only';}
   function contentHash(s){const copy=H.clone(s);delete copy.content_sha256;return H.sha256(copy);}
   function recordHash(record){const copy=H.clone(record);delete copy.content_sha256;return H.sha256(copy);}
   function validateState(s){
     C.assert(s?.schema_version===VERSION&&stages.includes(s.stage),'invalid journey schema/stage');
     C.assert(s.content_sha256===contentHash(s),'journey state integrity mismatch');
     C.assert(Number.isSafeInteger(s.revision)&&s.revision>0,'invalid journey revision');
+    C.assert(s.stage!=='completed'||s.completion?.artifact?.readback_status==='verified'&&s.completion.artifact.partial===false,'completed journey requires verified non-partial artifact readback');
     C.assert(new Set(s.attempts.map(a=>a.id)).size===s.attempts.length,'duplicate attempt');
     for(const a of s.attempts)if(a.status!=='withdrawn')C.assert(a.answer_sha256===H.sha256(a.text),'attempt integrity mismatch');
     for(const a of s.assessments)if(a.status==='active')C.assert(s.attempts.some(t=>t.id===a.attempt_id&&t.answer_sha256===a.answer_sha256&&t.question_id===a.question_id&&t.rubric_id===a.rubric_id),'assessment no longer binds immutable attempt');
@@ -25,6 +27,7 @@ const CareerInterviewJourney = (() => {
   function allocate(s){
     const total=s.constraints.available_minutes, remaining=total===null?null:Math.max(0,total-s.constraints.spent_minutes);
     const template=[['project',20,'Ground a truthful narrative in actual experience.'],['technical',35,'Practice role-relevant correctness and recovery reasoning.'],['behavioral',20,'Separate personal contribution, team decisions and evidence.'],['pack',10,'Review and save current evidence with unassessed gaps explicit.']];
+    if(s.role_support!=='early_career_software')template.splice(1,1);
     const priorities=s.plan_priorities||[];template.sort((a,b)=>{const ai=priorities.findIndex(p=>p.competency===a[0]),bi=priorities.findIndex(p=>p.competency===b[0]);return (ai<0?100:ai)-(bi<0?100:bi);});
     const items=[],deferrals=[];
     if(remaining===null)return {remaining_minutes:null,items,deferrals:['Preparation time unknown; ask for minutes now without inferring from the interview date.']};
@@ -45,7 +48,7 @@ const CareerInterviewJourney = (() => {
     const minutes=event.available_minutes??null;C.assert(minutes===null||Number.isInteger(minutes)&&minutes>=0&&minutes<=1440,'invalid minutes now');
     C.assert(['coaching','mock'].includes(event.mode||'coaching'),'invalid interview mode');
     const dependencies=snapshot.facts.filter(f=>['target','resume','project','experience','interview_guidance'].includes(f.kind)).map(C.ref);
-    const s={schema_version:VERSION,owner_id:snapshot.owner_id,thread_id:snapshot.thread_id,journey_id:event.journey_id,epoch:snapshot.binding.epoch,revision:0,created_at:event.at,updated_at:event.at,status:'active',stage:'intake',context_binding:H.clone(snapshot.binding),target_ref:event.target_ref||null,target:target?H.clone(target.value):null,resume_ref:event.resume_ref||null,mode:event.mode||'coaching',dependencies,
+    const s={schema_version:VERSION,owner_id:snapshot.owner_id,thread_id:snapshot.thread_id,journey_id:event.journey_id,epoch:snapshot.binding.epoch,revision:0,created_at:event.at,updated_at:event.at,status:'active',stage:'intake',context_binding:H.clone(snapshot.binding),target_ref:event.target_ref||null,target:target?H.clone(target.value):null,role_support:roleSupport(target?.value),resume_ref:event.resume_ref||null,mode:event.mode||'coaching',dependencies,
       constraints:{available_minutes:minutes,spent_minutes:0,interview_at:event.interview_at||null,daily_study_minutes:event.daily_study_minutes??null,logistics:[],unknowns:[...(!target?['target role']:[]),...(!resume?['selected resume']:[]),...(minutes===null?['minutes available now']:[]),...(!target?.value?.company?['company']:[]),...(!target?.value?.stage?['interview stage']:[])]},
       checkpoint:{active_question:null,active_attempt_id:null,pending_reasoning:null,pending_research:null,pending_artifact:null,interruption_stack:[],unresolved_asks:[],selected_draft_id:null},plan:null,plan_priorities:[],briefs:[],attempts:[],assessments:[],drafts:[],observations:[],hints:[],research:[],invalidations:[],processed_events:[],completion:{artifact:null,unmet_conditions:['No saved/readable artifact']}};
     C.assert(typeof s.journey_id==='string'&&s.journey_id.length>0,'journey id required');s.plan=allocate(s);return s;
@@ -76,13 +79,13 @@ const CareerInterviewJourney = (() => {
       C.assert(snapshot.binding.epoch>state.epoch,'context epoch moved backward');
       s=initial(snapshot,{...event,journey_id:state.journey_id,available_minutes:null,mode:state.mode});s.revision=state.revision+1;s.epoch=snapshot.binding.epoch;s.status='cancelled';s.stage='intake';reply={status:'stale_context',text:'Previous journey data belongs to an erased epoch. Start again from current authorized evidence.'};
     }else if(event.type!=='context_changed'&&s.dependencies.some(r=>{try{C.resolve(snapshot,r);return false;}catch{return true;}})){
-      s.checkpoint.pending_reasoning=null;s.checkpoint.pending_artifact=null;reply={status:'stale_context',text:'Evidence versions changed. Apply the host typed invalidation before continuing or creating an artifact.'};
+      s.checkpoint.pending_reasoning=null;s.checkpoint.pending_artifact=null;s.completion={artifact:null,unmet_conditions:['Evidence changed; apply typed invalidations and reopen a current pack']};if(s.stage==='completed')s.stage='plan_ready';reply={status:'stale_context',text:'Evidence versions changed. Apply the host typed invalidation before continuing or creating an artifact.'};
     }else if(state?.processed_events.some(e=>e.id===event.id)){
       const old=state.processed_events.find(e=>e.id===event.id);C.assert(old.input_digest===digest,'same event key changed input');reply={status:'blocked',reason:'already_processed',text:'This event was already processed. Use the host committed replay receipt.'};
     }else if(event.type==='start'){
       C.assert(!state,'journey already started');ask('project-narrative');reply.text='Let’s begin with one real project. These are representative practice questions; company/stage gaps remain explicit.';
       if(s.constraints.available_minutes===null)s.checkpoint.unresolved_asks.push('How many minutes do you have now?');
-      if(s.target?.level&&s.target.level!=='early-career'){reply.status='unsupported';reply.text='This slice supports early-career software preparation. Your target is retained; a deeper role adapter is required for full coverage.';}
+      if(s.role_support!=='early_career_software'){reply.status=s.role_support==='unsupported_full_slice'?'unsupported':'needs_clarification';reply.text='We can practice your real project. Full role-specific coverage requires a confirmed early-career software target; this module does not infer a role family from a title.';}
     }else if(event.type==='pause'){
       s.checkpoint.interruption_stack.push({stage:s.stage,active_question:s.checkpoint.active_question,active_attempt_id:s.checkpoint.active_attempt_id,unresolved_asks:H.clone(s.checkpoint.unresolved_asks)});s.status='paused';s.checkpoint.pending_reasoning=null;reply.text='Paused. Your question, attempts and unfinished asks are saved.';
     }else if(event.type==='resume'){
@@ -110,7 +113,7 @@ const CareerInterviewJourney = (() => {
       s.checkpoint.selected_draft_id=s.drafts.find(d=>d.id===s.checkpoint.selected_draft_id&&d.status==='active')?.id||null;
       s.checkpoint.pending_reasoning=null;s.checkpoint.pending_artifact=null;delete s.checkpoint.next_exercise;delete s.checkpoint.next_transfer_question_id;
       if(invalidations.some(i=>i.kind==='withdrawal')){s.checkpoint.unresolved_asks=[];s.checkpoint.interruption_stack=[];}
-      s.completion={artifact:null,unmet_conditions:['Context changed; build and reopen a current pack']};s.invalidations.push(...H.clone(invalidations));s.plan=allocate(s);s.status='active';s.stage='awaiting_answer';reply.text='Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.';
+      s.role_support=roleSupport(s.target);if(s.role_support!=='early_career_software'&&s.checkpoint.active_question?.family==='technical')s.checkpoint.active_question=H.clone(R.questions['project-narrative']);s.completion={artifact:null,unmet_conditions:['Context changed; build and reopen a current pack']};s.invalidations.push(...H.clone(invalidations));s.plan=allocate(s);s.status='active';s.stage='awaiting_answer';reply.text='Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.';
     }else if(event.type==='submit_answer'){
       C.assert(s.status==='active'&&s.checkpoint.active_question,'no active question');C.assert(!s.checkpoint.pending_reasoning,'one admitted assessment already pending');
       C.assert(typeof event.text==='string'&&event.text.trim().length>0&&['initial','practice','revision','transfer'].includes(event.kind||'initial'),'an explicit answer submission is required');
@@ -153,7 +156,9 @@ const CareerInterviewJourney = (() => {
     }else if(event.type==='begin_transfer'){
       C.assert(s.stage==='feedback_ready'&&s.attempts.some(a=>a.id===s.checkpoint.active_attempt_id&&a.kind==='revision'),'assessed revision required before transfer');ask(s.checkpoint.next_transfer_question_id,'transfer_check');s.checkpoint.active_attempt_id=null;reply.text='Try a different situation without the rewrite. This checks transfer separately from coached revision.';
     }else if(event.type==='select_question'){
-      C.assert(!s.checkpoint.pending_reasoning,'settle/cancel pending assessment first');C.assert(['project-narrative','retry-design','team-decision'].includes(event.question_id),'unknown slice question');s.checkpoint.active_attempt_id=null;ask(event.question_id);reply.text='Switching exercises. Your story bank and previous attempts are retained.';
+      C.assert(!s.checkpoint.pending_reasoning,'settle/cancel pending assessment first');C.assert(['project-narrative','retry-design','team-decision'].includes(event.question_id),'unknown slice question');
+      if(event.question_id==='retry-design'&&s.role_support!=='early_career_software')reply={status:'unsupported',text:'The software reasoning drill requires a confirmed early-career software target. General project practice remains available.'};
+      else{s.checkpoint.active_attempt_id=null;ask(event.question_id);reply.text='Switching exercises. Your story bank and previous attempts are retained.';}
     }else if(event.type==='style_edit'){
       const draft=s.drafts.find(d=>d.id===s.checkpoint.selected_draft_id&&d.status==='active');C.assert(draft&&!s.checkpoint.pending_reasoning,'select a current draft before editing');
       const attempt=s.attempts.find(a=>draft.source_attempt_ids.includes(a.id));C.assert(attempt&&attempt.status==='active'&&!attempt.context_outdated,'draft attempt stale');C.assert(typeof event.instruction==='string'&&event.instruction.length>0,'style instruction required');
@@ -161,6 +166,7 @@ const CareerInterviewJourney = (() => {
     }else if(event.type==='read_source'){
       C.assert(!s.checkpoint.pending_research,'research already pending');const source=C.resolve(snapshot,event.source_ref);
       C.assert(source.kind==='source'&&source.value?.approved_url&&/^https:\/\//.test(source.value.approved_url),'host-approved source URL required');
+      const capability=C.capability(snapshot,'research.exact_url.v1');if(capability.status==='available')C.assert(capability.approved_sources?.some(a=>a.source_id===source.id&&a.version===source.version&&a.url===source.value.approved_url),'source URL lacks host capability approval');
       const a=emit('read_source',{source_ref:C.ref(source),requested_url:source.value.approved_url},[C.ref(source)],'research.exact_url.v1');
       if(a)s.checkpoint.pending_research={kind:'research',action_id:a.action_id,input_digest:a.input_digest,source_ref:C.ref(source),requested_url:source.value.approved_url,validation_revision:s.revision};reply.text='Research state is independent of practice. A queued task is not a captured source.';
     }else if(event.type==='tool_result'){
@@ -172,6 +178,8 @@ const CareerInterviewJourney = (() => {
     }else if(event.type==='artifact_readback'){
       const artifact=Pack.validateReadback(snapshot,s,event);s.completion.artifact=artifact;s.checkpoint.pending_artifact=null;
       if(!artifact.partial){s.stage='completed';s.status='active';s.completion.unmet_conditions=[];}else{s.stage='pack_ready';}reply.text=artifact.partial?'Your partial pack was reopened and verified; its remaining gaps are explicit.':'Your current preparation pack was reopened and verified.';
+    }else if(event.type==='run_code'){
+      reply={status:'not_wired',text:'No approved code-execution runner is wired to this journey. Technical feedback is static text reasoning only.'};
     }else if(event.type==='user_turn'){
       reply={status:'needs_confirmation',text:'Interpret this turn through the host into an explicit answer, style edit, task switch or control event. It has not been graded or used to reset evidence.'};
     }else{reply={status:'unsupported',text:'This journey supports interview preparation only. The preparation checkpoint is preserved.'};}

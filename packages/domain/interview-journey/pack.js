@@ -17,6 +17,7 @@ const InterviewJourneyPack = (() => {
     const captures=state.research.filter(r=>r.status==='succeeded'&&refs.some(ref=>ref.id===r.source_ref.id&&ref.version===r.source_ref.version));
     const families=['project','technical','behavioral'];
     const missing=[];
+    if(state.role_support!=='early_career_software')missing.push('Full early-career software scope not confirmed');
     if(!state.target)missing.push('Target role not supplied');
     if(state.target&&!state.target.company)missing.push('Company not supplied; role-only preparation');
     if(!state.resume_ref)missing.push('Selected resume not supplied');

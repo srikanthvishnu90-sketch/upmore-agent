@@ -5,6 +5,9 @@ const J=require('../../packages/domain/interview-journey/index.js');
 const C=require('../../packages/career-interview-journey/adapters/context.js');
 const R=require('../../packages/career-interview-journey/rubrics/index.js');
 function session(snapshot=F.snapshot(),state=null){
+  // Explicit synthetic role classification from this test's known target; never
+  // a runtime title matcher or a default for real users.
+  if(snapshot.facts.find(f=>f.id==='target')?.value.role==='Software engineer intern')snapshot.facts.find(f=>f.id==='target').value.role_family='software_engineering';
   let counter=0;
   return {snapshot,state,last:null,turns:[],turn(type,args={},id){const event=F.event(id||type+'-'+(++counter),type,args);const t=J.planInterviewTurn({snapshot:this.snapshot,state:this.state,event});this.turns.push({event,reply_plan:t.reply_plan,proposed_actions:t.proposed_actions,expected_binding:t.expected_binding,journey_revision:t.next_state.revision,receipts:this.snapshot.receipts.filter(r=>r.id===event.receipt_id||r.id===event.result?.receipt_id)});this.state=t.next_state;this.last=t;return t;},start(args={}){const e={...F.start(),...args};return this.turn('start',e,e.id);},
     candidate(patch={}){const p=this.state.checkpoint.pending_reasoning,a=this.state.attempts.find(a=>a.id===p.attempt_id),q=R.questions[a.question_id],technical=q.family==='technical',dimension=technical?'correctness_invariant':'personal_contribution';

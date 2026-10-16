@@ -16,7 +16,7 @@ const InterviewJourneyResearch = (() => {
     C.assert(source.id===pending.source_ref.id&&source.kind==='source'&&source.trust==='host_capture','source capture classification mismatch');
     const v=source.value;
     C.assert(v&&v.content_sha256===H.sha256(v.excerpt)&&v.content_sha256===receipt.content_sha256&&v.excerpt.length>0,'capture requires actual hash-bound readable bytes');
-    C.assert(v.requested_url===pending.requested_url&&typeof v.final_url==='string'&&/^https:\/\//.test(v.final_url)&&v.title&&v.publisher&&v.captured_at&&['complete_excerpt','partial_excerpt'].includes(v.completeness)&&v.origin==='retrieved','incomplete source provenance');
+    C.assert(v.requested_url===pending.requested_url&&typeof v.final_url==='string'&&/^https:\/\//.test(v.final_url)&&v.title&&v.publisher&&v.captured_at&&v.classification&&['complete_excerpt','partial_excerpt'].includes(v.completeness)&&v.origin==='retrieved','incomplete source provenance');
     return {status:'succeeded',action_id:pending.action_id,source_ref:C.ref(source),requested_url:v.requested_url,final_url:v.final_url,title:v.title,publisher:v.publisher,captured_at:v.captured_at,excerpt:v.excerpt,content_sha256:v.content_sha256,classification:v.classification,completeness:v.completeness,receipt_id:receipt.id,trust:'untrusted source content; not personal qualifications'};
   }
   return {read};

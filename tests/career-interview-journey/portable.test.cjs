@@ -1,0 +1,6 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const F=require('./fixtures.cjs');
+const order=['packages/domain/interview-journey/hash.js','packages/career-interview-journey/rubrics/index.js','packages/career-interview-journey/adapters/context.js','packages/career-interview-journey/prompts/assessment-v1.js','packages/career-interview-journey/adapters/reasoning.js','packages/career-interview-journey/adapters/research.js','packages/career-interview-journey/adapters/artifact.js','packages/career-interview-journey/adapters/legacy.js','packages/domain/interview-journey/pack.js','packages/domain/interview-journey/index.js'];
+test('pure modules run in ordered ESM-like VM without require, IO or provider globals',()=>{let calls=0;const context=vm.createContext({TextEncoder,TextDecoder,input_json:JSON.stringify({snapshot:F.snapshot(),state:null,event:F.start()}),fetch(){calls++;throw Error('network forbidden');}});for(const file of order)vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../..',file),'utf8'),context,{filename:file});const transition=vm.runInContext('CareerInterviewJourney.planInterviewTurn(JSON.parse(input_json))',context);assert.equal(transition.next_state.stage,'awaiting_answer');assert.equal(calls,0);});
+module.exports={order};

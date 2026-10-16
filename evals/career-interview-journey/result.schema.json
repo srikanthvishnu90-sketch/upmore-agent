@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:upmore:interview-depth:quality-result:v1",
+  "title": "Independent evaluator result; no scores have been collected by this implementation",
+  "type": "object",
+  "required": ["protocol_version", "commit", "mode", "required_episodes", "executed_episodes", "not_run_episodes", "episodes", "provider_calls", "quality_status"],
+  "properties": {
+    "protocol_version": {"const": "interview-depth-eval/v1"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "mode": {"enum": ["SCRIPTED_CONTRACT_DEVELOPMENT", "PRODUCT_RUNTIME_SCRIPTED_DEVELOPMENT", "REAL_USER", "REAL_PROVIDER_HELDOUT"]},
+    "required_episodes": {"const": 24},
+    "executed_episodes": {"type": "integer", "minimum": 0, "maximum": 24},
+    "not_run_episodes": {"type": "integer", "minimum": 0, "maximum": 24},
+    "provider_calls": {"type": "integer", "minimum": 0},
+    "quality_status": {"enum": ["NOT_RUN", "QUALITY_MEASURED_PASS", "QUALITY_MEASURED_FAIL", "BLOCKED"]},
+    "episodes": {"type": "array", "items": {"$ref": "#/$defs/episode"}}
+  },
+  "$defs": {
+    "layer": {"type": "object", "required": ["pass", "total", "status", "scope"], "properties": {"pass": {"type": "integer", "minimum": 0}, "total": {"type": "integer", "minimum": 0}, "status": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]}, "scope": {"type": "string"}}},
+    "episode": {
+      "type": "object",
+      "required": ["id", "family", "manifest_sha256", "status", "ordered_turns_ref", "provider_identity", "checker_identity", "prompt_sha256", "rubric_sha256", "cost_receipts", "memory", "artifact", "reviewers", "disagreements", "adjudication", "critical_failures"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]},
+        "memory": {"type": "object", "required": ["storage", "retrieval", "use"], "properties": {"storage": {"$ref": "#/$defs/layer"}, "retrieval": {"$ref": "#/$defs/layer"}, "use": {"$ref": "#/$defs/layer"}}},
+        "reviewers": {"type": "array", "items": {"type": "object", "required": ["reviewer_id", "independent", "technical_qualification", "blind_variant", "dimensions", "rationales"]}},
+        "critical_failures": {"type": "array"},
+        "disagreements": {"type": "array"}
+      }
+    }
+  },
+  "$comment": "Evaluator must additionally reconcile executed + not_run = 24, verify hashes, preserve two independent reviews plus qualified technical review, enforce per-dimension >=3 for complete journeys, all causal/invariance/recovery properties, no critical failure, and actual entry/cost/artifact evidence. Scripted mode never implies actual quality."
+}

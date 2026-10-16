@@ -34,7 +34,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const current = authority.current(t.userId);
     if (!current.exists || current.epoch !== t.privacyEpoch) {
       t.spec = null; t.review = null; t.result = null; t.asks = []; t.authority = null;
-      if(t.kind==='public_research/v1'){t.publicationTask=null;t.publicationPending=false;}
+      if(t.kind==='public_research/v1'){t.publicationTask=null;t.publicationPending=false;t.publicationReceipt=null;}
       if (t.attempt) t.attempt = { fenced: true, receiptKey: hash([t.id, "submit"]), unknown: true };
       t.status = t.attempt ? "unknown_outcome" : "cancelled"; t.blocker = "PRIVACY_EPOCH_REVOKED";
       save(t, "check"); throw fail("PRIVACY_EPOCH_REVOKED");
@@ -73,6 +73,9 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     }
   }
   function publicTask(t) {
+    // Local checkpoint revisions continue changing during save recovery. Once
+    // confirmed, expose the exact immutable central receipt on every read.
+    if(t.kind==='public_research/v1'&&t.publicationReceipt&&!t.publicationPending&&t.status===t.publicationReceipt.status&&t.blocker===t.publicationReceipt.blocker&&bindingHash(t.result)===bindingHash(t.publicationReceipt.result))return clone(t.publicationReceipt);
     return clone({ version: "career_task/v1", kind: t.kind || "career_application", id: t.id, userId: t.userId, status: t.status, phase: t.phase, revision: t.revision,
       review: t.review || null, result: t.result || null, asks: t.asks || [],
       blocker: t.blocker || null, budget: t.budget,
@@ -268,7 +271,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
         checkAuthority(t);
         throw fail("TASK_RESULT_UNCONFIRMED");
       }
-      if(t.kind==='public_research/v1'&&t.publicationPending){t.publicationPending=false;t.blocker=t.publicationTask?.blocker||null;t.publicationTask=null;save(t,'check');}
+      if(t.kind==='public_research/v1'&&t.publicationPending){t.publicationReceipt=clone(t.publicationTask);t.publicationPending=false;t.blocker=t.publicationTask?.blocker||null;t.publicationTask=null;save(t,'check');}
     } catch (e) {
       let current=true;try { checkAuthority(t); } catch (_) {current=false;}
       if(t.kind==='public_research/v1'&&current){t.publicationPending=true;t.blocker='TASK_RESULT_UNCONFIRMED';save(t,'check');return publicTask(t);}

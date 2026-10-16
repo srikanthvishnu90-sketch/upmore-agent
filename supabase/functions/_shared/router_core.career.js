@@ -24719,6 +24719,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    or submit that would exceed one stops CAP_REACHED naming the cap and
    the count, counted from the submissions ledger this module writes;
    the never-twice-to-the-same-job rule (§8.3) is enforced alongside.
+   That ledger never contained the user's own hand-filed applications,
+   so the never-twice rule also reads what the host knows — tracker
+   rows and user statements passed as manualApplications — and a match
+   on the same canonical job stops ALREADY_APPLIED_BY_USER naming the
+   source of the knowledge (MI-108 / G3), at the doorstep and again at
+   click time.
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
@@ -25073,6 +25079,64 @@ const CareerPortalApply = (() => {
     return { ok: stops.length === 0, stops, counts, vendor, company };
   }
 
+  // ---------- §8.3 collision check: the user's own hand-filed applications (MI-108 / G3) ----------
+  // The caps above count only this module's submissions ledger — records
+  // the PRODUCT wrote. An application the user filed by hand never enters
+  // that ledger, so the never-twice rule was blind to it: the product
+  // could apply to a job the user already holds an application at, and
+  // the employer's duplicate handling merges or flags the pair (Spec 2
+  // §8.3). The host passes what it knows as manualApplications — tracker
+  // rows (module 126; hand applications land there via user-reported
+  // updates) and user statements, normalized to
+  // { company, title, stage, source, at, canonicalKey? }. A record is
+  // evidence when (a) its origin is not the product itself (a
+  // product-origin record is the caps' domain, not this check's), (b)
+  // its stage proves an application exists (applied or beyond — a
+  // saved/interested row is not an application), and (c) it names the
+  // SAME canonical job: a canonical-key match is decisive; otherwise
+  // company AND title must both match (title by normalized equality or
+  // >= 0.75 token overlap of the smaller title, so "Software
+  // Engineering Intern" matches its "(Summer)" variant but never a
+  // different role at the same company). The stop names the source of
+  // the knowledge — tracker or the user's own statement — never a guess.
+  const APPLIED_STAGES = new Set(["applied", "submitted", "interview", "interviewing", "phone_screen", "onsite", "assessment", "oa", "offer", "rejected", "withdrawn", "closed", "hired"]);
+  const PRODUCT_ORIGINS = new Set(["product", "portal", "submission", "self"]);
+  function titleTokenOverlap(a, b) {
+    const tok = (v) => new Set(normName(v).split(" ").filter((t) => t.length >= 3));
+    const A = tok(a), B = tok(b);
+    if (!A.size || !B.size) return 0;
+    let hit = 0;
+    for (const t of A) if (B.has(t)) hit += 1;
+    return hit / Math.min(A.size, B.size);
+  }
+  function collisionCheck(manualApplications, posting) {
+    const p = posting || {};
+    const pCompany = p.company ? normName(p.company) : "";
+    const pTitle = p.title || p.role || "";
+    const pKey = p.canonicalKey || null;
+    for (const r of manualApplications || []) {
+      if (!r) continue;
+      const origin = String(r.source || r.origin || "").toLowerCase();
+      if (PRODUCT_ORIGINS.has(origin)) continue; // the caps' domain
+      const stage = String(r.stage || r.status || "").toLowerCase();
+      if (r.applied !== true && !APPLIED_STAGES.has(stage)) continue; // no application exists yet
+      const rKey = r.canonicalKey || r.jobKey || null;
+      let sameJob = false;
+      if (pKey && rKey) sameJob = pKey === rKey;
+      else if (pCompany && r.company && normName(r.company) === pCompany) {
+        const rTitle = r.title || r.role || "";
+        sameJob = normName(rTitle) === normName(pTitle) || titleTokenOverlap(rTitle, pTitle) >= 0.75;
+      }
+      if (!sameJob) continue;
+      const source = /statement/.test(origin) ? "user statement"
+        : /user-reported|reported/.test(origin) ? "tracker (user-reported)"
+        : "tracker";
+      return { collision: { company: r.company || p.company || null, title: r.title || r.role || pTitle || null,
+        stage: stage || "applied", source, at: r.at || r.timestamp || null } };
+    }
+    return { collision: null };
+  }
+
   function capReport(log, userId, posting, now, board) {
     const recs = (log && log.records) || [];
     const chk = capCheck(log, userId, posting, now, board);
@@ -25344,6 +25408,21 @@ const CareerPortalApply = (() => {
       return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis });
     }
 
+    // §8.3 collision check (MI-108 / G3): a hand-filed application to
+    // this same canonical job stops the run before a doorstep is
+    // presented — the caps' ledger never contained it, so without this
+    // check the product would duplicate an application the user
+    // already holds. submitDoorstep re-checks at click time (the
+    // knowledge can arrive between doorstep and click).
+    if (inp.manualApplications) session.manualApplications = inp.manualApplications;
+    const collision = collisionCheck(session.manualApplications, posting);
+    if (collision.collision) {
+      const c0 = collision.collision;
+      logStep("already_applied_stop", { company: c0.company, stage: c0.stage, source: c0.source });
+      return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+        reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
+    }
+
     // §6.4 caps (MI-110): the decided caps are enforced, not reported —
     // a run that would exceed one stops here and never presents a
     // doorstep that cannot submit. submitDoorstep re-checks at click
@@ -25469,7 +25548,7 @@ const CareerPortalApply = (() => {
       // fields win) — returning the leg's bare object dropped the
       // audit trail, which hid the D11 doorstep repair from the run's
       // record (BUG-207 guards, ported from the submit-path lineage).
-      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting }));
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
     }
     return prepared;
   }
@@ -25517,6 +25596,21 @@ const CareerPortalApply = (() => {
       const s = caps.stops[0];
       return { resultStatus: "blocked", code: "CAP_REACHED", cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
         reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` };
+    }
+    // §8.3 collision re-check (MI-108 / G3): the knowledge that the
+    // user already holds an application at this job can arrive between
+    // doorstep and click — a duplicate must never arm. The doorstep
+    // carries the canonical key + company, so the decisive match is
+    // the key; company/title matching ran at the doorstep surface.
+    const collision = collisionCheck(c.manualApplications || session.manualApplications, {
+      canonicalKey: session.doorstep.postingKey,
+      company: session.doorstep.company || (c.posting && c.posting.company) || null,
+      title: (c.posting && (c.posting.title || c.posting.role)) || null,
+    });
+    if (collision.collision) {
+      const c0 = collision.collision;
+      return { resultStatus: "blocked", code: "ALREADY_APPLIED_BY_USER", company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+        reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` };
     }
     // §10 payload binding (MI-116 / BUG-234): the approval binds to the
     // EXACT payload, not the job. Rebuild the would-submit payload from
@@ -25694,7 +25788,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

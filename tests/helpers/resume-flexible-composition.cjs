@@ -7,6 +7,6 @@ function profile(year='2027',owner='A'){
  p.facts.push({id:'JOINT-PROJECT',kind:'project',text:owner==='A'?'Organized spreadsheet rows for a class assignment.':'Built a synthetic calculator.',unproven:false});
  return p;
 }
-function seed(f){for(const [u,year,owner]of[[F.U,'2027','A'],[F.V,'2031','B']]){const s=f.dbs.get(u).state.career.stores;s.profile=profile(year,owner);s.statedFacts={facts:[{kind:'year',value:owner==='A'?'2028':'2031'}]};}}
+function seed(f){for(const [u,year,owner]of[[F.U,'2027','A'],[F.V,'2031','B']]){const s=f.dbs.get(u).state.career.stores;s.profile=profile(year,owner);s.statedFacts={facts:[{kind:'year',value:owner==='A'?'2028':'2031'}]};s.profile._careerTrackStore._careerThread={facts:F.copy(s.statedFacts)};}}
 function assertYear(assert,view,year,excluded=[]){assert.ok(view.facts.some(f=>f.kind==='graduation_date'&&f.text===year));assert.ok(view.facts.some(f=>f.status==='corrected'&&f.text===year));for(const old of excluded)assert.ok(!JSON.stringify(view.facts).includes(old),'old year leaked into active facts: '+old);}
 module.exports={...F,NEW:R.NEW,CORRECT:R.CORRECT,RECALL:R.RECALL,profile,seed,assertYear};

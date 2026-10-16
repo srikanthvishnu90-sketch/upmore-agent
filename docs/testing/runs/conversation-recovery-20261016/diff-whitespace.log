@@ -1,4 +1,13 @@
-docs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log:34: trailing whitespace.
-+  
-docs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log:36: trailing whitespace.
-+  
+{
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "d61cf32",
+    "review-branch"
+  ],
+  "exitCode": 2,
+  "rawOutputEncoding": "JSON string, preserving original output bytes",
+  "stdout": "docs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log:34: trailing whitespace.\n+  \ndocs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log:36: trailing whitespace.\n+  \n",
+  "note": "Two original trailing-space lines in the verbatim integration failure log. Source-only check passes."
+}

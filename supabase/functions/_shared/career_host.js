@@ -168,7 +168,14 @@ const CareerHost = (() => {
       let handler = null;
       const controls = applyHostControl(text, ctx);
       if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
-      if (ctx.globalPause === true || ctx.globalPause && ctx.globalPause.set === true) return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
+      // Combine repair (2026-10-15, Codex defect): the blanket gate below
+      // short-circuited EVERY turn under any pause, steamrolling 142's
+      // contract (pause inspection, natural-word lifting, action-only hold)
+      // for router-set pauses. The gate now scopes to account-control pauses
+      // only (source:"account_control" — the transactional account record);
+      // router pauses fall through to dispatch, where 142's ownership-layer
+      // pause control + action-only gate enforce them.
+      if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }

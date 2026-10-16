@@ -22,7 +22,7 @@ career tests and profile fixtures remain unchanged. No production claim is made.
 | C2-15 | Recommendation routes are read-only and preserve action ownership | Capture apply/send/watch asks |
 
 Run `node --test tests/capability2-grounding.test.cjs tests/capability2-bundle.test.cjs`
-and `node evals/depth/CAPABILITY2.mutations.cjs`. The mutation runner uses isolated
+and `node evals/depth/CAPABILITY2-mutation-runner.cjs`. The mutation runner uses isolated
 copies and records a targeted failing assertion for each defect. Results and
 limitations are recorded in docs/testing/runs/capability2-grounded-20261015/.
 

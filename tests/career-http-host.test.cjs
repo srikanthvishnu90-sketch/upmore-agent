@@ -73,9 +73,13 @@ test("kill switch halts, and the halt survives a snapshot round-trip into a fres
   const revived = JSON.parse(JSON.stringify(snap)); // must be JSON-safe (it rides a jsonb column)
   const ctx2 = freshCtx(revived);
   const out2 = host.runTurn("Go ahead and send my outreach emails now.", ctx2);
-  assert.equal(out2.intent, "career_paused");
-  assert.equal(out2.handler, "CareerHostControl");
-  assert.equal(out2.action, null);
+  // Combine repair (2026-10-15): 7f2b11d re-pinned this router-pause case to
+  // the host blanket gate's career_paused; that gate was a Codex defect (it
+  // made router pauses un-inspectable and un-liftable). Restored to the
+  // afc460e contract: 142's action-only hold answers paused_hold/blocked.
+  // The account-control career_paused contract stays pinned by the
+  // persistence suites.
+  assert.equal(out2.intent, "paused_hold");
   assert.equal(out2.resultStatus, "blocked");
 });
 

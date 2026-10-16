@@ -21746,7 +21746,13 @@ const CareerRouter = (() => {
   // pool; ctx.batchDeps may carry { postings, log, boardFor,
   // portalProfile (149-shaped), profileFor, attestations, track }.
   // Without a host-supplied boardFor, drives stop named BOARD_NOT_WIRED
-  // — honest, never faked. With ctx.batchDeps.delegateBatch set (the
+  // — honest, never faked. CLAIM LAW (BUG-240 / FR-398): once the ask
+  // parses, this seam NEVER declines silently — every composition gets
+  // a named outcome (a delegate skeleton, a prepared run, per-app
+  // BOARD_NOT_WIRED stops, or the PROFILE_REQUIRED claim when the
+  // in-turn path's one prerequisite is absent); the generic fallback
+  // on a parsed batch ask is the defect FR-398's staged live-shape
+  // test guards against. With ctx.batchDeps.delegateBatch set (the
   // J10 deployed composition), the ask instead creates the run
   // skeleton and delegates preparation to the browser worker via a
   // committed batch intent — see the delegate branch in
@@ -21812,7 +21818,6 @@ const CareerRouter = (() => {
     }
     const ask = BatchApply.parseApplyAsk(text);
     if (!ask) return null;
-    if (!c.profile) return null; // no profile yet: the onboarding routes own the turn
     const run = BatchApply.createRun({ userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText: ask.familyText, count: ask.count, now: nowOf(c) });
     if (depsIn.delegateBatch === true) {
       // J10 DELEGATE MODE (the deployed-runtime composition): the host
@@ -21831,6 +21836,25 @@ const CareerRouter = (() => {
       c.batchApplyState = BatchApply.serializeRun(run);
       return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "prepare", runId: run.id }, sends: 0,
         reply: `I've handed this batch to the browser worker to prepare: it will find ${ask.count} ${ask.familyText} roles, screen out the ones that don't fit, tailor each application, and bring the batch back here at the final review screen. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.` };
+    }
+    if (!c.profile) {
+      // BUG-240 / FR-398 (v224 live gauntlet): the in-turn path screens
+      // and tailors from the profile's confirmed facts, so without one
+      // it cannot run — but the ask is still THIS route's, and the seam
+      // must claim it and name the missing prerequisite instead of
+      // declining silently. The old silent return dropped the owner's
+      // acceptance message to the generic fallback on the deployed
+      // product: a live thread's snapshot carries no profile store
+      // until onboarding builds one in that thread, and the onboarding
+      // routes run BEFORE this router in the host dispatch and already
+      // passed on the text — nothing downstream claims it either. (The
+      // delegate branch above deliberately precedes this claim: in
+      // delegate mode the worker resolves the user's own sources in
+      // its process, so a thread-local profile is not its
+      // prerequisite.) No run is manufactured here: a run prepared
+      // from no facts would be a hollow record.
+      return { intent: "career_batch_apply", resultStatus: "awaiting_user", code: "PROFILE_REQUIRED", sends: 0,
+        reply: compose({ headline: `That batch — apply to ${ask.count} ${ask.familyText} roles — is a run I can do, but it can't start yet: there's no career profile in this conversation.`, facts: ["The batch screens roles against your confirmed facts and tailors every application from them. With no profile loaded I have no facts to screen or tailor with, so I won't start it from nothing."], nextStep: "Send me your resume — paste it, or just describe your background — and I'll build your profile here; then the same message runs the batch. Nothing was started and nothing was submitted.", reply: `That batch — apply to ${ask.count} ${ask.familyText} roles — can't start yet: there's no career profile in this conversation, and the batch screens and tailors from your confirmed facts. Send me your resume and I'll build your profile here; then the same message runs the batch. Nothing was started and nothing was submitted.` }) };
     }
     const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
     BatchApply.prepareRun(run, batchDepsFor(c, log, pool));

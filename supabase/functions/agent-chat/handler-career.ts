@@ -182,7 +182,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) {
-        if (groundedEnabled(Deno.env)&&loaded.replay.meta?.career_dialogue?.version==='career_dialogue/v2') {
+        if (loaded.replay.meta?.career_dialogue?.version==='career_dialogue/v2') {
           const check=await admin.rpc('career_model_replay_check_v2',{p_user:user.id,p_thread:tid,p_key:turnKey,p_hash:requestHash});
           if(check.error||check.data?.ok!==true)throw Object.assign(new Error('career_context_changed'),{code:'career_model_context_changed'});
         }

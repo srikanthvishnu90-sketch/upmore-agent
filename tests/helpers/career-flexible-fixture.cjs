@@ -8,7 +8,10 @@ function receipt(request){return {version:'career_semantic_receipt/v1',verifier_
 function candidate(view){const fact=view.facts.find(f=>f.kind==='project');return {version:'career_grounded_reply/v2',blocks:[{kind:'prose',text:'It makes sense to want an answer that feels honest and still shows the work clearly.',claim_ids:[]},{kind:'draft',text:fact.text,claim_ids:['C1']},{kind:'question',text:'Which part of that work felt hardest to explain?',claim_ids:[]}],claims:[{id:'C1',text:fact.text,scope:'person',evidence_ids:[fact.id]}]};}
 function contextRead(dbs,user,thread,a){
  const db=dbs.get(user),rows=[...(db.receipts?.values()||[])].map(r=>r.response).filter(r=>r.meta?.career_dialogue?.epoch===(db.account?.epoch||0));
- const barrier=Math.max(0,...rows.filter(r=>r.meta.career_dialogue.barrier).map(r=>r.meta.career_dialogue.account_version));
+ const versions=[...new Set(rows.map(r=>r.meta.career_dialogue.account_version))].sort((a,b)=>a-b);let previous=0,gap=0;
+ for(const v of versions){if(v>previous+1)gap=v-1;previous=v;}
+ if(previous<(db.version||0))gap=db.version;
+ const barrier=Math.max(gap,...rows.filter(r=>r.meta.career_dialogue.barrier).map(r=>r.meta.career_dialogue.account_version));
  const current=rows.filter(r=>r.thread_id===thread&&r.meta.career_dialogue.account_version>barrier).sort((x,y)=>x.meta.career_dialogue.account_version-y.meta.career_dialogue.account_version);
  return {ok:true,user_id:user,thread_id:thread,revision:db.state.career.revision||0,account_version:db.version||0,epoch:db.account?.epoch||0,barrier_version:barrier,dialogue:current.slice(-8).map(r=>({user:r.meta.career_dialogue.user_text,assistant:r.reply})),current_draft:[...current].reverse().find(r=>r.meta.career_model?.current_draft)?.meta.career_model.current_draft||null};
 }

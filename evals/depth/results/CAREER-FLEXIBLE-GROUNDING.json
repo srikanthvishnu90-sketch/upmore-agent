@@ -1,0 +1,137 @@
+{
+ "capability": "CAREER-FLEXIBLE-GROUNDING",
+ "run_at": "2026-10-16T23:20:09.731Z",
+ "commit": "3e05a64c7f22bb0ebf1b182af1b06b146fc9d892",
+ "runner": "scripts/career/flexible-grounding/mutations.cjs",
+ "evidence": "docs/testing/runs/career-flexible-grounding-20261016/spec-a-ci-compat",
+ "baseline_all_green": true,
+ "sub_capabilities": 15,
+ "proven": 15,
+ "problems": [],
+ "rows": [
+  {
+   "id": "T01",
+   "sub": "S01",
+   "test": "^T01 flexible prose",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T02",
+   "sub": "S02",
+   "test": "^T02 unavailable verifier",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T03",
+   "sub": "S03",
+   "test": "^T03 known IDs",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T04",
+   "sub": "S04",
+   "test": "^T04 unlisted",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T05",
+   "sub": "S05",
+   "test": "^T05 reject model action",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T06",
+   "sub": "S06",
+   "test": "^T06 owned context",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T07",
+   "sub": "S07",
+   "test": "^T07 recent dialogue",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T08",
+   "sub": "S08",
+   "test": "^T08 correction and withdrawal",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T09",
+   "sub": "S09",
+   "test": "^T09 current sourced",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T10",
+   "sub": "S10",
+   "test": "^T10 current draft",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T11",
+   "sub": "S11",
+   "test": "^T11 jd_text",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T12",
+   "sub": "S12",
+   "test": "^T12 request JSON",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T13",
+   "sub": "S13",
+   "test": "^T13 shared budget",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T14",
+   "sub": "S14",
+   "test": "^T14 assistant/draft",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  },
+  {
+   "id": "T15",
+   "sub": "S15",
+   "test": "^T15 generated metadata",
+   "applied": true,
+   "bites": true,
+   "status": "proven"
+  }
+ ],
+ "verification": "MOCK_CONTRACT",
+ "actualModelQuality": "NOT_RUN",
+ "actualSemanticVerifierQuality": "NOT_RUN",
+ "paidCalls": 0
+}

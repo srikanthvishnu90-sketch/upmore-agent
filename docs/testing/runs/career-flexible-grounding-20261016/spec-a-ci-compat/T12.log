@@ -1,0 +1,33 @@
+(node:208713) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:208713) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ T12 request JSON and headers cannot inject a semantic verifier into the default server handler (215.933446ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 272.847069
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:18:1
+✖ T12 request JSON and headers cannot inject a semantic verifier into the default server handler (215.933446ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'generated'
+  - 'semantic_verifier_unavailable'
+  
+      at TestContext.<anonymous> (/tmp/upmore-grounded-mutations-gG1YxB/repo/tests/career-flexible-grounding.test.cjs:18:623)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'semantic_verifier_unavailable',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,24 @@
+{
+  "recordedAt": "2026-10-16T23:28:43.627335+00:00",
+  "testedSqlSource": "d26b59857bc2bcd8aa885869e9b302bf0aa04970",
+  "sqlFiles": 12,
+  "sqlTestsPassed": 134,
+  "fixtureRemoved": true,
+  "mutationSource": "3e05a64c7f22bb0ebf1b182af1b06b146fc9d892",
+  "flexibleMutationControlsKilled": 15,
+  "commonMutationGuardReportTests": 3,
+  "node22BehaviorSubset": {
+    "tests": 104,
+    "pass": 93,
+    "fail": 11
+  },
+  "alertNode22": {
+    "pass": 8,
+    "cancelled": 2
+  },
+  "denoLocal": "NOT_RUN_JSR_DEPENDENCY_HTTP_403",
+  "wholeCi": "RED_BASELINE_RUN_38976248496_NEW_RUN_PENDING_PUBLICATION",
+  "actualModelQuality": "NOT_RUN",
+  "browserOutcomes": 0,
+  "paidCalls": 0
+}

@@ -1,0 +1,205 @@
+{
+  "token": "d3bdd47e997f6256",
+  "commit": "d26b59857bc2bcd8aa885869e9b302bf0aa04970",
+  "evidenceTier": "MOCK_CONTRACT_AND_LOCAL_POSTGRES",
+  "selection": "--postgres-only",
+  "rootFiles": 349,
+  "selectedFiles": 12,
+  "sqlFiles": [
+    "career-flexible-grounding-postgres.test.cjs",
+    "career-model-budget-postgres.test.cjs",
+    "career-persistence-postgres.test.cjs",
+    "career-public-research-postgres.test.cjs",
+    "career-task-authority-postgres.test.cjs",
+    "correction-authority-postgres.test.cjs",
+    "model-budget-independent-postgres.test.cjs",
+    "model-monthly-independent-postgres.test.cjs",
+    "privacy-research-composition.test.cjs",
+    "research-conversation-independent-postgres.test.cjs",
+    "resume-flexible-composition-postgres.test.cjs",
+    "resume-supersession-postgres.test.cjs"
+  ],
+  "started": "2026-10-16T23:24:15.434Z",
+  "runs": [
+    {
+      "label": "postgres-0",
+      "files": [
+        "career-flexible-grounding-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-flexible-grounding-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-1",
+      "files": [
+        "career-model-budget-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-model-budget-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-2",
+      "files": [
+        "career-persistence-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-persistence-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-3",
+      "files": [
+        "career-public-research-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-public-research-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-4",
+      "files": [
+        "career-task-authority-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-task-authority-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-5",
+      "files": [
+        "correction-authority-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/correction-authority-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-6",
+      "files": [
+        "model-budget-independent-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/model-budget-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-7",
+      "files": [
+        "model-monthly-independent-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/model-monthly-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-8",
+      "files": [
+        "privacy-research-composition.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/privacy-research-composition.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-9",
+      "files": [
+        "research-conversation-independent-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/research-conversation-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-10",
+      "files": [
+        "resume-flexible-composition-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/resume-flexible-composition-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-11",
+      "files": [
+        "resume-supersession-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/resume-supersession-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "out": "/tmp/upmore-ci-node-guapGD",
+  "paidCalls": 0,
+  "browserOutcomes": 0,
+  "fixture": {
+    "container": "upmore-career-integration-pg-ci-d3bdd47e997f6256",
+    "network": "none",
+    "image": "postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+    "databaseVersion": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+  },
+  "ownedFixtureRemoved": true,
+  "finished": "2026-10-16T23:27:34.632Z",
+  "pass": true
+}

@@ -1,0 +1,11 @@
+✔ every planted defect in every depth packet still applies, each patch matching exactly once (141.374439ms)
+✔ the report is current and every recorded planted defect bit (73.63981ms)
+✔ every domain module appears, as covered or as a gap, and no module is in both (3.542217ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 207.235701

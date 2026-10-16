@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: G1 seed cycle: first run establishes the baseline and alerts on nothing
+ok 1 - G1 seed cycle: first run establishes the baseline and alerts on nothing
+  ---
+  duration_ms: 7.528732
+  type: 'test'
+  ...
+# Subtest: G1+G2: a genuinely new posting emits exactly one typed alert with correct latency math
+ok 2 - G1+G2: a genuinely new posting emits exactly one typed alert with correct latency math
+  ---
+  duration_ms: 7.134119
+  type: 'test'
+  ...
+# Subtest: G6 gate: senior and manager postings produce NO alert even when new
+ok 3 - G6 gate: senior and manager postings produce NO alert even when new
+  ---
+  duration_ms: 4.460697
+  type: 'test'
+  ...
+# Subtest: G6 gate: a new intern posting outside the watched families produces NO alert
+ok 4 - G6 gate: a new intern posting outside the watched families produces NO alert
+  ---
+  duration_ms: 2.340679
+  type: 'test'
+  ...
+# Subtest: G6 gate: a hard-excluded intern posting (scoreFit) produces NO alert
+ok 5 - G6 gate: a hard-excluded intern posting (scoreFit) produces NO alert
+  ---
+  duration_ms: 1.10443
+  type: 'test'
+  ...
+# Subtest: no duplicates: a second cycle over the same board state emits nothing new
+ok 6 - no duplicates: a second cycle over the same board state emits nothing new
+  ---
+  duration_ms: 1.012673
+  type: 'test'
+  ...
+# Subtest: removals are counted silently: a posting that disappears never alerts
+ok 7 - removals are counted silently: a posting that disappears never alerts
+  ---
+  duration_ms: 0.753673
+  type: 'test'
+  ...
+# Subtest: per-board degradation: one board throwing names that board in errors[], the rest still process
+ok 8 - per-board degradation: one board throwing names that board in errors[], the rest still process
+  ---
+  duration_ms: 1.333786
+  type: 'test'
+  ...
+# Subtest: G7 deadline: a board whose fetch never resolves is cut off at the watch-level deadline
+not ok 9 - G7 deadline: a board whose fetch never resolves is cut off at the watch-level deadline
+  ---
+  duration_ms: 11.786084
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-alert-watch.test.cjs:194:1'
+  failureType: 'cancelledByParent'
+  error: 'Promise resolution is still pending but the event loop has already resolved'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    process.emit (node:events:519:28)
+  ...
+# Subtest: cycle result is typed and complete
+not ok 10 - cycle result is typed and complete
+  ---
+  duration_ms: 0
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-alert-watch.test.cjs:207:1'
+  failureType: 'cancelledByParent'
+  error: 'Promise resolution is still pending but the event loop has already resolved'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    process.emit (node:events:519:28)
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 8
+# fail 0
+# cancelled 2
+# skipped 0
+# todo 0
+# duration_ms 90.85222

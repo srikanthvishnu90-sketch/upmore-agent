@@ -1,0 +1,96 @@
+{
+  "cohort": "INDEPENDENT_CAPABILITY2_HOLDOUTS_v1",
+  "pass": 21,
+  "fail": 1,
+  "results": [
+    {
+      "id": "H01",
+      "status": "PASS"
+    },
+    {
+      "id": "H02",
+      "status": "PASS"
+    },
+    {
+      "id": "H03",
+      "status": "PASS"
+    },
+    {
+      "id": "H04",
+      "status": "PASS"
+    },
+    {
+      "id": "H05",
+      "status": "PASS"
+    },
+    {
+      "id": "H06",
+      "status": "PASS"
+    },
+    {
+      "id": "H07",
+      "status": "PASS"
+    },
+    {
+      "id": "H08",
+      "status": "PASS"
+    },
+    {
+      "id": "H09",
+      "status": "PASS"
+    },
+    {
+      "id": "H10",
+      "status": "PASS"
+    },
+    {
+      "id": "H11",
+      "status": "PASS"
+    },
+    {
+      "id": "H12",
+      "status": "PASS"
+    },
+    {
+      "id": "H13",
+      "status": "PASS"
+    },
+    {
+      "id": "H14",
+      "status": "PASS"
+    },
+    {
+      "id": "H15",
+      "status": "PASS"
+    },
+    {
+      "id": "H16",
+      "status": "PASS"
+    },
+    {
+      "id": "H17",
+      "status": "PASS"
+    },
+    {
+      "id": "H18",
+      "status": "PASS"
+    },
+    {
+      "id": "H19",
+      "status": "PASS"
+    },
+    {
+      "id": "H20",
+      "status": "FAIL",
+      "error": "another owner inherited a correction from module-global cache\n\nfalse !== true\n"
+    },
+    {
+      "id": "H21",
+      "status": "PASS"
+    },
+    {
+      "id": "H22",
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "cohort": "INDEPENDENT_CAPABILITY2_HOLDOUTS_v1",
+  "pass": 11,
+  "fail": 11,
+  "results": [
+    {
+      "id": "H01",
+      "status": "FAIL",
+      "error": "Expected \"actual\" to be strictly unequal to:\n\n'evidence_present'"
+    },
+    {
+      "id": "H02",
+      "status": "FAIL",
+      "error": "Expected \"actual\" to be strictly unequal to:\n\n'evidence_present'"
+    },
+    {
+      "id": "H03",
+      "status": "FAIL",
+      "error": "Expected \"actual\" to be strictly unequal to:\n\n'evidence_present'"
+    },
+    {
+      "id": "H04",
+      "status": "FAIL",
+      "error": "Expected \"actual\" to be strictly unequal to:\n\n'evidence_present'"
+    },
+    {
+      "id": "H05",
+      "status": "PASS"
+    },
+    {
+      "id": "H06",
+      "status": "PASS"
+    },
+    {
+      "id": "H07",
+      "status": "PASS"
+    },
+    {
+      "id": "H08",
+      "status": "FAIL",
+      "error": "legacy fact_id silently changed in returned profile"
+    },
+    {
+      "id": "H09",
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\n1 !== 0\n"
+    },
+    {
+      "id": "H10",
+      "status": "PASS"
+    },
+    {
+      "id": "H11",
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\n1 !== 0\n"
+    },
+    {
+      "id": "H12",
+      "status": "PASS"
+    },
+    {
+      "id": "H13",
+      "status": "PASS"
+    },
+    {
+      "id": "H14",
+      "status": "PASS"
+    },
+    {
+      "id": "H15",
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "id": "H16",
+      "status": "PASS"
+    },
+    {
+      "id": "H17",
+      "status": "FAIL",
+      "error": "explicit named skill lost by actual route"
+    },
+    {
+      "id": "H18",
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\nundefined !== 60\n"
+    },
+    {
+      "id": "H19",
+      "status": "PASS"
+    },
+    {
+      "id": "H20",
+      "status": "FAIL",
+      "error": "another owner inherited a correction from module-global cache\n\nfalse !== true\n"
+    },
+    {
+      "id": "H21",
+      "status": "PASS"
+    },
+    {
+      "id": "H22",
+      "status": "PASS"
+    }
+  ]
+}

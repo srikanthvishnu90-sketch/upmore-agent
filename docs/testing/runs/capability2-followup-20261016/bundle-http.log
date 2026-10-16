@@ -1,0 +1,28 @@
+(node:5202) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5202) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ C2 bundle: all 120 resumes traverse generated career and full bundles identically (2278.240433ms)
+✔ C2 bundle: host-injected fresh observations route with citations and requirement gaps (3.899073ms)
+✔ C2 HTTP: actual staged entry restores profile, recommends roles/gaps/locations, refuses fake current jobs (317.969289ms)
+(node:5208) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5208) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual staged HTTP retains named SQL skill, weekly budget and canonical profile (654.06913ms)
+✔ generated ESM bundle repeats frozen evidence/source/ID boundaries (337.686764ms)
+(node:5210) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5210) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ staging reaches the safe modules, with Node browser code excluded (330.94384ms)
+✔ actual staged chat gives guidance from 144, never the fallback or a template substitute (390.816944ms)
+✔ actual staged chat saves, restores and manages a watch without claiming delivery (108.685238ms)
+✔ actual staged watch ask without a profile requests facts and saves no watch (104.413033ms)
+✔ actual staged apply ask names the missing browser worker and submits nothing (203.574082ms)
+✔ bundled 151 -> 152 executes with no require: seed suppresses, new job queues once without delivery (230.58205ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2719.559422

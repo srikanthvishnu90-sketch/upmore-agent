@@ -1,0 +1,41 @@
+✔ host plumbing: STATE_KEYS carries alertWatchState (108.641322ms)
+✔ host plumbing: a watch created in one thread is listed from a fresh thread restored from the snapshot (44.827348ms)
+✔ host plumbing: a read-only turn materializes no watch state (4.569234ms)
+✔ adapter: probe reports WIRED when the table answers (0.920889ms)
+✔ adapter: probe reports NOT_WIRED with the missing-table reason when the table is absent (0.553545ms)
+✔ adapter: construction without a client is NOT_WIRED and names why (0.738464ms)
+✔ adapter: get/set round-trips through the table stand-in, per user (0.660967ms)
+✔ adapter: operations against an absent table fail NOT_WIRED, never a fake write (0.602709ms)
+✔ e2e: the seed cycle through the Supabase store delivers 0 (8.005799ms)
+✔ e2e: the new IB posting delivers exactly one record, deadline verbatim (23.108395ms)
+✔ e2e: fit lines carry the F-012 proven-skill line and a match-basis line; speak_line quotes the deadline (0.184128ms)
+✔ e2e: a full re-run delivers 0 new and the delivered log holds exactly 1 record (1.057986ms)
+✔ bridge (BUG-232): watchCycleProfile derives the gate's watched occupations from the interests — and never overrides a profile's own watch leg (0.241354ms)
+✔ e2e: a re-presented duplicate is refused by the ledger; the table's queue is empty (0.489658ms)
+(node:5296) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5296) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ staging reaches the safe modules, with Node browser code excluded (416.316286ms)
+✔ actual staged chat gives guidance from 144, never the fallback or a template substitute (372.333718ms)
+✔ actual staged chat saves, restores and manages a watch without claiming delivery (289.290877ms)
+✔ actual staged watch ask without a profile requests facts and saves no watch (126.957387ms)
+✔ actual staged apply ask names the missing browser worker and submits nothing (133.092327ms)
+✔ bundled 151 -> 152 executes with no require: seed suppresses, new job queues once without delivery (138.426354ms)
+(node:5298) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5298) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ failed state load is unavailable with no messages (412.169941ms)
+✔ failed state commit cannot acknowledge saved watch (144.678243ms)
+✔ failed assistant write cannot return success or partial turn (156.701142ms)
+✔ same turn key replays exactly one saved message pair (215.753217ms)
+✔ changed payload under same key is rejected (114.570392ms)
+✔ malformed storage response cannot become a false HTTP success (182.119999ms)
+✔ lost commit receipt returns unavailable and a stable-key retry reads the committed pair (102.529594ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1955.643054

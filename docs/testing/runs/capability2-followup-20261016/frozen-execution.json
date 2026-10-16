@@ -1,0 +1,78 @@
+{
+  "executed_source_sha": "9dda51936777fc4882f5e280631f3fb3d010f4f0",
+  "source_hashes": {
+    "packages/domain/154-career-recommendations.js": "82de72226605dc98863e73cd9c10a917dfaf242bb27765de1e33569693863b63",
+    "packages/domain/142-career-router.js": "f002fe8573f89e51b413a0c582af1c13eb0adb87a770c9e2fb5c92a39a565546",
+    "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f"
+  },
+  "frozen_manifest_source_sha": "3157b65c84a4108f5320b2b91cd6f8a3ac577078",
+  "manifest_sha256": "3b4ef7727ef295f9b196e8c8e5fbaccbf44dd4f08d2f0189a00757f848490857",
+  "runner_sha256": "421d10e668e409afd69165188d63a77cb454431463bde8c612e7a76ec8fa1a4c",
+  "host_file": "/workspace/capability2-followup-private/atomic-composition/supabase/functions/_shared/career_host.js",
+  "host_sha256": "6d5dce25c716a1f8c8c3171e533e6854cb2270422d337d3517614585d3c5ea50",
+  "pass": 21,
+  "fail": 1,
+  "failures": [
+    {
+      "id": "H20",
+      "rule": "Canonical correction state cannot cross authenticated owners that share a default profile ID",
+      "status": "FAIL",
+      "observed": {
+        "owner_a": [
+          {
+            "fact_id": "F-001",
+            "field": "graduation_date",
+            "from": "2027",
+            "to": "2028",
+            "source": "resume-new.txt"
+          }
+        ],
+        "owner_b_fact": {
+          "id": "F-001",
+          "kind": "education",
+          "title": "Education: graduation date conflict",
+          "text": "resume-old.txt says 2027; resume-new.txt says 2028 Resolved by your instruction to use the new resume: 2028.",
+          "needs_confirmation": false,
+          "bullets": [],
+          "skills": [],
+          "evidence": [],
+          "source": "user",
+          "status": "confirmed",
+          "resolution": {
+            "source": "resume-new.txt",
+            "value": "2028",
+            "basis": "user instruction in chat: use the new resume; the old one is wrong",
+            "at": null
+          }
+        },
+        "owner_b_corrections": [
+          {
+            "at": 1792065600000,
+            "instruction": "Use the new resume; the old resume is wrong",
+            "source": "resume-new.txt",
+            "precedence": "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+            "changes": [
+              {
+                "fact_id": "F-001",
+                "field": "graduation_date",
+                "from": "2027",
+                "to": "2028",
+                "source": "resume-new.txt"
+              }
+            ],
+            "outcome": "user-directed correction"
+          }
+        ],
+        "owner_b_sources": {
+          "active": "resume-new.txt",
+          "status": "active_new_wins",
+          "precedence": "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted"
+        }
+      },
+      "error": "another owner inherited a correction from module-global cache\n\nfalse !== true\n"
+    }
+  ],
+  "rules_modified": false,
+  "source_alias_only": true,
+  "live_verification": false
+}

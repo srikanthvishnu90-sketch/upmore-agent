@@ -1,0 +1,53 @@
+✔ I04 canonical public URL gate includes multiply encoded restricted actions (3.432304ms)
+✔ I10 private, mapped and mixed DNS answers never create a request (9.721331ms)
+✔ I11-I12 DNS pins validated address, preserves TLS defaults and refuses redirects (6.846656ms)
+✔ I14 old and future captures are rejected rather than called current observations (15.612439ms)
+✔ I15 correlation binds task, intent, URL, navigation and source digest (11.233494ms)
+✔ I16 hashed PNG signatures and malformed chunks are not screenshots (4.351991ms)
+✔ I13-I21-I23 source instructions stay untrusted and research exposes no application operation (4.54794ms)
+✔ I20 uncertain read followed by repeated worker polling never reads twice (2.022857ms)
+✔ I22 retry publishes a locally captured artifact after an unconfirmed central finish without rereading (3.849794ms)
+✔ I25 source-size, type and status limits refuse dishonest captures (1.418409ms)
+✔ I22 supplementary: uncertain publication retries the exact already committed task receipt (3.781578ms)
+✖ I10 supplementary: compressed IPv6 cannot evade the tunnelling/special-range gate (1.778906ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 162.220307
+
+✖ failing tests:
+
+test at tests/research-conversation-independent-source.test.cjs:17:1
+✖ I10 supplementary: compressed IPv6 cannot evade the tunnelling/special-range gate (1.778906ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'RESEARCH_DNS_REFUSED'
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs:17:228)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: Cannot read properties of undefined (reading 'setTimeout')
+        at /workspace/upmore-research-review/workers/career-browser/research-network.cjs:34:9
+        at new Promise (<anonymous>)
+        at Object.publicGet (/workspace/upmore-research-review/workers/career-browser/research-network.cjs:22:10)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs:17:228)
+        at async Test.run (node:internal/test_runner/test:1389:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:960:7),
+    expected: { code: 'RESEARCH_DNS_REFUSED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }

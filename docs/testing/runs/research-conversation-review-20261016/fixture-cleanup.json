@@ -1,0 +1,12 @@
+{
+  "container": "upmore-career-integration-pg-recovery",
+  "checkedNetworkMode": "none",
+  "action": [
+    "docker",
+    "rm",
+    "-f",
+    "upmore-career-integration-pg-recovery"
+  ],
+  "result": "removed after transcript and database dump capture",
+  "productionMutations": 0
+}

@@ -1,0 +1,3817 @@
+[
+  {
+    "caseId": "H07",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T02:27:01.170Z",
+    "input": {
+      "message": "I need junior research analyst work, remote only, paid, and part-time.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H07-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "H07-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-1",
+          "p_hash": "d34bd9261fdd1abf89f5a620d1c42ba6b753f5c54017f944102b9831bed94c76"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-1",
+          "p_hash": "d34bd9261fdd1abf89f5a620d1c42ba6b753f5c54017f944102b9831bed94c76",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need junior research analyst work, remote only, paid, and part-time",
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need junior research analyst work, remote only, paid, and part-time.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H07-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H07",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T02:27:01.972Z",
+    "input": {
+      "message": "Exclude senior management roles. I cannot relocate.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H07-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "H07-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-2",
+          "p_hash": "2feda37d70b2cbcf13caffe14b425fd0027aec5eae4dd6fd865a8a50e1559a8c"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-2",
+          "p_hash": "2feda37d70b2cbcf13caffe14b425fd0027aec5eae4dd6fd865a8a50e1559a8c",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need junior research analyst work, remote only, paid, and part-time",
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Exclude senior management roles. I cannot relocate.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H07-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H07",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T02:27:03.004Z",
+    "input": {
+      "message": "I need sponsorship from an employer.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H07-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "intent_sensitive_correction",
+          "contained": false,
+          "result_status": "completed"
+        },
+        "reply": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "H07-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-3",
+          "p_hash": "b585b8538c7fab73b4fa758c1ab092a6463a29ddeaabb382c3a4dfbc70a56860"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-3",
+          "p_hash": "b585b8538c7fab73b4fa758c1ab092a6463a29ddeaabb382c3a4dfbc70a56860",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {
+                  "workAuthorization": "I need sponsorship from an employer",
+                  "needsSponsorship": true
+                },
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "fact_version": 1,
+                "profile_corrections": [
+                  {
+                    "at": 1792117622748,
+                    "instruction": "I need sponsorship from an employer.",
+                    "source": "chat correction",
+                    "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                    "changes": [
+                      {
+                        "field": "work_authorization",
+                        "from": null,
+                        "to": "I need sponsorship from an employer"
+                      },
+                      {
+                        "field": "needs_sponsorship",
+                        "from": null,
+                        "to": true
+                      }
+                    ],
+                    "outcome": "user-directed correction",
+                    "via": "130-career-onboarding visa write (answerCurrent)"
+                  }
+                ],
+                "dependent_state": {
+                  "invalidated": true,
+                  "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)",
+                  "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts"
+                }
+              },
+              "doorstepState": {
+                "invalidation": {
+                  "active": true,
+                  "reason": "sensitive_fact_corrected",
+                  "at": 1792117622748,
+                  "instruction": "I need sponsorship from an employer.",
+                  "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid"
+                },
+                "invalidations": [
+                  {
+                    "active": true,
+                    "reason": "sensitive_fact_corrected",
+                    "at": 1792117622748,
+                    "instruction": "I need sponsorship from an employer.",
+                    "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need junior research analyst work, remote only, paid, and part-time",
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need sponsorship from an employer.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H07-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "intent_sensitive_correction",
+              "result_status": "completed",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H07",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T02:27:03.826Z",
+    "input": {
+      "message": "If I could move to Phoenix, what might change?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H07-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_nonactual",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+        "action": null,
+        "turn_key": "H07-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "d3cc576d-5b4d-4fb3-9096-e004154bbc34",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-4"
+          },
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "f0493a36-4199-4734-ae3e-cfbbc0def0b2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "If I could move to Phoenix, what might change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-4",
+          "p_hash": "24e9b514ad6d728672e3602c0edc34e8ca9ac160df955f2a403e1f6437c9ccc8"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-4",
+          "p_hash": "24e9b514ad6d728672e3602c0edc34e8ca9ac160df955f2a403e1f6437c9ccc8",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {
+                  "needsSponsorship": true,
+                  "workAuthorization": "I need sponsorship from an employer"
+                },
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "fact_version": 1,
+                "dependent_state": {
+                  "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+                  "invalidated": true,
+                  "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "profile_corrections": [
+                  {
+                    "at": 1792117622748,
+                    "via": "130-career-onboarding visa write (answerCurrent)",
+                    "source": "chat correction",
+                    "changes": [
+                      {
+                        "to": "I need sponsorship from an employer",
+                        "from": null,
+                        "field": "work_authorization"
+                      },
+                      {
+                        "to": true,
+                        "from": null,
+                        "field": "needs_sponsorship"
+                      }
+                    ],
+                    "outcome": "user-directed correction",
+                    "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                    "instruction": "I need sponsorship from an employer."
+                  }
+                ]
+              },
+              "doorstepState": {
+                "invalidation": {
+                  "at": 1792117622748,
+                  "active": true,
+                  "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                  "reason": "sensitive_fact_corrected",
+                  "instruction": "I need sponsorship from an employer."
+                },
+                "invalidations": [
+                  {
+                    "at": 1792117622748,
+                    "active": true,
+                    "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                    "reason": "sensitive_fact_corrected",
+                    "instruction": "I need sponsorship from an employer."
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need junior research analyst work, remote only, paid, and part-time",
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "If I could move to Phoenix, what might change?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H07-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_nonactual",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H07",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T02:27:04.616Z",
+    "input": {
+      "message": "Repeat my actual constraints.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H07-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles; needs employer sponsorship: yes, from your saved answer. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "H07-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "d3cc576d-5b4d-4fb3-9096-e004154bbc34",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-4"
+          },
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "f0493a36-4199-4734-ae3e-cfbbc0def0b2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "If I could move to Phoenix, what might change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "d3cc576d-5b4d-4fb3-9096-e004154bbc34",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-4"
+          },
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "f0493a36-4199-4734-ae3e-cfbbc0def0b2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "If I could move to Phoenix, what might change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "47977456-b5bb-4698-97a2-08fc08551043",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles; needs employer sponsorship: yes, from your saved answer. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-5"
+          },
+          "created_at": "2026-10-16T02:27:04.47805+00:00"
+        },
+        {
+          "id": "b35362ae-f5ff-409c-9dce-6caca1fe8903",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Repeat my actual constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:04.47805+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-5",
+          "p_hash": "d6f1d1fcbb7d01aaff6e18d413747fa945bfead0793be936b93cbc87f14b1520"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-5",
+          "p_hash": "d6f1d1fcbb7d01aaff6e18d413747fa945bfead0793be936b93cbc87f14b1520",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {
+                  "needsSponsorship": true,
+                  "workAuthorization": "I need sponsorship from an employer"
+                },
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "fact_version": 1,
+                "dependent_state": {
+                  "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+                  "invalidated": true,
+                  "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "profile_corrections": [
+                  {
+                    "at": 1792117622748,
+                    "via": "130-career-onboarding visa write (answerCurrent)",
+                    "source": "chat correction",
+                    "changes": [
+                      {
+                        "to": "I need sponsorship from an employer",
+                        "from": null,
+                        "field": "work_authorization"
+                      },
+                      {
+                        "to": true,
+                        "from": null,
+                        "field": "needs_sponsorship"
+                      }
+                    ],
+                    "outcome": "user-directed correction",
+                    "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                    "instruction": "I need sponsorship from an employer."
+                  }
+                ]
+              },
+              "doorstepState": {
+                "invalidation": {
+                  "at": 1792117622748,
+                  "active": true,
+                  "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                  "reason": "sensitive_fact_corrected",
+                  "instruction": "I need sponsorship from an employer."
+                },
+                "invalidations": [
+                  {
+                    "at": 1792117622748,
+                    "active": true,
+                    "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                    "reason": "sensitive_fact_corrected",
+                    "instruction": "I need sponsorship from an employer."
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need junior research analyst work, remote only, paid, and part-time",
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Repeat my actual constraints.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "From this conversation's user-reported record: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles; needs employer sponsorship: yes, from your saved answer. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H07-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H07",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T02:27:05.630Z",
+    "input": {
+      "message": "Would a director role pass those constraints?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H07-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_constraints",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+        "action": null,
+        "turn_key": "H07-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "d3cc576d-5b4d-4fb3-9096-e004154bbc34",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-4"
+          },
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "f0493a36-4199-4734-ae3e-cfbbc0def0b2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "If I could move to Phoenix, what might change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "47977456-b5bb-4698-97a2-08fc08551043",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles; needs employer sponsorship: yes, from your saved answer. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-5"
+          },
+          "created_at": "2026-10-16T02:27:04.47805+00:00"
+        },
+        {
+          "id": "b35362ae-f5ff-409c-9dce-6caca1fe8903",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Repeat my actual constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:04.47805+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {
+              "needsSponsorship": true,
+              "workAuthorization": "I need sponsorship from an employer"
+            },
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "fact_version": 1,
+            "dependent_state": {
+              "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+              "invalidated": true,
+              "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "profile_corrections": [
+              {
+                "at": 1792117622748,
+                "via": "130-career-onboarding visa write (answerCurrent)",
+                "source": "chat correction",
+                "changes": [
+                  {
+                    "to": "I need sponsorship from an employer",
+                    "from": null,
+                    "field": "work_authorization"
+                  },
+                  {
+                    "to": true,
+                    "from": null,
+                    "field": "needs_sponsorship"
+                  }
+                ],
+                "outcome": "user-directed correction",
+                "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "doorstepState": {
+            "invalidation": {
+              "at": 1792117622748,
+              "active": true,
+              "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+              "reason": "sensitive_fact_corrected",
+              "instruction": "I need sponsorship from an employer."
+            },
+            "invalidations": [
+              {
+                "at": 1792117622748,
+                "active": true,
+                "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                "reason": "sensitive_fact_corrected",
+                "instruction": "I need sponsorship from an employer."
+              }
+            ]
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need junior research analyst work, remote only, paid, and part-time",
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "Exclude senior management roles. I cannot relocate.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "7731ea64-5c7d-450e-b4d1-ecd97640d702",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; remote work only; part-time work; role: I need junior research analyst work, remote only, paid, and part-time. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-1"
+          },
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "c5370b1a-2e8b-4707-a761-e29c60dc49eb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need junior research analyst work, remote only, paid, and part-time.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.007156+00:00"
+        },
+        {
+          "id": "77ad2d4e-4403-4727-b99a-6ff5d38106ef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Exclude senior management roles. I cannot relocate.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "d077a886-8729-4b79-810a-a77a22e91888",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-2"
+          },
+          "created_at": "2026-10-16T02:27:01.820044+00:00"
+        },
+        {
+          "id": "931fec43-55be-42d5-82f0-2feeaa612165",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "I need sponsorship from an employer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "e151948e-2b65-42c6-9d17-98459f6d3044",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Updated — I saved your corrected sponsorship answer to your profile.\nYou will need sponsorship in the future — that is what your profile now says. Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review. I can re-prepare it with the corrected answer and bring it back for your re-confirmation. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "intent_sensitive_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "H07-3"
+          },
+          "created_at": "2026-10-16T02:27:02.859394+00:00"
+        },
+        {
+          "id": "d3cc576d-5b4d-4fb3-9096-e004154bbc34",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-4"
+          },
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "f0493a36-4199-4734-ae3e-cfbbc0def0b2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "If I could move to Phoenix, what might change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:03.653255+00:00"
+        },
+        {
+          "id": "47977456-b5bb-4698-97a2-08fc08551043",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid work required; role: I need junior research analyst work, remote only, paid, and part-time; part-time work; remote work only; cannot relocate; exclude senior and director roles; needs employer sponsorship: yes, from your saved answer. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-5"
+          },
+          "created_at": "2026-10-16T02:27:04.47805+00:00"
+        },
+        {
+          "id": "b35362ae-f5ff-409c-9dce-6caca1fe8903",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Repeat my actual constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:04.47805+00:00"
+        },
+        {
+          "id": "2f9b4787-ec49-4ac3-875e-ed0e537bf035",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_constraints",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H07-6"
+          },
+          "created_at": "2026-10-16T02:27:05.342209+00:00"
+        },
+        {
+          "id": "b7b81ccd-ed5d-437f-9de1-47b169cbaa66",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Would a director role pass those constraints?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:05.342209+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-6",
+          "p_hash": "866137e109d9e3cc3fd55ab1092a2e703c8f441f6bb8323ed251d5979102f371"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "H07-6",
+          "p_hash": "866137e109d9e3cc3fd55ab1092a2e703c8f441f6bb8323ed251d5979102f371",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {
+                  "needsSponsorship": true,
+                  "workAuthorization": "I need sponsorship from an employer"
+                },
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "fact_version": 1,
+                "dependent_state": {
+                  "materials": "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts",
+                  "invalidated": true,
+                  "invalidated_by": "sensitive fact correction in chat (sponsorship / work authorization)"
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "profile_corrections": [
+                  {
+                    "at": 1792117622748,
+                    "via": "130-career-onboarding visa write (answerCurrent)",
+                    "source": "chat correction",
+                    "changes": [
+                      {
+                        "to": "I need sponsorship from an employer",
+                        "from": null,
+                        "field": "work_authorization"
+                      },
+                      {
+                        "to": true,
+                        "from": null,
+                        "field": "needs_sponsorship"
+                      }
+                    ],
+                    "outcome": "user-directed correction",
+                    "precedence": "the user's newer statement wins; the earlier statement is superseded, not deleted",
+                    "instruction": "I need sponsorship from an employer."
+                  }
+                ]
+              },
+              "doorstepState": {
+                "invalidation": {
+                  "at": 1792117622748,
+                  "active": true,
+                  "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                  "reason": "sensitive_fact_corrected",
+                  "instruction": "I need sponsorship from an employer."
+                },
+                "invalidations": [
+                  {
+                    "at": 1792117622748,
+                    "active": true,
+                    "detail": "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid",
+                    "reason": "sensitive_fact_corrected",
+                    "instruction": "I need sponsorship from an employer."
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need junior research analyst work, remote only, paid, and part-time",
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need junior research analyst work, remote only, paid, and part-time.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "Exclude senior management roles. I cannot relocate.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Would a director role pass those constraints?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H07-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_constraints",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

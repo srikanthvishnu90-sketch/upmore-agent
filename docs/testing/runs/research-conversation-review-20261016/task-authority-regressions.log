@@ -1,0 +1,64 @@
+(node:306784) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:306784) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ task intent, turn pair, snapshot and structured receipt commit and replay together (1133.107242ms)
+✔ late task binding rejection rolls back the already executed base turn (1229.140181ms)
+✔ missing version/action/identity cannot pass SQL null semantics (1488.878246ms)
+✔ event tombstone rejects the same event under a fresh turn key, even after erase (1268.602081ms)
+✔ committed STOP revokes queued claims and pending dispatch (1234.927763ms)
+✔ committed erase revokes queued claims and pending dispatch (955.391496ms)
+✔ another owner cannot claim, settle or read task evidence (1115.625615ms)
+✔ STOP between reserve and physical execution rejects consume; no effect is admitted (1148.364673ms)
+✔ erase after claim rejects the next effect and removes private central copies (1271.256774ms)
+✔ an admitted uncertain effect permanently blocks new DOM work under a new intent (2065.78489ms)
+✔ effect receipts reconcile lost acknowledgements and reject altered replay (1229.315754ms)
+✔ task result retains exact structured evidence and reconciles lost finish ack (1124.432426ms)
+✔ missing authority and async authority transports fail closed (162.565399ms)
+✖ concurrent STOP transaction wins the shared owner lock before a waiting claim (156.703926ms)
+✖ concurrent erase transaction wins the shared owner lock before a waiting claim (118.464002ms)
+✔ client roles have neither private table nor task RPC access; all functions are invoker (697.044556ms)
+✔ real worker queued task opens no MOCK board after committed STOP (1007.330133ms)
+✔ real worker queued task opens no MOCK board after committed erase (1065.020137ms)
+✔ running worker rechecks committed STOP before the next MOCK browser command (2186.059274ms)
+✔ running worker rechecks committed erase before the next MOCK browser command (1844.785442ms)
+✔ actual staged chat -> SQL outbox -> separate worker -> structured evidence; no phantom submit (13219.00827ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 19
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 35836.08105
+
+✖ failing tests:
+
+test at tests/career-task-authority-postgres.test.cjs:33:86
+✖ concurrent STOP transaction wins the shared owner lock before a waiting claim (156.703926ms)
+  AssertionError [ERR_ASSERTION]: explicit isolated local PG wire port required
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:34:58)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/career-task-authority-postgres.test.cjs:33:86
+✖ concurrent erase transaction wins the shared owner lock before a waiting claim (118.464002ms)
+  AssertionError [ERR_ASSERTION]: explicit isolated local PG wire port required
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:34:58)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -52337,6 +52337,496 @@
     "supabase/sql/proposals/career_public_research_v1.sql": "ffeab83654466013a321ba33788679cbcf4d609ffdb8bb9f40f249cd54ff4aa2",
     "docs/career/public-research/acceptance-15.json": "78dd1e5b20fb13b2844285ee27d7206c21170da098f3f5c803ea15bb8e7740fa"
    }
+  },
+  {
+   "id": "research-conversation-review-20261016:author-after-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/author-after-postgres/test.log",
+   "log_sha256": "24f447c9400174a6c6e9146b7b4ff29e66a17a64d0ffb3d4741e0dbc9dcbff43",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:author-after-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/author-after-source/test.log",
+   "log_sha256": "6f986838088e8265bcc82e450d5a8c66e491a488a690ae161487fbaa147c6125",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:author-before-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-source/tests/career-public-research-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "c574352c11958f9a27242a273255d88e72997be5",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/author-before-postgres/test.log",
+   "log_sha256": "a1e2c199c5ff1f5baa7536afa696ffd3d31635e19474f7b6bfe48b09fe290fdd",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:author-before-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-source/tests/career-public-research.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "c574352c11958f9a27242a273255d88e72997be5",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/author-before-source/test.log",
+   "log_sha256": "b6d42d84c595b83ca1619278e46fdd7bad7761d725a2c20e67adcce258042e5e",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:composition-before",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "6921ce97fb907300e0fb8d1af3826f093d238740",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/composition-before/test.log",
+   "log_sha256": "60631d11c5fd96dcbb57e290c3d336237a9c00213f1e2bffacdc76bbc75f056b",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:corrected-baseline-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "c574352c11958f9a27242a273255d88e72997be5",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/test.log",
+   "log_sha256": "7990301bc301442bdc9537fcfd8fd18b6b7b8286a25e58c1a8faddd08b884ecc",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:corrected-baseline-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "c574352c11958f9a27242a273255d88e72997be5",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source/test.log",
+   "log_sha256": "a9136fd561b6144f5664443e1bb20317bb516d07e25e3d7d30ef006a5564331f",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:final-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/final-postgres/test.log",
+   "log_sha256": "4b36de782725deeaa75522f3856f4d97d85194eee9d0a0bcbd74b566140a80b1",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:final-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/final-source/test.log",
+   "log_sha256": "492ce72a6989d2da79a229be4e328a1c5ee9c2f376686750549b0e839aae182b",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:fix-iteration-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9fdd38ca1f9a407a3d93c5b8ba791f723ef8ea80",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres/test.log",
+   "log_sha256": "d812258be839952c1a5e10652def52175a5122d31a0d5ef8831818182508d2ed",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:research-baseline",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "c574352c11958f9a27242a273255d88e72997be5",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/research-baseline/test.log",
+   "log_sha256": "42a16ba78c8a24d21071f449ccb40a3ef8f9bffcb973a55e465ce9d7331a02f7",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:regressions",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-bundle-reachability.test.cjs",
+    "tests/independent-worker-atomic-interplay.test.cjs",
+    "tests/career-durability.test.cjs",
+    "tests/career-portal-submit-path.test.cjs",
+    "tests/career-portal-apply.test.cjs",
+    "tests/career-apply-completion.test.cjs",
+    "tests/career-apply3.test.cjs",
+    "tests/career-owned-worker.test.cjs",
+    "tests/career-bundle.test.cjs",
+    "tests/router-bundle.test.cjs",
+    "tests/career-staged-size.test.cjs",
+    "tests/career-http-host.test.cjs",
+    "tests/career-guidance-entry.test.cjs",
+    "tests/career-alert-intents.test.cjs",
+    "tests/career-alerts-host-wiring.test.cjs",
+    "tests/career-alert-text-flow.test.cjs",
+    "tests/career-portal-caps.test.cjs",
+    "tests/career-portal-payload-binding.test.cjs",
+    "tests/career-unknown-outcome-resolver.test.cjs",
+    "tests/career-conversation-heldouts.test.cjs",
+    "tests/career-conversation-mechanisms.test.cjs",
+    "tests/career-tailor-fact-id-boundary.test.cjs",
+    "tests/career-clock-source-guard.test.cjs",
+    "tests/career-router-wedge.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/regressions.log",
+   "log_sha256": "2e16dbaa30b47f1c4f1cd08274c52127021424e0fc99636aa3fa24c2d38a7ce7",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:task-authority-regressions",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-task-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/task-authority-regressions.log",
+   "log_sha256": "f7002f8a05c9c2ff0df2351a1d8d0ec40208a59337b06c0cd5fe8ca792eb6464",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:research-composition-original",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "scripts/career/conversation-recovery/run.cjs",
+    "/workspace/upmore-research-review",
+    "research-composition-original",
+    "original"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/conversation-recovery-20261016/research-composition-original/metadata.json",
+   "log_sha256": "6ca4d97bee3785cb2ad7d36362b7146c7affe65d0c1beedd305778c511d94ac5",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:research-composition-heldouts",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "scripts/career/conversation-recovery/run.cjs",
+    "/workspace/upmore-research-review",
+    "research-composition-heldouts",
+    "heldouts"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/conversation-recovery-20261016/research-composition-heldouts/metadata.json",
+   "log_sha256": "ab3b8822db609365a81ac8a52318da2fc3691729a332c0fd21fcbd64100dc616",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:ipv6-before",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/ipv6-before/test.log",
+   "log_sha256": "413fa146297ef38cd5dd6daa9767d5ed6f43a38281736443bef31449d0f0e0a8",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:final-source-ipv6",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "3d0addd96bfa913b16c7377da56da3d44b347636",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/final-source-ipv6/test.log",
+   "log_sha256": "3c10dc602b4e6577d9c41ec95675d3f04df15712791f696d63e484e9590ad76b",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:final-postgres-ipv6",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "3d0addd96bfa913b16c7377da56da3d44b347636",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/final-postgres-ipv6/test.log",
+   "log_sha256": "8fbfc5805a06c7a5c8d878966b59a82a7900c82d1d3314b302f5d2560607bc44",
+   "screenshots": [],
+   "limitations": [
+    "No live browser or model-response-quality evidence.",
+    "See independent report for retained product, harness, invalid-fixture and missing-wire-port failures."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:normal-sandbox-health",
+   "command": [
+    "node",
+    "Playwright chromium.launch({headless:true,chromiumSandbox:true,executablePath:/usr/bin/chromium,timeout:15000})"
+   ],
+   "observed_at": "2026-10-16T02:30:31.297Z",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "NOT_RUN",
+   "reported_outcomes": 0,
+   "verification_level": "LOCAL",
+   "log": "docs/testing/runs/research-conversation-review-20261016/normal-sandbox-launch-error.log",
+   "log_sha256": "0e812dbfe8d89c5c20dc292f1d2ddb70781e6bc9a7c05cc57bf0021284c4f5ff",
+   "limitations": [
+    "Normal sandbox launch aborted at incorrectly owned SUID helper before navigation. No bypass or settings change."
+   ]
+  },
+  {
+   "id": "research-conversation-review-20261016:build-checks",
+   "command": [
+    "see",
+    "docs/testing/runs/research-conversation-review-20261016/build-checks.json"
+   ],
+   "observed_at": "2026-10-16T02:33:53.585060+00:00",
+   "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "log": "docs/testing/runs/research-conversation-review-20261016/build-checks.json",
+   "log_sha256": "9acc2ea1b26d42e26c9886a0520bad4b2661d1b02874dc1cebcbe023eb5077a4",
+   "limitations": [
+    "Bundle freshness, helper syntax and whitespace only."
+   ]
   }
  ],
  "limitations": [

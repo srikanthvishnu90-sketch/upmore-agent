@@ -1,0 +1,40 @@
+{
+  "label": "final-postgres-ipv6",
+  "mode": "postgres",
+  "target": "/workspace/upmore-research-review",
+  "commit": "3d0addd96bfa913b16c7377da56da3d44b347636",
+  "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+  "expectationSha256": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117",
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "workers/career-browser/service.cjs": "76fc2c373250b1061f87053e4dfe78cccdfedc1b48e72128618378fc85594b59",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d",
+    "workers/career-browser/research-png.cjs": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+  },
+  "testSourceSha256": "088ccbc6c7ef20714d99fe702e47d1f6ac295a8307ae11239baaace7ab752c80",
+  "helperSha256": "1d65d8e93162d0bdfb78c9e4419847ebe46eff1743cf51e18dd3cc2810a1ef02",
+  "started": "2026-10-16T02:35:51.022Z",
+  "verification": "ACTUAL_STAGED_ENTRY_REAL_LOCAL_POSTGRES_SYNTHETIC_AUTH_AND_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "database": "career_test_research_final_postgres_ipv6",
+  "finished": "2026-10-16T02:36:36.976Z",
+  "exitCode": 0,
+  "logSha256": "8fbfc5805a06c7a5c8d878966b59a82a7900c82d1d3314b302f5d2560607bc44",
+  "transcriptSha256": "d32e7711fe2898bb6b133b368c3e5677d2a31feda9ad3e95c93897ecad3bd349",
+  "result": "PASS_SOURCE_OR_FIXTURE_ONLY",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+  ]
+}

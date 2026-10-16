@@ -1,0 +1,52 @@
+(node:249422) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:249422) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (2383.981511ms)
+✔ I03-I26 conversation corrections survive research and source text never becomes career evidence (4114.001923ms)
+✔ I05 authenticated owner and thread isolation protect research observations (3037.320329ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (1979.958048ms)
+✔ I08 STOP across owned threads revokes a reserved but unconsumed read (3243.896003ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (2791.829998ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (3177.45685ms)
+✖ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (3931.793369ms)
+✔ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (4932.947481ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (2395.153811ms)
+✔ I20 a failed research effect is not repeated by pending work or status polling (4113.405047ms)
+✔ I21 research authority refuses all application operations at the real SQL gate (2863.728287ms)
+✖ I22 central-result save recovery uses existing capture and never reads twice (3310.775628ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 11
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42405.20099
+
+✖ failing tests:
+
+test at tests/research-conversation-independent-postgres.test.cjs:15:1
+✖ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (3931.793369ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - true
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:15:856)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:20:1
+✖ I22 central-result save recovery uses existing capture and never reads twice (3310.775628ms)
+  TypeError: Cannot read properties of undefined (reading 'result')
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:20:541)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

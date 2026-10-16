@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-16T02:30:31.297Z",
+  "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+  "node": "v24.19.0",
+  "uid": 1000,
+  "playwright": "/opt/codex/cua_node/lib/node_modules/playwright",
+  "executablePath": "/usr/bin/chromium",
+  "options": {
+    "headless": true,
+    "chromiumSandbox": true,
+    "timeout": 15000
+  },
+  "navigations": 0,
+  "browserOutcomes": 0,
+  "paidCalls": 0,
+  "sandboxHelper": {
+    "uid": 65534,
+    "gid": 65534,
+    "mode": "4755"
+  },
+  "launch": "NOT_RUN",
+  "reason": "BROWSER_SANDBOX_UNAVAILABLE: installed SUID helper is not root-owned/configured",
+  "errorSha256": "0e812dbfe8d89c5c20dc292f1d2ddb70781e6bc9a7c05cc57bf0021284c4f5ff"
+}

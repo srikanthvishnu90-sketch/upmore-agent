@@ -1,0 +1,1254 @@
+[
+  {
+    "caseId": "H16",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000116",
+    "at": "2026-10-16T02:27:53.093Z",
+    "input": {
+      "message": "I do not know Python and have never had a paid internship.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H16-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "H16-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000116",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "disputed_experience": {
+                "value": "I do not know Python and have never had a paid internship.",
+                "source": "I do not know Python and have never had a paid internship.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "91a78a3d-60f4-4013-b520-2a260b95094b",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-1"
+          },
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "b7a17a6b-47d2-44e5-8389-ae366b511e91",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "I do not know Python and have never had a paid internship.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000116",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000116",
+          "p_key": "H16-1",
+          "p_hash": "f8d871b21cb7e799db188c264d3a758c5509879025283839527c319263f4f08a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000116",
+          "p_key": "H16-1",
+          "p_hash": "f8d871b21cb7e799db188c264d3a758c5509879025283839527c319263f4f08a",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "disputed_experience": {
+                    "value": "I do not know Python and have never had a paid internship.",
+                    "source": "I do not know Python and have never had a paid internship.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I do not know Python and have never had a paid internship.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000116",
+            "reply": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H16-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H16",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000116",
+    "at": "2026-10-16T02:27:53.895Z",
+    "input": {
+      "message": "Suppose I won a national robotics prize.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H16-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_nonactual",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+        "action": null,
+        "turn_key": "H16-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000116",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "disputed_experience": {
+                "value": "I do not know Python and have never had a paid internship.",
+                "source": "I do not know Python and have never had a paid internship.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "91a78a3d-60f4-4013-b520-2a260b95094b",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-1"
+          },
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "b7a17a6b-47d2-44e5-8389-ae366b511e91",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "I do not know Python and have never had a paid internship.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "disputed_experience": {
+                "value": "I do not know Python and have never had a paid internship.",
+                "source": "I do not know Python and have never had a paid internship.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "91a78a3d-60f4-4013-b520-2a260b95094b",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-1"
+          },
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "b7a17a6b-47d2-44e5-8389-ae366b511e91",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "I do not know Python and have never had a paid internship.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "2df9eecb-7383-48b6-8a4b-95fb76e1acac",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-2"
+          },
+          "created_at": "2026-10-16T02:27:53.758052+00:00"
+        },
+        {
+          "id": "3a4ee605-843a-4b88-829e-44d5c2c173d9",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "Suppose I won a national robotics prize.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:53.758052+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000116",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000116",
+          "p_key": "H16-2",
+          "p_hash": "eaa78f57d9a6dfd460a2d694af360e7339cb341ab7a9c37e39cf25d82c69711a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000116",
+          "p_key": "H16-2",
+          "p_hash": "eaa78f57d9a6dfd460a2d694af360e7339cb341ab7a9c37e39cf25d82c69711a",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "disputed_experience": {
+                    "value": "I do not know Python and have never had a paid internship.",
+                    "source": "I do not know Python and have never had a paid internship.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Suppose I won a national robotics prize.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000116",
+            "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H16-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_nonactual",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H16",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000116",
+    "at": "2026-10-16T02:27:54.742Z",
+    "input": {
+      "message": "Write a truthful introduction and identify unknown experience.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H16-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Draft for your review; nothing has been sent.\n\nMy background: I do not know Python and have never had a paid internship..\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "H16-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000116",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "disputed_experience": {
+                "value": "I do not know Python and have never had a paid internship.",
+                "source": "I do not know Python and have never had a paid internship.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "91a78a3d-60f4-4013-b520-2a260b95094b",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-1"
+          },
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "b7a17a6b-47d2-44e5-8389-ae366b511e91",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "I do not know Python and have never had a paid internship.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "2df9eecb-7383-48b6-8a4b-95fb76e1acac",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-2"
+          },
+          "created_at": "2026-10-16T02:27:53.758052+00:00"
+        },
+        {
+          "id": "3a4ee605-843a-4b88-829e-44d5c2c173d9",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "Suppose I won a national robotics prize.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:53.758052+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "disputed_experience": {
+                "value": "I do not know Python and have never had a paid internship.",
+                "source": "I do not know Python and have never had a paid internship.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I do not know Python and have never had a paid internship..\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I do not know Python and have never had a paid internship."
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "91a78a3d-60f4-4013-b520-2a260b95094b",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: I do not know Python and have never had a paid internship.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-1"
+          },
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "b7a17a6b-47d2-44e5-8389-ae366b511e91",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "I do not know Python and have never had a paid internship.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:52.9805+00:00"
+        },
+        {
+          "id": "2df9eecb-7383-48b6-8a4b-95fb76e1acac",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-2"
+          },
+          "created_at": "2026-10-16T02:27:53.758052+00:00"
+        },
+        {
+          "id": "3a4ee605-843a-4b88-829e-44d5c2c173d9",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "Suppose I won a national robotics prize.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:53.758052+00:00"
+        },
+        {
+          "id": "f8936e39-1932-4e1a-9d17-d9abce9796bd",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I do not know Python and have never had a paid internship..\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H16-3"
+          },
+          "created_at": "2026-10-16T02:27:54.62425+00:00"
+        },
+        {
+          "id": "fa044080-0483-485e-9783-2dfc440d061a",
+          "thread_id": "00000000-0000-4000-8000-000000000116",
+          "role": "user",
+          "content": "Write a truthful introduction and identify unknown experience.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:54.62425+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000116",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000116",
+          "p_key": "H16-3",
+          "p_hash": "f04d338577da3430843cbe2ba87fe6453be9ba3338abef1fb14b39de3e551a71"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000116",
+          "p_key": "H16-3",
+          "p_hash": "f04d338577da3430843cbe2ba87fe6453be9ba3338abef1fb14b39de3e551a71",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "disputed_experience": {
+                    "value": "I do not know Python and have never had a paid internship.",
+                    "source": "I do not know Python and have never had a paid internship.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ],
+                "artifact": {
+                  "kind": "introduction",
+                  "format": "text",
+                  "text": "My background: I do not know Python and have never had a paid internship..\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "I do not know Python and have never had a paid internship."
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Write a truthful introduction and identify unknown experience.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000116",
+            "reply": "Draft for your review; nothing has been sent.\n\nMy background: I do not know Python and have never had a paid internship..\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H16-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

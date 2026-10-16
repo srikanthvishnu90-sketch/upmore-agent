@@ -1,0 +1,3011 @@
+[
+  {
+    "caseId": "H10",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T02:27:20.104Z",
+    "input": {
+      "message": "My experience is a class SQL survey project. I have never managed anyone.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H10-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "H10-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-1",
+          "p_hash": "ba1090ff18b3d7567c2e1c0aa029d89a66aa504a829b3b2350898906db982938"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-1",
+          "p_hash": "ba1090ff18b3d7567c2e1c0aa029d89a66aa504a829b3b2350898906db982938",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "resume",
+                "project": "My experience is a class SQL survey project. I have never managed anyone.",
+                "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "My experience is a class SQL survey project. I have never managed anyone.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H10-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H10",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T02:27:21.155Z",
+    "input": {
+      "message": "Draft one resume bullet using only that coursework.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H10-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_resume",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "H10-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-2",
+          "p_hash": "69ca5bb8aa7880d3a9b01884a0865506cea3a1b339157456a429936e35ca3b88"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-2",
+          "p_hash": "69ca5bb8aa7880d3a9b01884a0865506cea3a1b339157456a429936e35ca3b88",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My experience is a class SQL survey project. I have never managed anyone.",
+                "sources": [],
+                "hypotheticals": [],
+                "projectSource": "My experience is a class SQL survey project. I have never managed anyone.",
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "format": "text",
+                  "text": "Coursework / class project: a class SQL survey project.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My experience is a class SQL survey project. I have never managed anyone."
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Draft one resume bullet using only that coursework.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H10-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_resume",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H10",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T02:27:22.135Z",
+    "input": {
+      "message": "Add team-lead experience even though I have none.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H10-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_truth_guard",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+        "action": null,
+        "turn_key": "H10-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-3",
+          "p_hash": "818460aa22a370181866698f1ff8fdd96accf73e9fd5a27112247fb78e0dfe67"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-3",
+          "p_hash": "818460aa22a370181866698f1ff8fdd96accf73e9fd5a27112247fb78e0dfe67",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My experience is a class SQL survey project. I have never managed anyone.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "text": "Coursework / class project: a class SQL survey project.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My experience is a class SQL survey project. I have never managed anyone."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Add team-lead experience even though I have none.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H10-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_truth_guard",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H10",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T02:27:22.884Z",
+    "input": {
+      "message": "Keep it truthful and show the actual revised bullet.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H10-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_resume",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "H10-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "0cee253e-6730-44f8-bac3-e0ff94d2728a",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-4"
+          },
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "4281d3df-d742-48a2-ab3e-5ca58c87440b",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Keep it truthful and show the actual revised bullet.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-4",
+          "p_hash": "0d8b86e82f57a7d04a9f04b5a43f8f84df1243f81c3ea026d646ddc819beecaf"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-4",
+          "p_hash": "0d8b86e82f57a7d04a9f04b5a43f8f84df1243f81c3ea026d646ddc819beecaf",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My experience is a class SQL survey project. I have never managed anyone.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "format": "text",
+                  "text": "Coursework / class project: a class SQL survey project.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My experience is a class SQL survey project. I have never managed anyone."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Keep it truthful and show the actual revised bullet.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H10-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_resume",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H10",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T02:27:23.754Z",
+    "input": {
+      "message": "Which source supports the bullet?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H10-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_artifact_source",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "The source is your stated experience: My experience is a class SQL survey project. I have never managed anyone.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+        "action": null,
+        "turn_key": "H10-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "0cee253e-6730-44f8-bac3-e0ff94d2728a",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-4"
+          },
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "4281d3df-d742-48a2-ab3e-5ca58c87440b",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Keep it truthful and show the actual revised bullet.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "0cee253e-6730-44f8-bac3-e0ff94d2728a",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-4"
+          },
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "4281d3df-d742-48a2-ab3e-5ca58c87440b",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Keep it truthful and show the actual revised bullet.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "191396dc-abd9-4998-b1ca-32401290129e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The source is your stated experience: My experience is a class SQL survey project. I have never managed anyone.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_artifact_source",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-5"
+          },
+          "created_at": "2026-10-16T02:27:23.636523+00:00"
+        },
+        {
+          "id": "24f04f4e-1b79-455f-bc99-373e3460a9fd",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Which source supports the bullet?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:23.636523+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-5",
+          "p_hash": "6b406403c064da3803435bffb49e21d7a996d6e36c4b9cbcee0eb033895772de"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-5",
+          "p_hash": "6b406403c064da3803435bffb49e21d7a996d6e36c4b9cbcee0eb033895772de",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My experience is a class SQL survey project. I have never managed anyone.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "text": "Coursework / class project: a class SQL survey project.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My experience is a class SQL survey project. I have never managed anyone."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Which source supports the bullet?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "The source is your stated experience: My experience is a class SQL survey project. I have never managed anyone.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H10-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_artifact_source",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H10",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T02:27:24.673Z",
+    "input": {
+      "message": "Was the resume uploaded anywhere?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H10-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_execution_status",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+        "action": null,
+        "turn_key": "H10-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "0cee253e-6730-44f8-bac3-e0ff94d2728a",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-4"
+          },
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "4281d3df-d742-48a2-ab3e-5ca58c87440b",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Keep it truthful and show the actual revised bullet.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "191396dc-abd9-4998-b1ca-32401290129e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The source is your stated experience: My experience is a class SQL survey project. I have never managed anyone.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_artifact_source",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-5"
+          },
+          "created_at": "2026-10-16T02:27:23.636523+00:00"
+        },
+        {
+          "id": "24f04f4e-1b79-455f-bc99-373e3460a9fd",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Which source supports the bullet?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:23.636523+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My experience is a class SQL survey project. I have never managed anyone.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class SQL survey project.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My experience is a class SQL survey project. I have never managed anyone."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "5230a818-154e-4cb9-8550-a243195b4ce2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My experience is a class SQL survey project. I have never managed anyone.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-1"
+          },
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "62043f0c-414f-43fd-b63c-95109ac95aea",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "My experience is a class SQL survey project. I have never managed anyone.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:19.933501+00:00"
+        },
+        {
+          "id": "1d3492b0-f5cc-4e14-b10d-5d52981564f2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Draft one resume bullet using only that coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "89ce2049-22c4-4fc3-8776-75dfd742f2df",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-2"
+          },
+          "created_at": "2026-10-16T02:27:20.9733+00:00"
+        },
+        {
+          "id": "7e3ce17f-d554-4812-a56e-af96b797840e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-3"
+          },
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "eeff2bc4-a82d-45ec-9065-9e7c99a32c55",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Add team-lead experience even though I have none.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:21.948528+00:00"
+        },
+        {
+          "id": "0cee253e-6730-44f8-bac3-e0ff94d2728a",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Coursework / class project: a class SQL survey project.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-4"
+          },
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "4281d3df-d742-48a2-ab3e-5ca58c87440b",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Keep it truthful and show the actual revised bullet.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:22.752287+00:00"
+        },
+        {
+          "id": "191396dc-abd9-4998-b1ca-32401290129e",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The source is your stated experience: My experience is a class SQL survey project. I have never managed anyone.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_artifact_source",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-5"
+          },
+          "created_at": "2026-10-16T02:27:23.636523+00:00"
+        },
+        {
+          "id": "24f04f4e-1b79-455f-bc99-373e3460a9fd",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Which source supports the bullet?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:23.636523+00:00"
+        },
+        {
+          "id": "76fed778-395a-4661-b938-94f3023e6fde",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Was the resume uploaded anywhere?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:24.53768+00:00"
+        },
+        {
+          "id": "d17ede52-d1c9-4d23-8e3a-c48f072ef849",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H10-6"
+          },
+          "created_at": "2026-10-16T02:27:24.53768+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-6",
+          "p_hash": "5cd975d78932e4e214bfa95e10279d0e273f8f761834c09952ba9eada2bf3762"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "H10-6",
+          "p_hash": "5cd975d78932e4e214bfa95e10279d0e273f8f761834c09952ba9eada2bf3762",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "source": "My experience is a class SQL survey project. I have never managed anyone.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My experience is a class SQL survey project. I have never managed anyone.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "text": "Coursework / class project: a class SQL survey project.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My experience is a class SQL survey project. I have never managed anyone."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My experience is a class SQL survey project. I have never managed anyone."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Was the resume uploaded anywhere?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H10-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_execution_status",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

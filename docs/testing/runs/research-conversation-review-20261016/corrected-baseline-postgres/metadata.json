@@ -1,0 +1,37 @@
+{
+  "label": "corrected-baseline-postgres",
+  "mode": "postgres",
+  "target": "/workspace/upmore-research-source",
+  "commit": "c574352c11958f9a27242a273255d88e72997be5",
+  "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+  "expectationSha256": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117",
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "c244f157518bc42164fd87a2758abe6240dd1b6a9bda2d95e3981c4d712766e3",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "766921bd3905f62a51c45953d387bf910dd20cead4fa02cd9f8d34acf1235bea",
+    "supabase/functions/_shared/career_persistence.js": "c514772ead6d8a72cc31eea6d183b5f885ff415e3162c825c1580aca0a43669a",
+    "supabase/sql/proposals/career_public_research_v1.sql": "ffeab83654466013a321ba33788679cbcf4d609ffdb8bb9f40f249cd54ff4aa2",
+    "workers/career-browser/service.cjs": "caacd076df280adb901365f6d2016377ec00b5e77e600290c8d2fb6c4612e2a6",
+    "workers/career-browser/research-network.cjs": "a98cc550036a43ca1aa71e17553da93741c45c2dfb20efc0e60b9ee436f82b5f",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d"
+  },
+  "started": "2026-10-16T02:24:02.037Z",
+  "verification": "ACTUAL_STAGED_ENTRY_REAL_LOCAL_POSTGRES_SYNTHETIC_AUTH_AND_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "database": "career_test_research_corrected_baseline_postgres",
+  "finished": "2026-10-16T02:24:41.544Z",
+  "exitCode": 1,
+  "logSha256": "7990301bc301442bdc9537fcfd8fd18b6b7b8286a25e58c1a8faddd08b884ecc",
+  "transcriptSha256": "eebb895b5dd7cb41a6c43122abc5d74d2592960bb828701438adbb1170a2583d",
+  "result": "FAIL_RETAINED",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+  ]
+}

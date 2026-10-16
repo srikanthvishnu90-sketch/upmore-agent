@@ -1,0 +1,12 @@
+{
+  "tests/career-public-research.test.cjs": "da6198fb35d1ee1a42e6bc57a0acde24abe5aa2a7e72dff7d58f50edaf3aa194",
+  "tests/career-public-research-postgres.test.cjs": "67ca0fc6fe5bba12c9be4b682da537ffc81c6f5ae2d6b312732165e3176f16e2",
+  "tests/independent-worker-atomic-interplay.test.cjs": "bb64691e4539c696554c043be6648c53c4983c3abc98fa0a11778d3c48949b90",
+  "tests/fixtures/conversation-recovery/frozen-browser-tasks.json": "2734e0edfcaec93f792bcfe5a3138c37bb971eeb951265013e523ed0ecc2a96c",
+  "tests/fixtures/conversation-recovery/frozen-cases.json": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+  "tests/fixtures/conversation-fixes/heldouts.json": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+  "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f",
+  "packages/domain/154-career-recommendations.js": "12dd1f2b14658dc212b6b745466fccdcb5412b1cb148fd28aa5e9de99989a380",
+  "packages/domain/154-career-writing.js": "47341753bf940db963b0a7ed3408d0c6954ff6cbb044df183d62bf8d1c35544f",
+  "research_expectations": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117"
+}

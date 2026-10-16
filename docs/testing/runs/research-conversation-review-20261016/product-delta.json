@@ -1,0 +1,8 @@
+{
+  "from": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+  "to": "3d0addd96bfa913b16c7377da56da3d44b347636",
+  "productFilesChanged": [
+    "workers/career-browser/research-network.cjs"
+  ],
+  "diff": "diff --git a/workers/career-browser/research-network.cjs b/workers/career-browser/research-network.cjs\nindex 29ed9f2d..da5d01f9 100644\n--- a/workers/career-browser/research-network.cjs\n+++ b/workers/career-browser/research-network.cjs\n@@ -10,7 +10,9 @@ function publicAddress(address) {\n   // Conservatively accept global-unicast IPv6 only; reject mapped/private,\n   // documentation, tunnelling and special ranges rather than guessing.\n   if (net.isIP(address)!==6) return false;\n-  const [first,second]=address.split(':').map(part=>parseInt(part,16));\n+  // In a global-unicast address the first word is explicit. An empty\n+  // second word denotes a compressed zero, not an unknown (NaN) word.\n+  const [first,second]=address.split(':').map(part=>part===''?0:parseInt(part,16));\n   return first>=0x2000 && first<0x4000 && first!==0x2002 && first!==0x3fff && !(first===0x2001 && (second<0x200 || second===0xdb8));\n }\n async function publicGet(url, {origin, lookup = dns.lookup, request = https.request, maxBytes = 2000000} = {}) {\n"
+}

@@ -1,0 +1,46 @@
+✔ explicit conversation command and typed research request normalize identically without a profile (4.265051ms)
+✔ research host gate enforces account controls without invoking onboarding or career actions (2.30979ms)
+✔ public URL gate rejects private hosts, unsafe protocols, credentials, actions and query credentials (0.859357ms)
+✔ DNS gate rejects mixed public/private and special addresses (5.807437ms)
+✔ public GET pins the validated address, sends no identity headers and refuses redirects before a second request (3.50073ms)
+✖ research preflight returns correlated untrusted evidence, never marks the question answered and replays without another read (7.158138ms)
+✔ unsupported sandbox is a blocker with no fabricated artifact or success (1.979259ms)
+✔ capture with wrong task correlation or screenshot hash is rejected (6.562397ms)
+✔ STOP prevents queued research without reading or resolving equipment (2.181898ms)
+✔ erase prevents queued research without reading or resolving equipment (1.779513ms)
+✔ research origin registration and typed helper schema do not expose arbitrary browser tools (1.718334ms)
+✔ 15 public acceptance cases have supported chat commands and preserve zero live-outcome claims (1.989284ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 170.25509
+
+✖ failing tests:
+
+test at tests/career-public-research.test.cjs:52:1
+✖ research preflight returns correlated untrusted evidence, never marks the question answered and replays without another read (7.158138ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'evidence_ready'
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-public-research.test.cjs:54:64)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'evidence_ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,315 @@
+{
+  "version": "research_conversation_review/v1",
+  "at": "2026-10-16T02:33:53.585060+00:00",
+  "branch": "codex/research-conversation-review-20261016",
+  "productSource": "3d0addd96bfa913b16c7377da56da3d44b347636",
+  "conversationSource": "73b868e8ae2eaaba8612bcfee7e5b04d439e2ffc",
+  "researchSource": "c574352c11958f9a27242a273255d88e72997be5",
+  "baseRelease": "f67db048599db308f2691a7be7feada841143da5",
+  "frozenExpectations": {
+    "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+    "sha256": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117"
+  },
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "workers/career-browser/service.cjs": "76fc2c373250b1061f87053e4dfe78cccdfedc1b48e72128618378fc85594b59",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d",
+    "workers/career-browser/research-png.cjs": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+  },
+  "checks": [
+    {
+      "id": "author-after-postgres",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "mode": "author-postgres",
+      "exitCode": 1,
+      "counts": {
+        "tests": 7,
+        "pass": 6,
+        "fail": 1
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/author-after-postgres/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/author-after-postgres/test.log",
+      "metadataSha256": "4ce0e316b7dc7950d4ee3b0112293f0fc2817bb53198a02206b80d955176fc68",
+      "testLogSha256": "24f447c9400174a6c6e9146b7b4ff29e66a17a64d0ffb3d4741e0dbc9dcbff43",
+      "transcriptSha256": null
+    },
+    {
+      "id": "author-after-source",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "mode": "author-source",
+      "exitCode": 1,
+      "counts": {
+        "tests": 12,
+        "pass": 11,
+        "fail": 1
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/author-after-source/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/author-after-source/test.log",
+      "metadataSha256": "4e5ca0f675f98348288c4bf61efbf37bb4bf2cbc0dcea66266dd7506f1fd17aa",
+      "testLogSha256": "6f986838088e8265bcc82e450d5a8c66e491a488a690ae161487fbaa147c6125",
+      "transcriptSha256": null
+    },
+    {
+      "id": "author-before-postgres",
+      "source": "c574352c11958f9a27242a273255d88e72997be5",
+      "mode": "author-postgres",
+      "exitCode": 0,
+      "counts": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/author-before-postgres/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/author-before-postgres/test.log",
+      "metadataSha256": "79a5c9b3cc5b44813e43df70fae8a6dfe0f61512ae0630e197c5ab7123cd1a68",
+      "testLogSha256": "a1e2c199c5ff1f5baa7536afa696ffd3d31635e19474f7b6bfe48b09fe290fdd",
+      "transcriptSha256": null
+    },
+    {
+      "id": "author-before-source",
+      "source": "c574352c11958f9a27242a273255d88e72997be5",
+      "mode": "author-source",
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/author-before-source/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/author-before-source/test.log",
+      "metadataSha256": "2c2d1193d9c55a7bd116cb20f6b947017432d52029d7d5aa22515ce35e6e66fb",
+      "testLogSha256": "b6d42d84c595b83ca1619278e46fdd7bad7761d725a2c20e67adcce258042e5e",
+      "transcriptSha256": null
+    },
+    {
+      "id": "composition-before",
+      "source": "6921ce97fb907300e0fb8d1af3826f093d238740",
+      "mode": "postgres",
+      "exitCode": 1,
+      "counts": {
+        "tests": 13,
+        "pass": 10,
+        "fail": 3
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/composition-before/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/composition-before/test.log",
+      "metadataSha256": "d78100c855a62350c6f1d80506e96bc2fa976f83d7721a001d6471e0c4530564",
+      "testLogSha256": "60631d11c5fd96dcbb57e290c3d336237a9c00213f1e2bffacdc76bbc75f056b",
+      "transcriptSha256": "e61aac18a2de178f93a5f429cd10b7420002edf353c8ccbe9178406c13b5f0ad"
+    },
+    {
+      "id": "corrected-baseline-postgres",
+      "source": "c574352c11958f9a27242a273255d88e72997be5",
+      "mode": "postgres",
+      "exitCode": 1,
+      "counts": {
+        "tests": 13,
+        "pass": 10,
+        "fail": 3
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/test.log",
+      "metadataSha256": "8f1b47bbea78893fd60ed6d82dd88d2c1b6abb5d44ff9ad633668440060864fe",
+      "testLogSha256": "7990301bc301442bdc9537fcfd8fd18b6b7b8286a25e58c1a8faddd08b884ecc",
+      "transcriptSha256": "eebb895b5dd7cb41a6c43122abc5d74d2592960bb828701438adbb1170a2583d"
+    },
+    {
+      "id": "corrected-baseline-source",
+      "source": "c574352c11958f9a27242a273255d88e72997be5",
+      "mode": "source",
+      "exitCode": 1,
+      "counts": {
+        "tests": 10,
+        "pass": 6,
+        "fail": 4
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source/test.log",
+      "metadataSha256": "a13521d8c2e9ac9764615643affb15f5b6e6e767246fbda4ab4443d78cdb99c9",
+      "testLogSha256": "a9136fd561b6144f5664443e1bb20317bb516d07e25e3d7d30ef006a5564331f",
+      "transcriptSha256": null
+    },
+    {
+      "id": "final-postgres",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "mode": "postgres",
+      "exitCode": 0,
+      "counts": {
+        "tests": 15,
+        "pass": 15,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/final-postgres/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/final-postgres/test.log",
+      "metadataSha256": "2f25ac4e0e52aec25b141c35fdcef19e1f0f0917eb3ee88c554d21d0ea10c511",
+      "testLogSha256": "4b36de782725deeaa75522f3856f4d97d85194eee9d0a0bcbd74b566140a80b1",
+      "transcriptSha256": "0e38c5f1146255c8febdbc536b29c5d5cb520834c870cd3baf7fa3079ddbcfe2"
+    },
+    {
+      "id": "final-source",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "mode": "source",
+      "exitCode": 0,
+      "counts": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/final-source/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/final-source/test.log",
+      "metadataSha256": "48e21767f24683f28fee693ea97fa104b43d77fcc0fc5cc67c83b575023c65d9",
+      "testLogSha256": "492ce72a6989d2da79a229be4e328a1c5ee9c2f376686750549b0e839aae182b",
+      "transcriptSha256": null
+    },
+    {
+      "id": "fix-iteration-postgres",
+      "source": "9fdd38ca1f9a407a3d93c5b8ba791f723ef8ea80",
+      "mode": "postgres",
+      "exitCode": 1,
+      "counts": {
+        "tests": 13,
+        "pass": 11,
+        "fail": 2
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres/test.log",
+      "metadataSha256": "db468c23267f8d6d4ecfc35e4975418efc297ef0a207ed2348ea81adbfe961e6",
+      "testLogSha256": "d812258be839952c1a5e10652def52175a5122d31a0d5ef8831818182508d2ed",
+      "transcriptSha256": "2c7f17942fb9cc82075846df9fb4b4e6afb38b70b2b1ad132e90d0b3839dce9a"
+    },
+    {
+      "id": "research-baseline",
+      "source": "c574352c11958f9a27242a273255d88e72997be5",
+      "mode": "source",
+      "exitCode": 1,
+      "counts": {
+        "tests": 10,
+        "pass": 6,
+        "fail": 4
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/research-baseline/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/research-baseline/test.log",
+      "metadataSha256": "50c5da07a622c569ebe329aa3beefb737f4bcf777732b68dae84de59dd20f266",
+      "testLogSha256": "42a16ba78c8a24d21071f449ccb40a3ef8f9bffcb973a55e465ce9d7331a02f7",
+      "transcriptSha256": null
+    },
+    {
+      "id": "regressions",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "exitCode": 0,
+      "counts": {
+        "tests": 244,
+        "pass": 244,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/regressions.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/regressions.log",
+      "metadataSha256": "68b3f06b2fc80d3485e22c93718a489dd8632d880e7511392796136925517084"
+    },
+    {
+      "id": "task-authority-regressions",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "exitCode": 1,
+      "counts": {
+        "tests": 21,
+        "pass": 19,
+        "fail": 2
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/task-authority-regressions.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/task-authority-regressions.log",
+      "metadataSha256": "edeb79996cf3b9042cbe449d16fd3b4559f6bb2da8aac32b47ab54783cbc5d4d"
+    },
+    {
+      "id": "research-composition-original",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "turns": 83,
+      "checks": 543,
+      "passed": 543,
+      "failed": 0,
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/research-composition-original/metadata.json",
+      "transcripts": "docs/testing/runs/conversation-recovery-20261016/research-composition-original/transcripts.jsonl",
+      "transcriptSha256": "0a0968f4e610986bbbc706a89b2adb0090c67becb4e0a68f1b5af73c31ebb57c",
+      "dumpSha256": "faacce8a01b39ca53af8b56a23551fda27c05d54027d5f13dd5a4e76538cb4cd"
+    },
+    {
+      "id": "research-composition-heldouts",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "turns": 82,
+      "checks": 426,
+      "passed": 426,
+      "failed": 0,
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/research-composition-heldouts/metadata.json",
+      "transcripts": "docs/testing/runs/conversation-recovery-20261016/research-composition-heldouts/transcripts.jsonl",
+      "transcriptSha256": "c034ea7b714957af37e8a38f0356fa40b6e2784dbe49224e63633fdd7b9b66c7",
+      "dumpSha256": "24a4929999ea2e22f9d0abd028040787a65be13e96bc33400ecde35ace1a20d5"
+    },
+    {
+      "id": "ipv6-before",
+      "source": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+      "mode": "source",
+      "exitCode": 1,
+      "counts": {
+        "tests": 12,
+        "pass": 11,
+        "fail": 1
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/ipv6-before/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/ipv6-before/test.log",
+      "metadataSha256": "f6a84d17c145c8516accfa9f593f779f247baa4f52b7e31e46e41c8e326030b1",
+      "testLogSha256": "413fa146297ef38cd5dd6daa9767d5ed6f43a38281736443bef31449d0f0e0a8",
+      "transcriptSha256": null
+    },
+    {
+      "id": "final-source-ipv6",
+      "source": "3d0addd96bfa913b16c7377da56da3d44b347636",
+      "mode": "source",
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/final-source-ipv6/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/final-source-ipv6/test.log",
+      "metadataSha256": "2cd0e0576a4da13ce54c8fd4240cd7657d7bab20f117d00c73dcf1b293ef9146",
+      "testLogSha256": "3c10dc602b4e6577d9c41ec95675d3f04df15712791f696d63e484e9590ad76b",
+      "transcriptSha256": null
+    },
+    {
+      "id": "final-postgres-ipv6",
+      "source": "3d0addd96bfa913b16c7377da56da3d44b347636",
+      "mode": "postgres",
+      "exitCode": 0,
+      "counts": {
+        "tests": 15,
+        "pass": 15,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/final-postgres-ipv6/metadata.json",
+      "testLog": "docs/testing/runs/research-conversation-review-20261016/final-postgres-ipv6/test.log",
+      "metadataSha256": "64487c9863536b7611973e1c1a80a278e1495809ca89721d9528784ee862c833",
+      "testLogSha256": "8fbfc5805a06c7a5c8d878966b59a82a7900c82d1d3314b302f5d2560607bc44",
+      "transcriptSha256": "d32e7711fe2898bb6b133b368c3e5677d2a31feda9ad3e95c93897ecad3bd349"
+    }
+  ],
+  "browserOutcomes": 0,
+  "browserStatus": "NOT_RUN: normal sandbox precondition failed before navigation",
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "privateModule130": "SEPARATELY_OWNED_RELEASE_BLOCKER",
+  "verdict": "FIXTURE_CONTRACTS_PASS_WITH_TRIAGED_RED_AUTHOR_FIXTURES; NOT_RELEASE_READY",
+  "previousFullConversationRegressionSource": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+  "transcriptRecords": 375,
+  "findingsFixed": 6,
+  "laterProductDelta": {
+    "file": "workers/career-browser/research-network.cjs",
+    "change": "compressed second IPv6 word interpreted as zero",
+    "scope": "Only product change since 9aebb8de; final independent source and PostgreSQL runs on 3d0addd9."
+  }
+}

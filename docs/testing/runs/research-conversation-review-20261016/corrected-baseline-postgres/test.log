@@ -1,0 +1,77 @@
+(node:239884) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:239884) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (2410.878295ms)
+✖ I03-I26 conversation corrections survive research and source text never becomes career evidence (3813.408924ms)
+✔ I05 authenticated owner and thread isolation protect research observations (2779.234656ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (1965.29838ms)
+✔ I08 STOP across owned threads revokes a reserved but unconsumed read (2492.341391ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (2837.356175ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (2857.891735ms)
+✔ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (5626.159129ms)
+✖ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (3055.27923ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (2123.760902ms)
+✔ I20 a failed research effect is not repeated by pending work or status polling (4193.982352ms)
+✔ I21 research authority refuses all application operations at the real SQL gate (2337.351327ms)
+✖ I22 central-result save recovery uses existing capture and never reads twice (2626.050762ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 10
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39266.588815
+
+✖ failing tests:
+
+test at tests/research-conversation-independent-postgres.test.cjs:9:1
+✖ I03-I26 conversation corrections survive research and source text never becomes career evidence (3813.408924ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Raleigh/. Input:
+  
+  "Where we landed, from this thread's own record.\n" +
+    "The outreach plan stands targeting Synthetic Robotics in Boston — no list built yet, no sends, everything waits on your approval of the whole plan. Your facts on record: you're targeting Boston; your target firm is Synthetic Robotics. Name the piece to move next and it runs from exactly this state."
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:9:610)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Where we landed, from this thread's own record.\nThe outreach plan stands targeting Synthetic Robotics in Boston — no list built yet, no sends, everything waits on your approval of the whole plan. Your facts on record: you're targeting Boston; your target firm is Synthetic Robotics. Name the piece to move next and it runs from exactly this state.",
+    expected: /Raleigh/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:16:1
+✖ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (3055.27923ms)
+  AssertionError [ERR_ASSERTION]: tampered digest was delivered as source evidence
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:16:865)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:20:1
+✖ I22 central-result save recovery uses existing capture and never reads twice (2626.050762ms)
+  AssertionError [ERR_ASSERTION]: captured result stranded after unconfirmed finish
+  + actual - expected
+  
+  + 'claimed'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:20:346)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'claimed',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

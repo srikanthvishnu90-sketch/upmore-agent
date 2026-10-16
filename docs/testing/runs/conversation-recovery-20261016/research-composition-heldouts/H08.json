@@ -1,0 +1,3565 @@
+[
+  {
+    "caseId": "H08",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:07.339Z",
+    "input": {
+      "message": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_interview",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+        "action": null,
+        "turn_key": "H08-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-1",
+          "p_hash": "36e73d6898e0ed86b70922ea5884168f2fb14c75ec52399df844c3fc8961002f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-1",
+          "p_hash": "36e73d6898e0ed86b70922ea5884168f2fb14c75ec52399df844c3fc8961002f",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "interview",
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_interview",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:08.206Z",
+    "input": {
+      "message": "In our class project I found duplicate survey responses and removed them.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "H08-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-2",
+          "p_hash": "80908823bd522958ca49fbafb0188fcac7f3b0fd2462c25bb65ad8b1bbdb62f0"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-2",
+          "p_hash": "80908823bd522958ca49fbafb0188fcac7f3b0fd2462c25bb65ad8b1bbdb62f0",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {},
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "hypotheticals": [],
+                "project": "In our class project I found duplicate survey responses and removed them.",
+                "projectSource": "In our class project I found duplicate survey responses and removed them.",
+                "answer": "In our class project I found duplicate survey responses and removed them.",
+                "lastAnswer": "In our class project I found duplicate survey responses and removed them."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "In our class project I found duplicate survey responses and removed them.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:09.219Z",
+    "input": {
+      "message": "What evidence is missing from that answer?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H08-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "H08-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-3",
+          "p_hash": "f7b57152f9c2c87746afeb7f538d315e4643092dd2330e83240ec502510ac5ac"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-3",
+          "p_hash": "f7b57152f9c2c87746afeb7f538d315e4643092dd2330e83240ec502510ac5ac",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {},
+                "answer": "In our class project I found duplicate survey responses and removed them.",
+                "project": "In our class project I found duplicate survey responses and removed them.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+                "hypotheticals": [],
+                "projectSource": "In our class project I found duplicate survey responses and removed them."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What evidence is missing from that answer?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:09.969Z",
+    "input": {
+      "message": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+        "action": null,
+        "turn_key": "H08-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-4",
+          "p_hash": "8557cf34542aaeaed112d67ff7014224fc052f2bfcee27c68cb6cbb9bd3cda18"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-4",
+          "p_hash": "8557cf34542aaeaed112d67ff7014224fc052f2bfcee27c68cb6cbb9bd3cda18",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {},
+                "answer": "In our class project I found duplicate survey responses and removed them.",
+                "project": "In our class project I found duplicate survey responses and removed them.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+                "hypotheticals": [],
+                "projectSource": "In our class project I found duplicate survey responses and removed them.",
+                "outcomes": [
+                  "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:10.692Z",
+    "input": {
+      "message": "Rewrite the answer using only those details.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "H08-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In our class project I found duplicate survey responses and removed them.",
+                "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+              ]
+            },
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "62f89c11-10c0-4786-825f-a68e1b4f6f5e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "66eb8623-f1e5-4788-b835-761b075051e5",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-5",
+          "p_hash": "c3ac51df6360d1e367b54aee18ddd5ae24f2a4cc8b004047235dc1bc09e76d4e"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-5",
+          "p_hash": "c3ac51df6360d1e367b54aee18ddd5ae24f2a4cc8b004047235dc1bc09e76d4e",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {},
+                "answer": "In our class project I found duplicate survey responses and removed them.",
+                "project": "In our class project I found duplicate survey responses and removed them.",
+                "sources": [],
+                "outcomes": [
+                  "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+                "hypotheticals": [],
+                "projectSource": "In our class project I found duplicate survey responses and removed them.",
+                "artifact": {
+                  "kind": "interview_answer",
+                  "format": "text",
+                  "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In our class project I found duplicate survey responses and removed them.",
+                    "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Rewrite the answer using only those details.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:11.511Z",
+    "input": {
+      "message": "Ask one follow-up about validation.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_interview",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "How did you choose your validation approach, and what test would show that it handles an ambiguous case correctly?",
+        "action": null,
+        "turn_key": "H08-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In our class project I found duplicate survey responses and removed them.",
+                "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+              ]
+            },
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "62f89c11-10c0-4786-825f-a68e1b4f6f5e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "66eb8623-f1e5-4788-b835-761b075051e5",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In our class project I found duplicate survey responses and removed them.",
+                "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+              ]
+            },
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "62f89c11-10c0-4786-825f-a68e1b4f6f5e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "66eb8623-f1e5-4788-b835-761b075051e5",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "50a9cc96-e5af-4565-89d9-c339be199281",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Ask one follow-up about validation.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:11.359674+00:00"
+        },
+        {
+          "id": "e3c240da-39d0-4fca-b2a7-5a8e5f0287ff",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "How did you choose your validation approach, and what test would show that it handles an ambiguous case correctly?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-6"
+          },
+          "created_at": "2026-10-16T02:27:11.359674+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-6",
+          "p_hash": "254fb493de15b5d77c4deab8e1e93dadbf5414f490df68c504a1fb0c253024ea"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-6",
+          "p_hash": "254fb493de15b5d77c4deab8e1e93dadbf5414f490df68c504a1fb0c253024ea",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {},
+                "answer": "In our class project I found duplicate survey responses and removed them.",
+                "project": "In our class project I found duplicate survey responses and removed them.",
+                "sources": [],
+                "artifact": {
+                  "kind": "interview_answer",
+                  "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In our class project I found duplicate survey responses and removed them.",
+                    "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                  ]
+                },
+                "outcomes": [
+                  "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+                "hypotheticals": [],
+                "projectSource": "In our class project I found duplicate survey responses and removed them."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Ask one follow-up about validation.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "How did you choose your validation approach, and what test would show that it handles an ambiguous case correctly?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_interview",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T02:27:12.536Z",
+    "input": {
+      "message": "I did not check whether two people shared a name. What should I improve?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+        "action": null,
+        "turn_key": "H08-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In our class project I found duplicate survey responses and removed them.",
+                "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+              ]
+            },
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "62f89c11-10c0-4786-825f-a68e1b4f6f5e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "66eb8623-f1e5-4788-b835-761b075051e5",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "50a9cc96-e5af-4565-89d9-c339be199281",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Ask one follow-up about validation.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:11.359674+00:00"
+        },
+        {
+          "id": "e3c240da-39d0-4fca-b2a7-5a8e5f0287ff",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "How did you choose your validation approach, and what test would show that it handles an ambiguous case correctly?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-6"
+          },
+          "created_at": "2026-10-16T02:27:11.359674+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {},
+            "answer": "In our class project I found duplicate survey responses and removed them.",
+            "project": "In our class project I found duplicate survey responses and removed them.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In our class project I found duplicate survey responses and removed them.",
+                "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+              ]
+            },
+            "outcomes": [
+              "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+            "hypotheticals": [],
+            "projectSource": "In our class project I found duplicate survey responses and removed them."
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "10077d18-3ac3-47ea-9dae-ac771c66c1ab",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "8203ceaa-4d01-4efb-90ad-5d2b8beaf7f8",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T02:27:07.2067+00:00"
+        },
+        {
+          "id": "9ed23a56-7a21-42cb-9582-60f46ebe6382",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "d730e24f-5089-446e-870b-4f454438240a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:08.064854+00:00"
+        },
+        {
+          "id": "5e9152eb-c7f5-4970-a3cd-c2c161a22880",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "5f9147b1-55f9-46a4-8ab9-275799140d29",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T02:27:09.009534+00:00"
+        },
+        {
+          "id": "a7b7a5be-cc95-465c-a2fb-12f2888223f7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "bed19fe8-eb19-456b-a3a1-9a6924038039",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:09.854518+00:00"
+        },
+        {
+          "id": "62f89c11-10c0-4786-825f-a68e1b4f6f5e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "66eb8623-f1e5-4788-b835-761b075051e5",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:10.553089+00:00"
+        },
+        {
+          "id": "50a9cc96-e5af-4565-89d9-c339be199281",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Ask one follow-up about validation.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:11.359674+00:00"
+        },
+        {
+          "id": "e3c240da-39d0-4fca-b2a7-5a8e5f0287ff",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "How did you choose your validation approach, and what test would show that it handles an ambiguous case correctly?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-6"
+          },
+          "created_at": "2026-10-16T02:27:11.359674+00:00"
+        },
+        {
+          "id": "785c200a-3f7d-4304-90ff-663a4e753ac4",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I did not check whether two people shared a name. What should I improve?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:12.287339+00:00"
+        },
+        {
+          "id": "bf1d6c8b-adc8-4ba2-9be4-2d202c7f1943",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H08-7"
+          },
+          "created_at": "2026-10-16T02:27:12.287339+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-7",
+          "p_hash": "637c805cdcaebf34e3b4fc16287752022a9fb0d16e2ed658bf76e227b6552add"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-7",
+          "p_hash": "637c805cdcaebf34e3b4fc16287752022a9fb0d16e2ed658bf76e227b6552add",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {},
+                "answer": "In our class project I found duplicate survey responses and removed them.",
+                "project": "In our class project I found duplicate survey responses and removed them.",
+                "sources": [],
+                "artifact": {
+                  "kind": "interview_answer",
+                  "text": "In our class project I found duplicate survey responses and removed them. We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In our class project I found duplicate survey responses and removed them.",
+                    "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                  ]
+                },
+                "outcomes": [
+                  "We removed 40 duplicate rows; review time fell by one hour. Those are real results."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In our class project I found duplicate survey responses and removed them.",
+                "hypotheticals": [],
+                "projectSource": "In our class project I found duplicate survey responses and removed them."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I did not check whether two people shared a name. What should I improve?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "You described: In our class project I found duplicate survey responses and removed them.\nRecorded result: We removed 40 duplicate rows; review time fell by one hour. Those are real results.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

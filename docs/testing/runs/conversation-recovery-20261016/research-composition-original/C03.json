@@ -1,0 +1,4384 @@
+[
+  {
+    "caseId": "C03",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:40.932Z",
+    "input": {
+      "message": "Suppose I were a senior with ten years of Rust experience. What would change?",
+      "contains": [],
+      "absent": [],
+      "stateAbsent": [
+        "ten years of Rust"
+      ]
+    },
+    "requestKey": "C03-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_nonactual",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+        "action": null,
+        "turn_key": "C03-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "active state excludes ten years of Rust",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-1",
+          "p_hash": "caaf0fd9c0d271eb505c1a801b0d7395969a74d69edce49e8033ae6808ddc1d5"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-1",
+          "p_hash": "caaf0fd9c0d271eb505c1a801b0d7395969a74d69edce49e8033ae6808ddc1d5",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_nonactual",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:41.852Z",
+    "input": {
+      "message": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+      "contains": [
+        "junior|econ|Python"
+      ],
+      "absent": []
+    },
+    "requestKey": "C03-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "C03-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches junior|econ|Python",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-2",
+          "p_hash": "c70ac6a46f133abbc0f0f9041f21fc3cbdbfa1defaef2ff68d61d94750c07e2e"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-2",
+          "p_hash": "c70ac6a46f133abbc0f0f9041f21fc3cbdbfa1defaef2ff68d61d94750c07e2e",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "year",
+                        "value": "junior",
+                        "evidence": "I am a junior",
+                        "at": "2026-10-16T02:26:41.597Z"
+                      },
+                      {
+                        "kind": "majors",
+                        "value": "economics",
+                        "evidence": "reality I am a junior economics major",
+                        "at": "2026-10-16T02:26:41.597Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:41.597Z"
+                  }
+                }
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior",
+                    "at": "2026-10-16T02:26:41.597Z"
+                  },
+                  {
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major",
+                    "at": "2026-10-16T02:26:41.597Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I am a junior economics major with one Python class.",
+                    "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:42.764Z",
+    "input": {
+      "message": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+      "contains": [],
+      "absent": [],
+      "profileAbsent": [
+        "NASA"
+      ]
+    },
+    "requestKey": "C03-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_nonactual",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+        "action": null,
+        "turn_key": "C03-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "profile excludes NASA",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              }
+            ]
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-3",
+          "p_hash": "9af29cfd35d2bd4407fe74e162c00bce1116558545b3a58eb35b31bfdf85542a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-3",
+          "p_hash": "9af29cfd35d2bd4407fe74e162c00bce1116558545b3a58eb35b31bfdf85542a",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "year",
+                        "value": "junior",
+                        "evidence": "I am a junior"
+                      },
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "majors",
+                        "value": "economics",
+                        "evidence": "reality I am a junior economics major"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:41.597Z"
+                  }
+                }
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I am a junior economics major with one Python class.",
+                    "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  },
+                  {
+                    "scope": "third_party"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_nonactual",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:43.574Z",
+    "input": {
+      "message": "Could you draft a truthful two-line introduction from my real background?",
+      "contains": [
+        "junior|econ|Python"
+      ],
+      "absent": [
+        "I worked at NASA|ten years of Rust"
+      ]
+    },
+    "requestKey": "C03-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "C03-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches junior|econ|Python",
+        "pass": true
+      },
+      {
+        "name": "reply excludes I worked at NASA|ten years of Rust",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              }
+            ]
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              }
+            ]
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-4",
+          "p_hash": "46bf7792083e3163e214a4c3e92e52af4c8326a53127be5bb97d758061aca691"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-4",
+          "p_hash": "46bf7792083e3163e214a4c3e92e52af4c8326a53127be5bb97d758061aca691",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "year",
+                        "value": "junior",
+                        "evidence": "I am a junior"
+                      },
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "majors",
+                        "value": "economics",
+                        "evidence": "reality I am a junior economics major"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:41.597Z"
+                  }
+                }
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I am a junior economics major with one Python class.",
+                    "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  },
+                  {
+                    "scope": "third_party"
+                  }
+                ],
+                "artifact": {
+                  "kind": "introduction",
+                  "format": "text",
+                  "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "I am a junior, studying economics; My coursework includes one Python class"
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Could you draft a truthful two-line introduction from my real background?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:44.364Z",
+    "input": {
+      "message": "If I won a national coding award next year, would it help?",
+      "contains": [],
+      "absent": [],
+      "profileAbsent": [
+        "national coding award"
+      ]
+    },
+    "requestKey": "C03-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_nonactual",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+        "action": null,
+        "turn_key": "C03-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "profile excludes national coding award",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              }
+            ]
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              },
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "0e5d26a3-dfa1-4478-813d-ea7ff68b18b7",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "8e8c9dca-bcef-4039-86b2-36141fbdc697",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-5"
+          },
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-5",
+          "p_hash": "4622eafe0d6d5ee5e7f20d1374b8afb256e9b08b7e9e1a193e02aaa2c3abbfcf"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-5",
+          "p_hash": "4622eafe0d6d5ee5e7f20d1374b8afb256e9b08b7e9e1a193e02aaa2c3abbfcf",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "year",
+                        "value": "junior",
+                        "evidence": "I am a junior"
+                      },
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "majors",
+                        "value": "economics",
+                        "evidence": "reality I am a junior economics major"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:41.597Z"
+                  }
+                }
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I am a junior economics major with one Python class.",
+                    "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "artifact": {
+                  "kind": "introduction",
+                  "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "I am a junior, studying economics; My coursework includes one Python class"
+                  ]
+                },
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  },
+                  {
+                    "scope": "third_party"
+                  },
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "If I won a national coding award next year, would it help?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_nonactual",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:45.203Z",
+    "input": {
+      "message": "Now tell me which of those details are verified and which were hypothetical.",
+      "contains": [
+        "hypothet|unverified|not confirmed",
+        "junior|econ|Python"
+      ],
+      "absent": []
+    },
+    "requestKey": "C03-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_evidence",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+        "action": null,
+        "turn_key": "C03-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches hypothet|unverified|not confirmed",
+        "pass": true
+      },
+      {
+        "name": "reply matches junior|econ|Python",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              },
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "0e5d26a3-dfa1-4478-813d-ea7ff68b18b7",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "8e8c9dca-bcef-4039-86b2-36141fbdc697",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-5"
+          },
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              },
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "0e5d26a3-dfa1-4478-813d-ea7ff68b18b7",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "8e8c9dca-bcef-4039-86b2-36141fbdc697",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-5"
+          },
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "7905dc99-2705-44d3-9c29-934558591940",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:45.080269+00:00"
+        },
+        {
+          "id": "9394ad4f-1364-4b68-8351-2d6aa2267662",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_evidence",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-6"
+          },
+          "created_at": "2026-10-16T02:26:45.080269+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-6",
+          "p_hash": "138de473f428963055baa12e5ba428d0c408ff5e923ed3bbef08c5bc956e50a6"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-6",
+          "p_hash": "138de473f428963055baa12e5ba428d0c408ff5e923ed3bbef08c5bc956e50a6",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "year",
+                        "value": "junior",
+                        "evidence": "I am a junior"
+                      },
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "majors",
+                        "value": "economics",
+                        "evidence": "reality I am a junior economics major"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:41.597Z"
+                  }
+                }
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I am a junior economics major with one Python class.",
+                    "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "artifact": {
+                  "kind": "introduction",
+                  "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "I am a junior, studying economics; My coursework includes one Python class"
+                  ]
+                },
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  },
+                  {
+                    "scope": "third_party"
+                  },
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Now tell me which of those details are verified and which were hypothetical.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_evidence",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T02:26:46.022Z",
+    "input": {
+      "message": "Keep the hypothetical achievements off my resume.",
+      "contains": [
+        "hypothet|truth|confirm|not add|exclude"
+      ],
+      "absent": [],
+      "profileAbsent": [
+        "NASA",
+        "national coding award"
+      ]
+    },
+    "requestKey": "C03-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_evidence",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+        "action": null,
+        "turn_key": "C03-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches hypothet|truth|confirm|not add|exclude",
+        "pass": true
+      },
+      {
+        "name": "profile excludes NASA",
+        "pass": true
+      },
+      {
+        "name": "profile excludes national coding award",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              },
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "0e5d26a3-dfa1-4478-813d-ea7ff68b18b7",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "8e8c9dca-bcef-4039-86b2-36141fbdc697",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-5"
+          },
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "7905dc99-2705-44d3-9c29-934558591940",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:45.080269+00:00"
+        },
+        {
+          "id": "9394ad4f-1364-4b68-8351-2d6aa2267662",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_evidence",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-6"
+          },
+          "created_at": "2026-10-16T02:26:45.080269+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T02:26:41.597Z",
+                "kind": "majors",
+                "value": "economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:41.597Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I am a junior economics major with one Python class.",
+                "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "artifact": {
+              "kind": "introduction",
+              "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "I am a junior, studying economics; My coursework includes one Python class"
+              ]
+            },
+            "hypotheticals": [
+              {
+                "scope": "hypothetical"
+              },
+              {
+                "scope": "third_party"
+              },
+              {
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "36e0324f-846a-4640-899e-5323bc0eae0c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6ad1f382-68e4-4004-9d31-b187674eb397",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-1"
+          },
+          "created_at": "2026-10-16T02:26:40.781215+00:00"
+        },
+        {
+          "id": "6607e667-154f-425e-a977-55215e956dcd",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "84500fa8-24f5-4866-92f1-2a8d8d7b9f93",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I am a junior economics major with one Python class.; school year: junior; field of study: economics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-2"
+          },
+          "created_at": "2026-10-16T02:26:41.696653+00:00"
+        },
+        {
+          "id": "0764524d-9b61-4245-b114-2e817228131c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-3"
+          },
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "bf4389ce-cb6c-4aa5-8a20-8fbf0e644814",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:42.59638+00:00"
+        },
+        {
+          "id": "11ce23cf-09fb-4e0b-8ea5-937fdf3d8a96",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "9a1783ea-1a6e-4648-b0b9-4d7670d975cf",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Draft for your review; nothing has been sent.\n\nMy background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-4"
+          },
+          "created_at": "2026-10-16T02:26:43.449872+00:00"
+        },
+        {
+          "id": "0e5d26a3-dfa1-4478-813d-ea7ff68b18b7",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "8e8c9dca-bcef-4039-86b2-36141fbdc697",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-5"
+          },
+          "created_at": "2026-10-16T02:26:44.222162+00:00"
+        },
+        {
+          "id": "7905dc99-2705-44d3-9c29-934558591940",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:45.080269+00:00"
+        },
+        {
+          "id": "9394ad4f-1364-4b68-8351-2d6aa2267662",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_evidence",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-6"
+          },
+          "created_at": "2026-10-16T02:26:45.080269+00:00"
+        },
+        {
+          "id": "5baf004b-2546-4236-9d28-99001c462f5a",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Keep the hypothetical achievements off my resume.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:45.892908+00:00"
+        },
+        {
+          "id": "a797adf4-f61f-47ab-b5a0-1c256f4b7b3b",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_evidence",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C03-7"
+          },
+          "created_at": "2026-10-16T02:26:45.892908+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-7",
+          "p_hash": "08cad7d2c3bf7ebf38541aaba134aa9de802b0ac80fbfe06acbff24dc79c898f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000103",
+          "p_key": "C03-7",
+          "p_hash": "08cad7d2c3bf7ebf38541aaba134aa9de802b0ac80fbfe06acbff24dc79c898f",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "year",
+                        "value": "junior",
+                        "evidence": "I am a junior"
+                      },
+                      {
+                        "at": "2026-10-16T02:26:41.597Z",
+                        "kind": "majors",
+                        "value": "economics",
+                        "evidence": "reality I am a junior economics major"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:41.597Z"
+                  }
+                }
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:41.597Z",
+                    "kind": "majors",
+                    "value": "economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:41.597Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I am a junior economics major with one Python class.",
+                    "source": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "artifact": {
+                  "kind": "introduction",
+                  "text": "My background: I am a junior, studying economics; My coursework includes one Python class.\nI am describing my own coursework and experience; anything not confirmed here remains unknown.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "I am a junior, studying economics; My coursework includes one Python class"
+                  ]
+                },
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical"
+                  },
+                  {
+                    "scope": "third_party"
+                  },
+                  {
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Keep the hypothetical achievements off my resume.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000103",
+            "reply": "Actual user-reported background: I am a junior, studying economics; My coursework includes one Python class. Hypothetical and third-party achievements remain unverified and excluded from your resume. None of these statements is independently verified. What would you like to confirm next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C03-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_evidence",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

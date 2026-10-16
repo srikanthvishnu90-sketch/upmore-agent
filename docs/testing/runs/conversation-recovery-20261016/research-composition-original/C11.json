@@ -1,0 +1,3583 @@
+[
+  {
+    "caseId": "C11",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:35.195Z",
+    "input": {
+      "message": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+      "contains": [
+        "data|software",
+        "interview|second|next|held"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_choice",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+        "action": null,
+        "turn_key": "C11-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches data|software",
+        "pass": true
+      },
+      {
+        "name": "reply matches interview|second|next|held",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {},
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-1",
+          "p_hash": "5ab669ee033cd4aac9c53c8abfc7d26bf0033053b6b70de84a61c7572013b84c"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-1",
+          "p_hash": "5ab669ee033cd4aac9c53c8abfc7d26bf0033053b6b70de84a61c7572013b84c",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "choice",
+                "pendingInterview": true
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_choice",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:37.234Z",
+    "input": {
+      "message": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+      "contains": [
+        "pattern|explain|data"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_choice",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "C11-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches pattern|explain|data",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {},
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-2",
+          "p_hash": "4fff6ec6f7828c13426863d2fb156fbcb62fb1e33906d6a84715cf89a6311c5f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-2",
+          "p_hash": "4fff6ec6f7828c13426863d2fb156fbcb62fb1e33906d6a84715cf89a6311c5f",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "choice",
+                "facts": {
+                  "interest": {
+                    "value": "explaining patterns more than building interfaces",
+                    "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "pendingInterview": true
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_choice",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:40.018Z",
+    "input": {
+      "message": "Before we continue, what does a data analyst actually do each day?",
+      "contains": [
+        "data|analyst"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_explanation",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+        "action": null,
+        "turn_key": "C11-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches data|analyst",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-3",
+          "p_hash": "2f64249312d70c909ba457f7e2a113533f572ead903646ad330117a7e429c674"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-3",
+          "p_hash": "2f64249312d70c909ba457f7e2a113533f572ead903646ad330117a7e429c674",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "choice",
+                "facts": {
+                  "interest": {
+                    "value": "explaining patterns more than building interfaces",
+                    "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "pendingInterview": true
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Before we continue, what does a data analyst actually do each day?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_explanation",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:41.408Z",
+    "input": {
+      "message": "Return to the choice using what I enjoy, but do not make it sound certain.",
+      "contains": [
+        "pattern|explain|data",
+        "uncertain|test|try|evidence|may|could"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_choice",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "C11-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches pattern|explain|data",
+        "pass": true
+      },
+      {
+        "name": "reply matches uncertain|test|try|evidence|may|could",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-4",
+          "p_hash": "83a88caad5fe5a841780ea11217d199320a8751e894eae6c736a8ce9298a0da8"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-4",
+          "p_hash": "83a88caad5fe5a841780ea11217d199320a8751e894eae6c736a8ce9298a0da8",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "choice",
+                "facts": {
+                  "interest": {
+                    "value": "explaining patterns more than building interfaces",
+                    "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "pendingInterview": true
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_choice",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:42.375Z",
+    "input": {
+      "message": "Now do the second ask: prepare one interview answer about a class project.",
+      "contains": [
+        "project|interview|question"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_interview",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+        "action": null,
+        "turn_key": "C11-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches project|interview|question",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "choice",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [],
+            "pendingInterview": true
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": [],
+            "pendingInterview": false
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "72c3e891-86e1-4a12-a451-39e74a97466d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d058a99b-f536-4ef5-8b6c-07150fe2b1bd",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-5"
+          },
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-5",
+          "p_hash": "6ff32d06dbc5a414ff5b711c5ecab7e094f050f71cc24545e5e255de48e405a8"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-5",
+          "p_hash": "6ff32d06dbc5a414ff5b711c5ecab7e094f050f71cc24545e5e255de48e405a8",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "interest": {
+                    "value": "explaining patterns more than building interfaces",
+                    "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "pendingInterview": false,
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Now do the second ask: prepare one interview answer about a class project.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_interview",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:43.212Z",
+    "input": {
+      "message": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+      "contains": [
+        "duplicate|survey|dashboard"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: The project was a survey dashboard built in class, and I cleaned duplicate rows.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "C11-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches duplicate|survey|dashboard",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": [],
+            "pendingInterview": false
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "72c3e891-86e1-4a12-a451-39e74a97466d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d058a99b-f536-4ef5-8b6c-07150fe2b1bd",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-5"
+          },
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "project": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "hypotheticals": [],
+            "projectSource": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "pendingInterview": false
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "72c3e891-86e1-4a12-a451-39e74a97466d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d058a99b-f536-4ef5-8b6c-07150fe2b1bd",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-5"
+          },
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d7dca836-0559-4633-855b-21d6b9ee8c05",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:43.065837+00:00"
+        },
+        {
+          "id": "ea98fa31-2c8a-4437-9fe8-c09fa1ef7c7e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "You described: The project was a survey dashboard built in class, and I cleaned duplicate rows.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-6"
+          },
+          "created_at": "2026-10-16T02:27:43.065837+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-6",
+          "p_hash": "315704ed1807e21acab58c4a3380085b73b38c6da251ccb180a6896a2a0a8232"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-6",
+          "p_hash": "315704ed1807e21acab58c4a3380085b73b38c6da251ccb180a6896a2a0a8232",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "interest": {
+                    "value": "explaining patterns more than building interfaces",
+                    "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "hypotheticals": [],
+                "pendingInterview": false,
+                "project": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "projectSource": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "answer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "lastAnswer": "The project was a survey dashboard built in class, and I cleaned duplicate rows."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "You described: The project was a survey dashboard built in class, and I cleaned duplicate rows.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T02:27:43.968Z",
+    "input": {
+      "message": "Give me the actual answer, with no made-up numbers.",
+      "contains": [
+        "duplicate|survey|dashboard"
+      ],
+      "absent": [
+        "increased revenue|saved \\$"
+      ]
+    },
+    "requestKey": "C11-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your interview answer, using only the facts you supplied:\n\nThe project was a survey dashboard built in class, and I cleaned duplicate rows.\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "C11-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches duplicate|survey|dashboard",
+        "pass": true
+      },
+      {
+        "name": "reply excludes increased revenue|saved \\$",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "project": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "hypotheticals": [],
+            "projectSource": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "pendingInterview": false
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "72c3e891-86e1-4a12-a451-39e74a97466d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d058a99b-f536-4ef5-8b6c-07150fe2b1bd",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-5"
+          },
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d7dca836-0559-4633-855b-21d6b9ee8c05",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:43.065837+00:00"
+        },
+        {
+          "id": "ea98fa31-2c8a-4437-9fe8-c09fa1ef7c7e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "You described: The project was a survey dashboard built in class, and I cleaned duplicate rows.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-6"
+          },
+          "created_at": "2026-10-16T02:27:43.065837+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "interest": {
+                "value": "explaining patterns more than building interfaces",
+                "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "project": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "The project was a survey dashboard built in class, and I cleaned duplicate rows."
+              ]
+            },
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "hypotheticals": [],
+            "projectSource": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+            "pendingInterview": false
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "b958d941-da3d-4956-958d-c81cbdba9d57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "We can compare data or research analysis with software engineering, then take the interview answer as the second task. Analysis often centers on explaining patterns; engineering often centers on building and maintaining systems. Which kind of work do you enjoy doing, rather than only hearing about?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-1"
+          },
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "fc4e9c07-0087-41fc-85cf-31a9c88a407c",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:34.861457+00:00"
+        },
+        {
+          "id": "9669c3eb-107a-4b1a-bd16-55b9e689159f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-2"
+          },
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "cb37116b-4b16-44e3-96da-68032e9e0018",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:36.818042+00:00"
+        },
+        {
+          "id": "592d82ae-9ed4-43be-abdf-94c47185f28a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "7d054211-e058-48e2-8616-e9722b374741",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-3"
+          },
+          "created_at": "2026-10-16T02:27:39.720081+00:00"
+        },
+        {
+          "id": "946c761c-8b32-4ba2-b71a-9f777f85535e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your preference is explaining patterns more than building interfaces. That may point toward data or research analysis, but it is a hypothesis, not a verdict. Try explaining one real data pattern and one small coding change, then compare which work you wanted to improve. We can prepare the interview answer next. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_choice",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-4"
+          },
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "ba6d846f-f299-4c21-a3b0-e648cc85426b",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:41.147692+00:00"
+        },
+        {
+          "id": "72c3e891-86e1-4a12-a451-39e74a97466d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d058a99b-f536-4ef5-8b6c-07150fe2b1bd",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-5"
+          },
+          "created_at": "2026-10-16T02:27:42.220243+00:00"
+        },
+        {
+          "id": "d7dca836-0559-4633-855b-21d6b9ee8c05",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:43.065837+00:00"
+        },
+        {
+          "id": "ea98fa31-2c8a-4437-9fe8-c09fa1ef7c7e",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "You described: The project was a survey dashboard built in class, and I cleaned duplicate rows.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-6"
+          },
+          "created_at": "2026-10-16T02:27:43.065837+00:00"
+        },
+        {
+          "id": "5ccf9bfc-4f1e-47f6-8dba-ca203fb9deaa",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nThe project was a survey dashboard built in class, and I cleaned duplicate rows.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C11-7"
+          },
+          "created_at": "2026-10-16T02:27:43.797496+00:00"
+        },
+        {
+          "id": "b7cc28bc-2664-4c01-a573-30580e9ee02a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Give me the actual answer, with no made-up numbers.",
+          "meta": null,
+          "created_at": "2026-10-16T02:27:43.797496+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-7",
+          "p_hash": "b25cfc2ad712cbeaa5e5776fb4a27b88916ee1304ca13d41dcc13869e9ecb46c"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "C11-7",
+          "p_hash": "b25cfc2ad712cbeaa5e5776fb4a27b88916ee1304ca13d41dcc13869e9ecb46c",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "interest": {
+                    "value": "explaining patterns more than building interfaces",
+                    "source": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "project": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "hypotheticals": [],
+                "projectSource": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                "pendingInterview": false,
+                "artifact": {
+                  "kind": "interview_answer",
+                  "format": "text",
+                  "text": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "The project was a survey dashboard built in class, and I cleaned duplicate rows."
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Give me the actual answer, with no made-up numbers.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "Your interview answer, using only the facts you supplied:\n\nThe project was a survey dashboard built in class, and I cleaned duplicate rows.\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C11-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

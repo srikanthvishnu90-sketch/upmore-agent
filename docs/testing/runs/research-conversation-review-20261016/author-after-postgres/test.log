@@ -1,0 +1,39 @@
+(node:260192) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:260192) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ research intent commits without posting/profile/artifact and replays one turn pair (773.32459ms)
+✔ late research response rejection rolls back messages, account, state and intent (937.218956ms)
+✔ research grant only admits the typed public read effect and enforces ownership (2293.076414ms)
+✔ research rejects applicant data or changed immutable question in SQL (1917.222931ms)
+✖ actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status (4041.068572ms)
+✔ failed actual chat commit makes no task intent, browser command or successful queued reply (831.514596ms)
+✔ actual committed STOP before dispatch cancels research without any MOCK read (1186.434289ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12128.805927
+
+✖ failing tests:
+
+test at tests/career-public-research-postgres.test.cjs:26:1
+✖ actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status (4041.068572ms)
+  AssertionError [ERR_ASSERTION]: {"version":"career_task/v1","kind":"public_research/v1","id":"bf1bfc6e96150f22f73edd80220c9b29","userId":"00000000-0000-4000-8000-000000000001","status":"blocked","phase":"check","revision":8,"review":null,"result":null,"asks":[],"blocker":"RESEARCH_EVIDENCE_INVALID","budget":{"limitActions":120,"spentActions":1,"reservedActions":0,"spendCents":0},"authority":{"intentId":"4e9914ecfcb8e1785da67bf87d5e8d100b95976fea0f5949b66b0939e33bc74e","accountVersion":1,"privacyEpoch":0},"capabilities":{"browser":"PUBLIC_READ_ONLY","employer_submission":"NOT_WIRED"}}
+  + actual - expected
+  
+  + 'blocked'
+  - 'evidence_ready'
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs:34:50)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'evidence_ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,3717 @@
+[
+  {
+    "caseId": "H02",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000102",
+    "at": "2026-10-16T02:26:33.939Z",
+    "input": {
+      "message": "I want to network into Spruce Labs in Chicago.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H02-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "outreach_clarification",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+        "action": null,
+        "turn_key": "H02-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000102",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Chicago",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Chicago",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "geography",
+                    "value": "Chicago",
+                    "evidence": "in Chicago"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "geography",
+                "value": "Chicago",
+                "evidence": "in Chicago"
+              },
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000102",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-1",
+          "p_hash": "7370934691f8de30607cb60ca2ff0a1a3809099babdf99bd35bbf7f77d84fc27"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-1",
+          "p_hash": "7370934691f8de30607cb60ca2ff0a1a3809099babdf99bd35bbf7f77d84fc27",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "kind": "geography",
+                          "value": "Chicago",
+                          "evidence": "in Chicago",
+                          "at": "2026-10-16T02:26:33.621Z"
+                        },
+                        {
+                          "kind": "target_firm",
+                          "value": "Spruce Labs",
+                          "evidence": "network into Spruce Labs",
+                          "at": "2026-10-16T02:26:33.621Z"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T02:26:33.621Z"
+                    },
+                    "plan": {
+                      "kind": "campaign_plan",
+                      "scheduled": 0,
+                      "days": 0,
+                      "deferred": [],
+                      "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "firms_named": true,
+                      "firm_set": null,
+                      "firms_source": "named",
+                      "role_family": null,
+                      "purpose": null,
+                      "target": {
+                        "industry": null,
+                        "firm_set": null,
+                        "firms": [
+                          "Spruce Labs"
+                        ],
+                        "firms_named": true,
+                        "firms_source": "named",
+                        "role_family": null,
+                        "seniority_band": null,
+                        "geography": "Chicago",
+                        "school_filter": null,
+                        "background_filters": {},
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "count": 40,
+                        "vague": false,
+                        "proposed_default": null,
+                        "count_source": "default",
+                        "role_phrase": null
+                      },
+                      "at": "2026-10-16T02:26:33.621Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "geography",
+                        "value": "Chicago",
+                        "evidence": "in Chicago",
+                        "at": "2026-10-16T02:26:33.621Z"
+                      },
+                      {
+                        "kind": "target_firm",
+                        "value": "Spruce Labs",
+                        "evidence": "network into Spruce Labs",
+                        "at": "2026-10-16T02:26:33.621Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:33.621Z"
+                  },
+                  "plan": {
+                    "kind": "campaign_plan",
+                    "scheduled": 0,
+                    "days": 0,
+                    "deferred": [],
+                    "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "firms_named": true,
+                    "firm_set": null,
+                    "firms_source": "named",
+                    "role_family": null,
+                    "purpose": null,
+                    "target": {
+                      "industry": null,
+                      "firm_set": null,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "firms_named": true,
+                      "firms_source": "named",
+                      "role_family": null,
+                      "seniority_band": null,
+                      "geography": "Chicago",
+                      "school_filter": null,
+                      "background_filters": {},
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "count": 40,
+                      "vague": false,
+                      "proposed_default": null,
+                      "count_source": "default",
+                      "role_phrase": null
+                    },
+                    "at": "2026-10-16T02:26:33.621Z"
+                  }
+                }
+              },
+              "plan": {
+                "kind": "campaign_plan",
+                "scheduled": 0,
+                "days": 0,
+                "deferred": [],
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "firms_named": true,
+                "firm_set": null,
+                "firms_source": "named",
+                "role_family": null,
+                "purpose": null,
+                "target": {
+                  "industry": null,
+                  "firm_set": null,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "firms_named": true,
+                  "firms_source": "named",
+                  "role_family": null,
+                  "seniority_band": null,
+                  "geography": "Chicago",
+                  "school_filter": null,
+                  "background_filters": {},
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "count": 40,
+                  "vague": false,
+                  "proposed_default": null,
+                  "count_source": "default",
+                  "role_phrase": null
+                },
+                "at": "2026-10-16T02:26:33.621Z"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "geography",
+                    "value": "Chicago",
+                    "evidence": "in Chicago",
+                    "at": "2026-10-16T02:26:33.621Z"
+                  },
+                  {
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs",
+                    "at": "2026-10-16T02:26:33.621Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I want to network into Spruce Labs in Chicago.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000102",
+            "reply": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H02-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "outreach_clarification",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H02",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000102",
+    "at": "2026-10-16T02:26:34.827Z",
+    "input": {
+      "message": "My preferred location is Salt Lake City.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H02-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_preference_corrected",
+          "contained": false
+        },
+        "reply": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+        "action": null,
+        "turn_key": "H02-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000102",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Chicago",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Chicago",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "geography",
+                    "value": "Chicago",
+                    "evidence": "in Chicago"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "geography",
+                "value": "Chicago",
+                "evidence": "in Chicago"
+              },
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Salt Lake City",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Salt Lake City",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Salt Lake City"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Salt Lake City",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Salt Lake City",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:34.545Z",
+                    "kind": "geography",
+                    "value": "Salt Lake City",
+                    "evidence": "My preferred location is Salt Lake City."
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Salt Lake City",
+                    "source": "My preferred location is Salt Lake City.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              },
+              {
+                "at": "2026-10-16T02:26:34.545Z",
+                "kind": "geography",
+                "value": "Salt Lake City",
+                "evidence": "My preferred location is Salt Lake City."
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Salt Lake City",
+                "source": "My preferred location is Salt Lake City.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "3d557815-e698-4e2e-b6f5-1c4c3188d323",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "My preferred location is Salt Lake City.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "8b781c2b-0d17-4471-94e7-c2b41fdc7c21",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-2"
+          },
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Salt Lake City"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000102",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-2",
+          "p_hash": "da29f0b6d41271ec87e8d3cd87cb81730f9945d9e1cfb898afadd13f009074e9"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-2",
+          "p_hash": "da29f0b6d41271ec87e8d3cd87cb81730f9945d9e1cfb898afadd13f009074e9",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Salt Lake City"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Spruce Labs"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Chicago",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T02:26:33.621Z",
+                          "kind": "geography",
+                          "value": "Chicago",
+                          "evidence": "in Chicago"
+                        },
+                        {
+                          "at": "2026-10-16T02:26:33.621Z",
+                          "kind": "target_firm",
+                          "value": "Spruce Labs",
+                          "evidence": "network into Spruce Labs"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T02:26:33.621Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "Salt Lake City",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": null,
+                    "firms_source": "named",
+                    "geography": "Salt Lake City",
+                    "needsReview": true
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:33.621Z",
+                        "kind": "target_firm",
+                        "value": "Spruce Labs",
+                        "evidence": "network into Spruce Labs"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Salt Lake City",
+                        "evidence": "My preferred location is Salt Lake City.",
+                        "at": "2026-10-16T02:26:34.545Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:33.621Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "facts": {
+                      "target_city": {
+                        "value": "Salt Lake City",
+                        "source": "My preferred location is Salt Lake City.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": [],
+                    "mode": null
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Salt Lake City",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named",
+                "geography": "Salt Lake City",
+                "needsReview": true
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Salt Lake City",
+                    "evidence": "My preferred location is Salt Lake City.",
+                    "at": "2026-10-16T02:26:34.545Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "target_city": {
+                    "value": "Salt Lake City",
+                    "source": "My preferred location is Salt Lake City.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {
+            "preferred_locations": [
+              "Salt Lake City"
+            ]
+          },
+          "p_input": "My preferred location is Salt Lake City.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000102",
+            "reply": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H02-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_preference_corrected",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H02",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000102",
+    "at": "2026-10-16T02:26:36.059Z",
+    "input": {
+      "message": "Actually, my preferred location is San Diego.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H02-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_preference_corrected",
+          "contained": false
+        },
+        "reply": "I saved your preferred location as San Diego. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+        "action": null,
+        "turn_key": "H02-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000102",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Salt Lake City",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Salt Lake City",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Salt Lake City"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Salt Lake City",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Salt Lake City",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:34.545Z",
+                    "kind": "geography",
+                    "value": "Salt Lake City",
+                    "evidence": "My preferred location is Salt Lake City."
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Salt Lake City",
+                    "source": "My preferred location is Salt Lake City.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              },
+              {
+                "at": "2026-10-16T02:26:34.545Z",
+                "kind": "geography",
+                "value": "Salt Lake City",
+                "evidence": "My preferred location is Salt Lake City."
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Salt Lake City",
+                "source": "My preferred location is Salt Lake City.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "3d557815-e698-4e2e-b6f5-1c4c3188d323",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "My preferred location is Salt Lake City.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "8b781c2b-0d17-4471-94e7-c2b41fdc7c21",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-2"
+          },
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Salt Lake City"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "San Diego",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "San Diego",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "San Diego"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "San Diego",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "San Diego",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:35.686Z",
+                    "kind": "geography",
+                    "value": "San Diego",
+                    "evidence": "Actually, my preferred location is San Diego."
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "San Diego",
+                    "source": "Actually, my preferred location is San Diego.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              },
+              {
+                "at": "2026-10-16T02:26:35.686Z",
+                "kind": "geography",
+                "value": "San Diego",
+                "evidence": "Actually, my preferred location is San Diego."
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "San Diego",
+                "source": "Actually, my preferred location is San Diego.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "3d557815-e698-4e2e-b6f5-1c4c3188d323",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "My preferred location is Salt Lake City.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "8b781c2b-0d17-4471-94e7-c2b41fdc7c21",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-2"
+          },
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "101abe6e-acb2-4bd0-9eb8-f84d66749b47",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as San Diego. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-3"
+          },
+          "created_at": "2026-10-16T02:26:35.841282+00:00"
+        },
+        {
+          "id": "e0b1c7d8-c849-4848-a303-a1af896053bd",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "Actually, my preferred location is San Diego.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:35.841282+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "San Diego"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000102",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-3",
+          "p_hash": "8fc2f3765daf747e71cd34d87baa95f6eeabbb4edb48534b530fcb2e5d171d5a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-3",
+          "p_hash": "8fc2f3765daf747e71cd34d87baa95f6eeabbb4edb48534b530fcb2e5d171d5a",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "San Diego"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Spruce Labs"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Chicago",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T02:26:33.621Z",
+                          "kind": "geography",
+                          "value": "Chicago",
+                          "evidence": "in Chicago"
+                        },
+                        {
+                          "at": "2026-10-16T02:26:33.621Z",
+                          "kind": "target_firm",
+                          "value": "Spruce Labs",
+                          "evidence": "network into Spruce Labs"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T02:26:33.621Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "San Diego",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "San Diego",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": null,
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:33.621Z",
+                        "kind": "target_firm",
+                        "value": "Spruce Labs",
+                        "evidence": "network into Spruce Labs"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "San Diego",
+                        "evidence": "Actually, my preferred location is San Diego.",
+                        "at": "2026-10-16T02:26:35.686Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:33.621Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "target_city": {
+                        "value": "San Diego",
+                        "source": "Actually, my preferred location is San Diego.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "San Diego",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "San Diego",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "San Diego",
+                    "evidence": "Actually, my preferred location is San Diego.",
+                    "at": "2026-10-16T02:26:35.686Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "San Diego",
+                    "source": "Actually, my preferred location is San Diego.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {
+            "preferred_locations": [
+              "San Diego"
+            ]
+          },
+          "p_input": "Actually, my preferred location is San Diego.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000102",
+            "reply": "I saved your preferred location as San Diego. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H02-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_preference_corrected",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H02",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000102",
+    "at": "2026-10-16T02:26:36.885Z",
+    "input": {
+      "message": "What is my next networking move?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H02-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_next_step",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "for Spruce Labs, in San Diego: review one sourced analyst profile at Spruce Labs. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+        "action": null,
+        "turn_key": "H02-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000102",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "San Diego",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "San Diego",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "San Diego"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "San Diego",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "San Diego",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:35.686Z",
+                    "kind": "geography",
+                    "value": "San Diego",
+                    "evidence": "Actually, my preferred location is San Diego."
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "San Diego",
+                    "source": "Actually, my preferred location is San Diego.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              },
+              {
+                "at": "2026-10-16T02:26:35.686Z",
+                "kind": "geography",
+                "value": "San Diego",
+                "evidence": "Actually, my preferred location is San Diego."
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "San Diego",
+                "source": "Actually, my preferred location is San Diego.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "3d557815-e698-4e2e-b6f5-1c4c3188d323",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "My preferred location is Salt Lake City.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "8b781c2b-0d17-4471-94e7-c2b41fdc7c21",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-2"
+          },
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "101abe6e-acb2-4bd0-9eb8-f84d66749b47",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as San Diego. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-3"
+          },
+          "created_at": "2026-10-16T02:26:35.841282+00:00"
+        },
+        {
+          "id": "e0b1c7d8-c849-4848-a303-a1af896053bd",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "Actually, my preferred location is San Diego.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:35.841282+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "San Diego"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T02:26:33.621Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Spruce Labs"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Spruce Labs"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "San Diego",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Spruce Labs in Chicago.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "San Diego",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "San Diego"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T02:26:33.621Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Chicago",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "geography",
+                      "value": "Chicago",
+                      "evidence": "in Chicago"
+                    },
+                    {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "kind": "target_firm",
+                      "value": "Spruce Labs",
+                      "evidence": "network into Spruce Labs"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T02:26:33.621Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "San Diego",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "San Diego",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "at": "2026-10-16T02:26:36.599Z",
+                    "kind": "geography",
+                    "value": "San Diego",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "San Diego",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T02:26:33.621Z",
+                "kind": "target_firm",
+                "value": "Spruce Labs",
+                "evidence": "network into Spruce Labs"
+              },
+              {
+                "at": "2026-10-16T02:26:36.599Z",
+                "kind": "geography",
+                "value": "San Diego",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T02:26:33.621Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "San Diego",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "f48a2de3-8c9b-4277-a784-cdcb93876e8b",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "Building the list now: people at Spruce Labs in Chicago — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Spruce Labs in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H02-1"
+          },
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "f4df61a5-6998-46ec-854f-56c66ee26086",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "I want to network into Spruce Labs in Chicago.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:33.785026+00:00"
+        },
+        {
+          "id": "3d557815-e698-4e2e-b6f5-1c4c3188d323",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "My preferred location is Salt Lake City.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "8b781c2b-0d17-4471-94e7-c2b41fdc7c21",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as Salt Lake City. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-2"
+          },
+          "created_at": "2026-10-16T02:26:34.659839+00:00"
+        },
+        {
+          "id": "101abe6e-acb2-4bd0-9eb8-f84d66749b47",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "I saved your preferred location as San Diego. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H02-3"
+          },
+          "created_at": "2026-10-16T02:26:35.841282+00:00"
+        },
+        {
+          "id": "e0b1c7d8-c849-4848-a303-a1af896053bd",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "Actually, my preferred location is San Diego.",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:35.841282+00:00"
+        },
+        {
+          "id": "6349634f-c177-4a3e-addd-f445c597b963",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "user",
+          "content": "What is my next networking move?",
+          "meta": null,
+          "created_at": "2026-10-16T02:26:36.711837+00:00"
+        },
+        {
+          "id": "d37f33de-89d4-47e9-a3d0-bd5c67fc0177",
+          "thread_id": "00000000-0000-4000-8000-000000000102",
+          "role": "assistant",
+          "content": "for Spruce Labs, in San Diego: review one sourced analyst profile at Spruce Labs. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H02-4"
+          },
+          "created_at": "2026-10-16T02:26:36.711837+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4,
+        "preferred_locations": [
+          "San Diego"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000102",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-4",
+          "p_hash": "c60d4963a8097451f0406e079728a74313d26889d8a4f66ca141a434047147f8"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000102",
+          "p_key": "H02-4",
+          "p_hash": "c60d4963a8097451f0406e079728a74313d26889d8a4f66ca141a434047147f8",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "San Diego"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T02:26:33.621Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Spruce Labs"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Chicago",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T02:26:33.621Z",
+                          "kind": "geography",
+                          "value": "Chicago",
+                          "evidence": "in Chicago"
+                        },
+                        {
+                          "at": "2026-10-16T02:26:33.621Z",
+                          "kind": "target_firm",
+                          "value": "Spruce Labs",
+                          "evidence": "network into Spruce Labs"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T02:26:33.621Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Spruce Labs"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Spruce Labs"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "San Diego",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "San Diego",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": null,
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T02:26:33.621Z",
+                        "kind": "target_firm",
+                        "value": "Spruce Labs",
+                        "evidence": "network into Spruce Labs"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "San Diego",
+                        "evidence": "saved account preference",
+                        "at": "2026-10-16T02:26:36.599Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T02:26:33.621Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "target_city": {
+                        "value": "San Diego",
+                        "source": "saved account preference",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T02:26:33.621Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Spruce Labs"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Spruce Labs"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "San Diego",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Spruce Labs in Chicago.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "San Diego",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T02:26:33.621Z",
+                    "kind": "target_firm",
+                    "value": "Spruce Labs",
+                    "evidence": "network into Spruce Labs"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "San Diego",
+                    "evidence": "saved account preference",
+                    "at": "2026-10-16T02:26:36.599Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T02:26:33.621Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "San Diego",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is my next networking move?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000102",
+            "reply": "for Spruce Labs, in San Diego: review one sourced analyst profile at Spruce Labs. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H02-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_next_step",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+(node:259647) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:259647) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (2555.992265ms)
+✔ I03-I26 conversation corrections survive research and source text never becomes career evidence (6141.293711ms)
+✔ I05 authenticated owner and thread isolation protect research observations (4290.696563ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (2701.681657ms)
+✔ I08 STOP across owned threads revokes a reserved but unconsumed read (2962.291896ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (3219.866106ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (3069.761894ms)
+✔ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (6868.201893ms)
+✔ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (6979.185473ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (2606.750199ms)
+✔ I20 a failed research effect is not repeated by pending work or status polling (5148.749812ms)
+✔ I21 research authority refuses all application operations at the real SQL gate (3186.432931ms)
+✔ I22 central-result save recovery uses existing capture and never reads twice (4250.335766ms)
+✔ I17 supplementary: rehashing a forged artifact cannot rewrite the immutable request or effect receipt (5429.575635ms)
+✔ I22 supplementary: committed finish with lost acknowledgement and failed readback recovers the identical receipt (4349.507782ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63918.634671

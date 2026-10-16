@@ -1,0 +1,17 @@
+{
+  "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+  "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-task-authority-postgres.test.cjs"
+  ],
+  "environment": {
+    "CAREER_TEST_CONTAINER": "upmore-career-integration-pg-recovery",
+    "CAREER_TEST_DATABASE": "career_test_research_task_regression"
+  },
+  "exitCode": 1,
+  "logSha256": "f7002f8a05c9c2ff0df2351a1d8d0ec40208a59337b06c0cd5fe8ca792eb6464",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED"
+}

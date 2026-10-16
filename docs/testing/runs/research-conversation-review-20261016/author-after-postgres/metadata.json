@@ -1,0 +1,40 @@
+{
+  "label": "author-after-postgres",
+  "mode": "author-postgres",
+  "target": "/workspace/upmore-research-review",
+  "commit": "9aebb8de4768ef9598a5a8e99eb144d790424254",
+  "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+  "expectationSha256": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117",
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "workers/career-browser/service.cjs": "76fc2c373250b1061f87053e4dfe78cccdfedc1b48e72128618378fc85594b59",
+    "workers/career-browser/research-network.cjs": "a98cc550036a43ca1aa71e17553da93741c45c2dfb20efc0e60b9ee436f82b5f",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d",
+    "workers/career-browser/research-png.cjs": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+  },
+  "testSourceSha256": "67ca0fc6fe5bba12c9be4b682da537ffc81c6f5ae2d6b312732165e3176f16e2",
+  "helperSha256": "1d65d8e93162d0bdfb78c9e4419847ebe46eff1743cf51e18dd3cc2810a1ef02",
+  "started": "2026-10-16T02:26:22.534Z",
+  "verification": "ACTUAL_STAGED_ENTRY_REAL_LOCAL_POSTGRES_SYNTHETIC_AUTH_AND_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "database": "career_test_research_author_after_postgres",
+  "finished": "2026-10-16T02:26:34.956Z",
+  "exitCode": 1,
+  "logSha256": "24f447c9400174a6c6e9146b7b4ff29e66a17a64d0ffb3d4741e0dbc9dcbff43",
+  "transcriptSha256": null,
+  "result": "FAIL_RETAINED",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs"
+  ]
+}

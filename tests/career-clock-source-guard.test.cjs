@@ -39,9 +39,11 @@ const W11 = require("../packages/domain/145-career-w11-ext.js");
 const TURN_NOW_ISO = "2026-10-13T12:00:00Z"; // pilot-lib STAGING_NOW
 const TURN_NOW_MS = RealDate.parse(TURN_NOW_ISO);
 
-const doc = fs.readFileSync(path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md"), "utf8");
-const CANON = new Map();
-for (const line of doc.split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !CANON.has(m[1])) CANON.set(m[1], m[2].trim()); }
+// The checked-in routing registry carries the canonical asks used by this
+// guard. A clean clone must not depend on a private home-directory upload.
+const canonical = JSON.parse(fs.readFileSync(path.join(__dirname, "../scripts/career/gauntlet/routing-expectations.json"), "utf8"));
+const CANON = new Map(canonical.entries.map((entry) => [entry.id, entry.ask]));
+for (const id of ["SC-143", "SC-040"]) assert.ok(CANON.has(id), `Missing checked-in canonical ask: ${id}`);
 function turn(idOrAsk, extraCtx) {
   const ask = CANON.get(idOrAsk) || idOrAsk;
   const profile = L.gauntletProfile("p1-early-career-swe");

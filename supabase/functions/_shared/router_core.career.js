@@ -15651,25 +15651,26 @@ const CareerConversation = (() => {
     let changed=[];let st=prior;
     const put=(k,v)=>{st=write(ctx);remember(st,k,v,raw);changed.push(k.replaceAll('_',' '));};
     if(assertion(raw)) {
-      let m=raw.match(/\b(?:i have|i can spend|i only have)\s+(.{1,65}?(?:minutes?|hours?|afternoons?|mornings?)(?:\s+(?:a|per|each)\s+\w+)?(?:\s+(?:free|daily))?)/i);
+      const evidence=plain(raw),evidenceLow=low(evidence);
+      let m=evidence.match(/\b(?:i have|i can spend|i only have)\s+(.{1,65}?(?:minutes?|hours?|afternoons?|mornings?)(?:\s+(?:a|per|each)\s+\w+)?(?:\s+(?:free|daily))?)/i);
       if(m)put("availability",m[1]);
-      if(/\b(?:i (?:like|enjoy|prefer)|i.m interested in)\b/.test(t))put("interest",raw.replace(/^[^.]*?\b(?:like|enjoy|prefer|interested in)\s+/i,"").replace(/[.!]+$/,""));
-      if(/\b(?:need|require|must be)\b[^.]*\bpaid\b|\brent\b[^.]*\bdue\b/.test(t))put("paid",true);
-      if(/\bremote only|\bremote-only/.test(t))put("remote_only",true);
-      if(/\bpart.time\b/.test(t))put("part_time",true);
-      if(/\b(?:cannot|can.t|won.t) relocate\b/.test(t))put("no_relocation",true);
-      if(/\b(?:exclude|skip|not|no)\b[^.]*\b(?:director|senior management)\b/.test(t))put("exclude_senior",true);
-      if(/\b(?:i need|require)\b[^.]*\bsponsor/.test(t))put("sponsorship",true);
-      if(/\bi (?:do not|don.t) know\b|\bi have never\b/.test(t))put("disputed_experience",raw);
-      if(/\b(?:entry.level|junior)\b.*\b(?:role|work|analyst)\b/.test(t))put("role",raw.split(/[.!]/)[0]);
-      if(/\b(?:i am|i'm|in reality)\b/.test(t)&&/\b(?:class|major|study|junior|sophomore|senior|freshman)\b/.test(t))put("background",raw.replace(/^.*?in reality\s*/i,""));
-      if(/\b(?:my (?:only )?(?:technical )?experience is|in (?:my|our|a|the) [^.]*project|the project was|i (?:built|created|cleaned) [^.]*project)\b/i.test(raw)) {
-        st=write(ctx);st.project=raw;st.projectSource=raw;
-        if(st.mode==="interview"){st.answer=raw;st.lastAnswer=raw;}else if(/experience/.test(t))st.mode="resume";
+      if(/\b(?:i (?:like|enjoy|prefer)|i.m interested in)\b/.test(evidenceLow))put("interest",evidence.replace(/^[^.]*?\b(?:like|enjoy|prefer|interested in)\s+/i,"").replace(/[.!]+$/,""));
+      if(/\b(?:need|require|must be)\b[^.]*\bpaid\b|\brent\b[^.]*\bdue\b/.test(evidenceLow))put("paid",true);
+      if(/\bremote only|\bremote-only/.test(evidenceLow))put("remote_only",true);
+      if(/\bpart.time\b/.test(evidenceLow))put("part_time",true);
+      if(/\b(?:cannot|can.t|won.t) relocate\b/.test(evidenceLow))put("no_relocation",true);
+      if(/\b(?:exclude|skip|not|no)\b[^.]*\b(?:director|senior management)\b/.test(evidenceLow))put("exclude_senior",true);
+      if(/\b(?:i need|require)\b[^.]*\bsponsor/.test(evidenceLow))put("sponsorship",true);
+      if(/\bi (?:do not|don.t) know\b|\bi have never\b/.test(evidenceLow))put("disputed_experience",raw);
+      if(/\b(?:entry.level|junior)\b.*\b(?:role|work|analyst)\b/.test(evidenceLow))put("role",raw.split(/[.!]/)[0]);
+      if(/\b(?:i am|i'm|in reality)\b/.test(evidenceLow)&&/\b(?:class|major|study|junior|sophomore|senior|freshman)\b/.test(evidenceLow))put("background",evidence.replace(/^.*?in reality\s*/i,""));
+      if(/\b(?:my (?:only )?(?:technical )?experience is|in (?:my|our|a|the) [^.]*project|the project was|i (?:built|created|cleaned) [^.]*project)\b/i.test(evidence)) {
+        st=write(ctx);st.project=evidence;st.projectSource=evidence;
+        if(st.mode==="interview"){st.answer=evidence;st.lastAnswer=evidence;}else if(/experience/.test(evidenceLow))st.mode="resume";
         changed.push("class project");
       }
-      if(st?.mode==="interview"&&/^(?:in (?:my|our)|i |we |the project)/i.test(raw)&&!changed.includes("class project")) {
-        if(/\b(?:rows|records|hours?|minutes?)\b/.test(t)&&/\d|\bone\b|\btwo\b|\bthree\b/.test(t)) {st.outcomes||=[];st.outcomes.push(raw);}else{st.answer||=raw;st.lastAnswer=raw;}
+      if(st?.mode==="interview"&&/^(?:in (?:my|our)|i |we |the project)/i.test(evidence)&&!changed.includes("class project")) {
+        if(/\b(?:rows|records|hours?|minutes?)\b/.test(evidenceLow)&&/\d|\bone\b|\btwo\b|\bthree\b/.test(evidenceLow)) {st.outcomes||=[];st.outcomes.push(evidence);st.outcomes=st.outcomes.slice(-12);}else{st.answer||=evidence;st.lastAnswer=evidence;}
         changed.push("interview evidence");
       }
     }
@@ -15710,7 +15711,7 @@ const CareerConversation = (() => {
       if(tailored?.artifact?.text){const saved=artifact(ctx,"tailored_resume",tailored.artifact.text,(ctx.profile.facts||[]).filter(f=>!f.unproven).map(f=>f.text||f.name||f.title));tailored.reply+=`\n\nThe actual resume text for review:\n${saved.text}`;}
       return tailored;
     }
-    if(/\b(?:resume|bullet|coursework|class project)\b/.test(t)&&/\b(?:tailor|draft|write|show|revised|use only|truthful|keep it truthful|label)\b/.test(t))return resumeBullet(ctx);
+    if(/\b(?:resume|bullet|coursework|class project)\b/.test(t)&&/\b(?:draft|write|show|revised|use only|truthful|keep it truthful|label)\b/.test(t)&&!/\btailor\b/.test(t))return resumeBullet(ctx);
     if(st?.artifact&&/\b(?:source|supports|prove|evidence)\b/.test(t))return result("conversation_artifact_source",`The source is your stated experience: ${st.artifact.sourceQuotes.join(' ')}. The text uses those user-reported facts only; it is not independent verification. What needs correcting?`);
     if(/\b(?:director|senior)\b/.test(t)&&/\b(?:posting|role|pass|match)\b/.test(t)&&get(st,"exclude_senior"))return result("conversation_constraints","Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.");
     if(/\b(?:recap|summari[sz]e|repeat .*constraints|what.*retain|what.*kept|what.*changed)\b/.test(t)&&st) {
@@ -16289,7 +16290,21 @@ const CareerRouter = (() => {
     }
     const company = (posting && posting.company) || ctx.company || null;
     const jobId = (posting && (posting.id || posting.corpus_id || posting.job_id)) || ctx.jobId || null;
-    const tailored = Tailor.tailorResume(profile, jdText, { company, jobId });
+    // Canonical legacy fact_id values are evidence IDs, not anonymous facts.
+    // Adapt a copy at this library boundary; do not invent IDs or rewrite
+    // the master profile. Conflicting/duplicate aliases fail closed.
+    let tailoringProfile = profile;
+    const profileFacts = profile && Array.isArray(profile.facts) ? profile.facts : [];
+    const ids = profileFacts.map(f => f && (f.id || f.fact_id));
+    if (profileFacts.some(f => !f || !(f.id || f.fact_id) || f.id && f.fact_id && f.id !== f.fact_id) || new Set(ids).size !== ids.length) {
+      return { intent: "tailor_refused", reply: "I cannot trace every resume line to an unambiguous confirmed fact. No tailored artifact was saved. Review the conflicting or missing evidence identifiers before trying again.", resultStatus: "blocked", artifact: null };
+    }
+    if (profileFacts.some(f => !f.id && f.fact_id)) {
+      tailoringProfile = JSON.parse(JSON.stringify(profile));
+      for (const fact of tailoringProfile.facts) fact.id = fact.id || fact.fact_id;
+    }
+    const tailored = Tailor.tailorResume(tailoringProfile, jdText, { company, jobId });
+    if (tailored.ok && tailoringProfile !== profile && tailoringProfile.versions) profile.versions = tailoringProfile.versions;
     if (!tailored.ok) {
       const reply = compose({ headline: "The truth check refused that tailoring, so nothing was saved.", facts: ["A tailored resume is only saved when every line traces to a confirmed fact on your profile."], nextStep: "Tell me which facts to confirm and I will run it again." });
       return { intent: "tailor_refused", reply, resultStatus: "blocked", artifact: null, violations: tailored.violations || [] };

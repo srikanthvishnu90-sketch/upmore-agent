@@ -561,7 +561,21 @@ const CareerRouter = (() => {
     }
     const company = (posting && posting.company) || ctx.company || null;
     const jobId = (posting && (posting.id || posting.corpus_id || posting.job_id)) || ctx.jobId || null;
-    const tailored = Tailor.tailorResume(profile, jdText, { company, jobId });
+    // Canonical legacy fact_id values are evidence IDs, not anonymous facts.
+    // Adapt a copy at this library boundary; do not invent IDs or rewrite
+    // the master profile. Conflicting/duplicate aliases fail closed.
+    let tailoringProfile = profile;
+    const profileFacts = profile && Array.isArray(profile.facts) ? profile.facts : [];
+    const ids = profileFacts.map(f => f && (f.id || f.fact_id));
+    if (profileFacts.some(f => !f || !(f.id || f.fact_id) || f.id && f.fact_id && f.id !== f.fact_id) || new Set(ids).size !== ids.length) {
+      return { intent: "tailor_refused", reply: "I cannot trace every resume line to an unambiguous confirmed fact. No tailored artifact was saved. Review the conflicting or missing evidence identifiers before trying again.", resultStatus: "blocked", artifact: null };
+    }
+    if (profileFacts.some(f => !f.id && f.fact_id)) {
+      tailoringProfile = JSON.parse(JSON.stringify(profile));
+      for (const fact of tailoringProfile.facts) fact.id = fact.id || fact.fact_id;
+    }
+    const tailored = Tailor.tailorResume(tailoringProfile, jdText, { company, jobId });
+    if (tailored.ok && tailoringProfile !== profile && tailoringProfile.versions) profile.versions = tailoringProfile.versions;
     if (!tailored.ok) {
       const reply = compose({ headline: "The truth check refused that tailoring, so nothing was saved.", facts: ["A tailored resume is only saved when every line traces to a confirmed fact on your profile."], nextStep: "Tell me which facts to confirm and I will run it again." });
       return { intent: "tailor_refused", reply, resultStatus: "blocked", artifact: null, violations: tailored.violations || [] };

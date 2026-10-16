@@ -10,7 +10,9 @@ function publicAddress(address) {
   // Conservatively accept global-unicast IPv6 only; reject mapped/private,
   // documentation, tunnelling and special ranges rather than guessing.
   if (net.isIP(address)!==6) return false;
-  const [first,second]=address.split(':').map(part=>parseInt(part,16));
+  // In a global-unicast address the first word is explicit. An empty
+  // second word denotes a compressed zero, not an unknown (NaN) word.
+  const [first,second]=address.split(':').map(part=>part===''?0:parseInt(part,16));
   return first>=0x2000 && first<0x4000 && first!==0x2002 && first!==0x3fff && !(first===0x2001 && (second<0x200 || second===0xdb8));
 }
 async function publicGet(url, {origin, lookup = dns.lookup, request = https.request, maxBytes = 2000000} = {}) {

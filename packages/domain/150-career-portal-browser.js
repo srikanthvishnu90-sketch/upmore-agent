@@ -125,6 +125,25 @@ const CareerPortalBrowser = (() => {
   function extractConfirmation(text, opts) {
     const t = String(text || "");
     if (opts && opts.formStillOpen) return { confirmationId: null, successText: false, formStillOpen: true };
+    // MI-114 HOLE-1 (allocation requested from Crew A, 2026-10-16): the
+    // FR-366 labeled+digit rules mint an ID from ANY labeled token on
+    // the page — including pages that say the submission FAILED.
+    // "Your application was not submitted. Reference ID: ERR-5021"
+    // minted ERR-5021 and the run recorded SUBMITTED: the BUG-208
+    // effect through the negation door. Failure/negation wording
+    // anywhere in the captured landing text zeroes BOTH signals — the
+    // outcome stays unknown and reconcile decides; it never accepts.
+    // The windows are sentence-bounded and keyed to the submission
+    // nouns, so genuine pages ("If you have not submitted a portfolio
+    // yet" on a confirmation page, "an error appears in your details")
+    // do not trip it.
+    const submissionDenied =
+      /\b(application|submission)\b[^.]{0,30}?\b(not|never)\b[^.]{0,20}?\b(submitted|received|completed)\b/i.test(t)
+      || /\b(application|submission) (failed|not received)\b/i.test(t)
+      || /\bno application is on file\b/i.test(t)
+      || /\byou have already applied\b/i.test(t)
+      || /\b(something went wrong|there was a problem|an error occurred)\b/i.test(t);
+    if (submissionDenied) return { confirmationId: null, successText: false };
     const idMatch = t.match(/(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i);
     const confirmationId = idMatch && /\d/.test(idMatch[1]) ? idMatch[1] : null;
     const successText = /(application (has been |was )?(submitted|received)|thank you for applying|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i.test(t);

@@ -3557,16 +3557,35 @@ const CareerRouter = (() => {
   function unquotedText(text) {
     return s(text).replace(/["“][^"”]*["”]/g, " ").replace(/\s+/g, " ");
   }
+  // MI-114 HOLE-4 (allocation requested from Crew A, 2026-10-16): the
+  // user's own words, minus any pasted document. A document the user
+  // SHOWS the agent — introduced by a framing clause ("Here is a
+  // posting I found: <document>") — is third-party text, not the
+  // user's assertion, however it is phrased inside: a "SYSTEM NOTE"
+  // line, a quoted testimonial, a closure or offer claim. State
+  // writers (the BUG-169 law: a write needs the user's own assertion
+  // or a system/employer record — a pasted posting is NEITHER) mine
+  // only what survives here; analysis routes still read the full
+  // text. Quoted spans are already stripped by unquotedText.
+  function userOwnText(text) {
+    const t = unquotedText(text);
+    const m = t.match(/\b(?:here(?:'s| is)|this is|see|posting|job|jd|listing)\b[^:—–]{0,80}?\b(?:posting|job description|job|jd|listing|description|role)\b[^:—–]{0,40}[:—–]/i);
+    return m ? t.slice(0, m.index).trim() : t;
+  }
   function applicationAssertionOf(text) {
     const t = lc(unquotedText(text));
-    if (/\bif i (applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
+    if (/\bif i (already )?(applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
     // Attributed to someone else ("my friend said I applied…") — a
     // report of a claim is not the user's own assertion.
     if (/\b(said|says|told me|mentioned|claims|thinks|texted|wrote)\b[^.]*\bi (applied|submitted)\b/.test(t)) return "hypothetical";
-    const asserted = /\bi (applied|submitted|sent in my application)\b/.test(t);
+    // MI-114 HOLE-4: a third-person application claim ("the user has
+    // already applied", "they submitted") is a claim ABOUT someone —
+    // the shape employer text uses — never the user's own disclosure.
+    if (/\b(the user|he|she|they)\b[^.]*\b(applied|submitted)\b/.test(t)) return "hypothetical";
+    const asserted = /\bi (already )?(applied|submitted|sent in my application)\b/.test(t);
     // The assertion exists in the raw text but only inside quotes —
     // it is quoted speech, not the user's own report.
-    if (!asserted && /\bi (applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
+    if (!asserted && /\bi (already )?(applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
     const imperative = /\b(add|log|record|track)\b[^.]*\b(application|tracker|it|this)\b/.test(t);
     if (asserted || imperative) return "assertion";
     if (interrogativeTurn(text)) return "hypothetical";
@@ -6067,18 +6086,23 @@ const CareerRouter = (() => {
   // The ownership layer: checked BEFORE every existing route in handleChat.
   function handleStateChangeIntents(text, ctx) {
     const c = ctx || {};
-    return invalidationGate(text, c)
-      || handlePauseControl(text, c)
-      || handleRecipientChange(text, c)
-      || handleOptOut(text, c)
-      || handleUserSuppression(text, c)
-      || handleRoleClosure(text, c)
-      || handlePriorApplication(text, c)
-      || handleSensitiveCorrection(text, c)
-      || handleQueueCancel(text, c)
-      || handleDoorstepCancel(text, c)
-      || handlePacketValidity(text, c)
-      || handleFollowUpStatus(text, c);
+    // MI-114 HOLE-4: every writer in this chain acts on the user's
+    // own assertions, so every one of them reads userOwnText — a
+    // pasted posting's claims (already applied / role closed /
+    // paused / opted out) write NOTHING from inside the document.
+    const own = userOwnText(text);
+    return invalidationGate(own, c)
+      || handlePauseControl(own, c)
+      || handleRecipientChange(own, c)
+      || handleOptOut(own, c)
+      || handleUserSuppression(own, c)
+      || handleRoleClosure(own, c)
+      || handlePriorApplication(own, c)
+      || handleSensitiveCorrection(own, c)
+      || handleQueueCancel(own, c)
+      || handleDoorstepCancel(own, c)
+      || handlePacketValidity(own, c)
+      || handleFollowUpStatus(own, c);
   }
 
   // ---------- main entry: consulted after 120, then 130 ----------
@@ -7729,7 +7753,7 @@ const CareerRouter = (() => {
     return null;
   }
   function handleTrackEventReport(text, ctx) {
-    const u = unquotedText(text);
+    const u = userOwnText(text); // MI-114 HOLE-4: the report mined is the user's own words only (see userOwnText)
     const t = lc(u);
     const ev = trackEventClassOf(t);
     if (!ev) return null;
@@ -7746,13 +7770,13 @@ const CareerRouter = (() => {
     // question about an event ("did they email me a rejection?")
     // reports nothing at all. Either way this claim stands down and
     // the turn's real owner answers it — nothing is written here.
-    if (interrogativeTurn(text) || s(text).includes("?") || /\bshould i\b/.test(t)) return null;
+    if (interrogativeTurn(u) || u.includes("?") || /\bshould i\b/.test(t)) return null;
     // The report must be framed as the user's own: a first-person
     // marker, a bare event-arrival verb, or a named company acting
     // toward the user. Anything else is left to other routes.
     const userFramed = /\b(me|my|mine|i|we|us)\b/.test(t) || /^(got|offer came|rejection came|it came|just got)\b/.test(t.trim());
     if (!userFramed) return null;
-    let company = companyFromText(text, ctx) || companyFromApplicationText(text);
+    let company = companyFromText(u, ctx) || companyFromApplicationText(u);
     const rows = Array.isArray(store.rows) ? store.rows : [];
     if (!company && rows.length) {
       const open = rows.filter((r) => !/Rejected|Withdrawn|Accepted/i.test(r.stage || ""));
@@ -7769,7 +7793,7 @@ const CareerRouter = (() => {
     // where ingest cannot link a named company's row, 126's own
     // add/move API lands the user's asserted event on it.
     let ing = null;
-    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", subject: `${ev} reported in chat`, body: s(text), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
+    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", subject: `${ev} reported in chat`, body: s(u), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
     let row = null;
     if (ing && ing.linked && company) row = rows.find((r) => lc(r.company) === lc(company)) || null;
     if (!row && company) {
@@ -7777,7 +7801,7 @@ const CareerRouter = (() => {
       if (!row) {
         try { row = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: STAGE_FOR_126[ev], event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { row = null; }
       } else if (row.stage !== STAGE_FOR_126[ev] && Track.moveStage) {
-        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: `user reported in chat: "${s(text).slice(0, 120)}"`, evidence: s(text).slice(0, 200) }, nowOf(ctx)); } catch { /* the read-back below decides what is claimed */ }
+        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: `user reported in chat: "${s(u).slice(0, 120)}"`, evidence: s(u).slice(0, 200) }, nowOf(ctx)); } catch { /* the read-back below decides what is claimed */ }
       }
     }
     if (!row) {
@@ -7790,7 +7814,7 @@ const CareerRouter = (() => {
     // Read-back before the claim: the stage spoken is the row's own.
     const stageNow = row.stage || STAGE_FOR_126[ev];
     const label = { rejected: "Rejection", interview: "Interview invite", offer: "Offer", oa: "Assessment invite", confirmed: "Confirmation" }[ev];
-    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(text).slice(0, 120)}".`];
+    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(u).slice(0, 120)}".`];
     if (ev === "offer") facts.push("The offer also starts the negotiation record: its terms get read from the letter itself, and the deadline clock runs from the letter, never from a guess.");
     if (ev === "rejected") facts.push("One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.");
     const reply = compose({ headline: `${label} on the record for ${row.company} — the row now shows ${stageNow}.`, facts, nextStep: ev === "interview" ? "Want the prep pack for it now?" : ev === "offer" ? "Want the offer terms laid out and the counter plan started?" : "Want the status of the rest of the tracker?" });

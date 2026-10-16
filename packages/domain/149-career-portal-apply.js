@@ -64,7 +64,25 @@ const CareerPortalApply = (() => {
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
-  const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+  // MI-114 HOLE-2 (allocation requested from Crew A, 2026-10-16): one
+  // canonical identity fold — NFKC + zero-width/format strip + a
+  // conservative Latin-confusable skeleton — so a respelled company
+  // name cannot split an identity. Identity on pure ASCII. (Same fold
+  // as 121's foldText; modules are standalone, so it is carried here.)
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "\u0430a \u0435e \u043Eo \u0440p \u0441c \u0445x \u0443y \u0456i \u0458j \u0455s \u043Ak \u043Cm \u043Dh \u0442t \u0432b \u0410A \u0412B \u0415E \u041AK \u041CM \u041DH \u041EO \u0420P \u0421C \u0422T \u0425X \u0406I \u0408J \u0405S \u03B1a \u03B5e \u03B9i \u03BAk \u03BDv \u03BCo \u03C1p \u03C4t \u03C7x \u03C5u \u03C9w \u0391A \u0392B \u0395E \u0397H \u0399I \u039AK \u039CM \u039DN \u039FO \u03A1P \u03A4T \u03A7X \u0396Z \u03A5Y".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = String(v == null ? "" : v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const normName = (v) => foldText(v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
   // ---------- §6.3 target classification ----------
   function classifyTarget(url) {

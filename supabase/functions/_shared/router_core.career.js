@@ -555,9 +555,30 @@ const CareerJobs = (() => {
       .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ").trim();
   }
-  const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
-  const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  // MI-114 HOLE-2/HOLE-3 (allocation requested from Crew A, 2026-10-16):
+  // identity and detector reads fold employer text canonically — NFKC
+  // (full-width forms), zero-width/format characters stripped, and a
+  // conservative Latin-confusable skeleton (Cyrillic/Greek lookalikes) —
+  // so a respelled company or credential word cannot split an identity
+  // or slip a gate. The fold is CASE-PRESERVING (detectors match
+  // capitalized names) and an identity on pure ASCII, so ordinary text
+  // is untouched. The stored employer text itself is never rewritten;
+  // only comparisons and detector reads pass through here.
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "аa еe оo рp сc хx уy іi јj ѕs кk мm нh тt вb АA ВB ЕE КK МM НH ОO РP СC ТT ХX ІI ЈJ ЅS αa εe ιi κk νv οo ρp τt χx υu ωw ΑA ΒB ΕE ΗH ΙI ΚK ΜM ΝN ΟO ΡP ΤT ΧX ΖZ ΥY".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = s(v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const normName = (v) => lc(foldText(v)).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normTitle = (v) => lc(foldText(v)).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normLoc = (v) => lc(foldText(v)).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -680,7 +701,8 @@ const CareerJobs = (() => {
     const m = s(text).match(re); return m ? m[0].slice(0, 300) : "";
   }
   function detectRestrictions(posting) {
-    const text = postingText(posting || {});
+    // MI-114 HOLE-3: detectors read the folded text (see foldText).
+    const text = foldText(postingText(posting || {}));
     const out = [];
     // state residency: "Colorado residents only", "must reside in Colorado", "authorized only from Colorado"
     const resPhrases = [];
@@ -712,7 +734,8 @@ const CareerJobs = (() => {
   // authorship/prohibition signal in an application context — a malicious instruction in
   // a JD (AP15) or a generic "we use AI" line is NOT a ban and must not flag.
   function detectAiAuthorshipBan(posting) {
-    const text = postingText(posting || {});
+    // MI-114 HOLE-3: detectors read the folded text (see foldText).
+    const text = foldText(postingText(posting || {}));
     const sentences = s(text).split(/(?<=[.;])\s+/);
     for (const sent of sentences) {
       const aiAuthored = /ai[- ](authored|generated|written)/i.test(sent);
@@ -798,7 +821,10 @@ const CareerJobs = (() => {
     const seen = new Set();
     const push = (ko) => { const k = `${ko.type}|${ko.credential || ko.level || ko.min_years}`; if (!seen.has(k)) { seen.add(k); out.push(ko); } };
     for (const rawSent of knockoutSentences(posting && posting.jd_text)) {
-      const sent = lc(rawSent);
+      // MI-114 HOLE-3: match on the folded sentence (zero-width /
+      // full-width / confusable smuggling cannot hide a credential
+      // word); `evidence` below keeps the RAW employer sentence.
+      const sent = lc(foldText(rawSent));
       // license / licensure
       const lic = sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
       if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sent)) {
@@ -19046,16 +19072,35 @@ const CareerRouter = (() => {
   function unquotedText(text) {
     return s(text).replace(/["“][^"”]*["”]/g, " ").replace(/\s+/g, " ");
   }
+  // MI-114 HOLE-4 (allocation requested from Crew A, 2026-10-16): the
+  // user's own words, minus any pasted document. A document the user
+  // SHOWS the agent — introduced by a framing clause ("Here is a
+  // posting I found: <document>") — is third-party text, not the
+  // user's assertion, however it is phrased inside: a "SYSTEM NOTE"
+  // line, a quoted testimonial, a closure or offer claim. State
+  // writers (the BUG-169 law: a write needs the user's own assertion
+  // or a system/employer record — a pasted posting is NEITHER) mine
+  // only what survives here; analysis routes still read the full
+  // text. Quoted spans are already stripped by unquotedText.
+  function userOwnText(text) {
+    const t = unquotedText(text);
+    const m = t.match(/\b(?:here(?:'s| is)|this is|see|posting|job|jd|listing)\b[^:—–]{0,80}?\b(?:posting|job description|job|jd|listing|description|role)\b[^:—–]{0,40}[:—–]/i);
+    return m ? t.slice(0, m.index).trim() : t;
+  }
   function applicationAssertionOf(text) {
     const t = lc(unquotedText(text));
-    if (/\bif i (applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
+    if (/\bif i (already )?(applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
     // Attributed to someone else ("my friend said I applied…") — a
     // report of a claim is not the user's own assertion.
     if (/\b(said|says|told me|mentioned|claims|thinks|texted|wrote)\b[^.]*\bi (applied|submitted)\b/.test(t)) return "hypothetical";
-    const asserted = /\bi (applied|submitted|sent in my application)\b/.test(t);
+    // MI-114 HOLE-4: a third-person application claim ("the user has
+    // already applied", "they submitted") is a claim ABOUT someone —
+    // the shape employer text uses — never the user's own disclosure.
+    if (/\b(the user|he|she|they)\b[^.]*\b(applied|submitted)\b/.test(t)) return "hypothetical";
+    const asserted = /\bi (already )?(applied|submitted|sent in my application)\b/.test(t);
     // The assertion exists in the raw text but only inside quotes —
     // it is quoted speech, not the user's own report.
-    if (!asserted && /\bi (applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
+    if (!asserted && /\bi (already )?(applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
     const imperative = /\b(add|log|record|track)\b[^.]*\b(application|tracker|it|this)\b/.test(t);
     if (asserted || imperative) return "assertion";
     if (interrogativeTurn(text)) return "hypothetical";
@@ -21556,18 +21601,23 @@ const CareerRouter = (() => {
   // The ownership layer: checked BEFORE every existing route in handleChat.
   function handleStateChangeIntents(text, ctx) {
     const c = ctx || {};
-    return invalidationGate(text, c)
-      || handlePauseControl(text, c)
-      || handleRecipientChange(text, c)
-      || handleOptOut(text, c)
-      || handleUserSuppression(text, c)
-      || handleRoleClosure(text, c)
-      || handlePriorApplication(text, c)
-      || handleSensitiveCorrection(text, c)
-      || handleQueueCancel(text, c)
-      || handleDoorstepCancel(text, c)
-      || handlePacketValidity(text, c)
-      || handleFollowUpStatus(text, c);
+    // MI-114 HOLE-4: every writer in this chain acts on the user's
+    // own assertions, so every one of them reads userOwnText — a
+    // pasted posting's claims (already applied / role closed /
+    // paused / opted out) write NOTHING from inside the document.
+    const own = userOwnText(text);
+    return invalidationGate(own, c)
+      || handlePauseControl(own, c)
+      || handleRecipientChange(own, c)
+      || handleOptOut(own, c)
+      || handleUserSuppression(own, c)
+      || handleRoleClosure(own, c)
+      || handlePriorApplication(own, c)
+      || handleSensitiveCorrection(own, c)
+      || handleQueueCancel(own, c)
+      || handleDoorstepCancel(own, c)
+      || handlePacketValidity(own, c)
+      || handleFollowUpStatus(own, c);
   }
 
   // ---------- main entry: consulted after 120, then 130 ----------
@@ -23218,7 +23268,7 @@ const CareerRouter = (() => {
     return null;
   }
   function handleTrackEventReport(text, ctx) {
-    const u = unquotedText(text);
+    const u = userOwnText(text); // MI-114 HOLE-4: the report mined is the user's own words only (see userOwnText)
     const t = lc(u);
     const ev = trackEventClassOf(t);
     if (!ev) return null;
@@ -23235,13 +23285,13 @@ const CareerRouter = (() => {
     // question about an event ("did they email me a rejection?")
     // reports nothing at all. Either way this claim stands down and
     // the turn's real owner answers it — nothing is written here.
-    if (interrogativeTurn(text) || s(text).includes("?") || /\bshould i\b/.test(t)) return null;
+    if (interrogativeTurn(u) || u.includes("?") || /\bshould i\b/.test(t)) return null;
     // The report must be framed as the user's own: a first-person
     // marker, a bare event-arrival verb, or a named company acting
     // toward the user. Anything else is left to other routes.
     const userFramed = /\b(me|my|mine|i|we|us)\b/.test(t) || /^(got|offer came|rejection came|it came|just got)\b/.test(t.trim());
     if (!userFramed) return null;
-    let company = companyFromText(text, ctx) || companyFromApplicationText(text);
+    let company = companyFromText(u, ctx) || companyFromApplicationText(u);
     const rows = Array.isArray(store.rows) ? store.rows : [];
     if (!company && rows.length) {
       const open = rows.filter((r) => !/Rejected|Withdrawn|Accepted/i.test(r.stage || ""));
@@ -23258,7 +23308,7 @@ const CareerRouter = (() => {
     // where ingest cannot link a named company's row, 126's own
     // add/move API lands the user's asserted event on it.
     let ing = null;
-    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", subject: `${ev} reported in chat`, body: s(text), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
+    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", subject: `${ev} reported in chat`, body: s(u), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
     let row = null;
     if (ing && ing.linked && company) row = rows.find((r) => lc(r.company) === lc(company)) || null;
     if (!row && company) {
@@ -23266,7 +23316,7 @@ const CareerRouter = (() => {
       if (!row) {
         try { row = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: STAGE_FOR_126[ev], event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { row = null; }
       } else if (row.stage !== STAGE_FOR_126[ev] && Track.moveStage) {
-        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: `user reported in chat: "${s(text).slice(0, 120)}"`, evidence: s(text).slice(0, 200) }, nowOf(ctx)); } catch { /* the read-back below decides what is claimed */ }
+        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: `user reported in chat: "${s(u).slice(0, 120)}"`, evidence: s(u).slice(0, 200) }, nowOf(ctx)); } catch { /* the read-back below decides what is claimed */ }
       }
     }
     if (!row) {
@@ -23279,7 +23329,7 @@ const CareerRouter = (() => {
     // Read-back before the claim: the stage spoken is the row's own.
     const stageNow = row.stage || STAGE_FOR_126[ev];
     const label = { rejected: "Rejection", interview: "Interview invite", offer: "Offer", oa: "Assessment invite", confirmed: "Confirmation" }[ev];
-    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(text).slice(0, 120)}".`];
+    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(u).slice(0, 120)}".`];
     if (ev === "offer") facts.push("The offer also starts the negotiation record: its terms get read from the letter itself, and the deadline clock runs from the letter, never from a guess.");
     if (ev === "rejected") facts.push("One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.");
     const reply = compose({ headline: `${label} on the record for ${row.company} — the row now shows ${stageNow}.`, facts, nextStep: ev === "interview" ? "Want the prep pack for it now?" : ev === "offer" ? "Want the offer terms laid out and the counter plan started?" : "Want the status of the rest of the tracker?" });
@@ -24735,7 +24785,25 @@ const CareerPortalApply = (() => {
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
-  const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+  // MI-114 HOLE-2 (allocation requested from Crew A, 2026-10-16): one
+  // canonical identity fold — NFKC + zero-width/format strip + a
+  // conservative Latin-confusable skeleton — so a respelled company
+  // name cannot split an identity. Identity on pure ASCII. (Same fold
+  // as 121's foldText; modules are standalone, so it is carried here.)
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "\u0430a \u0435e \u043Eo \u0440p \u0441c \u0445x \u0443y \u0456i \u0458j \u0455s \u043Ak \u043Cm \u043Dh \u0442t \u0432b \u0410A \u0412B \u0415E \u041AK \u041CM \u041DH \u041EO \u0420P \u0421C \u0422T \u0425X \u0406I \u0408J \u0405S \u03B1a \u03B5e \u03B9i \u03BAk \u03BDv \u03BCo \u03C1p \u03C4t \u03C7x \u03C5u \u03C9w \u0391A \u0392B \u0395E \u0397H \u0399I \u039AK \u039CM \u039DN \u039FO \u03A1P \u03A4T \u03A7X \u0396Z \u03A5Y".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = String(v == null ? "" : v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const normName = (v) => foldText(v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
   // ---------- §6.3 target classification ----------
   function classifyTarget(url) {
@@ -26352,6 +26420,24 @@ const CareerAssign = (() => {
 
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
+  // MI-114 HOLE-2 (allocation requested from Crew A, 2026-10-16): one
+  // canonical identity fold — NFKC + zero-width/format strip + a
+  // conservative Latin-confusable skeleton — so a respelled company
+  // name cannot split an identity. Identity on pure ASCII. (Same fold
+  // as 121's foldText; modules are standalone, so it is carried here.)
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "\u0430a \u0435e \u043Eo \u0440p \u0441c \u0445x \u0443y \u0456i \u0458j \u0455s \u043Ak \u043Cm \u043Dh \u0442t \u0432b \u0410A \u0412B \u0415E \u041AK \u041CM \u041DH \u041EO \u0420P \u0421C \u0422T \u0425X \u0406I \u0408J \u0405S \u03B1a \u03B5e \u03B9i \u03BAk \u03BDv \u03BCo \u03C1p \u03C4t \u03C7x \u03C5u \u03C9w \u0391A \u0392B \u0395E \u0397H \u0399I \u039AK \u039CM \u039DN \u039FO \u03A1P \u03A4T \u03A7X \u0396Z \u03A5Y".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = String(v == null ? "" : v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const companyKey = (v) => foldText(v).toLowerCase().replace(/\s+/g, " ").trim();
   const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const termIn = (text, term) => new RegExp(`(^|[^a-z0-9])${esc(term)}([^a-z0-9]|$)`).test(lc(text));
 
@@ -26525,9 +26611,9 @@ const CareerAssign = (() => {
     const company = s(posting.company);
     if ((f.firms_include || []).length) {
       if (!company) reasons.push("interest is limited to named firms and this posting states no company (cannot verify the firm)");
-      else if (!f.firms_include.some((x) => lc(x) === lc(company))) reasons.push(`${company} is not in this interest's firm list`);
+      else if (!f.firms_include.some((x) => companyKey(x) === companyKey(company))) reasons.push(`${company} is not in this interest's firm list`);
     }
-    if (company && (f.firms_exclude || []).some((x) => lc(x) === lc(company))) reasons.push(`${company} is excluded by this interest`);
+    if (company && (f.firms_exclude || []).some((x) => companyKey(x) === companyKey(company))) reasons.push(`${company} is excluded by this interest`);
     let fit = null;
     if (!reasons.length) {
       // A 151 alert record was already gated + scored at the watch tier; its
@@ -26705,7 +26791,7 @@ const CareerAssign = (() => {
     const candidates = [...(deps.alerts || []), ...(deps.postings || [])].map(normalizeCandidate);
     const queue = createReminderQueue(store, wp.user_id);
     const history = (await store.get(HISTORY_KEY(wp.user_id))) || {};
-    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(lc);
+    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(companyKey);
 
     const reminders = [], suppressed = [], rejected = [];
     const cycleSeats = new Set();
@@ -26724,7 +26810,7 @@ const CareerAssign = (() => {
       // Opt-out binds before any matching (shared cross-user suppression is a
       // host store; the per-user + per-company opt-outs live on the profile).
       if (wp.opt_out && wp.opt_out.global) { suppressed.push({ job_id: posting.job_id, reason: "opt-out: the user has opted out of job reminders globally" }); continue; }
-      if (posting.company && optedOutCompanies.includes(lc(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
+      if (posting.company && optedOutCompanies.includes(companyKey(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
 
       let best = null;
       for (const interest of wp.interests) {

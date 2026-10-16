@@ -57,20 +57,30 @@ if (!vm.SourceTextModule) {
     try {
       execFileSync(process.execPath, [path.join(ROOT, "scripts/career/stage-career.cjs"), stage, "--json"]);
       const user = "00000000-0000-4000-8000-000000000001", thread = "00000000-0000-4000-8000-000000000002";
-      let stores = { profile: profileFor(cases.find((c) => c.id === "legal-1")) }, handle, networkCalls = 0;
-      const messages = [], writes = [];
-      const client = { auth: { getUser: async () => ({ data: { user: { id: user } } }) }, rpc: async () => ({ data: true, error: null }), from(table) {
+      // Merge repair (2026-10-15, combine lane): this test was written against
+      // the pre-durability handler, which read agent_flow_state directly. The
+      // merged handler loads/commits through the career persistence RPCs, and
+      // its adapter correctly rejects this test's old blanket rpc stub
+      // ({data:true}) as invalid storage. The client below backs rpc with
+      // Codex's own persistence fake (the real RPC contract, same fixture the
+      // durability suite grades) seeded with the same v:1/stores snapshot the
+      // old fake served; every assertion below is unchanged in intent.
+      const persistenceRpc = require("./helpers/career-persistence-fake.cjs");
+      const db = { options: {}, state: { career: { v: 1, stores: { profile: profileFor(cases.find((c) => c.id === "legal-1")) } } }, messages: [], writes: [] };
+      const messages = db.messages, writes = db.writes;
+      let handle, networkCalls = 0;
+      const client = { auth: { getUser: async () => ({ data: { user: { id: user } } }) }, rpc: (name, args) => persistenceRpc(db, user, thread, name, args), from(table) {
         assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table));
         const filters = {};
         const query = { select() { return query; }, eq(k, v) { filters[k] = v; return query; }, async maybeSingle() {
           assert.equal(filters.user_id, user);
           if (table === "agent_threads") return { data: { id: thread, user_id: user }, error: null };
           assert.equal(table, "agent_flow_state");
-          return { data: { state: { career: { v: 1, stores: structuredClone(stores) } } }, error: null };
-        }, async upsert(row) { writes.push(table); if (table === "agent_flow_state") stores = structuredClone(row.state.career.stores); return { error: null }; }, async insert(row) { messages.push(structuredClone(row)); return { error: null }; } };
+          return { data: { state: structuredClone(db.state) }, error: null };
+        }, async upsert(row) { writes.push(table); if (table === "agent_flow_state") db.state = structuredClone(row.state); return { error: null }; }, async insert(row) { messages.push(structuredClone(row)); return { error: null }; } };
         return query;
       } };
-      const context = vm.createContext({ Request, Response, Headers, URL, TextEncoder, TextDecoder, AbortController, setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {} }, fetch() { networkCalls++; throw Error("No network allowed"); }, Deno: { env: { get: (n) => ({ SUPABASE_URL: "https://supabase.invalid", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service" })[n] } } });
+      const context = vm.createContext({ Request, Response, Headers, URL, TextEncoder, TextDecoder, AbortController, crypto: require("node:crypto").webcrypto, setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {} }, fetch() { networkCalls++; throw Error("No network allowed"); }, Deno: { env: { get: (n) => ({ SUPABASE_URL: "https://supabase.invalid", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service" })[n] } } });
       assert.equal(vm.runInContext("typeof require", context), "undefined");
       const modules = new Map();
       function load(id) {
@@ -114,8 +124,8 @@ if (!vm.SourceTextModule) {
       assert.match(jobs.reply, /fixture and stale jobs are excluded/);
       assert.equal(networkCalls, 0);
       assert.ok(writes.every((t) => ["profiles", "agent_flow_state"].includes(t)));
-      assert.equal(stores.alertWatchState, undefined);
-      assert.ok(!stores.applyLog && !stores.applicationLog && !stores.portalRecords);
+      assert.equal(db.state.career.stores.alertWatchState, undefined);
+      assert.ok(!db.state.career.stores.applyLog && !db.state.career.stores.applicationLog && !db.state.career.stores.portalRecords);
     } finally { fs.rmSync(stage, { recursive: true, force: true }); }
   });
 }

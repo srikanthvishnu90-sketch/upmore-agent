@@ -1,0 +1,17 @@
+{
+  "frozenAt": "2026-10-16T04:08:45.879787+00:00",
+  "base": "e66e39cf9e30044341773298c9896007fc12663c",
+  "expected": [
+    "Default disabled path makes no budget/model calls and preserves deterministic response contracts.",
+    "Only explicit server enablement plus a reconciled existing shared budget, current owned context, monthly slot and one-use consume permit a single gateway request.",
+    "Model has no tools/actions/approval/profile-write authority; actions, controls, factual recalls/corrections, forgetting and research stay deterministic.",
+    "Bounded context contains only current owned canonical facts, clearly user-reported, and current conversational task; no other account, raw historical messages, revoked location or hypothetical/quoted job-page claim becomes a fact.",
+    "Provider output uses a strict coaching-only schema, known fact references rendered verbatim and a fixed safe follow-up; unknown facts, personal claims, external completion claims, tool calls, URLs/metrics or extra authority fields are refused.",
+    "Model advisory/question state and response commit atomically with deterministic facts; rollback/revision/epoch failure cannot return/save model success.",
+    "Stable-key replay returns exactly the committed response without another provider call; uncertain requests retain reservations and are not repeated.",
+    "Absent/unreconciled/expired/exhausted/malformed budget or missing provider setup deny before fetch. No auto-created allowance. All paying users share the same original-cap row.",
+    "Provider, parsing, monthly or usage-settlement failure gives truthful deterministic fallback without claiming no fact changes when user facts were saved.",
+    "Source-only budget proposal is tested only against isolated local PostgreSQL with explicitly synthetic funding, never real cap reconciliation.",
+    "All actual provider requests remain injected; paid calls zero, model quality NOT_RUN."
+  ]
+}

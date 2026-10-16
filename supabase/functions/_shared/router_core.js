@@ -42348,6 +42348,177 @@ const CareerPortalApply = (() => {
     return profile[key];
   }
 
+  // ---------- answer derivation: the answer map is DERIVED from the fact bank (BUG-238 / FR-396) ----------
+  // The bug: the pipeline's answer map was hand-maintained and lagged
+  // the bank — it carried only work_authorization + sponsorship, so
+  // drives stopped on questions the bank already answered ("Are you 18
+  // or older?" with the DOB fact on file — Claude Corps staging,
+  // 2026-10-15). The map is now BUILT from the bank's confirmed facts:
+  // every derived answer names the fact ID it traces to, only
+  // status:"confirmed" facts feed it, and answerMapCoverage() reports
+  // any bank fact KIND that neither a derivation nor a reasoned
+  // exemption accounts for — the contract test
+  // (tests/career-portal-answer-map.test.cjs) fails on an uncovered
+  // kind, so a growing bank forces the wiring instead of silently
+  // stopping drives. Hand-adding an answer key with no declared
+  // fact-kind source is likewise a test failure: ANSWER_KEY_SOURCES is
+  // the only place a key may be declared.
+  const ANSWER_KEY_SOURCES = {
+    work_authorization: ["eligibility"],
+    sponsorship: ["eligibility"],
+    age_18_plus: ["profile"],          // derived from the date-of-birth fact vs the run's clock
+    located_in_us: ["profile"],        // derived from the country fact
+    education_level: ["education"],    // the level token of the education fact's degree
+    years_of_experience: ["experience"], // the span of the experience facts, in completed years
+    experience_3mo_plus: ["experience"], // the same span against a 3-month threshold
+  };
+  // Fact kinds that are profile MATERIAL (documents, tailoring,
+  // research) rather than portal screening answers — exempt from
+  // answer derivation WITH the reason recorded. A kind listed nowhere
+  // (not consumed, not exempt) is uncovered and fails the contract.
+  const NON_ANSWER_FACT_KINDS = {
+    leadership: "club/leadership record — resume and profile material, never a screening answer",
+    certification: "credential record — resume/document material, never a screening answer",
+    other: "interests and miscellany — profile material only",
+    skill: "skill inventory — tailoring material, not a screening answer",
+    research: "research record — fellowship/essay material, not a portal screening answer",
+    metric: "company metrics — essay/profile material, not a screening answer",
+  };
+  const US_STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia" };
+  // City -> IANA zone for the bank's own residence only. A residence
+  // outside this table derives NO time-zone answer (the field stays an
+  // ask) — the zone is a fact about where the person lives, never a guess.
+  const CITY_TIME_ZONES = { "Chicago": "America/Chicago", "Hawthorn Woods": "America/Chicago" };
+  const DEGREE_LEVELS = [
+    { re: /\bph\.?d\b|doctorate|doctoral/i, level: "PhD" },
+    { re: /\bmaster/i, level: "Master's Degree" },
+    { re: /\bbachelor/i, level: "Bachelor's Degree" },
+    { re: /\bassociate/i, level: "Associate's Degree" },
+    { re: /\bhigh school|secondary/i, level: "High School Diploma" },
+  ];
+  function fullYearsBetween(fromIso, nowMs) {
+    const from = new Date(String(fromIso || ""));
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(nowMs)) return null;
+    const now = new Date(nowMs);
+    let years = now.getUTCFullYear() - from.getUTCFullYear();
+    const m = now.getUTCMonth() - from.getUTCMonth();
+    if (m < 0 || (m === 0 && now.getUTCDate() < from.getUTCDate())) years -= 1;
+    return years;
+  }
+  function monthsBetween(fromYear, nowMs) {
+    const y = parseInt(String(fromYear || ""), 10);
+    if (!Number.isFinite(y) || !Number.isFinite(nowMs)) return null;
+    const now = new Date(nowMs);
+    return (now.getUTCFullYear() - y) * 12 + now.getUTCMonth(); // start year read as January of that year
+  }
+  function stateFromPlace(place) {
+    const tail = String(place || "").split(",").pop().trim();
+    if (!tail) return null;
+    if (/^[A-Za-z]{2}$/.test(tail)) return US_STATE_NAMES[tail.toUpperCase()] || null;
+    return tail; // already a full state name as the owner stated it
+  }
+  // deriveAnswers(bank, now) -> { answers, profileFields, traces }.
+  // `answers` drops straight into profile.answers (each entry carries
+  // confirmed:true only when its source fact is confirmed, plus the
+  // factId trace); `profileFields` carries the flat profile keys the
+  // same facts answer (preferred_name, state_of_residence, time_zone,
+  // country, date_of_birth, and the education block in the F-001
+  // contract shape). Nothing here invents: a source fact that is
+  // absent or unconfirmed yields no entry, and the field stays an ask.
+  function deriveAnswers(bank, now) {
+    const out = { answers: {}, profileFields: {}, traces: {} };
+    if (!bank || !Array.isArray(bank.facts)) return out;
+    const nowMs = tsMs(now);
+    const confirmed = (f) => f && f.status === "confirmed" && f.needs_confirmation !== true;
+    const byKindName = (kind, nameRe) => bank.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
+    const put = (key, value, factId, how) => {
+      out.answers[key] = { value, confirmed: true, factId };
+      out.traces[key] = { factId, how };
+    };
+    // eligibility facts (F-020 / F-021 shape: kind eligibility, value Yes/No)
+    const wa = byKindName("eligibility", /work authorization/i);
+    if (confirmed(wa) && wa.value !== undefined) put("work_authorization", wa.value, wa.id, "eligibility fact value");
+    const sp = byKindName("eligibility", /sponsorship/i);
+    if (confirmed(sp) && sp.value !== undefined) put("sponsorship", sp.value, sp.id, "eligibility fact value");
+    // profile facts: country, date of birth, hometown (F-022 / F-023 / F-024 shape)
+    const country = byKindName("profile", /^country$/i);
+    if (confirmed(country) && country.value) {
+      out.profileFields.country = country.value;
+      out.traces.country = { factId: country.id, how: "country fact value" };
+      if (/^united states$/i.test(String(country.value))) put("located_in_us", "Yes", country.id, "country fact = United States");
+    }
+    const dob = byKindName("profile", /date of birth/i);
+    if (confirmed(dob) && dob.value) {
+      out.profileFields.date_of_birth = dob.value;
+      out.traces.date_of_birth = { factId: dob.id, how: "date-of-birth fact value" };
+      const age = fullYearsBetween(dob.value, nowMs);
+      if (age !== null) put("age_18_plus", age >= 18 ? "Yes" : "No", dob.id, `age ${age} computed from the DOB fact at the run's date`);
+    }
+    const hometown = byKindName("profile", /hometown/i);
+    const basics = bank.basics || {};
+    const stateSrc = (confirmed(hometown) && hometown.value) || basics.location || null;
+    const state = stateSrc ? stateFromPlace(stateSrc) : null;
+    if (state) {
+      out.profileFields.state_of_residence = state;
+      out.traces.state_of_residence = { factId: confirmed(hometown) ? hometown.id : "basics.location", how: "state parsed from the residence the bank carries" };
+    }
+    const citySrc = (confirmed(hometown) && hometown.value) || basics.location || "";
+    const city = String(citySrc).split(",")[0].trim();
+    if (city && CITY_TIME_ZONES[city]) {
+      out.profileFields.time_zone = CITY_TIME_ZONES[city];
+      out.traces.time_zone = { factId: confirmed(hometown) ? hometown.id : "basics.location", how: `IANA zone of the bank's residence city (${city})` };
+    }
+    if (basics.name) {
+      const first = String(basics.name).trim().split(/\s+/)[0];
+      if (first) { out.profileFields.preferred_name = first; out.traces.preferred_name = { factId: "basics.name", how: "first token of the bank's full name (no separate preferred-name fact on file)" }; }
+    }
+    // education facts (F-001 shape): the level token + the education block
+    const edu = bank.facts.find((f) => f.kind === "education");
+    if (confirmed(edu)) {
+      const degreeText = [edu.title || "", edu.text || ""].join(" ");
+      const lvl = DEGREE_LEVELS.find((d) => d.re.test(degreeText));
+      if (lvl) put("education_level", lvl.level, edu.id, "degree level token from the education fact");
+      const block = {};
+      if (edu.org) block.school = edu.org;
+      const degMatch = String(edu.title || "").match(/(?:pursuing\s+)?(bachelors?[^\n,]*|masters?[^\n,]*|ph\.?d[^\n,]*)/i);
+      if (degMatch) block.degree = degMatch[1].trim();
+      if (block.degree) { const disc = block.degree.replace(/^(bachelors?|masters?|ph\.?d)\s+(in\s+)?/i, "").trim(); if (disc && disc !== block.degree) block.discipline = disc; }
+      if (edu.start) block.start_date = String(edu.start);
+      if (edu.end) { block.end_date = String(edu.end); block.graduation_year = String(edu.end); }
+      if (bank.defaults && bank.defaults.gpa) block.gpa = String(bank.defaults.gpa);
+      if (Object.keys(block).length) { out.profileFields.education = block; out.traces.education = { factId: edu.id, how: "education block from the education fact's structured fields" }; }
+    }
+    // experience facts: the span answers duration questions (F-002.. shape)
+    const exps = bank.facts.filter((f) => f.kind === "experience" && confirmed(f) && f.start);
+    if (exps.length) {
+      const earliest = exps.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
+      const months = monthsBetween(earliest.start, nowMs);
+      if (months !== null && months >= 0) {
+        put("years_of_experience", Math.floor(months / 12), earliest.id, `completed years across the experience span (earliest fact ${earliest.id}, ${earliest.start} -> run date)`);
+        put("experience_3mo_plus", months >= 3 ? "Yes" : "No", earliest.id, `experience span is ${months} months at the run's date`);
+      }
+    }
+    return out;
+  }
+  // Coverage: every fact kind the bank carries is either consumed by a
+  // derivation above or exempted with a reason in NON_ANSWER_FACT_KINDS.
+  // Anything else is uncovered — the contract test fails on it, which
+  // is the point: a new confirmed fact kind forces its wiring here.
+  function answerMapCoverage(bank) {
+    const kinds = new Set();
+    if (bank && Array.isArray(bank.facts)) for (const f of bank.facts) if (f && f.kind) kinds.add(f.kind);
+    if (bank && bank.basics && Object.keys(bank.basics).length) kinds.add("basics");
+    const consumedKinds = new Set([].concat(...Object.values(ANSWER_KEY_SOURCES)));
+    consumedKinds.add("basics"); // preferred_name / location corroboration derive from the basics block
+    const consumed = [], exempt = [], uncovered = [];
+    for (const k of kinds) {
+      if (consumedKinds.has(k)) consumed.push(k);
+      else if (NON_ANSWER_FACT_KINDS[k]) exempt.push({ kind: k, reason: NON_ANSWER_FACT_KINDS[k] });
+      else uncovered.push(k);
+    }
+    return { consumed: consumed.sort(), exempt: exempt.sort((a, b) => (a.kind < b.kind ? -1 : 1)), uncovered: uncovered.sort() };
+  }
+
   // ---------- §6.1 step 3: form analysis ----------
   function analyzeForm(formDef) {
     return (formDef.fields || []).map((f) => ({
@@ -42455,6 +42626,29 @@ const CareerPortalApply = (() => {
     }
     if (boardAnswers.resume && boardAnswers.resume.sha256) payload.resume_sha256 = boardAnswers.resume.sha256;
     return payload;
+  }
+
+  // D13 (BUG-209 / FR-365): what "missing" means for a payload value,
+  // and which required fields a payload fails to carry. Ported from
+  // the submit-path lineage (fix/submit-path), where the completeness
+  // gate + doorstep repair were built and drive-proven on 2026-10-15;
+  // this lineage's 149 never carried them — the imported guard
+  // (tests/career-portal-submit-integrity.test.cjs) fails without
+  // them: a required field lost at readback sailed through to a click,
+  // and a hollowed doorstep payload armed. The gates below restore
+  // BUG-209's enforcement on this lineage; the register/ledger
+  // reconciliation (the shared register already claims FR-364/365
+  // ENFORCED from the submit-path lineage) is flagged for Crew A.
+  function payloadValueMissing(v) {
+    if (v === undefined || v === null) return true;
+    if (typeof v === "string") return v.trim() === "";
+    if (Array.isArray(v)) return v.length === 0;
+    return false;
+  }
+  function missingRequiredFields(fields, payload) {
+    return (fields || [])
+      .filter((f) => f.required && payloadValueMissing(payload[f.field_id]))
+      .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
   // ---------- §6.1 pipeline over the board seam ----------
@@ -42607,7 +42801,7 @@ const CareerPortalApply = (() => {
       logStep("captcha_stop", { at: "review" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
-    const payload = buildPayload(board);
+    let payload = buildPayload(board);
     // D2 second half (BUG-061): a payload with no actual answers in it
     // (every fill failed or read back empty) is hollow even when the
     // form had fields — it must never be spoken as a doorstep.
@@ -42615,8 +42809,41 @@ const CareerPortalApply = (() => {
       logStep("empty_form_stop", { fieldCount: formDef.fields.length, filledCount: 0 });
       return blocked("EMPTY_FORM", { reason: "no field value landed on the board — the would-submit payload would carry nothing but the resume hash; this is a stop, not a doorstep", formAnalysis, asks });
     }
+    // D11 doorstep repair (BUG-207 / FR-364, ported from the submit-path
+    // lineage): a board can drop a value AFTER its own fill verified —
+    // the live board's delayed reset wiped Labelbox's name/email/
+    // country/phone/location between their verified fills and the
+    // doorstep readback (2026-10-15). The doorstep readback is treated
+    // as a repair list: every field this run filled whose value the
+    // readback no longer carries is re-filled from the same confirmed
+    // value and the payload rebuilt, for up to two rounds. Repair
+    // never widens what may be submitted; it only restores what was
+    // already filled from confirmed facts.
+    for (let round = 1; round <= 2; round++) {
+      const lost = formDef.fields
+        .filter((f) => filled[f.field_id] && payloadValueMissing(payload[f.field_id]))
+        .map((f) => f.field_id);
+      if (!lost.length) break;
+      logStep("doorstep_repair", { round, fields: lost });
+      for (const fieldId of lost) {
+        const value = filled[fieldId].value;
+        try { board.fill(fieldId, value); } catch (e) { logStep("doorstep_repair_fill_failed", { round, field_id: fieldId, code: e.code || "FILL_ERROR" }); }
+      }
+      payload = buildPayload(board);
+    }
+    // D13 (BUG-209 / FR-365, ported): the payload must carry a readback
+    // value for EVERY required field. A required field missing HERE is
+    // one whose value did not survive to readback even after repair —
+    // a typed INCOMPLETE_PAYLOAD stop: no doorstep is recorded and no
+    // approval in this run can arm a click over it.
+    const missing = missingRequiredFields(formDef.fields, payload);
+    if (missing.length) {
+      logStep("incomplete_payload_stop", { missing: missing.map((m) => m.field_id) });
+      return blocked("INCOMPLETE_PAYLOAD", { reason: "the board's readback is missing values for required fields — the fills did not persist; submitting would send a hollow application, so the run stops here", missing, formAnalysis, asks });
+    }
     const payloadSha256 = sha256(JSON.stringify(payload));
-    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true };
+    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+      requiredFieldIds: formDef.fields.filter((f) => f.required).map((f) => f.field_id) };
     logStep("doorstep_reached", { payloadSha256 });
     const prepared = Object.assign(base(), {
       resultStatus: "prepared", asks, formAnalysis,
@@ -42630,7 +42857,12 @@ const CareerPortalApply = (() => {
     if (inp.approval && inp.approval.approvedByUser === true) {
       inp.approval.payloadSha256 = payloadSha256;
       logStep("approval_bound", { payloadSha256 });
-      return submitDoorstep(session, inp.approval, { log, now: inp.now, posting });
+      // The delegated result carries this run's step log + cap report
+      // like every other return path (base() first, the leg's own
+      // fields win) — returning the leg's bare object dropped the
+      // audit trail, which hid the D11 doorstep repair from the run's
+      // record (BUG-207 guards, ported from the submit-path lineage).
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting }));
     }
     return prepared;
   }
@@ -42651,6 +42883,18 @@ const CareerPortalApply = (() => {
     }
     if (!session.doorstep) {
       return { resultStatus: "blocked", code: "NO_DOORSTEP", reason: "no prepared doorstep payload in this session" };
+    }
+    // D13 (BUG-209 / FR-365) at the gate itself (ported from the
+    // submit-path lineage): the stored doorstep payload is re-verified
+    // before caps, binding, or arming — every required field the
+    // doorstep was built over must still carry a value in it. A
+    // hollowed payload is refused here, unarmed, unclicked.
+    const gateMissing = (session.doorstep.requiredFieldIds || [])
+      .filter((id) => payloadValueMissing(session.doorstep.payload[id]))
+      .map((id) => ({ field_id: id }));
+    if (gateMissing.length) {
+      return { resultStatus: "blocked", code: "INCOMPLETE_PAYLOAD", missing: gateMissing,
+        reason: "the doorstep payload is missing readback values for required fields — the submit gate refuses to arm or click over a hollow payload" };
     }
     const board = session.board;
     // §6.4 caps re-check (MI-110): counts can change between doorstep
@@ -42842,7 +43086,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

@@ -58,6 +58,32 @@ There is no hidden provider transport or budget initialization.
 
 ## Evidence interpretation
 
+Final tested source: `01d99b524cfef8c524a5a9d14d4a11c59d7212cc`.
+[Exact run manifest](evidence/B3-final/results.json) records commands, source,
+prompt/rubric/fixture hashes and untouched A-owned file hashes.
+
+| Check | Observed result |
+| --- | --- |
+| Offline contracts, including 24 frozen structural reserve cases | 73/73 pass |
+| Planted contract defects | 10/10 caught by assertions |
+| Portable no-IO module load | Pass; included in the 73 |
+| Actual UTF-8 preparation file | 26,873 bytes; fresh-process open/hash verified |
+| Existing generated bundles | Fresh; B is still unregistered |
+| A integration consumer | Expected BLOCKED, exit 2 |
+| Real-provider runner | Refused, exit 2; zero calls |
+
+Open the [preparation pack](evidence/B3-final/artifact/interview-preparation.md),
+[structured pack](evidence/B3-final/artifact/prep-pack.json),
+[ordered scripted turns](evidence/B3-final/artifact/ordered-turns.json), and
+[readback report](evidence/B3-final/artifact/result.json).
+These contain fictional development data only. The one scripted episode has six
+answer submissions, not 73 conversations. Its memory layers are local storage
+1/1, scripted request retrieval 6/6, and real semantic use 0/0 NOT_RUN.
+
+Remote `codex/career-critical-repairs-20261016` at `5ab2cc94` was also inspected;
+it contains neither canonical journey-contract file. This is a missing dependency,
+not an approval denial. All existing tracked files remain byte-identical to base.
+
 [B0 freeze](evidence/B0-freeze.json) records the missing-module baseline before
 implementation. [B1](evidence/B1-contracts.json) is the first three consumer tests
 plus boundary checks. [B2](evidence/B2-contracts.json) expands the source, practice

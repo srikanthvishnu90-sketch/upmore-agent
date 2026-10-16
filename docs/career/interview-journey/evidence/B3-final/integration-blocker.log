@@ -1,0 +1,15 @@
+{
+  "status": "BLOCKED",
+  "canonical_contract_files_missing": [
+    "packages/career-contracts/journey-contract-v1.ts",
+    "packages/career-contracts/journey-contract-v1.schema.json"
+  ],
+  "pure_module_in_career_bundle": false,
+  "consumer_compatibility": "BLOCKED_MISSING_A_SCHEMA",
+  "actual_authenticated_entry": "NOT_RUN",
+  "durable_host_state": "NOT_RUN",
+  "actual_artifact_delivery": "NOT_RUN",
+  "provider_quality": "NOT_RUN",
+  "owner": "Spec A / Muse",
+  "reason": "B does not own shared contracts, router registration, handler, host persistence, bundle wiring or artifact host. Presence alone cannot establish runtime compatibility."
+}

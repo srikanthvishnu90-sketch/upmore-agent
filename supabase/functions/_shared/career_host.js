@@ -56,6 +56,16 @@ const CareerHost = (() => {
     // instead of dying with the turn. Created lazily by 142 on first
     // write only; a read never materializes it.
     "alertWatchState",
+    // LOOP ACCEPTANCE (155, Crew B 2026-10-15; registry allocation
+    // requested — joins list in the loop-acceptance build record):
+    // the batch-apply run object. 155's run is pure JSON by
+    // construction (queue, per-application states, minted approvals,
+    // events); 142's batch seam writes it here when a run is prepared
+    // at the approval card and reads it back on the approval turn,
+    // where sessions are rebuilt and 149's MI-116 hash verification
+    // guards the submit. Without this key a prepared batch would die
+    // with the turn and the "yes" could never resume it.
+    "batchApplyState",
   ];
 
   function cloneJson(v) {
@@ -123,6 +133,32 @@ const CareerHost = (() => {
       throw new Error("career host: CareerContainment must provide createContainment + extractReplyText");
     }
 
+    // J8 (LOOP ACCEPTANCE tier-1 join): the composition root may install
+    // a boardFor resolved through career_task_bridge
+    // (createCareerBoardFor). It is RUNTIME wiring only: createTurnCtx
+    // attaches it to each turn ctx as ctx.batchDeps.boardFor, and it is
+    // never persisted — batchDeps is not a STATE_KEYS entry, so a
+    // snapshot can neither carry it nor resurrect it. Absent a boardFor,
+    // this host's capability stays the module-level NOT_WIRED and
+    // module 155's drives stop named BOARD_NOT_WIRED, exactly as before.
+    const boardFor = deps && typeof deps.boardFor === "function" ? deps.boardFor : null;
+    // J10 (LOOP ACCEPTANCE — deployed-runtime transport): the
+    // composition root may install delegateBatch — batch execution
+    // delegated to the owned browser worker through committed batch
+    // intents (career_batch_intent/v1). Like boardFor it is RUNTIME
+    // wiring only: createTurnCtx attaches it as
+    // ctx.batchDeps.delegateBatch, batchDeps is not a STATE_KEYS
+    // entry, and no snapshot can carry or resurrect it. The flag does
+    // NOT change the portal_browser capability stamp: delegation is
+    // asynchronous worker execution, not a wired in-turn drive, and
+    // no WIRED claim is made for it.
+    const delegateBatch = !!(deps && deps.delegateBatch === true);
+    const workerCapabilities = boardFor
+      ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES, {
+          portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
+        }))
+      : WORKER_CAPABILITIES;
+
     // Build the hosted ctx for one turn. `snapshot` is the object previously
     // returned by extractSnapshot (or null for a brand-new thread).
     function createTurnCtx(opts) {
@@ -133,7 +169,7 @@ const CareerHost = (() => {
         threadId: o.threadId || null,
         postings: Array.isArray(o.postings) ? o.postings : [],
         containmentRecords: [],
-        workerCapabilities: WORKER_CAPABILITIES,
+        workerCapabilities,
         accountPersistence: o.accountPersistence === true,
       };
       if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");
@@ -157,6 +193,17 @@ const CareerHost = (() => {
         if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
         else delete ctx.alertWatchState;
       }
+      if (o.batchDeps || boardFor || delegateBatch) {
+        // J8: per-turn batch deps (module 155's seam inputs — the
+        // submissions log and attestations today). The composition
+        // root's boardFor outranks any per-turn boardFor value; other
+        // batchDeps keys pass through untouched. Without either input
+        // no batchDeps object is attached, as before.
+        // J10: the root's delegateBatch likewise outranks any per-turn
+        // value — the execution mode is the composition root's call,
+        // never a per-turn caller's.
+        ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {}, delegateBatch ? { delegateBatch: true } : {});
+      }
       return ctx;
     }
 
@@ -167,7 +214,7 @@ const CareerHost = (() => {
     function runTurn(text, ctx) {
       let handler = null;
       const controls = applyHostControl(text, ctx);
-      if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
+      if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };
       // Combine repair (2026-10-15, Codex defect): the blanket gate below
       // short-circuited EVERY turn under any pause, steamrolling 142's
       // contract (pause inspection, natural-word lifting, action-only hold)
@@ -175,7 +222,7 @@ const CareerHost = (() => {
       // only (source:"account_control" — the transactional account record);
       // router pauses fall through to dispatch, where 142's ownership-layer
       // pause control + action-only gate enforce them.
-      if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
+      if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }
@@ -196,7 +243,7 @@ const CareerHost = (() => {
         sessionId: ctx.threadId || "live",
       });
       if (outcome.contained) {
-        return { reply: outcome.replyText, intent: null, resultStatus: null, handler, contained: true, result: null, capabilities: WORKER_CAPABILITIES };
+        return { reply: outcome.replyText, intent: null, resultStatus: null, handler, contained: true, result: null, capabilities: workerCapabilities };
       }
       let result = outcome.result;
       if (ctx.accountPersistence && result && ["career_watch_create","career_watch_manage"].includes(result.intent) && typeof result.reply === "string") {
@@ -205,8 +252,13 @@ const CareerHost = (() => {
       if (result && ["application_packet", "doorstep_fill", "doorstep_status"].includes(result.intent)) {
         // Packet preparation remains available; a local doorstep is never
         // presented as an opened employer form or a connected submit leg.
-        result = { ...result, worker: WORKER_CAPABILITIES.portal_browser,
-          reply: `Live browser execution is not wired in this handler; no employer form has been opened or submitted.\n${result.reply}` };
+        // The stamp carries this host's own capability truth: unwired it
+        // is NOT_WIRED and the disclaimer leads; with a boardFor wired
+        // (J8) the stamp says so and no false disclaimer is prepended —
+        // these 141 results remain local preparation either way, and the
+        // batch seam (155) is the wired drive path.
+        result = { ...result, worker: workerCapabilities.portal_browser,
+          reply: boardFor ? result.reply : `Live browser execution is not wired in this handler; no employer form has been opened or submitted.\n${result.reply}` };
       }
       return {
         reply: CareerContainment.extractReplyText(result),
@@ -215,7 +267,7 @@ const CareerHost = (() => {
         handler,
         contained: false,
         result,
-        capabilities: WORKER_CAPABILITIES,
+        capabilities: workerCapabilities,
       };
     }
 

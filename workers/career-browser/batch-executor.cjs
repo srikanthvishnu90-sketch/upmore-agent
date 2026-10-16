@@ -1,0 +1,214 @@
+"use strict";
+/* batch-executor.cjs — the worker-side batch executor (LOOP J10, Crew B,
+   2026-10-15; design of record: joins doc "J10 — THE DEPLOYED-RUNTIME
+   TRANSPORT: DESIGN").
+
+   What this is: the process that makes the deployed batch loop real.
+   The Edge handler cannot drive boards (the drive stack is
+   synchronous; the chat turn may contain no browser effect), so it
+   commits career_batch_intent/v1 intents and the worker executes
+   them here, in a Node process beside the career_task_intent/v1 task
+   worker (service.cjs — untouched). This executor claims intents and
+   runs module 155 (CareerBatchApply) itself — the same module the
+   chat bundle carries, required from packages/domain, never a fork —
+   with every stage engine (121/132/123/149/150) exactly as the
+   in-turn path composes them. The only differences from the in-turn
+   composition are the ones the runtime forces: postings come from an
+   injected discovery source (production: module 121/151 feed
+   polling, the operator's wiring — the task worker's equipment-seam
+   posture), the profile/attestations are injected per user, the cap
+   ledger is the store's per-user ledger, and boards come from an
+   injected boardForFor(userId) — in production the J9 provider over
+   the synchronous HTTP transport to the board service, which vends
+   the sessions in ITS process.
+
+   Intent lifecycle (mirrors the task stack's discipline):
+   - prepare intents carry the run skeleton the router seam created.
+     The executor restores it, runs prepareRun, and writes the
+     prepared run as a user-scoped career_batch_run/v1 record. A
+     prepare crash finishes the intent BLOCKED with the code —
+     prepare submits nothing, ever (149's doorstep is a stop), so a
+     fresh intent may safely retry.
+   - approve intents carry the card set hash from the owner's yes.
+     The executor re-reads the STORED run and refuses
+     (APPROVAL_SET_CHANGED, nothing executed, the stored run left
+     untouched at its card) when the hash moved; otherwise
+     approveRun re-verifies the set inside 155, mints the Leg-1
+     approvalRef, and executeRun submits under it — 149 re-verifies
+     every payload at click time (MI-116) and re-checks the caps
+     (MI-110), exactly as in-turn.
+   - An execute intent is claimed ONCE. A crash mid-execution
+     finishes it UNCERTAIN and it is never re-driven: a blind
+     re-drive could double-submit, and unknown outcomes belong to
+     the resolver posture (MI-115), not to retries.
+
+   The store is injected (all methods async): pending(), claim(),
+   finish(), saveRun(), readRun(), ledgerFor(), saveLedger().
+   createBatchRpcStore below binds it to the batch RPCs of the
+   PROPOSED migration 20261016010000_career_batch_intents_v1.sql (the
+   task stack's RPC shape); tests bind the same interface to an
+   in-memory store. The executor never sees a transport it did not
+   be given, and it writes nothing the chat layer has not committed
+   an intent for. */
+const path = require("node:path");
+
+const Batch = require(path.join(__dirname, "..", "..", "packages", "domain", "155-career-batch-apply.js"));
+
+const RUN_VERSION = "career_batch_run/v1";
+const clone = (v) => JSON.parse(JSON.stringify(v));
+const coded = (code, message) => Object.assign(new Error(message || code), { code });
+
+function createBatchExecutor(deps) {
+  const d = deps || {};
+  const store = d.store;
+  if (!store || typeof store.pending !== "function" || typeof store.claim !== "function" || typeof store.finish !== "function"
+    || typeof store.saveRun !== "function" || typeof store.readRun !== "function"
+    || typeof store.ledgerFor !== "function" || typeof store.saveLedger !== "function") {
+    throw coded("BATCH_STORE_NOT_WIRED", "createBatchExecutor: a store with pending/claim/finish/saveRun/readRun/ledgerFor/saveLedger is required");
+  }
+  if (typeof d.postingsFor !== "function") throw coded("BATCH_DISCOVERY_NOT_WIRED", "createBatchExecutor: postingsFor(userId, familyText, count) is required — the executor never invents a discovery source");
+  if (typeof d.profileFor !== "function") throw coded("BATCH_PROFILE_NOT_WIRED", "createBatchExecutor: profileFor(userId) is required");
+  if (typeof d.boardForFor !== "function") throw coded("BATCH_BOARDS_NOT_WIRED", "createBatchExecutor: boardForFor(userId) is required");
+  const nowOf = typeof d.now === "function" ? d.now : () => Date.now();
+  const track = typeof d.track === "function" ? d.track : null;
+
+  function recordOf(run) {
+    return {
+      version: RUN_VERSION, runId: run.id, userId: run.userId, status: run.status,
+      run: Batch.serializeRun(run), summary: run.summary || Batch.summarizeRun(run),
+      updatedAt: new Date(nowOf()).toISOString(),
+    };
+  }
+
+  async function buildDeps(userId, postings) {
+    const pack = (await d.profileFor(userId)) || {};
+    const log = await store.ledgerFor(userId);
+    return {
+      postings: Array.isArray(postings) ? postings : [],
+      profile: pack.profile || null,
+      profileMaster: pack.profileMaster || null,
+      attestations: pack.attestations || {},
+      log,
+      boardFor: d.boardForFor(userId),
+      now: nowOf(),
+      track: track || undefined,
+    };
+  }
+
+  async function executePrepare(intent) {
+    const binding = intent.binding || {};
+    const skeleton = intent.request && intent.request.run;
+    if (!skeleton || skeleton.id !== binding.run_id || skeleton.userId !== intent.userId) {
+      throw coded("BATCH_RUN_INVALID", "the prepare intent carries no run skeleton bound to its user and run id");
+    }
+    const run = Batch.restoreRun(clone(skeleton));
+    if (!run) throw coded("BATCH_RUN_INVALID", "the prepare intent's run skeleton does not restore");
+    const postings = await d.postingsFor(intent.userId, binding.family_text || run.familyText, run.requested);
+    const deps = await buildDeps(intent.userId, postings);
+    Batch.prepareRun(run, deps);
+    await store.saveRun(recordOf(run));
+    await store.saveLedger(intent.userId, deps.log.records);
+    return { runId: run.id, runStatus: run.status, doorstep: run.summary ? run.summary.doorstep : 0, submitted: 0 };
+  }
+
+  async function executeApprove(intent) {
+    const binding = intent.binding || {};
+    // Pre-execution refusals are clean BLOCKS (nothing was driven, a
+    // corrected intent may follow); only a crash after execution
+    // begins is UNCERTAIN — the distinction is made here, before the
+    // caller's try/catch, on purpose.
+    const record = await store.readRun({ userId: intent.userId, runId: binding.run_id });
+    if (!record || !record.run) return { blocked: "BATCH_RUN_NOT_FOUND", runId: binding.run_id || null, runStatus: null };
+    const run = Batch.restoreRun(clone(record.run));
+    if (!run) return { blocked: "BATCH_RUN_INVALID", runId: binding.run_id || null, runStatus: null };
+    if (run.cardSha256 !== binding.card_sha256) {
+      // The yes was for a different card than the stored run now
+      // shows. Terminal for THIS intent; the stored run stays at its
+      // card so a corrected yes can still land.
+      return { blocked: "APPROVAL_SET_CHANGED", runId: run.id, runStatus: run.status };
+    }
+    const ap = Batch.approveRun(run, { approvedByUser: true });
+    if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
+    const deps = await buildDeps(intent.userId, []);
+    Batch.executeRun(run, deps);
+    await store.saveRun(recordOf(run));
+    await store.saveLedger(intent.userId, deps.log.records);
+    return { runId: run.id, runStatus: run.status, submitted: run.summary ? run.summary.submitted : 0, confirmations: run.summary ? run.summary.confirmations : [] };
+  }
+
+  async function runBatchPending() {
+    const results = [];
+    const intents = await store.pending();
+    for (const intent of intents) {
+      const binding = intent.binding || {};
+      const grant = await store.claim({ userId: intent.userId, intentId: intent.intentId });
+      if (!grant) { results.push({ intentId: intent.intentId, status: "skipped_claimed" }); continue; }
+      if (binding.action === "prepare") {
+        try {
+          const result = await executePrepare(intent);
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "completed", result });
+          results.push({ intentId: intent.intentId, action: "prepare", status: "completed", ...result });
+        } catch (e) {
+          const code = (e && e.code) || "BATCH_PREPARE_FAILED";
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code } });
+          results.push({ intentId: intent.intentId, action: "prepare", status: "blocked", code });
+        }
+      } else if (binding.action === "approve") {
+        try {
+          const result = await executeApprove(intent);
+          if (result.blocked) {
+            await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result });
+            results.push({ intentId: intent.intentId, action: "approve", status: "blocked", ...result });
+          } else {
+            await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "completed", result });
+            results.push({ intentId: intent.intentId, action: "approve", status: "completed", ...result });
+          }
+        } catch (e) {
+          // Claimed once, never re-driven: an execution crash leaves
+          // outcomes unknown by definition (MI-115's posture).
+          const code = (e && e.code) || "BATCH_EXECUTION_UNCERTAIN";
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "uncertain", result: { code } });
+          results.push({ intentId: intent.intentId, action: "approve", status: "uncertain", code });
+        }
+      } else {
+        await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code: "BATCH_ACTION_UNKNOWN" } });
+        results.push({ intentId: intent.intentId, status: "blocked", code: "BATCH_ACTION_UNKNOWN" });
+      }
+    }
+    return results;
+  }
+
+  return { runBatchPending };
+}
+
+// The production store: the batch RPCs of the proposed migration,
+// called through an injected async caller (name, args) -> data (the
+// worker's Supabase bridge; throws on RPC/transport error, which the
+// executor surfaces as the intent's coded failure).
+function createBatchRpcStore({ call }) {
+  if (typeof call !== "function") throw coded("BATCH_RPC_NOT_WIRED", "createBatchRpcStore: an async call(name, args) transport is required");
+  const leases = new Map(); // intentId -> leaseToken, held from claim to finish
+  return {
+    async pending() { const data = await call("career_batch_pending_v1", {}); return (data && data.intents) || []; },
+    async claim({ userId, intentId }) { const data = await call("career_batch_claim_v1", { p_user: userId, p_intent: intentId }); if (data && data.claimed && data.leaseToken) leases.set(intentId, data.leaseToken); return data && data.claimed ? data : null; },
+    async finish({ userId, intentId, state, result }) { const data = await call("career_batch_finish_v1", { p_user: userId, p_intent: intentId, p_lease: leases.get(intentId) || null, p_state: state, p_result: result || null }); leases.delete(intentId); return data; },
+    async saveRun(record) { return call("career_batch_save_run_v1", { p_user: record.userId, p_run: record }); },
+    async readRun({ userId, runId }) { const data = await call("career_batch_result_v1", { p_user: userId, p_run: runId }); return (data && data.batch) || null; },
+    async ledgerFor(userId) { const data = await call("career_batch_ledger_v1", { p_user: userId }); return { records: (data && data.records) || [] }; },
+    async saveLedger(userId, records) { return call("career_batch_save_ledger_v1", { p_user: userId, p_records: records || [] }); },
+  };
+}
+
+if (require.main === module) {
+  // Operator-owned configuration only, never loaded from chat (the
+  // board-service.cjs pattern): the config module exports
+  // { call, postingsFor, profileFor, boardForFor }.
+  if (!process.argv[2] || !path.isAbsolute(process.argv[2])) throw new Error("usage: node batch-executor.cjs /absolute/operator-config.cjs");
+  const cfg = require(process.argv[2]);
+  const executor = createBatchExecutor({ store: createBatchRpcStore({ call: cfg.call }), postingsFor: cfg.postingsFor, profileFor: cfg.profileFor, boardForFor: cfg.boardForFor, track: cfg.track });
+  executor.runBatchPending()
+    .then((results) => console.log(JSON.stringify({ batchExecutor: "drained", results })))
+    .catch((e) => { console.error("batch executor failed:", e && e.message); process.exit(1); });
+}
+
+module.exports = { createBatchExecutor, createBatchRpcStore };

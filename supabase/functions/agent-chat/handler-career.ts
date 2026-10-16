@@ -30,8 +30,8 @@ import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../_shared/router_core.career.js";
-import { planCareerTaskIntent, normalizeCareerTaskRequest } from "../_shared/career_task_bridge.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply } from "../_shared/router_core.career.js";
+import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 
@@ -160,11 +160,49 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // dispatch the gauntlet grades (tests/career-http-host.test.cjs).
     // Per-thread career state rides agent_flow_state.state under the
     // "career" key, mirroring the flow router's own use of that table.
-    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
+    // J8 + J9 (LOOP ACCEPTANCE): module 155's drive stage takes its
+    // board adapter from ctx.batchDeps.boardFor, which the host
+    // supplies from this composition root. Resolution lives in
+    // career_task_bridge: createCareerBoardFor validates a provider's
+    // boards against module 149's contract and converts every failure
+    // mode to null — the named BOARD_NOT_WIRED stop; no board is ever
+    // faked.
+    // J9 installs the real provider at this call site:
+    // createWorkerBoardProvider, bound to THIS request's authenticated
+    // user, gated on the worker's env (UPMORE_CAREER_WORKER_URL +
+    // UPMORE_CAREER_WORKER_SECRET). Behind it, the owned browser
+    // worker's board service (workers/career-browser/board-service.cjs)
+    // vends live module-150 board sessions. The provider needs a
+    // SYNCHRONOUS transport — the drive stack (155/149/150) is
+    // synchronous end to end — and this Edge runtime has none today
+    // (Node composition roots inject workers/career-browser/
+    // board-transport.cjs), so the factory resolves null here with or
+    // without env present: the seam stays wired, the stop stays
+    // honest, and no WIRED claim is made for a path that cannot vend.
+    // J10 (the deployed-runtime transport, design of record in the
+    // loop joins doc): the batch loop does not wait for a synchronous
+    // transport in this runtime — it DELEGATES. When the worker env
+    // is present, the host is built with delegateBatch and the router
+    // seam hands each batch ask to the owned browser worker as a
+    // committed career_batch_intent/v1 (prepare -> the worker runs
+    // module 155 in its own process -> the prepared run reads back
+    // through the structured career_batch status request -> the yes
+    // commits an approve intent -> the worker executes). No browser
+    // effect happens in a chat turn; the in-turn provider above is
+    // unchanged (still null-resolving here), so the single-application
+    // doorstep paths keep their exact J8/J9 behavior.
+    const workerUrl = Deno.env.get("UPMORE_CAREER_WORKER_URL") ?? "";
+    const workerSecret = Deno.env.get("UPMORE_CAREER_WORKER_SECRET") ?? "";
+    const boardFor = createCareerBoardFor(createWorkerBoardProvider({ workerUrl, secret: workerSecret, userId: user.id }));
+    const delegateBatch = workerUrl !== "" && workerSecret !== "";
+    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor, delegateBatch });
     let careerTask;
     try { careerTask = normalizeCareerTaskRequest(body.career_task); }
     catch (_) { return json(cors, { error: "invalid_career_task", action: null, turn_key: turnKey }, 400); }
-    const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask);
+    let careerBatch;
+    try { careerBatch = normalizeCareerBatchRequest(body.career_batch); }
+    catch (_) { return json(cors, { error: "invalid_career_batch", action: null, turn_key: turnKey }, 400); }
+    const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask ?? (careerBatch ? { batch: careerBatch } : null));
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const persistence = createCareerPersistence(admin);
     try {
@@ -173,18 +211,37 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
       let out = host.runTurn(message, ctx);
       let taskIntent = null;
+      let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
       if (careerTask && (out.handler !== "CareerHostControl" || pausedReadback)) {
         const plan = await planCareerTaskIntent({ taskRequest: careerTask, message, userId: user.id, threadId: tid,
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence });
         out = plan.out; taskIntent = plan.intent;
       }
+      // J10 batch delegation: a structured career_batch request
+      // (status readback / approve) plans exactly like the task path
+      // above; a plain batch ASK in delegate mode is detected from
+      // the seam's outcome + the skeleton it left on ctx, and its
+      // prepare intent is planned from that skeleton. Either way the
+      // intent commits transactionally with the reply below, and the
+      // reply never claims a state the worker has not written.
+      const pausedBatchReadback = careerBatch && careerBatch.action === "status" && out.intent === "career_paused" && !ctx._hostPatch;
+      if (careerBatch && (out.handler !== "CareerHostControl" || pausedBatchReadback)) {
+        const plan = await planCareerBatchIntent({ batchRequest: careerBatch, message, userId: user.id, threadId: tid,
+          turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence,
+          summarizeRun: (run) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
+        out = plan.out; batchIntent = plan.intent;
+      } else if (delegateBatch && !careerBatch && out.intent === "career_batch_apply" && out.result && out.result.batchDelegate && ctx.batchApplyState) {
+        const plan = await planCareerBatchPrepare({ run: ctx.batchApplyState, userId: user.id, threadId: tid,
+          turnKey, requestHash, accountVersion: loaded.accountVersion, account: loaded.account });
+        if (plan) { batchIntent = plan.intent; out = { ...out, batch: plan.batch }; }
+      }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
-      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent });
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
+      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       flowCtx.note = null;
       return json(cors, saved.response, 200);
     } catch (error) {

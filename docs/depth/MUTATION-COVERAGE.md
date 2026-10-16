@@ -1703,3 +1703,4 @@ Their own unit tests still run in `node --test tests/*.cjs`; what is missing is 
 - 153-career-kb.js
 - 154-career-recommendations.js
 - 154-career-writing.js
+- 155-career-batch-apply.js

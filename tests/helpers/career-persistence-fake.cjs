@@ -11,6 +11,14 @@ module.exports=async function rpc(db,user,thread,name,args={}) {
     return saved;
   }
   if(name==='career_task_result_v1')return {data:{task:db.taskResults?.get(args.p_intent||args.p_task)||null},error:null};
+  if(name==='career_batch_turn_commit_v1') {
+    const intent=args.p_intent,base=args.p_base;
+    if(intent.user_id!==user||intent.thread_id!==thread||intent.turn_key!==base.p_key||intent.request_hash!==base.p_hash)throw Error('fixture batch intent binding mismatch');
+    const saved=await module.exports(db,user,thread,'career_host_commit',base);
+    if(!saved.error&&!saved.data?.error) {db.batchIntents ||= new Map();db.batchIntents.set(intent.intent_id,copy(intent));}
+    return saved;
+  }
+  if(name==='career_batch_result_v1') {const rec=db.batchRuns?.get(args.p_run);return {data:{batch:rec&&rec.userId===args.p_user?copy(rec):null},error:null};}
   if(!['career_host_load','career_host_commit'].includes(name))throw Error('unexpected RPC '+name);
   if(args.p_user!==user||args.p_thread!==thread)throw Error('fixture owner mismatch');
   db.receipts ||= new Map(); db.options ||= {};

@@ -176,3 +176,26 @@ CI baseline and repair evidence live under docs/career/critical-repairs/.
 Actual provider quality and browser outcomes remain NOT_RUN. Residual behavior,
 historical-fixture and owner-151 deadline failures remain visible; no full-CI
 pass is inferred from this change.
+
+## Node22 routing and watch deadline regressions reproduced
+
+The current Node22 CI tracker failures were caused by unsupported scoped regex
+modifiers in companyFromApplicationText. Exceptions were swallowed by the
+prior-application route, and subsequent events had no row. Portable prefix
+matching retains capitalized company extraction without changing write-evidence
+requirements. Node24 supported the syntax and concealed these failures locally.
+
+C31 was not just stale wording: conversation dispatch stole the role-bound
+mock opening, no session started, and later narrative answers fell to fallback.
+The router now preserves explicit capability absence, existing role sessions,
+truth-audit/full-mock/compensation-script ownership before generic conversation.
+Modules 127/130/155 and Spec B files are unchanged. Module151's awaited header
+and body deadlines now remain referenced until completion or clear; original
+Node22 tests cancelled pending promises, and the new body oracle fails on the
+original code before passing the repair. Cancellation semantics are preserved.
+
+Historical archive checks remain unchanged in the separate required release
+suite; missing assets remain NOT_RUN and block go-live before side effects.
+Canonical scenario inputs are recovered from already committed expectations,
+not regenerated outcomes. Root copy checks cover the actual app template; the
+missing historical review-copy check remains in archival release validation.

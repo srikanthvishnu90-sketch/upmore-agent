@@ -69,7 +69,7 @@ const CareerAlertWatch = (() => {
       const deadlineError = () => new Error(`board fetch deadline exceeded after ${ms}ms (G7 hard deadline)`);
       const arm = (budget) => new Promise((_, reject) => {
         timer = setTimeout(() => reject(deadlineError()), Math.max(0, budget));
-        if (timer && typeof timer.unref === "function") timer.unref();
+        // An awaited deadline must keep the loop alive until it fires or clears.
       });
       try {
         const res = await Promise.race([Promise.resolve().then(() => fetchFn(url)), arm(ms)]);
@@ -81,7 +81,7 @@ const CareerAlertWatch = (() => {
               Promise.resolve().then(() => fn(...a)),
               new Promise((_, reject) => {
                 bodyTimer = setTimeout(() => reject(deadlineError()), Math.max(0, ms - (Date.now() - startedAt)));
-                if (bodyTimer && typeof bodyTimer.unref === "function") bodyTimer.unref();
+                // Keep the body deadline live while this await is pending.
               }),
             ]);
           } finally { if (bodyTimer) clearTimeout(bodyTimer); }

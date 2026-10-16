@@ -19359,9 +19359,19 @@ const CareerRouter = (() => {
   function companyFromApplicationText(text) {
     const raw = s(text);
     const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
+    // Node 22 (the supported CI runtime) does not implement scoped regex
+    // modifiers. Match the instruction prefix case-insensitively, then retain
+    // the strict capitalized company capture on the original source bytes.
+    const after = (prefix) => {
+      for (const hit of raw.matchAll(prefix)) {
+        const named = raw.slice(hit.index + hit[0].length).match(new RegExp(`^${cap}`));
+        if (named) return named;
+      }
+      return null;
+    };
     const m = raw.match(new RegExp(`\\bmy\\s+${cap}\\s+application\\b`))
-      || raw.match(new RegExp(`(?i:\\bapplication\\s+(?:at|to|for)\\s+(?:the\\s+)?)${cap}`))
-      || raw.match(new RegExp(`(?i:\\b(?:applied|applying)\\s+(?:at|to)\\s+(?:the\\s+)?)${cap}`))
+      || after(/\bapplication\s+(?:at|to|for)\s+(?:the\s+)?/ig)
+      || after(/\b(?:applied|applying)\s+(?:at|to)\s+(?:the\s+)?/ig)
       || raw.match(new RegExp(`\\b(?:at|to|for)\\s+(?:the\\s+)?${cap}`));
     if (!m) return null;
     const name = m[1].replace(/[?.!,]+$/, "").trim();
@@ -22058,7 +22068,48 @@ const CareerRouter = (() => {
     // turns on EVERY route are held (drafting / reading / status still run).
     const paused = handlePauseGate(text, c);
     if (paused) return paused;
-    const conversation = Conversation && Conversation.handle(conversationText, c, { Negotiation, Prep, Tailor, tailor: handleTailor });
+    // Capability absence and an already role-bound mock keep their owners
+    // before generic conversation. A text-coaching fallback is not a voice
+    // implementation, and it must not discard a real role/session's rubric.
+    if (/\bvoice mock\b|\bmock\b[^.]*\bby voice\b|\btalk out loud\b|\b(mock|interview|practice)\b[^.]*\b(out loud|aloud|by voice|with voice)\b|\bvoice\b[^.]{0,24}\b(mock|interview|practice)\b|\b(out loud|aloud)\b[^.]{0,24}\b(mock|interview|practice)\b/.test(t)) return handleVoiceMockUnavailable(text, c);
+    // An active mock session captures plain ANSWERS before any other
+    // intent — but never an instruction-shaped turn. A new task always
+    // wins over a pending mock answer: without this guard, one started
+    // mock poisons every later unrelated turn in the session (found by
+    // the full-300 routing grade: SC-178's mock ate SC-221+ whole).
+    if (profile && profile._careerRouterPrep) {
+      // Capture ONLY narrative-led turns (a person answering: "I built...",
+      // "In my last role...", "The hardest part was..."). Anything else —
+      // label-led, noun-led, question, instruction — is a new task and the
+      // mock simply stays pending. Defaulting to release is the safe side:
+      // a released answer can be re-given; a swallowed task cannot.
+      const firstTok = (t.split(/\s+/)[0] || "").replace(/[^a-z']/g, "");
+      const narrativeLed = ["i", "in", "my", "the", "that", "this", "it", "we", "one", "so", "well", "yes", "no", "honestly", "basically", "last", "during", "after", "when", "while", "for", "at", "on", "there", "here", "our", "they", "he", "she", "an", "a", "once", "first", "then", "but", "and", "from", "with", "back", "over"].includes(firstTok);
+      const taskShaped = !narrativeLed || /^[A-Za-z][^:]{1,48}:\s/.test(text) || /^[A-Z][^—]{3,60}—/.test(text) || /\?/.test(text) || /^(i have|i got|i'm a|i am a)\b/.test(t);
+      if (!taskShaped) {
+        try { return handlePrepAnswer(text, c); } catch { profile._careerRouterPrep = null; }
+      }
+    }
+    if (profile && c.posting && /\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t)) return handlePrepStart(text, c);
+    // A concrete supplied offer intake belongs to the existing negotiation
+    // product, rather than a generic explanation of the word "bonus".
+    if (/^offer intake:/i.test(text) && /\bmy offer letter\b/i.test(text)) {
+      const intake = handleNegotiation(text, c);
+      if (intake) return intake;
+    }
+    // A first-person career-direction request can mention a roommate's
+    // experience without turning the entire request into third-party evidence.
+    // The existing guidance engine consumes the user's stated facts only.
+    if (/\bmy situation is\b|^help me get (?:a )?job[.!?]*$/i.test(text) && !/^(?:suppose|imagine|what if|if\b)/i.test(text)) {
+      const direction = handleClarifying(text, c);
+      if (direction) return direction;
+    }
+    // Typed existing work products keep their specific owners: a truth audit,
+    // full scored mock, or requested compensation script is not a generic
+    // rewrite/explanation. No mutation or authority is added by this gate.
+    const namedWorkProduct = /\btruth audit\b|\bfull text mock\b/.test(t)
+      || (/\bsigning[ -]bonus\b/.test(t) && /\b(?:script|negotiat|counter)\b/.test(t));
+    const conversation = !namedWorkProduct && Conversation && Conversation.handle(conversationText, c, { Negotiation, Prep, Tailor, tailor: handleTailor });
     if (conversation) return conversation;
     // Capability 2 owns read-only resume/role, gap, location and current-source
     // recommendations. It takes only host-injected profile/postings; it never
@@ -22080,24 +22131,6 @@ const CareerRouter = (() => {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
-    // An active mock session captures plain ANSWERS before any other
-    // intent — but never an instruction-shaped turn. A new task always
-    // wins over a pending mock answer: without this guard, one started
-    // mock poisons every later unrelated turn in the session (found by
-    // the full-300 routing grade: SC-178's mock ate SC-221+ whole).
-    if (profile && profile._careerRouterPrep) {
-      // Capture ONLY narrative-led turns (a person answering: "I built...",
-      // "In my last role...", "The hardest part was..."). Anything else —
-      // label-led, noun-led, question, instruction — is a new task and the
-      // mock simply stays pending. Defaulting to release is the safe side:
-      // a released answer can be re-given; a swallowed task cannot.
-      const firstTok = (t.split(/\s+/)[0] || "").replace(/[^a-z']/g, "");
-      const narrativeLed = ["i", "in", "my", "the", "that", "this", "it", "we", "one", "so", "well", "yes", "no", "honestly", "basically", "last", "during", "after", "when", "while", "for", "at", "on", "there", "here", "our", "they", "he", "she", "an", "a", "once", "first", "then", "but", "and", "from", "with", "back", "over"].includes(firstTok);
-      const taskShaped = !narrativeLed || /^[A-Za-z][^:]{1,48}:\s/.test(text) || /^[A-Z][^—]{3,60}—/.test(text) || /\?/.test(text) || /^(i have|i got|i'm a|i am a)\b/.test(t);
-      if (!taskShaped) {
-        try { return handlePrepAnswer(text, c); } catch { profile._careerRouterPrep = null; }
-      }
-    }
     // IB-TN-9: roleplay asks belong to 128's negotiation roleplay —
     // the guard sits BEFORE the mock matcher, whose alternation used
     // to swallow the word "roleplay" into prep_mock_start.
@@ -22111,7 +22144,6 @@ const CareerRouter = (() => {
     // answered as a profile problem. The check now sits ahead of the
     // mock matcher and covers the natural phrasings (talk out loud,
     // out loud, speak it), not just the exam's two shapes.
-    if (/\bvoice mock\b|\bmock\b[^.]*\bby voice\b|\btalk out loud\b|\b(mock|interview|practice)\b[^.]*\b(out loud|aloud|by voice|with voice)\b|\bvoice\b[^.]{0,24}\b(mock|interview|practice)\b|\b(out loud|aloud)\b[^.]{0,24}\b(mock|interview|practice)\b/.test(t)) return handleVoiceMockUnavailable(text, c);
     if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t)) {
       if (!profile) return { intent: "prep_needs_profile", reply: compose({ headline: "I need your profile record to run a mock from your real work." }) };
       return handlePrepStart(text, c);
@@ -25655,7 +25687,7 @@ const CareerAlertWatch = (() => {
       const deadlineError = () => new Error(`board fetch deadline exceeded after ${ms}ms (G7 hard deadline)`);
       const arm = (budget) => new Promise((_, reject) => {
         timer = setTimeout(() => reject(deadlineError()), Math.max(0, budget));
-        if (timer && typeof timer.unref === "function") timer.unref();
+        // An awaited deadline must keep the loop alive until it fires or clears.
       });
       try {
         const res = await Promise.race([Promise.resolve().then(() => fetchFn(url)), arm(ms)]);
@@ -25667,7 +25699,7 @@ const CareerAlertWatch = (() => {
               Promise.resolve().then(() => fn(...a)),
               new Promise((_, reject) => {
                 bodyTimer = setTimeout(() => reject(deadlineError()), Math.max(0, ms - (Date.now() - startedAt)));
-                if (bodyTimer && typeof bodyTimer.unref === "function") bodyTimer.unref();
+                // Keep the body deadline live while this await is pending.
               }),
             ]);
           } finally { if (bodyTimer) clearTimeout(bodyTimer); }

@@ -1,3 +1,4 @@
+import { careerModelReply } from "../_shared/career_model_reply.ts";
 import { researchCommand } from "../_shared/career_research_policy.js";
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
@@ -16,15 +17,16 @@ import { researchCommand } from "../_shared/career_research_policy.js";
 // agent-chat/handler.ts (pivot mechanics: shelved, not deleted — tag
 // finance-final); it is simply not part of this deployed artifact anymore.
 //
-// Behavior contract: every line below that a career turn can reach is
-// copied verbatim from handler.ts (auth, bridge override, profile upsert,
-// rate limiting, input parsing, thread ownership, the PRODUCT_MODE career
-// branch, the redaction-note prefix). The only handler.ts machinery not
-// carried over is the model-cost meter block in the wrapper: career turns
-// make zero model calls (the chain is deterministic code), so in
-// handler.ts that block is unreachable on every career turn — meter.calls
-// stays 0 and no agent_turn_costs row is ever written for a career turn.
-// Dropping it here changes no observable career behavior.
+// Retains authentication, bridge scoping, profile upsert, rate limiting,
+// input parsing, thread ownership and the redaction-note behavior. The
+// historical model-free pruning
+// is now extended only by a default-off, bounded coaching adapter. Its
+// reconciled shared-budget gate must admit a call before the existing gateway
+// can run; models never supply actions or authoritative profile updates.
+// Financial planner/tool pipelines remain outside this graph. Optional career
+// coaching uses the existing gateway only after separate shared-budget and
+// owner-context admission, and before the same atomic career commit.
+
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { redactionNote } from "../_shared/identity_redact.ts";
@@ -181,12 +183,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence });
         out = plan.out; taskIntent = plan.intent;
       }
+      const model = await careerModelReply({env:Deno.env,admin,ctx,out,careerTask,message,loaded,turnKey,requestHash});
+      if (model) out = {...out,reply:model.reply};
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
       const researchObservation = careerTask?.action === "research_status" && !ctx._hostPatch && out.intent === "career_browser_task";
       const reminders = !researchObservation && Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(model ? { career_model:model.meta } : {}) } };
       // Observation cannot revoke its own queued research by bumping the
       // shared account version. It creates no turn receipt or memory write.
       if (researchObservation) { flowCtx.note = null; return json(cors, { ...response, read_only: true }, 200); }
@@ -195,8 +199,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       return json(cors, saved.response, 200);
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
-      const conflict = ["turn_key_conflict", "task_event_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
-      return json(cors, { error: code, reply: conflict ? "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started." : "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.", action: null, turn_key: turnKey }, conflict ? 409 : 503);
+      const conflict = ["turn_key_conflict", "task_event_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict", "career_model_context_changed"].includes(code);
+      return json(cors, { error: code, reply: conflict ? (Deno.env.get("CAREER_MODEL_ENABLED") === "true" ? "The saved career context changed or this request key conflicts. Reload your owned conversation. No new reply or fact update was saved from this turn." : "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started.") : "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.", action: null, turn_key: turnKey }, conflict ? 409 : 503);
     }
   } catch (e) {
     console.error(e);

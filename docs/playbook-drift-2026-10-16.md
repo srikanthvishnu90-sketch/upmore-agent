@@ -78,3 +78,20 @@ Independent privacy composition: preserve both dated drift histories. Owner repa
 Joint-probe fixture refinement: J01 uses colliding names plus default profile/fact IDs; J02 now explicitly uses the default profile ID with no name/email so an erased fresh profile reuses the exact old cache key on the negative-control baseline. Expected outcomes stay unchanged; preserve the first combined joint run and add baseline/combined runs of this stronger erasure fixture. No product implementation changed.
 
 Independent combined evidence: source e236a129 (same product bytes at later transcript/joint confirmations) improves the review baseline from privacy 1/10 + PostgreSQL 1/7 to 10/10 + 7/7, with existing PostgreSQL 30/30, authority 21/21, joint 2/2, conversation 969/969 and research suites green. Full legacy gauntlet remains 26/27 with the exact same C37 handler mismatch; not an all-green release. Public research README now links the combined privacy result instead of describing the previously unpublished repair as unavailable. Historical availability snapshots/reports stay unchanged at their dated sources. No paid/provider/browser/production action.
+
+## Explicit resume supersession after the privacy repair
+
+The cache-removal repair correctly removed cross-account authority, but module
+130 still skipped confirmed facts and preferred old embedded labels to an
+explicit new source. The claim that a new explicit resume wins therefore failed
+for a second correction: 2028 stayed active instead of supplied 2033. The unique
+superseded-audit finding was recovered and independently reproduced on integrated
+e66e39cf; no superseded implementation was reused or republished.
+
+Module 130 now preflights the direct instruction, unique source and fact targets,
+permits repeated confirmed-date updates, records the prior active value, replaces
+the active annotation, and keeps adopted-source fingerprints only in owned profile
+JSON. Repeated current sources do not write facts, ambiguous/superseded sources
+cannot replay, and legacy cache APIs remain inert. Existing transaction/schema
+and other contribution ownership remain unchanged. Evidence and limits are in
+`docs/career/resume-correction-supersession-20261016.md`.

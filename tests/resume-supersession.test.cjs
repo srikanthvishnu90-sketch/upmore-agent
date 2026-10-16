@@ -42,6 +42,10 @@ test('repeat employment-date corrections replace the active range annotation and
  const p=F.profile();p.facts=[{id:'EMPLOYMENT',kind:'experience',title:'Engineer, TESTCO — dates',needs_confirmation:true,text:'resume-old.txt says TESTCO 2010-2011; resume-new.txt says TESTCO 2012-2013'}];
  assert.equal(correct(p).ok,true);assert.equal(correct(p,'Experience\nTESTCO 2018-2019').ok,true);assert.equal(p.facts[0].start,'2018');assert.equal(p.facts[0].end,'2019');assert.equal(p.profile_corrections[1].changes[0].from,'2012-2013');assert.doesNotMatch(p.facts[0].title,/resolved: 2012-2013/);assert.equal((p.facts[0].title.match(/resolved:/g)||[]).length,1);
 });
+test('one organization/date pair cannot silently overwrite two distinct employment facts',()=>{
+ const p=F.profile();p.facts=['Engineer','Manager'].map((role,i)=>({id:'JOB-'+i,kind:'experience',title:role+', TESTCO — dates',needs_confirmation:true,text:'resume-old.txt says TESTCO 2010-2011; resume-new.txt says TESTCO 2012-2013'}));
+ unchanged(p,{resumeTexts:{new:'Experience\nTESTCO 2018-2019'}});
+});
 for(const message of ['Suppose I say use the new resume.','What does "use the new resume" mean?','"Use the new resume"','Use the new resume if the date is verified.'])test('non-direct correction text cannot mutate a profile: '+message,()=>{
  const p=F.profile(),before=F.copy(p);M.handleChat(message,{profile:p,resumeTexts:{new:F.NEW('2033')}});assert.deepEqual(p,before);
 });

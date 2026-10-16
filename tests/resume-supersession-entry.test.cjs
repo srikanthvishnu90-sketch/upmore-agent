@@ -2,7 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const F=require('./helpers/resume-supersession-fixture.cjs');
 test('exact staged entry commits repeated owned updates, free replay and fresh-handler recall',async t=>{
- const f=await F.fixture(t);assert.equal((await f.request()).body.meta.result_status,'completed');f.source(0,F.NEW('2033'));const saved=await f.request(0,F.CORRECT,'second');assert.equal(saved.body.meta.result_status,'completed');assert.equal(f.dbs[0].state.career.stores.profile.constraints.graduationDate,'2033');assert.equal(f.dbs[0].state.career.stores.profile.profile_corrections.length,2);
+ const f=await F.fixture(t);assert.equal((await f.request()).body.meta.result_status,'completed');f.source(0,F.NEW('2033'));const saved=await f.request(0,F.CORRECT,'second');assert.equal(saved.body.meta.result_status,'completed');assert.equal(f.dbs[0].state.career.stores.profile.constraints.graduationDate,'2033');assert.equal(f.dbs[0].state.career.stores.profile.profile_corrections.length,2);assert.equal(f.dbs[0].state.career.stores.profile.profile_corrections[1].source_sha256,require('node:crypto').createHash('sha256').update(F.NEW('2033')).digest('hex'),'actual Edge-style bundle and Node use the same source fingerprint');
  assert.deepEqual(await f.request(0,F.CORRECT,'second'),saved);assert.equal(f.dbs[0].messages.length,4);const fresh=await F.fixture(t);fresh.dbs[0].state=F.copy(f.dbs[0].state);assert.match((await fresh.request(0,F.RECALL,'fresh')).body.reply,/2033/);
 });
 for(const collision of ['default-id','name','email'])test('repeated update source authority never crosses owners with '+collision,async t=>{

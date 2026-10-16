@@ -1,0 +1,5 @@
+testing agent: RED 91/92; critical 0, failed 1; gaps 3; not run 2; p95 2 ms; 1 s
+  FAIL F:ALRT-012 ALRT-012: scheduler: one unrequested note a day, four a week (AgentLoop budget)
+    expected: the path answers as the map says
+    actual:   [{"key":"save:fee_refund:overdraft:chk-1:f1","reason":"daily_budget"},{"key":"save:price_increase:NETFLIX.COM","reason":"daily_budget"}]
+    code:     evals/agent/run.ts flow()

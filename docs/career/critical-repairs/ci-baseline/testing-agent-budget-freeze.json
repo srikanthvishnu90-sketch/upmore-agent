@@ -1,0 +1,9 @@
+{
+  "frozenAt": "2026-10-16T23:46:33.038130+00:00",
+  "checkerSha256": "1bf1cede892789f14df1db47c0ccb824702260a76b3f1e5ef6ca9a1a4e49da03",
+  "establishedContract": "tests/edge/proactive.test.ts: K2 2026-10-12 standing cadence requests are exempt; exactly one unsolicited finding remains budgeted.",
+  "expected": "ALRT-012 counts only non-cadence findings, still requires exactly one and a daily_budget suppression; explicit requested cadence is not silently reclassified as unsolicited.",
+  "runtimeChanges": "NONE",
+  "realProviderCalls": 0,
+  "actualModelQuality": "NOT_RUN"
+}

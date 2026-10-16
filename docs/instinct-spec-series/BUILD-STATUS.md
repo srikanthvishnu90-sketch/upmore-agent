@@ -88,6 +88,10 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-16 full-CI testing-agent checker follow-up: evals/agent/run.ts ALRT-012 test expectation only. Source reproduction shows it counts an existing cadence-exempt standing request as an unsolicited note, contradicting the explicit K2 contract already asserted in tests/edge/proactive.test.ts. Preserve exactly one non-cadence finding and daily-budget suppression; change no financial runtime. Freeze the red 91/92 result before repair.
+
+- 2026-10-16 newly exposed full-CI Deno follow-up: evals/agent/mutations.ts stale M09 anchor and tracked-only disposable-copy preparation (exclude only the two protected writing fixtures; all 12 checks retained), generated docs/testing/agent-report.md and docs/capability-list/flow-evidence.md plus evals/agent/results/latest.json from the actual offline runner. Reproduce obsolete anchor and stale reports before regeneration. No production/model/browser execution.
+
 - 2026-10-16 CI follow-up: exact read permission for the existing Gmail OAuth source-contract test (no network/env/write test grants); always-run existing CI command gates so an earlier failure cannot hide later checks. Full Deno on published f911db42 has 712 runtime passes and one source-read permission failure, replacing the prior 21 compile failures. Local dependency fetch remains blocked by JSR HTTP 403; no bypass attempted.
 
 - 2026-10-16 full-CI portability subclaim: tests-archival sibling suite, archival inventory/required release gate and go-live.sh preflight only (no deploy behavior executed); canonical scenario-input fixture recovered from committed expectations; root grader/wording/carriage fixture paths and routing-grade input path; current copy-surface check; targeted Node22 tracker routing and 151 timer changes. Preserve every archived assertion and build pin, with missing assets explicitly NOT_RUN and release-blocking. No changes to Spec B or legacy 127/130/155.

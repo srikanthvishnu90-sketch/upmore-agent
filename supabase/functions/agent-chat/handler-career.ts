@@ -181,7 +181,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
     const persistence = createCareerPersistence(admin);
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
-      if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
+      if (loaded.replay) {
+        if (groundedEnabled(Deno.env)&&loaded.replay.meta?.career_dialogue?.version==='career_dialogue/v2') {
+          const check=await admin.rpc('career_model_replay_check_v2',{p_user:user.id,p_thread:tid,p_key:turnKey,p_hash:requestHash});
+          if(check.error||check.data?.ok!==true)throw Object.assign(new Error('career_context_changed'),{code:'career_model_context_changed'});
+        }
+        flowCtx.note = null; return json(cors, loaded.replay, 200);
+      }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
       const publicResearch = careerTask && ["research", "research_status"].includes(careerTask.action);
       let out = publicResearch ? (host.runTaskGate(message, ctx) || { handler: "CareerPublicResearch" }) : host.runTurn(message, ctx);

@@ -25,6 +25,11 @@ async function fixture(t,options={}){
    return sql.client.rpc(name,a);
   }
   if(name==='career_model_context_read_v2')return options.readUnavailable?{data:null,error:{message:'SYNTHETIC unavailable context'}}:{data:{...contextRead(dbs,owner,owner===U?T:TV,a),...(options.readOverride||{})},error:null};
+  if(name==='career_model_replay_check_v2'){
+   const db=dbs.get(owner),old=db.receipts.get(a.p_key),stamp=old?.response.meta.career_dialogue;
+   const barrier=contextRead(dbs,owner,owner===U?T:TV,{}).barrier_version;
+   return {data:{ok:!!stamp&&old.hash===a.p_hash&&(stamp.account_version>barrier||(stamp.account_version===barrier&&stamp.barrier))},error:null};
+  }
   if(name==='career_model_budget_reserve_v1'){
    if(options.budgetDenied)return {data:{ok:false,reason:'budget_exhausted'},error:null};
    const key=owner+':'+a.p_key,old=tickets.get(key);if(old)return {data:{ok:false,reason:old.hash===a.p_hash&&old.payload===a.p_payload?'already_reserved':'turn_key_conflict'},error:null};

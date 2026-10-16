@@ -29,3 +29,23 @@ begin
 end $$;
 revoke all on function public.career_model_context_read_v2(uuid,uuid,bigint,bigint,bigint) from public,anon,authenticated;
 grant execute on function public.career_model_context_read_v2(uuid,uuid,bigint,bigint,bigint) to service_role;
+
+-- Exact replay is free only while no newer owner-wide privacy/correction
+-- barrier revokes that response. Old audit text is not a new active reply.
+create function public.career_model_replay_check_v2(p_user uuid,p_thread uuid,p_key text,p_hash text)
+returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare a jsonb; r jsonb; barrier bigint; v bigint;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ if not exists(select 1 from agent_threads where id=p_thread and user_id=p_user) then return jsonb_build_object('ok',false);end if;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ select value into r from career_watch_kv where user_id=p_user and key='career:turn:'||p_thread||':'||p_key;
+ if r->>'hash' is distinct from p_hash or r->>'epoch' is distinct from coalesce(a->>'epoch','0') or r#>>'{response,meta,career_dialogue,version}' is distinct from 'career_dialogue/v2' then return jsonb_build_object('ok',false);end if;
+ select coalesce(max((value#>>'{response,meta,career_dialogue,account_version}')::bigint),0) into barrier
+ from career_watch_kv where user_id=p_user and key like 'career:turn:%' and value->>'epoch'=coalesce(a->>'epoch','0')
+ and value#>>'{response,meta,career_dialogue,version}'='career_dialogue/v2' and value#>>'{response,meta,career_dialogue,barrier}'='true';
+ v:=(r#>>'{response,meta,career_dialogue,account_version}')::bigint;
+ return jsonb_build_object('ok',coalesce(v>barrier or (v=barrier and r#>>'{response,meta,career_dialogue,barrier}'='true'),false));
+end $$;
+revoke all on function public.career_model_replay_check_v2(uuid,uuid,text,text) from public,anon,authenticated;
+grant execute on function public.career_model_replay_check_v2(uuid,uuid,text,text) to service_role;

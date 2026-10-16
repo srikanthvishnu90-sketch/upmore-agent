@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-16T02:43:24.108700+00:00",
+  "base": "da9e9245bcb355ee2994464743dd265ff032dfab",
+  "originalAuthorTests": {
+    "tests/career-public-research.test.cjs": "da6198fb35d1ee1a42e6bc57a0acde24abe5aa2a7e72dff7d58f50edaf3aa194",
+    "tests/career-public-research-postgres.test.cjs": "67ca0fc6fe5bba12c9be4b682da537ffc81c6f5ae2d6b312732165e3176f16e2"
+  },
+  "expectations": [
+    "Original author assertion bodies remain unchanged; fixture data must contain decodable PNG, MIME type and current correlated capture/navigation times.",
+    "A completed worker return, repeat/get and central chat status must equal the immutable publication receipt.",
+    "Lost finish acknowledgement plus failed immediate readback retries identical receipt without reading twice.",
+    "Epoch erase clears all active publication copies.",
+    "Both original SQL lock-race tests execute unmodified over a loopback-only connection to the isolated network-none database.",
+    "Reject malformed, stale/future, missing MIME/navigation time captures; no production exception or weakened guard."
+  ]
+}

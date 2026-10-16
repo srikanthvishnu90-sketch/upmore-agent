@@ -42,6 +42,10 @@ const CareerRouter = (() => {
   const Apply = typeof CareerApply !== "undefined" ? CareerApply : req("./132-career-apply.js");
   const getPortalApply = () => { try { return typeof CareerPortalApply !== "undefined" ? CareerPortalApply : req("./149-career-portal-apply.js"); } catch { return req("./149-career-portal-apply.js"); } };
   void getPortalApply;
+  // LOOP ACCEPTANCE (155): the batch-apply module also sits after this
+  // file in the bundle — lazy getter only, same pattern as 149.
+  const getBatchApply = () => { try { return typeof CareerBatchApply !== "undefined" ? CareerBatchApply : req("./155-career-batch-apply.js"); } catch { return req("./155-career-batch-apply.js"); } };
+  void getBatchApply;
   const Reply = typeof CareerReply !== "undefined" ? CareerReply : req("./140-career-reply.js");
   // Lane A (gauntlet round 2): the intent-ownership layer below CALLS the
   // doorstep seam (141) and the onboarding/profile write path (130) through
@@ -6240,6 +6244,89 @@ const CareerRouter = (() => {
     return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
   }
 
+  // ---------- LOOP ACCEPTANCE: the batch-apply seam (155) ----------
+  // The owner's done-test as a chat route: "apply to 15 <family> roles"
+  // runs the whole loop in-product — 155 orchestrates 121/132/123/149
+  // and reports back in this thread. Placed in dispatch AFTER the
+  // ownership layer and the pause gate (state-change turns and the
+  // global pause keep their priority) and BEFORE every content route:
+  // before this seam the ask fell through to discovery/tailor and the
+  // loop never ran (getPortalApply above had zero call sites).
+  // Host contract (the router's standing injection pattern):
+  // ctx.postings / ctx.discovery.postings carry the staged discovery
+  // pool; ctx.batchDeps may carry { postings, log, boardFor,
+  // portalProfile (149-shaped), profileFor, attestations, track }.
+  // Without a host-supplied boardFor, drives stop named BOARD_NOT_WIRED
+  // — honest, never faked. The run object rides ctx.batchApplyState
+  // (a host STATE_KEYS entry) so the approval turn resumes it in a
+  // later invocation; sessions are rebuilt there, and MI-116's hash
+  // verification inside 149 is what stops a payload changed since the
+  // card. The approval itself arrives as structured ctx
+  // (ctx.batchApproval from the card tap) — never inferred from text.
+  function batchDepsFor(c, log, pool) {
+    const deps = c.batchDeps || {};
+    return {
+      postings: pool,
+      profile: deps.portalProfile || c.portalProfile || batchPortalProfile(c.profile),
+      profileMaster: c.profile || null,
+      scoringProfile: deps.scoringProfile || null,
+      log,
+      now: nowOf(c),
+      attestations: deps.attestations || {},
+      boardFor: deps.boardFor || null,
+      profileFor: deps.profileFor || null,
+      track: deps.track || (({ company, role, confirmationId }) => {
+        try { if (Track && Track.logApplication && c.profile) Track.logApplication(c.profile, { company, title: role }, { status: "applied", confirmationId }); } catch { /* the submission stands on 149's log; tracking is a record, not the act */ }
+      }),
+    };
+  }
+  function batchPortalProfile(master) {
+    // Minimal 149-shaped profile from the 122 master when the host has
+    // not injected one: identity fields only, NO answers — a required
+    // screening question then stops that application named
+    // (UNCOVERED_QUESTION) instead of being invented around. The full
+    // fact-to-answer adaptation rides 149's answer map (the R-2 lane).
+    const b = (master && master.basics) || {};
+    const p = {
+      name: b.name || b.full_name || (master && master.name) || null,
+      email: b.email || (master && master.email) || null,
+      phone: b.phone || null,
+      location: b.location || null,
+      answers: {},
+    };
+    const r = (master && master.resume) || b.resume || null;
+    if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+    return p;
+  }
+  function handleBatchApply(text, c) {
+    const BatchApply = getBatchApply();
+    if (!BatchApply) return null;
+    const depsIn = c.batchDeps || {};
+    const log = depsIn.log || c.batchLog || { records: [] };
+    const standing = c.batchApplyState || null;
+    if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true) {
+      const run = BatchApply.restoreRun(standing);
+      if (!run) return null;
+      const ap = BatchApply.approveRun(run, { approvedByUser: true });
+      if (!ap.ok) {
+        c.batchApplyState = BatchApply.serializeRun(run);
+        return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };
+      }
+      const ex = BatchApply.executeRun(run, batchDepsFor(c, log, null));
+      c.batchApplyState = BatchApply.serializeRun(run);
+      const sm = ex.summary || BatchApply.summarizeRun(run);
+      return { intent: "career_batch_apply", resultStatus: run.status, batchRun: sm, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+    }
+    const ask = BatchApply.parseApplyAsk(text);
+    if (!ask) return null;
+    if (!c.profile) return null; // no profile yet: the onboarding routes own the turn
+    const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
+    const run = BatchApply.createRun({ userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText: ask.familyText, count: ask.count, now: nowOf(c) });
+    BatchApply.prepareRun(run, batchDepsFor(c, log, pool));
+    c.batchApplyState = BatchApply.serializeRun(run);
+    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+  }
+
   function dispatchChat(text, ctx) {
     const c = ctx || {};
     text = detypo(text); // routing copy only — records keep the original
@@ -6269,6 +6356,10 @@ const CareerRouter = (() => {
     // turns on EVERY route are held (drafting / reading / status still run).
     const paused = handlePauseGate(text, c);
     if (paused) return paused;
+    // LOOP ACCEPTANCE (155): the batch-apply ask and its approval
+    // continuation run the apply loop itself (see handleBatchApply).
+    const batchRes = handleBatchApply(text, c);
+    if (batchRes) return batchRes;
     // Capability 2 owns read-only resume/role, gap, location and current-source
     // recommendations. It takes only host-injected profile/postings; it never
     // falls back to the filesystem corpus or touches alert/browser state.

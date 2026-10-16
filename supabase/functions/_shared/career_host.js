@@ -56,6 +56,16 @@ const CareerHost = (() => {
     // instead of dying with the turn. Created lazily by 142 on first
     // write only; a read never materializes it.
     "alertWatchState",
+    // LOOP ACCEPTANCE (155, Crew B 2026-10-15; registry allocation
+    // requested — joins list in the loop-acceptance build record):
+    // the batch-apply run object. 155's run is pure JSON by
+    // construction (queue, per-application states, minted approvals,
+    // events); 142's batch seam writes it here when a run is prepared
+    // at the approval card and reads it back on the approval turn,
+    // where sessions are rebuilt and 149's MI-116 hash verification
+    // guards the submit. Without this key a prepared batch would die
+    // with the turn and the "yes" could never resume it.
+    "batchApplyState",
   ];
 
   function cloneJson(v) {

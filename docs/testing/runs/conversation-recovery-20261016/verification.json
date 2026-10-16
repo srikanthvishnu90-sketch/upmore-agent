@@ -8,5 +8,10 @@
   "newLedgerEntries": 8,
   "fixtureContainersRemoved": true,
   "syntax": "All four new CJS files passed node --check",
-  "limitations": "Conversation runs are intentionally FAIL; normal browser launch is NOT_RUN; no model response-quality verification."
+  "limitations": "Conversation runs are intentionally FAIL; normal browser launch is NOT_RUN; no model response-quality verification.",
+  "rawEvidenceWhitespace": {
+    "result": "2 findings retained",
+    "target": "integration-existing-conversation-tests.log lines 34 and 36",
+    "reason": "Verbatim failed-run output retained; no source whitespace finding."
+  }
 }

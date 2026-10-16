@@ -1,0 +1,127 @@
+(node:1384) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1384) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ real SQL rollback at agent_messages:user: failed A correction cannot reach B or A's next turn (413.847408ms)
+✖ real SQL rollback at agent_messages:assistant: failed A correction cannot reach B or A's next turn (404.029191ms)
+✖ real SQL rollback at agent_flow_state:state: failed A correction cannot reach B or A's next turn (201.719837ms)
+✖ real SQL committed correction, owner boundary, restart and exact reply replay (201.403187ms)
+✖ real SQL stale correction loses revision race and cannot leak its uncommitted facts (204.708933ms)
+✖ real SQL erase epoch rejects old receipts and stale commits; reused profile identity cannot revive corrections (223.842945ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 0
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1777.455331
+
+✖ failing tests:
+
+test at tests/correction-authority-postgres.test.cjs:66:5
+✖ real SQL rollback at agent_messages:user: failed A correction cannot reach B or A's next turn (413.847408ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /2031/. Input:
+  
+  "Your graduation date is 2028. Tell me what you'd like to do next."
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy/tests/correction-authority-postgres.test.cjs:74:109)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/correction-authority-postgres.test.cjs:66:5
+✖ real SQL rollback at agent_messages:assistant: failed A correction cannot reach B or A's next turn (404.029191ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /2031/. Input:
+  
+  "Your graduation date is 2028. Tell me what you'd like to do next."
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy/tests/correction-authority-postgres.test.cjs:74:109)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/correction-authority-postgres.test.cjs:66:5
+✖ real SQL rollback at agent_flow_state:state: failed A correction cannot reach B or A's next turn (201.719837ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /2031/. Input:
+  
+  "Your graduation date is 2028. Tell me what you'd like to do next."
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy/tests/correction-authority-postgres.test.cjs:74:109)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/correction-authority-postgres.test.cjs:81:3
+✖ real SQL committed correction, owner boundary, restart and exact reply replay (201.403187ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /2031/. Input:
+  
+  "Your graduation date is 2028. Tell me what you'd like to do next."
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy/tests/correction-authority-postgres.test.cjs:89:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/correction-authority-postgres.test.cjs:95:3
+✖ real SQL stale correction loses revision race and cannot leak its uncommitted facts (204.708933ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /2031/. Input:
+  
+  "Your graduation date is 2028. Tell me what you'd like to do next."
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy/tests/correction-authority-postgres.test.cjs:102:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/correction-authority-postgres.test.cjs:106:3
+✖ real SQL erase epoch rejects old receipts and stale commits; reused profile identity cannot revive corrections (223.842945ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /2031/. Input:
+  
+  "Your graduation date is 2028. Tell me what you'd like to do next."
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy/tests/correction-authority-postgres.test.cjs:117:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }

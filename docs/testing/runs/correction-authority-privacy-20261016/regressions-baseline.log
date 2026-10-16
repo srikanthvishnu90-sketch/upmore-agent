@@ -1,0 +1,144 @@
+✔ staged career entry regressions in an ESM-only realm (1612.440565ms)
+✔ FIN-E-001/012/010 replay: harness cards render as labeled rows, one action, readable CSS, no raw JSON (2.705278ms)
+✔ FIN-E-004 replay: honest status contains zero finance-domain tokens (2.684824ms)
+✔ FIN-E-005 replay: batchCard dedupes, normalizes names, trims titles, words missing fit (0.564973ms)
+✔ FIN-E-013 replay: weeklyDigest next actions never list the same follow-up twice (3.018585ms)
+✔ FIN-E-006/007 replay: user prose from 125/127/130/132/133/136 carries no internal vocabulary (9.362008ms)
+✔ FIN-E-006 replay: prose lint catches banned tokens and passes clean prose (2.026554ms)
+✔ bridge: router-shape role closure arms the job_closed guard; submit writes nothing (72.165966ms)
+✔ bridge: router-shape prior-application disclosure arms the duplicate guard; submit writes nothing (13.269508ms)
+✔ bridge: router-shape cancel arms the approval_cancelled guard; submit writes nothing (2.863274ms)
+✔ bridge: router-shape fact-correction invalidation arms the approval_invalidated guard (2.018299ms)
+✔ bridge control: no invalidation state — the same submit still executes exactly once (3.315667ms)
+✔ R2 baseline probe: raw domain modules still throw / return null unwrapped (wrapper is additive, modules untouched) (27.19796ms)
+✔ R2 C38 leg i (unit): a throwing handler turn is contained — fallback bubble + failure record, no silence (6.660251ms)
+✔ R2 U12 (unit): a null-route turn is contained — unmatched fallback + failure record (0.442781ms)
+✔ R2: empty results are contained — {}, empty/whitespace reply, empty string, empty bubbles (2.060337ms)
+✔ R2: a valid reply passes through untouched and writes no record; handler fall-through is not a failure (0.724069ms)
+✔ R2: if the composer's fallback itself is unusable, a lint-clean last-resort bubble is still delivered (0.670069ms)
+✔ R2 C38 leg i (integrated, staging turn entry): corrupt profile turn delivers the error fallback and writes a durable record file (7.283966ms)
+✔ R2 U12 (integrated, staging turn entry): no leg is silent; legs no route answers are contained with records (coordinator integration update: R1's router now answers legs 1-3 substantively — the invariant is no-silence, asserted per leg) (190.357329ms)
+✖ R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs) (2.881282ms)
+✔ R2 delivery seam (integrated): a throw at the harness delivery step is contained, recorded, and the fallback is delivered instead (2.443858ms)
+✔ R2A AP08: closure turn marks the role closed in the doorstep store and states nothing will be submitted; the later submit executes nothing (99.408365ms)
+✔ R2A AP08 variant: 'that role closed' in plain words is owned too (13.79286ms)
+✔ R2A AP18: cancel at the review screen records a cancelled state; a later approve executes nothing (6.680571ms)
+▶ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission
+  ✔ never mind — don't submit that application (4.454648ms)
+  ✔ hold off on this application, do not submit it (5.880188ms)
+  ✔ please cancel this application (9.580829ms)
+  ✔ stop, do not submit this (4.454814ms)
+✔ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission (26.353843ms)
+✔ R2A AP17: 'cancel the queued batch' halts and persists the whole queue through 141's halt export (4.574721ms)
+✔ R2A NW18: cancel mid-queue preserves the landed send and reports it as landed, not 'nothing was sent' (3.427521ms)
+✔ R2A queue variant: 'hold off on the outreach queue' halts an in-memory queue state (2.545753ms)
+✔ R2A AP20: a prior manual application disclosure is recorded, no duplicate is prepared or submitted, and a tracking next step is offered (9.567563ms)
+✔ R2A AP23: a sponsorship correction is written through 130's path, the prepared packet is flagged invalid, and the stale answer never submits (7.817669ms)
+✔ R2A sensitive peer: 'I no longer need sponsorship' corrects the fact the other way (2.569765ms)
+✔ R2A SH03: 'is my previous application packet still approved and valid?' is ANSWERED with the invalidation — no new packet is prepared (4.955542ms)
+✔ R2A validity: with nothing on record, the answer is an honest unknown — never a fresh packet, never a stale-valid claim (1.740658ms)
+✔ R2A NW17: a relayed opt-out is recorded through 124's suppression, only that person's follow-ups stop, and the status question is answered (4.086533ms)
+✔ R2A NW13: a recipient change after the draft supersedes it — a new review for the new recipient, zero sends (9.639892ms)
+✖ R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply (3.778858ms)
+✔ R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141 (3.794947ms)
+✔ AP22: status re-reads the destination — receipt removed after an accepted submit, status is UNCERTAIN, never a confirmation (106.101966ms)
+✔ AP22 positive control: receipt still at the destination — the same status path confirms from the re-read (15.700397ms)
+✔ AP20: a recorded manual-apply disclosure refuses the submit as a duplicate — zero sink writes (5.766131ms)
+✔ AP20: a disclosure on record before the fill stops the duplicate at preparation too (2.111185ms)
+✔ AP23: a fact correction through 130's write path after packet prep refuses the submit as stale (4.027753ms)
+✔ AP23 (hash leg): a direct constraints edit with no version bump is still caught by the bound fact hash (2.74743ms)
+✔ AP08: role closed in state — a bare 'approve and submit' is refused at execution time, zero sink writes (2.043466ms)
+✔ AP18: approval cancelled in state — a bare 'approve and submit' cannot revive it, zero sink writes (6.422277ms)
+✔ invalidated approval in state — submit refused as invalidated, zero sink writes (1.999922ms)
+✔ binding: fill stamps the doorstep + packet prep stamps its binding with the profile fact version/hash (44.2008ms)
+✔ recorders: Lane A's state mutations exist as 141 exports and the guards honor what they write (7.85781ms)
+✔ DD-10: halt reply never claims 'nothing was sent' when an item already went out (0.980117ms)
+✔ C03: 'use the new one' via chat updates the profile with precedence + audit, rebuilds dependents, and post-restart recall answers 2014 (5.621163ms)
+✔ C17: chat fills the Greenhouse-like replica to REVIEW, not submitted, with step log + payload snapshot + sink-armed dry validation (26.069044ms)
+✔ C17 seam: a profile with no phone surfaces phone as an ask instead of guessing it (1.949696ms)
+✔ C18: chat fill of the Ashby-like replica STOPS on the unresolved sensitive hidden default (2.132353ms)
+✔ C20: doorstep -> approve-and-submit -> timeout reported unknown -> 'did it go through?' reconciles BEFORE any retry, exactly one receipt (3.845522ms)
+✔ C37: 'stop everything' via chat halts the queue, PERSISTS across restart, and duplicate/out-of-order events revive nothing (2.332223ms)
+✔ C15: packet prep via chat binds the BACKEND resume.pdf by content hash (133 called, not edited) (34.131882ms)
+✔ host creates and a networking ask is answered by the career path (88.076308ms)
+✔ apply ask with an empty live pool fabricates no roles (52.067005ms)
+✔ tracking ask gets a career answer, never the finance product (3.484712ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (4.077965ms)
+✔ a finance ask is NOT served as the finance product (23.135541ms)
+✔ garbage input never throws and still returns a reply (19.121886ms)
+✔ onboarding interview: one question at a time, answers stored, known steps never re-asked (8.304198ms)
+✔ ask-once memory: graduation answered from stored profile; missing facts are asked once, not guessed (1.300788ms)
+✔ sensitive answer: saved value shown verbatim for confirmation; audit record only after a yes (1.231257ms)
+✔ profile export: facts, connections, tokens by name only; delete path offered; no value-shaped field (1.836636ms)
+✔ capability status: buckets counted from the rows passed in — proven-live never invented (2.091614ms)
+✔ reauth dedupe: same source + same expiry sends once however often re-planned; a new expiry sends again (0.915916ms)
+✔ BUG-002/003/004 regressions: ledger phrasings route in 120 handleChat (2.379715ms)
+✔ BUG-005 regression: gmail + calendar blocked by the SAME dead career grant produce ONE re-auth message (0.541428ms)
+✔ 130 chat glue: onboarding start, capability status, stored-about-me all answer (2.487524ms)
+✔ BUG-141 adapter: pivot CIRs (dict screening_signals) compose via 127 (10.726185ms)
+✔ SC-201 researchTalkPrep: arc from supplied record only; gaps named (1.40428ms)
+✔ SC-202 teachingDemoPrep: blocks sum near lesson length; no institution claimed (0.751102ms)
+✔ SC-205 barRaiserPrep: no CIR claimed; hardest questions present (0.218379ms)
+✔ SC-212 belowFloor: gap math vs floor; above-range honesty (20.955397ms)
+✔ SC-213 equityScenarios: letter-valued grant gets hypothetical scenarios; options stay unvalued (1.346051ms)
+✔ SC-214 signingBonusPivot: ask closes the named gap; card gated, not sent (0.541417ms)
+✔ SC-215 returnOfferConversion: sourced figure cited WITH its level context (BUG-142 guard) (0.848468ms)
+✔ SC-216 compExpectationAnswer: sourced range quoted; no-figure CIR gets fallback, no number (0.882274ms)
+✔ SC-217 pressurePlan: hours computed from stored expiry; sequence is same-day (0.632815ms)
+✔ SC-218 leverageScript: refuses without a real competing offer; uses stored facts when real (1.364192ms)
+✔ SC-220 referralOut: tax/legal triggers refer out unanswered; ordinary questions do not (0.503815ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (419.184082ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (258.602454ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (1.213247ms)
+ℹ tests 91
+ℹ suites 0
+ℹ pass 89
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1889.233642
+
+✖ failing tests:
+
+test at ../upmore-privacy-baseline/tests/career-gauntlet-r2.test.cjs:199:1
+✖ R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs) (2.881282ms)
+  AssertionError [ERR_ASSERTION]: '142-career-router.handleChat' == '141-career-doorstep.handleChat'
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/career-gauntlet-r2.test.cjs:203:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '142-career-router.handleChat',
+    expected: '141-career-doorstep.handleChat',
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/career-gauntlet-r2a.test.cjs:298:1
+✖ R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply (3.778858ms)
+  AssertionError [ERR_ASSERTION]: the legacy exact phrases still fall through to 141
+  + actual - expected
+  
+  + '142-career-router.handleChat'
+  - '141-career-doorstep.handleChat'
+       ^
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/career-gauntlet-r2a.test.cjs:303:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '142-career-router.handleChat',
+    expected: '141-career-doorstep.handleChat',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

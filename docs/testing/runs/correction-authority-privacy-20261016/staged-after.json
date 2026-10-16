@@ -1,0 +1,60 @@
+{
+  "entry": "agent-chat/index-career.ts",
+  "mode": "RAW (esbuild unavailable \u2014 total is an upper bound)",
+  "files": 10,
+  "totalBytes": 3870669,
+  "fileList": [
+    {
+      "path": "_shared/career_host.js",
+      "bytes": 14686,
+      "sha256": "4bb84d3923d824a99f6152c56a1f03e15fd2750108a8f85ae45f2d50f335d6fa"
+    },
+    {
+      "path": "_shared/career_persistence.js",
+      "bytes": 3456,
+      "sha256": "c514772ead6d8a72cc31eea6d183b5f885ff415e3162c825c1580aca0a43669a"
+    },
+    {
+      "path": "_shared/career_task_bridge.js",
+      "bytes": 4758,
+      "sha256": "7fff87a36724af202eee496b26f2cb46b2bf552bde5c5fae1b2b080c6e2b0edb"
+    },
+    {
+      "path": "_shared/identity_redact.ts",
+      "bytes": 5660,
+      "sha256": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83"
+    },
+    {
+      "path": "_shared/router_core.career.js",
+      "bytes": 3824631,
+      "sha256": "44f08bb748b10a9ab5e2fed5f108e09dbc54aafe4da90ac8c4e18f114c6e79f4"
+    },
+    {
+      "path": "agent-chat/_shared/chat_cors.ts",
+      "bytes": 778,
+      "sha256": "a2b2d1842471e86573601fe7e31075d8105a432b9d5fa053cfcd12fe591c7796"
+    },
+    {
+      "path": "agent-chat/_shared/chat_input.ts",
+      "bytes": 2034,
+      "sha256": "1929990c0e2f3ce56c59b67b413c6026aab0e15ae6b44daa3578076c17da2662"
+    },
+    {
+      "path": "agent-chat/_shared/chat_session.ts",
+      "bytes": 1326,
+      "sha256": "25aee5ae5b24d3150a8551ebfbe0db98297aed75fbb3a8b0423b52b2b29ec623"
+    },
+    {
+      "path": "agent-chat/handler-career.ts",
+      "bytes": 12764,
+      "sha256": "e066ef487fe0af3daffd86932b057db0d5f897f468b7bd049d11920ea8621385"
+    },
+    {
+      "path": "agent-chat/index.ts",
+      "bytes": 576,
+      "sha256": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7"
+    }
+  ],
+  "source_commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+  "source_dirty": false
+}

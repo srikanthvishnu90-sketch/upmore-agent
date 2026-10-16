@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:upmore:interview-journey:state:v1",
+  "title": "B-owned InterviewJourneyStateV1; provisional consumer of A's absent shared contract",
+  "type": "object",
+  "required": ["schema_version", "owner_id", "thread_id", "journey_id", "epoch", "revision", "created_at", "updated_at", "status", "stage", "context_binding", "target_ref", "resume_ref", "constraints", "plan", "checkpoint", "dependencies", "attempts", "assessments", "drafts", "observations", "completion", "content_sha256"],
+  "properties": {
+    "schema_version": {"const": "interview_journey_state/v1"},
+    "owner_id": {"type": "string", "minLength": 1},
+    "thread_id": {"type": "string", "minLength": 1},
+    "journey_id": {"type": "string", "minLength": 1},
+    "epoch": {"type": "integer", "minimum": 0},
+    "revision": {"type": "integer", "minimum": 1},
+    "stage": {"enum": ["intake", "research_pending", "plan_ready", "awaiting_answer", "feedback_ready", "targeted_practice", "awaiting_revision", "transfer_check", "pack_ready", "completed"]},
+    "status": {"enum": ["active", "paused", "blocked", "cancelled", "needs_clarification", "awaiting_tool", "partial_at_user_stop"]},
+    "attempts": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+    "assessments": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+    "drafts": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+    "observations": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+    "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "record": {"type": "object", "required": ["id", "owner_id", "thread_id", "journey_id", "epoch", "content_sha256"], "properties": {"id": {"type": "string"}, "owner_id": {"type": "string"}, "thread_id": {"type": "string"}, "journey_id": {"type": "string"}, "epoch": {"type": "integer"}, "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}
+  },
+  "$comment": "Runtime validateState additionally checks cross-field ownership, hashes, exact answer integrity, positive durations and total minute bounds. A's canonical context/action/transition schema is not defined here."
+}

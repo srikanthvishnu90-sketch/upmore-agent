@@ -1,0 +1,32 @@
+{
+  "status": "MODULE_MILESTONE",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/boundaries.test.cjs",
+    "tests/career-interview-journey/frozen-contract.test.cjs"
+  ],
+  "exit_code": 0,
+  "tests": 19,
+  "provider_calls": 0,
+  "quality": "NOT_RUN",
+  "integration": "BLOCKED_A_CONTRACT_AND_ENTRY",
+  "files_sha256": {
+    "packages/domain/interview-journey/state.schema.json": "914e2ef7a92d91c4b27ee353832cdcc06ce32fb98fbcf75888d7ce9471067340",
+    "packages/domain/interview-journey/pack.js": "6816b22d181d88d8fb6b1a0f7d29982e90a6f870869b380e44c938a209bee5d0",
+    "packages/domain/interview-journey/hash.js": "8ae1de6bdfc77f644084240fe608e8ac45257a6afc64562e4ffc86b6cdc52439",
+    "packages/domain/interview-journey/index.js": "675f52d934a1757c36e42dff4e093066aefd313e1534c41f90226ddab0ab32ca",
+    "packages/career-interview-journey/rubrics/index.js": "cff5cf6ca8e64fbf78a24495928274c2529cd733ff1ec1e2a557203cf25e4e08",
+    "packages/career-interview-journey/prompts/assessment-v1.js": "cc2cda042dd18514d51ca8070fa6a3957115498c98b8168c17de8925f996d523",
+    "packages/career-interview-journey/adapters/research.js": "37cdd466bcfca97b86a4b02c5935ba0e1aeb4acd216bb5fa2e43add00092592d",
+    "packages/career-interview-journey/adapters/artifact.js": "57b10bf0cf542dde7b815670d0e5ee7ce718ec37bc57490899c1f8eda006e9ab",
+    "packages/career-interview-journey/adapters/reasoning.js": "1ea8d79dec857e4af51890511834b97e8524459d6f2b6312a3f6f58e00a322a0",
+    "packages/career-interview-journey/adapters/legacy.js": "0466a5c23f6613779b06af8a90bdf9c5976a4918534879f2bd138eb1b40b9daf",
+    "packages/career-interview-journey/adapters/context.js": "eede5bbc5b8784850289dce39f5702ea45a6d11d92eb621091319fc1af47d05b",
+    "tests/career-interview-journey/boundaries.test.cjs": "1d7376573606b3c87e4b9a71a3dd87ed0341709b5d0fdcff884eca439b89171b",
+    "tests/career-interview-journey/frozen-contract.test.cjs": "d6ee699961cd53ef7d2fbc56feb6a847915f845ba0af894cc48557680672f881",
+    "tests/career-interview-journey/scripted-host.cjs": "d5fd04e5230b94ebf36dd04efddb67c185ec1a5a678063ce163b8c5fd1f78673",
+    "tests/career-interview-journey/fixtures.cjs": "a3170ee93bbb0a033aea4dba80dc2d5e6ce457fdcdedacf2c933907a1afc205f"
+  },
+  "log_sha256": "19a3b31ac06610e60f3498495dd7697182c2353457b27bd55ffa70dfa267a25e"
+}

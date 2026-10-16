@@ -1,0 +1,33 @@
+✖ T01 flexible prose, original questions and a factual draft exceed the selector without profile writes (3.987309ms)
+✖ T01 throw and empty-result containment never enters generation (0.483428ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.96256
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:5:1
+✖ T01 flexible prose, original questions and a factual draft exceed the selector without profile writes (3.987309ms)
+  Error: Run with --experimental-vm-modules
+      at stagedEntry (/workspace/upmore-critical-repairs/tests/helpers/career-staged-entry.cjs:8:33)
+      at Object.fixture (/workspace/upmore-critical-repairs/tests/helpers/career-flexible-fixture.cjs:48:54)
+      at TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-flexible-grounding.test.cjs:5:136)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+
+test at tests/career-flexible-grounding.test.cjs:23:1
+✖ T01 throw and empty-result containment never enters generation (0.483428ms)
+  Error: Run with --experimental-vm-modules
+      at stagedEntry (/workspace/upmore-critical-repairs/tests/helpers/career-staged-entry.cjs:8:33)
+      at Object.fixture (/workspace/upmore-critical-repairs/tests/helpers/career-flexible-fixture.cjs:48:54)
+      at TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-flexible-grounding.test.cjs:23:97)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)

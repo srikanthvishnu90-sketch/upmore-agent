@@ -1,0 +1,31 @@
+{
+  "base": "123943e1c12cee3459155562add892fa996872c7",
+  "at": "2026-10-16T23:16:22.362368+00:00",
+  "runId": 38976248496,
+  "workflow": ".github/workflows/ci.yml",
+  "workflowSha256": "39339c552dc7dfbb4ff8fe97bb1abbe6cce70e4b260c5df3685aab1bacbb9bc6",
+  "jobs": {
+    "node": "failure",
+    "deno": "failure",
+    "database": "success"
+  },
+  "nodeCounts": {
+    "pass": 4137,
+    "fail": 168,
+    "cancelled": 2,
+    "skipped": 46
+  },
+  "nodeMissingVmErrors": 120,
+  "denoTypeErrors": 21,
+  "rawLogsLocalOnly": "/workspace/upmore-recovery-artifacts/20261016/spec-a-ci-baseline",
+  "scope": "MOCK_CONTRACT_AND_CI_NOT_MODEL_QUALITY",
+  "expectationsFrozenBeforeImplementation": [
+    "VM modules enabled in all staged-entry test processes.",
+    "Each PostgreSQL file receives a fresh identified network-none owned fixture and all relevant real schema proposals; none is blanket-skipped.",
+    "Parser dependencies installed before tests.",
+    "Deno typed tests retain all assertions, with explicit discriminant/undefined narrowing.",
+    "Repository-scoped flexible mutations have canonical patches; report records actual run evidence separately from domain coverage.",
+    "All applicable CI jobs and skipped steps remain visible; selected local passes never count as full CI green."
+  ],
+  "protectedPrivateFixtures": "Not read or used by this lane; full remote CI baseline remains authoritative."
+}

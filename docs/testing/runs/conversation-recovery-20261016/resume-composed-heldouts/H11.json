@@ -1,0 +1,3535 @@
+[
+  {
+    "caseId": "H11",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000111",
+    "at": "2026-10-16T21:55:14.218Z",
+    "input": {
+      "message": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H11-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "negotiation_advice",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+        "action": null,
+        "turn_key": "H11-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000111",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000111",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-1",
+          "p_hash": "40a813facf581d81afeef4f7d565882eb97709d41bc45217f1d3ff9d4fc1afc5"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-1",
+          "p_hash": "40a813facf581d81afeef4f7d565882eb97709d41bc45217f1d3ff9d4fc1afc5",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "negotiation": {
+                      "firm": "Riverbend",
+                      "role": "research analyst role",
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                    },
+                    "offer": {
+                      "company": "Riverbend"
+                    },
+                    "lastWork": {
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                      "company": null,
+                      "at": "2026-10-16T21:55:14.009Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "negotiation": {
+                    "firm": "Riverbend",
+                    "role": "research analyst role",
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                  },
+                  "offer": {
+                    "company": "Riverbend"
+                  },
+                  "lastWork": {
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                    "company": null,
+                    "at": "2026-10-16T21:55:14.009Z"
+                  }
+                }
+              },
+              "offer": {
+                "company": "Riverbend"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000111",
+            "reply": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H11-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "negotiation_advice",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H11",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000111",
+    "at": "2026-10-16T21:55:14.788Z",
+    "input": {
+      "message": "Could I request until next Tuesday to decide?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H11-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_extension",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+        "action": null,
+        "turn_key": "H11-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000111",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "extension": {
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000111",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-2",
+          "p_hash": "5809c62eca64d6a912f088a2bf41da951b2d8aec0d9360adddcfebd592d452c7"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-2",
+          "p_hash": "5809c62eca64d6a912f088a2bf41da951b2d8aec0d9360adddcfebd592d452c7",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Riverbend"
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "firm": "Riverbend",
+                      "role": "research analyst role",
+                      "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Riverbend"
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "firm": "Riverbend",
+                    "role": "research analyst role",
+                    "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Riverbend"
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null,
+                "extension": {
+                  "requestedDeadline": "next Tuesday",
+                  "source": "Could I request until next Tuesday to decide?"
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Could I request until next Tuesday to decide?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000111",
+            "reply": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H11-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_extension",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H11",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000111",
+    "at": "2026-10-16T21:55:15.485Z",
+    "input": {
+      "message": "What is the difference between salary and bonus?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H11-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_explanation",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+        "action": null,
+        "turn_key": "H11-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000111",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "extension": {
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "extension": {
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000111",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-3",
+          "p_hash": "b96f92b31050f1d3369b50a3f587d1241e256e67a250e2521b6e33c1b5749c01"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-3",
+          "p_hash": "b96f92b31050f1d3369b50a3f587d1241e256e67a250e2521b6e33c1b5749c01",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Riverbend"
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "firm": "Riverbend",
+                      "role": "research analyst role",
+                      "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Riverbend"
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "firm": "Riverbend",
+                    "role": "research analyst role",
+                    "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Riverbend"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {},
+                "sources": [],
+                "extension": {
+                  "source": "Could I request until next Tuesday to decide?",
+                  "requestedDeadline": "next Tuesday"
+                },
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is the difference between salary and bonus?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000111",
+            "reply": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H11-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_explanation",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H11",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000111",
+    "at": "2026-10-16T21:55:15.997Z",
+    "input": {
+      "message": "Compose the actual extension letter.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H11-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "H11-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000111",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "extension": {
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Could I request until next Tuesday to decide?",
+                "Riverbend"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]",
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "153b4afa-4b7a-41cb-9a91-8cc289b882ca",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Compose the actual extension letter.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "349064eb-f608-4d26-a758-32bb9ae4cb51",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-4"
+          },
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000111",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-4",
+          "p_hash": "3eaaa5bd2f02afc26fad1927ecdfd022b14f665dfa036c1421b35cac0adc1eb1"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-4",
+          "p_hash": "3eaaa5bd2f02afc26fad1927ecdfd022b14f665dfa036c1421b35cac0adc1eb1",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Riverbend"
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "firm": "Riverbend",
+                      "role": "research analyst role",
+                      "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Riverbend"
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "firm": "Riverbend",
+                    "role": "research analyst role",
+                    "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Riverbend"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {},
+                "sources": [],
+                "extension": {
+                  "source": "Could I request until next Tuesday to decide?",
+                  "requestedDeadline": "next Tuesday",
+                  "draft": "Subject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]"
+                },
+                "hypotheticals": [],
+                "artifact": {
+                  "kind": "extension_email",
+                  "format": "text",
+                  "text": "Subject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Could I request until next Tuesday to decide?",
+                    "Riverbend"
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Compose the actual extension letter.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000111",
+            "reply": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H11-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H11",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000111",
+    "at": "2026-10-16T21:55:16.536Z",
+    "input": {
+      "message": "Shorten it and make the tone friendly.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H11-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Draft for Riverbend; nothing has been sent.\n\nSubject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "H11-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000111",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Could I request until next Tuesday to decide?",
+                "Riverbend"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]",
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "153b4afa-4b7a-41cb-9a91-8cc289b882ca",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Compose the actual extension letter.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "349064eb-f608-4d26-a758-32bb9ae4cb51",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-4"
+          },
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Could I request until next Tuesday to decide?",
+                "Riverbend"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "153b4afa-4b7a-41cb-9a91-8cc289b882ca",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Compose the actual extension letter.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "349064eb-f608-4d26-a758-32bb9ae4cb51",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-4"
+          },
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "45ee02da-2c85-404d-8453-658c8d6438e3",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Shorten it and make the tone friendly.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:16.431005+00:00"
+        },
+        {
+          "id": "9ad207ad-f55e-46fa-b992-a291e8fa484f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-5"
+          },
+          "created_at": "2026-10-16T21:55:16.431005+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000111",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-5",
+          "p_hash": "a1a04f834e52f2c4408123a0d4877adec5722b0d00024170ff81820b78888d3f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-5",
+          "p_hash": "a1a04f834e52f2c4408123a0d4877adec5722b0d00024170ff81820b78888d3f",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Riverbend"
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "firm": "Riverbend",
+                      "role": "research analyst role",
+                      "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Riverbend"
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "firm": "Riverbend",
+                    "role": "research analyst role",
+                    "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Riverbend"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {},
+                "sources": [],
+                "artifact": {
+                  "kind": "extension_email",
+                  "format": "text",
+                  "text": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Could I request until next Tuesday to decide?",
+                    "Riverbend"
+                  ]
+                },
+                "extension": {
+                  "draft": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+                  "source": "Could I request until next Tuesday to decide?",
+                  "requestedDeadline": "next Tuesday"
+                },
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Shorten it and make the tone friendly.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000111",
+            "reply": "Draft for Riverbend; nothing has been sent.\n\nSubject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H11-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H11",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000111",
+    "at": "2026-10-16T21:55:17.085Z",
+    "input": {
+      "message": "Have I accepted the offer or sent a message?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H11-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_offer_status",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your decision on the Riverbend offer remains undecided; no acceptance is on record here. The proposed extension asks for next Tuesday, but no employer agreement is recorded. Nothing was sent by this handler. What would you like to review before deciding?",
+        "action": null,
+        "turn_key": "H11-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000111",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Could I request until next Tuesday to decide?",
+                "Riverbend"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "153b4afa-4b7a-41cb-9a91-8cc289b882ca",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Compose the actual extension letter.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "349064eb-f608-4d26-a758-32bb9ae4cb51",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-4"
+          },
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "45ee02da-2c85-404d-8453-658c8d6438e3",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Shorten it and make the tone friendly.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:16.431005+00:00"
+        },
+        {
+          "id": "9ad207ad-f55e-46fa-b992-a291e8fa484f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-5"
+          },
+          "created_at": "2026-10-16T21:55:16.431005+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Riverbend"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Riverbend"
+                },
+                "lastWork": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T21:55:14.009Z",
+                  "firm": "Riverbend",
+                  "role": "research analyst role",
+                  "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Riverbend"
+              },
+              "lastWork": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T21:55:14.009Z",
+                "firm": "Riverbend",
+                "role": "research analyst role",
+                "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Could I request until next Tuesday to decide?",
+                "Riverbend"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+              "source": "Could I request until next Tuesday to decide?",
+              "requestedDeadline": "next Tuesday"
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "05c21383-7cb8-4b60-af1a-3452859d7df0",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThis runs on your Riverbend offer — the one on this thread's record. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H11-1"
+          },
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "41dfc304-43f6-4963-9abc-ceca1fe4aeee",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.112068+00:00"
+        },
+        {
+          "id": "2998f67d-6dc1-45de-9101-122153bdc912",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Could I request until next Tuesday to decide?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "922add81-dbf2-4229-b9bb-7583a6491e93",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "You can request a decision-deadline extension until next Tuesday, while thanking Riverbend and making clear you are still considering the offer. An extension is a request, not a promise or acceptance. Want the actual email drafted for review?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-2"
+          },
+          "created_at": "2026-10-16T21:55:14.691968+00:00"
+        },
+        {
+          "id": "b796fd75-43e3-4bed-998f-431910c6769f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "What is the difference between salary and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "f023dbab-4d70-43f4-9388-7eab6ec40140",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-3"
+          },
+          "created_at": "2026-10-16T21:55:15.391354+00:00"
+        },
+        {
+          "id": "153b4afa-4b7a-41cb-9a91-8cc289b882ca",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Compose the actual extension letter.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "349064eb-f608-4d26-a758-32bb9ae4cb51",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Request for a short extension — research analyst role\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline to next Tuesday?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-4"
+          },
+          "created_at": "2026-10-16T21:55:15.896118+00:00"
+        },
+        {
+          "id": "45ee02da-2c85-404d-8453-658c8d6438e3",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Shorten it and make the tone friendly.",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:16.431005+00:00"
+        },
+        {
+          "id": "9ad207ad-f55e-46fa-b992-a291e8fa484f",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Draft for Riverbend; nothing has been sent.\n\nSubject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-5"
+          },
+          "created_at": "2026-10-16T21:55:16.431005+00:00"
+        },
+        {
+          "id": "5c081983-2745-407b-836f-9cc01e10755b",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "user",
+          "content": "Have I accepted the offer or sent a message?",
+          "meta": null,
+          "created_at": "2026-10-16T21:55:16.989821+00:00"
+        },
+        {
+          "id": "ee0393ac-0b80-4442-8eb3-fc85895353c5",
+          "thread_id": "00000000-0000-4000-8000-000000000111",
+          "role": "assistant",
+          "content": "Your decision on the Riverbend offer remains undecided; no acceptance is on record here. The proposed extension asks for next Tuesday, but no employer agreement is recorded. Nothing was sent by this handler. What would you like to review before deciding?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_offer_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H11-6"
+          },
+          "created_at": "2026-10-16T21:55:16.989821+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000111",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-6",
+          "p_hash": "0409aa1def65c18db3f66ff749a15baa64fa3c5efc7aa61289c69fac7661da48"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000111",
+          "p_key": "H11-6",
+          "p_hash": "0409aa1def65c18db3f66ff749a15baa64fa3c5efc7aa61289c69fac7661da48",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Riverbend"
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T21:55:14.009Z",
+                      "firm": "Riverbend",
+                      "role": "research analyst role",
+                      "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Riverbend"
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "ask": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T21:55:14.009Z",
+                    "firm": "Riverbend",
+                    "role": "research analyst role",
+                    "evidence": "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Riverbend"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {},
+                "sources": [],
+                "artifact": {
+                  "kind": "extension_email",
+                  "text": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Could I request until next Tuesday to decide?",
+                    "Riverbend"
+                  ]
+                },
+                "extension": {
+                  "draft": "Subject: Decision deadline — Riverbend\n\nHi [Recruiter name],\n\nThank you again for the offer from Riverbend. Would you be able to extend my decision deadline to next Tuesday? I appreciate the time to consider it carefully.\n\nThank you,\n[Your name]",
+                  "source": "Could I request until next Tuesday to decide?",
+                  "requestedDeadline": "next Tuesday"
+                },
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Have I accepted the offer or sent a message?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000111",
+            "reply": "Your decision on the Riverbend offer remains undecided; no acceptance is on record here. The proposed extension asks for next Tuesday, but no employer agreement is recorded. Nothing was sent by this handler. What would you like to review before deciding?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H11-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_offer_status",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

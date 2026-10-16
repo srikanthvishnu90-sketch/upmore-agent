@@ -57229,6 +57229,455 @@
    "limitations": [
     "Unchanged integrated privacy base with only new synthetic oracle files copied in. No paid/provider/browser or production actions."
    ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:combined-source",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/resume-flexible-composition-20261016/final-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 95,
+    "pass": 95,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/final-source/test.log",
+   "log_sha256": "1d3a4316a02e55837f19edca72abfa39c67361d2774bea483252048dd78d7138",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:combined-postgres",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 21,
+    "pass": 21,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/test.log",
+   "log_sha256": "45f98bfc9bc39a9722f6e2cb80a33166b4a5f24a329086d4d3fe55949dc3b0b8",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:gateway",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 71,
+    "pass": 71,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/test.log",
+   "log_sha256": "d7ce4666c2c6119fb5cacc6a610a22ec32ae400379271de2b8d6de3f64f3722a",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:budget",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 29,
+    "pass": 29,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/test.log",
+   "log_sha256": "e4b19e506d5b3a9eaa800b74cbe040022a538f326c17f810566c35ae5a9d3efc",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:privacy",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 7,
+    "pass": 7,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/test.log",
+   "log_sha256": "97534c2ef576efed8e77336ff69aa17fdcefc6b3798c92278fbc17a6cb57303e",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:persistence",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/test.log",
+   "log_sha256": "4af88fee7b9c6f0667cc995b29ab7b0f045f2848581a9b484432210c10da3765",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:authority",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 21,
+    "pass": 21,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/test.log",
+   "log_sha256": "6dc3f1eca906aa1e12700d0b2c95f545aba569f823bb63e8bf382b6afce350f2",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:author-wide",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/resume-flexible-composition-20261016/author-wide.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 179,
+    "pass": 179,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/author-wide.log",
+   "log_sha256": "0ba29812ac7b6804bc0c3da16a58c6210c8b4e28366cdc7ec72a2e44e4af3e87",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:resume-composed-original",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 543,
+    "passed": 543,
+    "failed": 0,
+    "turns": 83
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/transcripts.jsonl",
+   "log_sha256": "32fadc78626becfbe7f1ff41da1b9620ca02dab58d4f6d903b7ca07fc0a88b24",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:resume-composed-heldouts",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 426,
+    "passed": 426,
+    "failed": 0,
+    "turns": 82
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/transcripts.jsonl",
+   "log_sha256": "d3179b86da6ac047f3f59f8fc60f438a0e4e9e6fc9b24dcbc90f30f6ffae0bb5",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:c37-negative-controls",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/results.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "killed": 6,
+    "total": 6
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/results.json",
+   "log_sha256": "d6f67848d575023570faec435f5e415b7e3c4e714fc89571ce9af044ad92a474",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:flexible-mutations",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/results.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "killed": 15,
+    "total": 15
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/results.json",
+   "log_sha256": "21603e028f1a4119afba726c25eea6c8cf887062e2f0d285ae4aa6c83b3122fb",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, live browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "resume-flexible-composition-20261016:typescript",
+   "command": [
+    "node",
+    "/tmp/upmore-research-wire-deps/node_modules/typescript/bin/tsc",
+    "--noEmit",
+    "--allowImportingTsExtensions",
+    "--target",
+    "es2022",
+    "--module",
+    "esnext",
+    "--moduleResolution",
+    "bundler",
+    "--lib",
+    "es2023,dom",
+    "supabase/functions/_shared/career_model_reply.ts"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_STAGING_CHECK",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/typescript.log",
+   "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:bundle-full",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_STAGING_CHECK",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/bundle-full-check.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:bundle-career",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--career-only",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_STAGING_CHECK",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/bundle-career-check.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:stage",
+   "command": [
+    "node",
+    "scripts/career/stage-career.cjs",
+    "/tmp/upmore-resume-composed-stage",
+    "--json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_STAGING_CHECK",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/stage.json",
+   "log_sha256": "1171847cd4f1f4ea451d3bef3c5e4e2555cf0662b930c81ffd77b5bb9713e7a2",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:inherited-r2-c37",
+   "command": [
+    "see-retained-run",
+    "docs/testing/runs/resume-flexible-composition-20261016/inherited-r2-c37-before-repair.log"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "aed4e53e16e7745a1222b4fa7dbe56ccea23d83e",
+   "result": "FAIL",
+   "exit_code": 1,
+   "expected_failure": false,
+   "verification_level": "FAIL_RETAINED",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/inherited-r2-c37-before-repair.log",
+   "log_sha256": "289fa95bd53460fd2d49ea7b2b5f2e2183b18ee9f24096708c3b51cf178dabb0",
+   "reason": "Stale outer-handler identity and exact-copy assertion; independently reproduced before behavior-only test repair.",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:joint-source-first",
+   "command": [
+    "see-retained-run",
+    "docs/testing/runs/resume-flexible-composition-20261016/joint-source-first.log"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "58f9ff60bb9abbc7d7b1d4f37a8380a2c943fc8a",
+   "result": "FAIL",
+   "exit_code": 1,
+   "expected_failure": false,
+   "verification_level": "FAIL_RETAINED",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/joint-source-first.log",
+   "log_sha256": "6d7a07bcd742d757483003e0e8fe28992e3306337bb0dd1f794aeed9aa28b482",
+   "reason": "Strict untouched-owner equality revealed normal initialization of the synthetic legacy fact mirror. Preinitialize that ordinary mirror in the new fixture; keep all assertions and product files unchanged.",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:privacy-missing-test-dependency",
+   "command": [
+    "see-retained-run",
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "FAIL",
+   "exit_code": 1,
+   "expected_failure": false,
+   "verification_level": "FAIL_RETAINED_ENVIRONMENT",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/privacy-command.log",
+   "log_sha256": "92b28edc0c8a5d2ab371f0beb26492e3eb92557fe9916b6add1045002fa85856",
+   "reason": "Test-only pg@8.13.3 absent from recovered /tmp; restore pinned package in /tmp and rerun with new evidence label. Product and test oracles unchanged.",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:persistence-missing-test-dependency",
+   "command": [
+    "see-retained-run",
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "FAIL",
+   "exit_code": 1,
+   "expected_failure": false,
+   "verification_level": "FAIL_RETAINED_ENVIRONMENT",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/persistence-command.log",
+   "log_sha256": "eaf6b1be238d1710f287d1bf8d3e79e1456f654d3493a8af42f51a155da77ae8",
+   "reason": "Test-only pg@8.13.3 absent from recovered /tmp; restore pinned package in /tmp and rerun with new evidence label. Product and test oracles unchanged.",
+   "screenshots": []
+  },
+  {
+   "id": "resume-flexible-composition-20261016:authority-missing-test-dependency",
+   "command": [
+    "see-retained-run",
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:59:35.314426+00:00",
+   "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+   "result": "FAIL",
+   "exit_code": 1,
+   "expected_failure": false,
+   "verification_level": "FAIL_RETAINED_ENVIRONMENT",
+   "log": "docs/testing/runs/resume-flexible-composition-20261016/authority-command.log",
+   "log_sha256": "3220d0b21b70db3df7aeb3facb136efeebf1cf3387b4172fc2456d022848019b",
+   "reason": "Test-only pg@8.13.3 absent from recovered /tmp; restore pinned package in /tmp and rerun with new evidence label. Product and test oracles unchanged.",
+   "screenshots": []
   }
  ],
  "limitations": [

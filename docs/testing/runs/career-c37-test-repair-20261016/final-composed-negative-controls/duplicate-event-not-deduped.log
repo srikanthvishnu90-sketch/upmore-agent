@@ -1,0 +1,33 @@
+✔ R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs) (40.151913ms)
+✖ R2A guard: C37 persists the halt, reports truthful counts and rejects late or duplicate events (29.274424ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 148.070178
+
+✖ failing tests:
+
+test at tests/career-gauntlet-r2a.test.cjs:302:1
+✖ R2A guard: C37 persists the halt, reports truthful counts and rejects late or duplicate events (29.274424ms)
+  AssertionError [ERR_ASSERTION]: repeated event IDs are deduplicated
+  + actual - expected
+  
+  + undefined
+  - true
+  
+      at TestContext.<anonymous> (/tmp/upmore-c37-negative-swJZoL/repo/tests/career-gauntlet-r2a.test.cjs:346:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

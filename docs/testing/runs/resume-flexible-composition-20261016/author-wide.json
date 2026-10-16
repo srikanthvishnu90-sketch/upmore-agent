@@ -1,0 +1,31 @@
+{
+  "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+  "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "tests/correction-authority-privacy.test.cjs",
+    "tests/career-onboarding.test.cjs",
+    "tests/career-w11-ext.test.cjs",
+    "tests/career-gauntlet-r2.test.cjs",
+    "tests/career-gauntlet-r2a.test.cjs",
+    "tests/career-gauntlet-r2b.test.cjs",
+    "tests/career-gauntlet-r2-integration.test.cjs",
+    "tests/career-gauntlet-r3.test.cjs",
+    "tests/career-finisher-f.test.cjs",
+    "tests/career-http-host.test.cjs",
+    "tests/career-bundle-reachability.test.cjs",
+    "tests/router-bundle.test.cjs",
+    "tests/career-conversation-heldouts.test.cjs",
+    "tests/career-conversation-mechanisms.test.cjs",
+    "tests/career-tailor-fact-id-boundary.test.cjs",
+    "tests/career-clock-source-guard.test.cjs",
+    "tests/research-conversation-independent-source.test.cjs",
+    "tests/career-public-research.test.cjs",
+    "tests/research-fixture-contract.test.cjs"
+  ],
+  "started": "2026-10-16T21:54:28.569661+00:00",
+  "exitCode": 0,
+  "finished": "2026-10-16T21:54:36.870207+00:00"
+}

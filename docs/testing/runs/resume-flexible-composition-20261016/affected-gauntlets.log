@@ -1,0 +1,46 @@
+✔ R2 baseline probe: raw domain modules still throw / return null unwrapped (wrapper is additive, modules untouched) (34.704848ms)
+✔ R2 C38 leg i (unit): a throwing handler turn is contained — fallback bubble + failure record, no silence (5.064037ms)
+✔ R2 U12 (unit): a null-route turn is contained — unmatched fallback + failure record (0.65162ms)
+✔ R2: empty results are contained — {}, empty/whitespace reply, empty string, empty bubbles (1.461098ms)
+✔ R2: a valid reply passes through untouched and writes no record; handler fall-through is not a failure (0.256526ms)
+✔ R2: if the composer's fallback itself is unusable, a lint-clean last-resort bubble is still delivered (0.268604ms)
+✔ R2 C38 leg i (integrated, staging turn entry): corrupt profile turn delivers the error fallback and writes a durable record file (4.857085ms)
+✔ R2 U12 (integrated, staging turn entry): no leg is silent; legs no route answers are contained with records (coordinator integration update: R1's router now answers legs 1-3 substantively — the invariant is no-silence, asserted per leg) (223.884879ms)
+✔ R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs) (4.718035ms)
+✔ R2 delivery seam (integrated): a throw at the harness delivery step is contained, recorded, and the fallback is delivered instead (1.698194ms)
+✔ R2A AP08: closure turn marks the role closed in the doorstep store and states nothing will be submitted; the later submit executes nothing (103.168837ms)
+✔ R2A AP08 variant: 'that role closed' in plain words is owned too (32.466111ms)
+✔ R2A AP18: cancel at the review screen records a cancelled state; a later approve executes nothing (12.541553ms)
+▶ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission
+  ✔ never mind — don't submit that application (6.46869ms)
+  ✔ hold off on this application, do not submit it (5.027282ms)
+  ✔ please cancel this application (4.178084ms)
+  ✔ stop, do not submit this (2.880272ms)
+✔ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission (19.290204ms)
+✔ R2A AP17: 'cancel the queued batch' halts and persists the whole queue through 141's halt export (2.692359ms)
+✔ R2A NW18: cancel mid-queue preserves the landed send and reports it as landed, not 'nothing was sent' (4.111433ms)
+✔ R2A queue variant: 'hold off on the outreach queue' halts an in-memory queue state (1.096399ms)
+✔ R2A AP20: a prior manual application disclosure is recorded, no duplicate is prepared or submitted, and a tracking next step is offered (5.698501ms)
+✔ R2A AP23: a sponsorship correction is written through 130's path, the prepared packet is flagged invalid, and the stale answer never submits (4.922804ms)
+✔ R2A sensitive peer: 'I no longer need sponsorship' corrects the fact the other way (1.430822ms)
+✔ R2A SH03: 'is my previous application packet still approved and valid?' is ANSWERED with the invalidation — no new packet is prepared (3.586244ms)
+✔ R2A validity: with nothing on record, the answer is an honest unknown — never a fresh packet, never a stale-valid claim (1.107647ms)
+✔ R2A NW17: a relayed opt-out is recorded through 124's suppression, only that person's follow-ups stop, and the status question is answered (3.74975ms)
+✔ R2A NW13: a recipient change after the draft supersedes it — a new review for the new recipient, zero sends (6.964065ms)
+✔ R2A guard: C37 persists the halt, reports truthful counts and rejects late or duplicate events (3.403559ms)
+✔ R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141 (3.542057ms)
+✔ C03: 'use the new one' via chat updates the profile with precedence + audit, rebuilds dependents, and post-restart recall answers 2014 (4.688071ms)
+✔ C17: chat fills the Greenhouse-like replica to REVIEW, not submitted, with step log + payload snapshot + sink-armed dry validation (20.556318ms)
+✔ C17 seam: a profile with no phone surfaces phone as an ask instead of guessing it (1.739697ms)
+✔ C18: chat fill of the Ashby-like replica STOPS on the unresolved sensitive hidden default (1.165152ms)
+✔ C20: doorstep -> approve-and-submit -> timeout reported unknown -> 'did it go through?' reconciles BEFORE any retry, exactly one receipt (3.346443ms)
+✔ C37: 'stop everything' via chat halts the queue, PERSISTS across restart, and duplicate/out-of-order events revive nothing (1.403651ms)
+✔ C15: packet prep via chat binds the BACKEND resume.pdf by content hash (133 called, not edited) (41.829534ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 472.100503

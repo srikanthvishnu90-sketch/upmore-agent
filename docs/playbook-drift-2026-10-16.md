@@ -139,3 +139,22 @@ JSON. Repeated current sources do not write facts, ambiguous/superseded sources
 cannot replay, and legacy cache APIs remain inert. Existing transaction/schema
 and other contribution ownership remain unchanged. Evidence and limits are in
 `docs/career/resume-correction-supersession-20261016.md`.
+
+## Local resume/flexible composition and remaining C37 assertion
+
+The local flexible handoff still named C37 as a current blocker, while the first
+test-only repair had resolved its R2A guard. The published supersession branch's
+wider run also identified an R2 no-queue spot-check with the same obsolete outer
+handler/exact-copy assertions. That failure was independently reproduced before
+changing only the test's behavioral expectations. Both guards now pass, and six
+intentional halt/reporting defects are caught on combined `cb0b06ef`.
+
+Published module 130 and generated bundles from `00aad4ea` are composed locally;
+all other product files remain byte-identical to the prior flexible branch. The
+combined handoff records 95 source and 21 SQL contracts, 179 wider tests and 969
+conversation checks, with failed runs retained. These are local mock/disabled
+provider checks, not actual response-quality or browser outcomes. Current banners
+and build status now distinguish the completed local composition from unresolved
+model/verifier, allowance, normal-sandbox browser and Muse deployment gates.
+Source: `docs/testing/resume-flexible-composition-20261016.md` and linked exact
+combined-commit metadata; historical reports and raw evidence remain unchanged.

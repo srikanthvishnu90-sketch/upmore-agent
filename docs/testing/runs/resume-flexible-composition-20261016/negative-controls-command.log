@@ -1,0 +1,6 @@
+missing-persistence KILLED
+halted-work-revived KILLED
+duplicate-event-not-deduped KILLED
+prior-delivery-count-denied KILLED
+unreadable-queue-counts-invented KILLED
+unreadable-queue-pause-not-reported KILLED

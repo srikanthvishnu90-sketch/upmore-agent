@@ -1,5 +1,7 @@
 # C37 test-only repair — local handoff
 
+> Follow-up completed: the published resume fix is now composed locally. Its wider suite exposed a second stale R2 C37 spot-check, independently reproduced and repaired with the same behavior-based contract. On combined `cb0b06ef`, all 179 wider tests pass and all six C37 negative controls are killed. The [combined handoff](resume-flexible-composition-20261016.md) supersedes the pending-composition statement below; this original test-only checkpoint remains preserved.
+
 Tested commit: **0689d160c19ad3858ad7c4f6e50917f95fbc09d0**. Product files under `packages`, `supabase`, `workers` and `src` are byte-identical to pre-repair `06b0999f`. No routing or halt implementation changed.
 
 The old R2A guard asserted an outer handler filename and the exact phrase `Nothing was sent`. Both assertions predated the router's documented delegation to `141.haltQueue` and the later truthful counted-copy change. The [original failing test and inspection](runs/career-c37-test-repair-20261016/baseline/) remain unchanged, with hashes frozen before this repair.

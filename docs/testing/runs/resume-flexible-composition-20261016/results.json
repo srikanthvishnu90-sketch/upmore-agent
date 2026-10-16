@@ -1,0 +1,206 @@
+{
+  "version": "resume_flexible_composition/v1",
+  "at": "2026-10-16T21:59:35.314426+00:00",
+  "testedCommit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+  "localBefore": "f244232023d4b6ea72c6fe087e25c44aa6ccf280",
+  "mergeCommit": "aed4e53e16e7745a1222b4fa7dbe56ccea23d83e",
+  "publishedUpstream": "00aad4ea0fd62e9245e205c9f84cea44465b2090",
+  "upstreamTested": "567389b8c7887b24ac0f751abb5f00375172ac23",
+  "freezeCommit": "ba1dbff8b0c147c3791c5fc5b5d4f2f8ee9c5254",
+  "runs": [
+    {
+      "id": "combined-source",
+      "metadata": "docs/testing/runs/resume-flexible-composition-20261016/final-source/metadata.json",
+      "counts": {
+        "tests": 95,
+        "pass": 95,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/final-source/test.log"
+    },
+    {
+      "id": "combined-postgres",
+      "metadata": "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/metadata.json",
+      "counts": {
+        "tests": 21,
+        "pass": 21,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/test.log"
+    },
+    {
+      "id": "gateway",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/metadata.json",
+      "counts": {
+        "tests": 71,
+        "pass": 71,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/test.log"
+    },
+    {
+      "id": "budget",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/metadata.json",
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/test.log"
+    },
+    {
+      "id": "privacy",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/metadata.json",
+      "counts": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/test.log"
+    },
+    {
+      "id": "persistence",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/metadata.json",
+      "counts": {
+        "tests": 30,
+        "pass": 30,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/test.log"
+    },
+    {
+      "id": "authority",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/metadata.json",
+      "counts": {
+        "tests": 21,
+        "pass": 21,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/test.log"
+    },
+    {
+      "id": "author-wide",
+      "metadata": "docs/testing/runs/resume-flexible-composition-20261016/author-wide.json",
+      "counts": {
+        "tests": 179,
+        "pass": 179,
+        "fail": 0
+      },
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/author-wide.log"
+    },
+    {
+      "id": "resume-composed-original",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/metadata.json",
+      "counts": {
+        "checks": 543,
+        "passed": 543,
+        "failed": 0,
+        "turns": 83
+      },
+      "log": "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/transcripts.jsonl"
+    },
+    {
+      "id": "resume-composed-heldouts",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/metadata.json",
+      "counts": {
+        "checks": 426,
+        "passed": 426,
+        "failed": 0,
+        "turns": 82
+      },
+      "log": "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/transcripts.jsonl"
+    },
+    {
+      "id": "c37-negative-controls",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "metadata": "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/results.json",
+      "counts": {
+        "killed": 6,
+        "total": 6
+      },
+      "log": "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/results.json"
+    },
+    {
+      "id": "flexible-mutations",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/results.json",
+      "counts": {
+        "killed": 15,
+        "total": 15
+      },
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/results.json"
+    }
+  ],
+  "staticChecks": "docs/testing/runs/resume-flexible-composition-20261016/static-checks.json",
+  "failedRunsRetained": [
+    {
+      "id": "inherited-r2-c37",
+      "commit": "aed4e53e16e7745a1222b4fa7dbe56ccea23d83e",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/inherited-r2-c37-before-repair.log",
+      "status": "FAIL_RETAINED",
+      "reason": "Stale outer-handler identity and exact-copy assertion; independently reproduced before behavior-only test repair.",
+      "logSha256": "289fa95bd53460fd2d49ea7b2b5f2e2183b18ee9f24096708c3b51cf178dabb0"
+    },
+    {
+      "id": "joint-source-first",
+      "commit": "58f9ff60bb9abbc7d7b1d4f37a8380a2c943fc8a",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/joint-source-first.log",
+      "status": "FAIL_RETAINED",
+      "counts": {
+        "tests": 2,
+        "pass": 1,
+        "fail": 1
+      },
+      "reason": "Strict untouched-owner equality revealed normal initialization of the synthetic legacy fact mirror. Preinitialize that ordinary mirror in the new fixture; keep all assertions and product files unchanged.",
+      "logSha256": "6d7a07bcd742d757483003e0e8fe28992e3306337bb0dd1f794aeed9aa28b482"
+    },
+    {
+      "id": "privacy-missing-test-dependency",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/privacy-command.log",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg/metadata.json",
+      "status": "FAIL_RETAINED_ENVIRONMENT",
+      "reason": "Test-only pg@8.13.3 absent from recovered /tmp; restore pinned package in /tmp and rerun with new evidence label. Product and test oracles unchanged.",
+      "logSha256": "92b28edc0c8a5d2ab371f0beb26492e3eb92557fe9916b6add1045002fa85856"
+    },
+    {
+      "id": "persistence-missing-test-dependency",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/persistence-command.log",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg/metadata.json",
+      "status": "FAIL_RETAINED_ENVIRONMENT",
+      "reason": "Test-only pg@8.13.3 absent from recovered /tmp; restore pinned package in /tmp and rerun with new evidence label. Product and test oracles unchanged.",
+      "logSha256": "eaf6b1be238d1710f287d1bf8d3e79e1456f654d3493a8af42f51a155da77ae8"
+    },
+    {
+      "id": "authority-missing-test-dependency",
+      "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/authority-command.log",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg/metadata.json",
+      "status": "FAIL_RETAINED_ENVIRONMENT",
+      "reason": "Test-only pg@8.13.3 absent from recovered /tmp; restore pinned package in /tmp and rerun with new evidence label. Product and test oracles unchanged.",
+      "logSha256": "3220d0b21b70db3df7aeb3facb136efeebf1cf3387b4172fc2456d022848019b"
+    }
+  ],
+  "note": "Counts overlap across gates and must not be summed into a unique-case total.",
+  "paidCalls": 0,
+  "actualProviderRequests": 0,
+  "actualModelQuality": "NOT_RUN",
+  "actualSemanticVerifierQuality": "NOT_RUN",
+  "browserOutcomes": 0,
+  "liveBrowserTasks": "15/15 NOT_RUN",
+  "originalSharedAllowance": "UNKNOWN_UNRECONCILED",
+  "publication": "PAUSED_NO_ATTEMPT_IN_THIS_COMPOSITION",
+  "productionMutations": 0,
+  "releaseGate": "NOT_READY: independently evaluated real local semantic verifier, actual model quality, original shared allowance, owned normal-sandbox browser and Muse integration/deployment remain unresolved."
+}

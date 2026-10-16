@@ -1,0 +1,628 @@
+{
+  "testedCommit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+  "evidenceFiles": {
+    "docs/testing/runs/resume-flexible-composition-20261016/affected-gauntlets.log": {
+      "bytes": 5010,
+      "sha256": "a53bcea78cf854ea62be2565840ffd512f09f102f4ef1f33ecd82bb7e7ccf77c"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/flexible-mutations-command.log": {
+      "bytes": 165,
+      "sha256": "2694dba3472a039a19d32e5cfae38066d007049dbc3c8319306b0a1f4bac2947"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/author-wide.log": {
+      "bytes": 18542,
+      "sha256": "0ba29812ac7b6804bc0c3da16a58c6210c8b4e28366cdc7ec72a2e44e4af3e87"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/stage.json": {
+      "bytes": 947,
+      "sha256": "1171847cd4f1f4ea451d3bef3c5e4e2555cf0662b930c81ffd77b5bb9713e7a2"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/bundle-full-check.log": {
+      "bytes": 23,
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/joint-source-first.log": {
+      "bytes": 2044,
+      "sha256": "6d7a07bcd742d757483003e0e8fe28992e3306337bb0dd1f794aeed9aa28b482"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/inherited-r2-c37-before-repair.log": {
+      "bytes": 1571,
+      "sha256": "289fa95bd53460fd2d49ea7b2b5f2e2183b18ee9f24096708c3b51cf178dabb0"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/persistence-recovered-command.log": {
+      "bytes": 2974,
+      "sha256": "4af88fee7b9c6f0667cc995b29ab7b0f045f2848581a9b484432210c10da3765"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/test-dependencies-first.log": {
+      "bytes": 764,
+      "sha256": "e0c92f42e149a1217be4b0546c8ba5ba3418a8102743c01f7d07843dd96b06b2"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/upstream-source-composed.log": {
+      "bytes": 3582,
+      "sha256": "368056f252da9ed911aabed152fbcf09255b2b7868e94b2a84162f5b8fabdc9d"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/author-wide.json": {
+      "bytes": 1153,
+      "sha256": "b348d269d9161b29c8f6ff474fb25a090bacb9a33c12e440d1de87fbe1a90b7d"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/privacy-command.log": {
+      "bytes": 1524,
+      "sha256": "92b28edc0c8a5d2ab371f0beb26492e3eb92557fe9916b6add1045002fa85856"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/typescript.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/flexible-source-command.log": {
+      "bytes": 4579,
+      "sha256": "931aee37e7be96dcaf6065f0a7e1536db89e091dae4e6780cf5fff5a0b948057"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/persistence-command.log": {
+      "bytes": 1468,
+      "sha256": "eaf6b1be238d1710f287d1bf8d3e79e1456f654d3493a8af42f51a155da77ae8"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/gateway-command.log": {
+      "bytes": 7548,
+      "sha256": "d7ce4666c2c6119fb5cacc6a610a22ec32ae400379271de2b8d6de3f64f3722a"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/privacy-recovered-command.log": {
+      "bytes": 1171,
+      "sha256": "97534c2ef576efed8e77336ff69aa17fdcefc6b3798c92278fbc17a6cb57303e"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/fixture-cleanup.json": {
+      "bytes": 607,
+      "sha256": "11d7d53f2511f6a973a92df136a69213f7c10091d11f925e9c3d11414c48884a"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/joint-source-second.log": {
+      "bytes": 668,
+      "sha256": "e215d1a8da0a5b3c3133565ec1ebbc0f522da7289f5df8d29d238cf32b6c7a5f"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/authority-recovered-command.log": {
+      "bytes": 2349,
+      "sha256": "6dc3f1eca906aa1e12700d0b2c95f545aba569f823bb63e8bf382b6afce350f2"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/budget-command.log": {
+      "bytes": 4053,
+      "sha256": "e4b19e506d5b3a9eaa800b74cbe040022a538f326c17f810566c35ae5a9d3efc"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/heldouts-command.log": {
+      "bytes": 4703,
+      "sha256": "df87d77b8a8fec321f0f0975a13198c5e413abb8c3b974e098c3038441bfd644"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/product-preservation.json": {
+      "bytes": 781,
+      "sha256": "0f222ff6c976f14b3aa06703e59cc4d5af86a01b1e3f99bd1848650401102cd6"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/static-checks.json": {
+      "bytes": 1833,
+      "sha256": "1d15262585268bd99939ac18084bab237fbe8196f08dfa50880a3e7f74085498"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/bundle-career-check.log": {
+      "bytes": 23,
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/test-dependencies-recovered.log": {
+      "bytes": 233,
+      "sha256": "2c26de9177c0d4b106ad5f96688fa7cde30f520821e695d84c3a3e9b727335ba"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-negative-controls-command.log": {
+      "bytes": 207,
+      "sha256": "c96f256fb3e279d252cd18cc35a7da0b1878324244dcc3843fa777bd90d73979"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/ledger-append-preservation.json": {
+      "bytes": 337,
+      "sha256": "ea5191ad0b7f88de3f1c000b69acd513ca51f29ae0189119d6619ae2198704ee"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/authority-command.log": {
+      "bytes": 4725,
+      "sha256": "3220d0b21b70db3df7aeb3facb136efeebf1cf3387b4172fc2456d022848019b"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-source-command.log": {
+      "bytes": 9748,
+      "sha256": "1d3a4316a02e55837f19edca72abfa39c67361d2774bea483252048dd78d7138"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres-command.log": {
+      "bytes": 3586,
+      "sha256": "45f98bfc9bc39a9722f6e2cb80a33166b4a5f24a329086d4d3fe55949dc3b0b8"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/negative-controls-command.log": {
+      "bytes": 207,
+      "sha256": "c96f256fb3e279d252cd18cc35a7da0b1878324244dcc3843fa777bd90d73979"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/upstream-source-first.log": {
+      "bytes": 3579,
+      "sha256": "fbb970befe1d3b9982093bbbc5330a0450e96715c4ab16d7a029122c04b4771b"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/stage-errors.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/results.json": {
+      "bytes": 9157,
+      "sha256": "2b39c3069360c9136e71a10fa03e20d90b5b9ad2b0cf47040673294ad622d8c6"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/original-command.log": {
+      "bytes": 3857,
+      "sha256": "ea760f689beda6ad681440de0cfec5ce4f777b2211698022476f845006395229"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-source/test.log": {
+      "bytes": 9748,
+      "sha256": "1d3a4316a02e55837f19edca72abfa39c67361d2774bea483252048dd78d7138"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-source/transcripts.jsonl": {
+      "bytes": 172080,
+      "sha256": "d23423350d31b17b235c09d8ade986d78dadd87e002bffbf2595089b1b0c6abe"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-source/scripted-generation-verifier.jsonl": {
+      "bytes": 480633,
+      "sha256": "63c7be2c242c162e9bfc344a544e359ed8d930ef70b03e3eb940ad60033c74d1"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-source/metadata.json": {
+      "bytes": 4837,
+      "sha256": "a3f376b6cb80c13b09ba73cab2a1e1b764a7af13cefd4d307fa2c3aaf2edbe29"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/test.log": {
+      "bytes": 3586,
+      "sha256": "45f98bfc9bc39a9722f6e2cb80a33166b4a5f24a329086d4d3fe55949dc3b0b8"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/transcripts.jsonl": {
+      "bytes": 77889,
+      "sha256": "953fc1d287cffae76e24092b116dc054dda097e3de6c938892c3a078f75da9eb"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/scripted-generation-verifier.jsonl": {
+      "bytes": 171539,
+      "sha256": "7202676f3b066501e00974f23c4628cfcc74cc780698e4de5356889bf50f8ab3"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/final-local-database.sql.gz": {
+      "bytes": 16217,
+      "sha256": "1adc7567ba8a2374da2d53fd46846c5842f712ec0e31f9f32edb23f286da6118"
+    },
+    "docs/testing/runs/resume-flexible-composition-20261016/final-postgres/metadata.json": {
+      "bytes": 4620,
+      "sha256": "97dfecf2a41b77437c4d812d4f57d80fab2e51fdfac612d83c87d35f10df9d66"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/repaired-guard.log": {
+      "bytes": 593,
+      "sha256": "bbce5b4bf2b3f4180b253dc983ab3d5ef21f021e1e91fdf616caa7b5ddb5211e"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/missing-persistence.log": {
+      "bytes": 1419,
+      "sha256": "8cf5be902ae99e456acd0c0d9104f4b5004c634b9876884aec91d45a31d2e300"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/unreadable-queue-counts-invented.log": {
+      "bytes": 1622,
+      "sha256": "10bec115da01b2be9d91d12564389629a8d0b364b12a74e20bf7f4a88be2878b"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/duplicate-event-not-deduped.log": {
+      "bytes": 1419,
+      "sha256": "a4dff8e82dfe5eecda237f8dcf33d6cb7f27bc8ed1855d23233e748d51bb1830"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/prior-delivery-count-denied.log": {
+      "bytes": 1387,
+      "sha256": "89a46a146d4a2b8d033fb746d28748b57b9e775e53761350280a14cd7f86bcf4"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/unreadable-queue-pause-not-reported.log": {
+      "bytes": 1582,
+      "sha256": "9905f21137d55daeb0a6c403a2a16ddd5efa2664ac952740f9c480e6cde062b1"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/results.json": {
+      "bytes": 1416,
+      "sha256": "a2c40d4a7576aa500a835dcc0b044df75844e8fc00cf11fb281296bfb980bf78"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/composed-negative-controls/halted-work-revived.log": {
+      "bytes": 1394,
+      "sha256": "c8ac8b3997d138b3894f5b1b8b43ebeee2691e3d48725293b4ce7df85357e85f"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/repaired-guard.log": {
+      "bytes": 593,
+      "sha256": "bb7d67e8f8778efbb9a348b44b876b1d783a522ecafd686887676fd517302d54"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/missing-persistence.log": {
+      "bytes": 1419,
+      "sha256": "0c1bc6deb0606cb182110c3b49aefb3fe88571c95a0bf68788d041a4615dc98b"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/unreadable-queue-counts-invented.log": {
+      "bytes": 1622,
+      "sha256": "553901709539aa0cbcb12b2cec771da0c00a270b6b1f43e2db1e9c4bf13d799f"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/duplicate-event-not-deduped.log": {
+      "bytes": 1419,
+      "sha256": "6519e11153e4d07fc66bda6f971286cac4577b56b768bd1b98e1a44328739fd7"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/prior-delivery-count-denied.log": {
+      "bytes": 1386,
+      "sha256": "b769b4c8f1b5b71dd40bee4a47422e8c9c3df8c13b86e50c71082d7102973820"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/unreadable-queue-pause-not-reported.log": {
+      "bytes": 1581,
+      "sha256": "3b2e105b6b30379276c3c8b44b2dfc320b3bdb344fae27c068b425c0608f5363"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/results.json": {
+      "bytes": 1416,
+      "sha256": "d6f67848d575023570faec435f5e415b7e3c4e714fc89571ce9af044ad92a474"
+    },
+    "docs/testing/runs/career-c37-test-repair-20261016/final-composed-negative-controls/halted-work-revived.log": {
+      "bytes": 1396,
+      "sha256": "fdb0e60539742e7744a6fd82cf18c62d16745cebd99d35c43ffaff776060cd08"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/composed-flexible-source/test.log": {
+      "bytes": 4579,
+      "sha256": "931aee37e7be96dcaf6065f0a7e1536db89e091dae4e6780cf5fff5a0b948057"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/composed-flexible-source/transcripts.jsonl": {
+      "bytes": 113834,
+      "sha256": "643962f5f957267e0c8cd70db935f8f1916213c217b44da25fc03a748721ac4b"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/composed-flexible-source/scripted-provider-verifier-events.jsonl": {
+      "bytes": 418648,
+      "sha256": "9fa80466ade20e529e38fcbf943cf0e4b3c3cc9fb9b3991f49c838ab7cb2ad9d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/composed-flexible-source/metadata.json": {
+      "bytes": 3770,
+      "sha256": "21b37aa8f0968536fbadb9fa749ad65866fd384b43fd661c7da2432f8ba603a4"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/test.log": {
+      "bytes": 7548,
+      "sha256": "d7ce4666c2c6119fb5cacc6a610a22ec32ae400379271de2b8d6de3f64f3722a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/transcripts.jsonl": {
+      "bytes": 108123,
+      "sha256": "68ec424dd9e6f72f01b100273424bed5e6a855cf4c8080270dd13fcc9be9f2d2"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-gateway/metadata.json": {
+      "bytes": 4097,
+      "sha256": "4e9dd30322e21b979b9341eb369e622f3563615233931df8484b5eca9e1d6d5f"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/test.log": {
+      "bytes": 4053,
+      "sha256": "e4b19e506d5b3a9eaa800b74cbe040022a538f326c17f810566c35ae5a9d3efc"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/transcripts.jsonl": {
+      "bytes": 15317,
+      "sha256": "36a2510dbb1082998c42a8759f2661c683e40ec2190488411576b99a03d7e401"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/final-local-database.sql.gz": {
+      "bytes": 14594,
+      "sha256": "a7a62d08d73dcdf1f151fd1bf01d4e94cf41c365b0a92b8eb288b4483b7428b9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-budget/metadata.json": {
+      "bytes": 4209,
+      "sha256": "55c3beed77aec6e3a60f997404f1b7d1327876ce8411332138c8f0626f4e050b"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T13.log": {
+      "bytes": 1229,
+      "sha256": "1b721578201561d8dc1c7fa9976f58f915c26eb8e79df5b94c759c9621cc167a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T04.log": {
+      "bytes": 1281,
+      "sha256": "060790f903c49d2d4334dad2717ccc715a5b1e5bca922cf9906fb05eb82917e6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T08.log": {
+      "bytes": 1180,
+      "sha256": "6099e68afa65326ec6409953b05ac54de0f753d2d11cdb0672b1a808dc7701e3"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T05.log": {
+      "bytes": 1230,
+      "sha256": "b55be060bd2f40eca2cc5a11c651c7f94be2592bd82aa9558395318a7eb72cf0"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T15.log": {
+      "bytes": 1329,
+      "sha256": "198598fe25b614bf49ce277f932aef782c4de641db5def601f5d14f8c1babe61"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T09.log": {
+      "bytes": 1257,
+      "sha256": "04dd0097bb26d301c9f337a9ecc94de254ff1f0c5665e8f680c96b09a1b45c1a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T03.log": {
+      "bytes": 1300,
+      "sha256": "419b39318a54dd300b2eddf38a3ed27a7213bc0b3966be9e60b7e20c20496bf2"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T07.log": {
+      "bytes": 1179,
+      "sha256": "bd45c7f777665cab1a0ac69d17e5d37426931a596562858b3810a431928eaae5"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T10.log": {
+      "bytes": 1227,
+      "sha256": "bb773caed02ae8842286e7c95e8670138285032fded3003af828d3003147998f"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T14.log": {
+      "bytes": 1201,
+      "sha256": "a3af23935cb7ec5edf7994b8570f90c97c249c77b64be568078ba07f3c29cd49"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T06.log": {
+      "bytes": 2362,
+      "sha256": "e4804bdc1071ba0304b8cc09cb7cca4b8be6ca72be446095328ab64d224d457e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T02.log": {
+      "bytes": 1313,
+      "sha256": "b09ae3bedec815311993a90cf359b2305953cc8c977013fb69d567cd748356ee"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T01.log": {
+      "bytes": 1847,
+      "sha256": "46d737bd6c1ea1f5dbf9572f98dba1d1b88e37d7ee354351240f957f79c99e99"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T11.log": {
+      "bytes": 1241,
+      "sha256": "cd25549e93c5a7fb5fc478339fe62c2cf129d2e72dab2bac70cc15fced3976fc"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/results.json": {
+      "bytes": 3002,
+      "sha256": "21603e028f1a4119afba726c25eea6c8cf887062e2f0d285ae4aa6c83b3122fb"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/resume-composed-mutations/T12.log": {
+      "bytes": 1311,
+      "sha256": "53def86b382ef1dabb72e1dd0940c03a54d3463783fd48dc1c84a3c73163a3de"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C02.json": {
+      "bytes": 295357,
+      "sha256": "9fa4d38a260df7d1e3b43557ef0c9364deeb0f136d82828f3271b13115f90ebe"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C12.json": {
+      "bytes": 177300,
+      "sha256": "e565b07070a993e7f8666b50534ad681b02bdbc72368a55626d6b5aa14c7db11"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C01.json": {
+      "bytes": 131860,
+      "sha256": "d71b2011623c3b6847dc4ddddd91609c6b39258bfe6f68bd26141a78fa181ddd"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C06.json": {
+      "bytes": 175949,
+      "sha256": "a82bff7e203b5af1656b4054049c1300e82e82285ba94edad38a439df03b9621"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C09.json": {
+      "bytes": 192587,
+      "sha256": "602144926a606e06f3bfa48553b76467965ead40df00a3a5140f3bf17eed7c59"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C08.json": {
+      "bytes": 150674,
+      "sha256": "c804d38391c9e4e0e0edb9103158cfe6bd09191eea06eb613f4c5779522f10d1"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C07.json": {
+      "bytes": 157754,
+      "sha256": "561553b41f631a9af33faee3abf9bdfd470c60aebbe3b7127221b1de647a0642"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/transcripts.jsonl": {
+      "bytes": 1344437,
+      "sha256": "32fadc78626becfbe7f1ff41da1b9620ca02dab58d4f6d903b7ca07fc0a88b24"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C10.json": {
+      "bytes": 125632,
+      "sha256": "222bd55973655f59818834b67d6c823fcd235f852b8c12904b9956700b41bb8e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C03.json": {
+      "bytes": 160320,
+      "sha256": "21ed41eb4a97675ba03a725711ee80f7f95a1975c5a2801179cfb7a78de1fe05"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C05.json": {
+      "bytes": 279545,
+      "sha256": "c4f48be110ee1dca15dbd8998c3457dae8f64b81659273a735e74cc2d9075da5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/metadata.json": {
+      "bytes": 3199,
+      "sha256": "d2feebbd247e082bf0fc5638857b27913fdd9845b2063ba2b8f379394565a5d1"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C04.json": {
+      "bytes": 213976,
+      "sha256": "bd7c24555e05c35983642771494406124deb28e7dff2e1389ccdb212202de9b5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-original/C11.json": {
+      "bytes": 136244,
+      "sha256": "5e657c9455fabcbdfead96edaae356f84be93e1fd3f526ca736f45d4abad2b17"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H14-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H11-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H08-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H09-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H13-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H02.json": {
+      "bytes": 132621,
+      "sha256": "d55078fce8b6a6678e9b1cca49c728968dbe76074e4d639827189f887bdf1da5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H01-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H06.json": {
+      "bytes": 129913,
+      "sha256": "cee2afd14ea77b047c2f92a4928a0e64390ad311fe7afaaad3cfbb65e428d8b5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H07.json": {
+      "bytes": 148750,
+      "sha256": "28163a38391e858c4eb3114fc06cd4c23af3b40c89394477740898dd53bb67bf"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H12.json": {
+      "bytes": 61106,
+      "sha256": "8c5365515abc2a54836ba0f2ee9e4a531b1f490159696200324ad4ab50783ab5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H13.json": {
+      "bytes": 130958,
+      "sha256": "b69641e41db812b3a5d656cc1f24ebad569d446c9213243464722b13ad0cae9d"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H11.json": {
+      "bytes": 143110,
+      "sha256": "b7631ffffcef6876874716aedf20a51d65ceab8a931bf25a12d06a21e6327f64"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H16.json": {
+      "bytes": 42620,
+      "sha256": "b72be2e044ec3bbdd7696b4e5c09a63f25358b37a2aed04949a23eeac2121720"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H08.json": {
+      "bytes": 139375,
+      "sha256": "b5b9aba9ce4dde5007d784d3d08bb82bae9fe85593f0d0e29e6e132f220b8f35"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H02-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H14.json": {
+      "bytes": 55339,
+      "sha256": "d0e13ff5199ed2346bc0281089429abb618dd60eedc37526e1809f8d6a3ec531"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H09.json": {
+      "bytes": 87627,
+      "sha256": "e43ac1b3f339004d8872369db6361b4bcb45394acfdae7f2d2fd99bc78790f52"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H12-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H15.json": {
+      "bytes": 134125,
+      "sha256": "f683475e5ce6e4846fbf374ab140b35bde2fed0e6e52fb92a07c6338af22a944"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/transcripts.jsonl": {
+      "bytes": 1181326,
+      "sha256": "d3179b86da6ac047f3f59f8fc60f438a0e4e9e6fc9b24dcbc90f30f6ffae0bb5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H05-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H06-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H04-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H07-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H10-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H15-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H03-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H10.json": {
+      "bytes": 110505,
+      "sha256": "836bb47acc3d17ef51e79a939292b8aa3b344f842d72245241287494393a3098"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H01.json": {
+      "bytes": 188318,
+      "sha256": "2384026db07183a406f8464e4c058a0e940e183c2b5a4820a37f613108d29d6c"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/metadata.json": {
+      "bytes": 3921,
+      "sha256": "a2c9853b8d01f5cead300210118c8ba57ae8f0e8185c52697ef7b3cde3c9323e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H05.json": {
+      "bytes": 93040,
+      "sha256": "846cb96f8bfef6d1af156fa462c317fddf6ae056f9941bfd03adda2964d87ee2"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H04.json": {
+      "bytes": 90206,
+      "sha256": "d41d21ec1bad2350ea13fbd50c8f4272a5367e3eb6ea27f4ccd13c76091c1a0f"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H03.json": {
+      "bytes": 279725,
+      "sha256": "dd8ac81929517800265f029d3af4a0175b9cc80544b65ea6eb3308d93118a883"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/resume-composed-heldouts/H16-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg/test.log": {
+      "bytes": 1524,
+      "sha256": "92b28edc0c8a5d2ab371f0beb26492e3eb92557fe9916b6add1045002fa85856"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg/final-local-database.sql.gz": {
+      "bytes": 9519,
+      "sha256": "bdea92773dde23890b309750fd5a8f8b143a4af233ba9569d70cbfca39e70c7d"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg/metadata.json": {
+      "bytes": 2573,
+      "sha256": "eda9cc619931e67260a7f64f12f45dfa38510378ee629eac1ba320b86c0309ca"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg/test.log": {
+      "bytes": 1468,
+      "sha256": "eaf6b1be238d1710f287d1bf8d3e79e1456f654d3493a8af42f51a155da77ae8"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg/final-local-database.sql.gz": {
+      "bytes": 9512,
+      "sha256": "cac33cd255bb3bd12cb9dea045866f9b86b244e972c9ea5aecc02e1673d247b9"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg/metadata.json": {
+      "bytes": 2581,
+      "sha256": "eb63814ee7715757a46d5c7dc67289cea19dc7f64bcbb495a6d095721702c1ef"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg/test.log": {
+      "bytes": 4725,
+      "sha256": "3220d0b21b70db3df7aeb3facb136efeebf1cf3387b4172fc2456d022848019b"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg/final-local-database.sql.gz": {
+      "bytes": 14923,
+      "sha256": "26051c07ee6c5f68f8ba494ed758da3846e2a210ff3d180710763cbe07863a6d"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg/metadata.json": {
+      "bytes": 2581,
+      "sha256": "b2b39a71a8e1ebff2d2c2d2853074a44ea7479cf566cb25e9e3bb7c36d2f1294"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/test.log": {
+      "bytes": 1171,
+      "sha256": "97534c2ef576efed8e77336ff69aa17fdcefc6b3798c92278fbc17a6cb57303e"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/transcripts.jsonl": {
+      "bytes": 20348,
+      "sha256": "bc6ff6c8f29471ccdd24f4ac256f7d252c8218551330ca716d8ba9335dc761b7"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/final-local-database.sql.gz": {
+      "bytes": 11370,
+      "sha256": "f27450c6957d5b71f4252853e0e14a51fc29fb10355d69cc00e7a94d17330d97"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-privacy-pg-recovered/metadata.json": {
+      "bytes": 2655,
+      "sha256": "8f4b63bbc0a952004372ffe7008f24bee07cd7b1a551c80f133573a7505e2a05"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/test.log": {
+      "bytes": 2974,
+      "sha256": "4af88fee7b9c6f0667cc995b29ab7b0f045f2848581a9b484432210c10da3765"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/final-local-database.sql.gz": {
+      "bytes": 11223,
+      "sha256": "15b8fefa52b7e20f65edda01fd595d00ae1d01daa8e581861ade58f0608a8b98"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-persistence-pg-recovered/metadata.json": {
+      "bytes": 2601,
+      "sha256": "dfbf2fe4e14f3942e065a07df3741246542d98b6f3d747fe7353e32f725ad3d8"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/test.log": {
+      "bytes": 2349,
+      "sha256": "6dc3f1eca906aa1e12700d0b2c95f545aba569f823bb63e8bf382b6afce350f2"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/final-local-database.sql.gz": {
+      "bytes": 14893,
+      "sha256": "3faa4041194a56ff3a5cfdf8b87e39f459db915b2590cbe922c0117e87a9eb17"
+    },
+    "docs/testing/runs/privacy-research-composition-20261016/resume-composed-authority-pg-recovered/metadata.json": {
+      "bytes": 2601,
+      "sha256": "cb741011966a668261a7f194f2f2381885fd6ede7dc8622b96b889e12fa95eda"
+    }
+  },
+  "includesRetainedFailures": true,
+  "paidCalls": 0,
+  "browserOutcomes": 0
+}

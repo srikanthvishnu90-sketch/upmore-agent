@@ -1,0 +1,31 @@
+(node:196651) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:196651) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ T07 recent dialogue comes from committed owned receipts and remains noncanonical (298.341095ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 368.522187
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:13:1
+✖ T07 recent dialogue comes from committed owned receipts and remains noncanonical (298.341095ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (/tmp/upmore-grounded-mutations-HVHOMf/repo/tests/career-flexible-grounding.test.cjs:13:323)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

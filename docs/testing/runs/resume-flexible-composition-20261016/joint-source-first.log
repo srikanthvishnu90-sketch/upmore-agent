@@ -1,0 +1,49 @@
+(node:121363) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:121363) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ joint committed supersession governs enabled flexible facts, prior drafts/replay and colliding owner context (538.094021ms)
+✔ joint failed correction cannot enter active flexible context or mark its source adopted; fresh retry is owned and atomic (294.22533ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 928.110056
+
+✖ failing tests:
+
+test at tests/resume-flexible-composition.test.cjs:5:1
+✖ joint committed supersession governs enabled flexible facts, prior drafts/replay and colliding owner context (538.094021ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      _careerTrackStore: {
+  +     _careerThread: {
+  +       facts: {
+  +         facts: [
+  +           {
+  +             kind: 'year',
+  +             value: '2031'
+  +           }
+  +         ]
+  +       }
+  +     },
+        rows: []
+      },
+      basics: {},
+      constraints: {
+        graduationDate: '2031'
+  
+      at TestContext.<anonymous> (/workspace/upmore-flexible-grounding/tests/resume-flexible-composition.test.cjs:15:455)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2031' }, facts: [ [Object], [Object] ], _careerTrackStore: { rows: [], _careerThread: [Object] } },
+    expected: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2031' }, facts: [ [Object], [Object] ], _careerTrackStore: { rows: [] } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,18 @@
+(node:195585) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:195585) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ real SQL rollback at agent_messages:user: failed A correction cannot reach B or A's next turn (994.167374ms)
+✔ real SQL rollback at agent_messages:assistant: failed A correction cannot reach B or A's next turn (468.536916ms)
+✔ real SQL rollback at agent_flow_state:state: failed A correction cannot reach B or A's next turn (594.019442ms)
+✔ real SQL committed correction, owner boundary, restart and exact reply replay (548.420488ms)
+✔ real SQL stale correction loses revision race and cannot leak its uncommitted facts (522.573958ms)
+✔ real SQL failed correction can retry the same key and commit exactly once (341.604401ms)
+✔ real SQL erase epoch rejects old receipts and stale commits; reused profile identity cannot revive corrections (592.73991ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4218.993941

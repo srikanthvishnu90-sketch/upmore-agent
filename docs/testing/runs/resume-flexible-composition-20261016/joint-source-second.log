@@ -1,0 +1,13 @@
+(node:122318) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:122318) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ joint committed supersession governs enabled flexible facts, prior drafts/replay and colliding owner context (446.322636ms)
+✔ joint failed correction cannot enter active flexible context or mark its source adopted; fresh retry is owned and atomic (265.17401ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 783.347193

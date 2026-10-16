@@ -1,0 +1,41 @@
+✔ atomic turn pair, snapshot, receipt and exact replay (594.166627ms)
+✔ real SQL rollback on agent_messages:user (131.351747ms)
+✔ real SQL rollback on agent_messages:assistant (165.790071ms)
+✔ real SQL rollback on agent_flow_state:state (170.676384ms)
+✔ same request races create exactly one pair (179.756901ms)
+✔ different concurrent requests use revision fence (112.784909ms)
+✔ foreign thread and snapshot fail closed (109.576316ms)
+✔ malformed commits and reminder IDs fail closed (164.334511ms)
+✔ location correction crosses owned threads without rewriting facts or another tenant (145.261953ms)
+✔ chat watch becomes canonical user KV visible to scheduler and a fresh thread (202.689756ms)
+✔ legacy watch recovery refuses divergent profiles (39.26961ms)
+✔ STOP pauses owned threads and cancels pending work; resume does not revive it (208.693575ms)
+✔ erasure clears active state across owned threads, payloads and replay text, never another tenant (476.331659ms)
+✔ stale scheduler cannot restore erased or corrected context (115.110711ms)
+✔ scheduler compare-and-set detects concurrent chat correction (52.582778ms)
+✔ parallel inbox delivery claims one durable record (327.497412ms)
+✔ wrong lease, owner and altered provenance cannot acknowledge (135.972887ms)
+✔ lost committed acknowledgement is reconciled by owned readback (106.4237ms)
+✔ failed acknowledgement remains pending and same lease can reconcile after restart (215.465348ms)
+✔ expired lease becomes uncertain; explicit inbox reconciliation reuses it (190.734778ms)
+✔ external sinks and get/set-only adapters fail closed before any send (69.232903ms)
+✔ chat load consumes only own inbox and commit marks it seen atomically (169.03756ms)
+✔ client roles cannot access private tables or execute service RPCs (257.036454ms)
+✔ generic worker writes cannot alter account controls, receipts or another watch key (147.712773ms)
+✔ queued reminders cannot deliver after their interest is removed or globally paused (296.053205ms)
+✔ acknowledgement preserves fit provenance and attaches a database payload hash (240.535252ms)
+✔ real chat -> canonical watch -> seed/new posting -> inbox -> fresh thread; restart does not duplicate (455.882011ms)
+✔ queue remains intact when durable transfer fails; restart transfers before drain (362.931376ms)
+✔ scheduler checkpoint rolls back snapshots and queue if outbox transfer fails (36.511472ms)
+(node:195591) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:195591) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual staged HTTP handler -> real PostgreSQL: save/replay, rollback, owner boundary, STOP and erasure (629.55901ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6629.439288

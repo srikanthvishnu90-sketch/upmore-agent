@@ -1,0 +1,16 @@
+{
+  "candidate": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+  "baseline": "f2442320",
+  "upstream": "00aad4ea0fd62e9245e205c9f84cea44465b2090",
+  "productFilesChangedFromLocalBefore": [
+    "packages/domain/130-career-onboarding.js",
+    "supabase/functions/_shared/router_core.career.js",
+    "supabase/functions/_shared/router_core.js"
+  ],
+  "unchangedOtherProductFileCount": 532,
+  "upstreamOwnedProductsMatch": {
+    "packages/domain/130-career-onboarding.js": "588c40cf788fc8386ffbaf7e4b5047429a0e64b5c7989799b06e0e0ec068623d",
+    "supabase/functions/_shared/router_core.js": "a16f93eeaf5a5de2cb4843b6cf0c348f7d402cd249ff97c4ae50d2bc705026e7",
+    "supabase/functions/_shared/router_core.career.js": "70827dcff4a3635f452f75ee08e0265445a3b716e3b251e7a37c11c932cddc63"
+  }
+}

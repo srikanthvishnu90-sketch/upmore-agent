@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-16T21:58:33Z",
+  "wireProcessVerified": "node scripts/career/research-review/local-pg-wire.cjs upmore-career-integration-pg-recovery /tmp/upmore-composed-resume-wire.json ",
+  "wireStopped": true,
+  "activeFixtureClientsBeforeRemoval": 0,
+  "ownedContainer": "upmore-career-integration-pg-recovery",
+  "network": "none",
+  "removed": true,
+  "ownedTemporaryStageRemoved": "/tmp/upmore-resume-composed-stage",
+  "testOnlyDependencies": {
+    "pg": "8.13.3",
+    "typescript": "5.9.3"
+  },
+  "dependenciesLocation": "/tmp/upmore-research-wire-deps",
+  "productDependenciesChanged": false
+}

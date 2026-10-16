@@ -1,0 +1,62 @@
+{
+  "commit": "cb0b06ef6ab4fde8f2af0ce68129dc8411b5a277",
+  "typescriptVersion": "5.9.3",
+  "checks": [
+    {
+      "id": "typescript",
+      "command": [
+        "node",
+        "/tmp/upmore-research-wire-deps/node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--allowImportingTsExtensions",
+        "--target",
+        "es2022",
+        "--module",
+        "esnext",
+        "--moduleResolution",
+        "bundler",
+        "--lib",
+        "es2023,dom",
+        "supabase/functions/_shared/career_model_reply.ts"
+      ],
+      "exitCode": 0,
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/typescript.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "bundle-full",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--check"
+      ],
+      "exitCode": 0,
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/bundle-full-check.log",
+      "logSha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    {
+      "id": "bundle-career",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--career-only",
+        "--check"
+      ],
+      "exitCode": 0,
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/bundle-career-check.log",
+      "logSha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    {
+      "id": "stage",
+      "command": [
+        "node",
+        "scripts/career/stage-career.cjs",
+        "/tmp/upmore-resume-composed-stage",
+        "--json"
+      ],
+      "exitCode": 0,
+      "log": "docs/testing/runs/resume-flexible-composition-20261016/stage.json",
+      "logSha256": "1171847cd4f1f4ea451d3bef3c5e4e2555cf0662b930c81ffd77b5bb9713e7a2"
+    }
+  ]
+}

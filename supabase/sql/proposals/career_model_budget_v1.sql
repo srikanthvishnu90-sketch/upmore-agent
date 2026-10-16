@@ -21,6 +21,7 @@ create table public.career_model_reservations_v1 (
  unique(user_id,thread_id,turn_key)
 );
 create index career_model_unknown_v1 on public.career_model_reservations_v1(state) where state='unknown';
+create index career_model_started_deadline_v1 on public.career_model_reservations_v1(expires_at) where state='started';
 alter table public.career_model_campaign_v1 enable row level security;
 alter table public.career_model_reservations_v1 enable row level security;
 revoke all on public.career_model_campaign_v1,public.career_model_reservations_v1 from public,anon,authenticated;
@@ -41,7 +42,9 @@ begin
  if c.campaign is null or not c.reconciled or c.expires_at<=now() or c.provider is distinct from p_provider or c.model is distinct from p_model or c.price_key is distinct from p_price then return jsonb_build_object('ok',false,'reason','budget_unavailable');end if;
  select * into r from career_model_reservations_v1 where user_id=p_user and thread_id=p_thread and turn_key=p_key;
  if r.id is not null then return jsonb_build_object('ok',false,'reason',case when r.request_hash<>p_hash or r.payload_hash<>p_payload then 'turn_key_conflict' else 'already_reserved' end);end if;
- if (select count(*) from career_model_reservations_v1 where state='unknown')>=3 then return jsonb_build_object('ok',false,'reason','usage_review_required');end if;
+ -- A crashed caller may never settle its started ticket. After the receipt
+ -- deadline it is uncertain too; its full bound remains charged.
+ if (select count(*) from (select 1 from career_model_reservations_v1 where state='unknown' or (state='started' and expires_at<=now()) limit 3) uncertain)>=3 then return jsonb_build_object('ok',false,'reason','usage_review_required');end if;
  if c.opening_micros+c.current_micros+p_bound>c.limit_micros then return jsonb_build_object('ok',false,'reason','budget_exhausted');end if;
  insert into career_model_reservations_v1(user_id,thread_id,turn_key,request_hash,payload_hash,provider,model,price_key,revision,account_version,epoch,bound_micros)values(p_user,p_thread,p_key,p_hash,p_payload,p_provider,p_model,p_price,p_revision,p_version,p_epoch,p_bound) returning * into r;
  update career_model_campaign_v1 set current_micros=current_micros+p_bound where campaign=c.campaign;
@@ -54,6 +57,10 @@ begin
  select * into r from career_model_reservations_v1 where id=p_ticket and user_id=p_user for update;
  select * into c from career_model_campaign_v1 where campaign='owner-shared-5usd' for update;
  if r.id is null or r.state<>'reserved' or r.expires_at<=now() or c.campaign is null or not c.reconciled or c.expires_at<=now() or c.provider is distinct from r.provider or c.model is distinct from r.model or c.price_key is distinct from r.price_key or not career_model_context_current_v1(p_user,r.thread_id,r.revision,r.account_version,r.epoch) then return jsonb_build_object('ok',false,'reason','context_changed');end if;
+ -- Admission is not dispatch. Recheck the global stop under the same campaign
+ -- lock used by settlement, including tickets granted before another owner
+ -- tripped it. A refused reserved ticket can still settle as not_sent.
+ if (select count(*) from (select 1 from career_model_reservations_v1 where state='unknown' or (state='started' and expires_at<=now()) limit 3) uncertain)>=3 then return jsonb_build_object('ok',false,'reason','usage_review_required');end if;
  update career_model_reservations_v1 set state='started' where id=r.id;
  return jsonb_build_object('ok',true,'ticket',r.id);
 end $$;

@@ -1,5 +1,7 @@
 # Career coaching gateway: isolated, default-off review
 
+Historical author report at `f3a9d183`. The [independent boundary review](model-gateway-independent-review-20261016.md) subsequently reproduced seven ungrounded-output failures and four global uncertainty-stop failures despite the original tests passing. This review branch repairs those boundaries; the original counts below remain historical evidence, not an independent safety verdict.
+
 Review branch: `codex/career-model-gateway-20261016`, based on combined privacy/research/conversation `e66e39cf9e30044341773298c9896007fc12663c`. Final test source: **`131ec1205542d71d44b449ee91b5570834572bf0`**; product bytes are unchanged from `c2b41b15145d72688987b71365197f1595253550`. [Frozen expectations](../../tests/fixtures/career-model-gateway/freeze.json) were committed first at `bfb1d163`. Muse retains merge, forward-migration and deployment ownership. Shared release remains `f67db048599db308f2691a7be7feada841143da5`.
 
 The root cause was a missing call path: the staged career entry returned deterministic domain replies without reaching the existing model gateway. Credentials alone could not change that. This branch connects a bounded coaching path to that gateway, with server enablement off by default. **Actual model quality is NOT_RUN; no actual provider request or paid call occurred.** This does not establish deep human response quality.

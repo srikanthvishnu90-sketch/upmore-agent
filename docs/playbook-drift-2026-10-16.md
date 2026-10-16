@@ -86,3 +86,21 @@ Career model-gateway repair: the career-only prune left deterministic routing as
 The prior career-only staged entry never called the existing model gateway. It now has a default-off, coaching-only post-domain/pre-commit adapter. Deterministic routing, facts, correction/forget controls and task authority are unchanged. The source-only SQL proposal seeds no allowance; missing or unreconciled original shared budget denies inference. Synthetic funding exists only in isolated tests. Current model account availability, actual response quality and the original $5 balance remain unverified.
 
 The gateway's legacy numeric defaults converted missing/coerced/negative usage into apparently usable receipts. Four injected probes failed before the fix (retained); an additive strict-receipt option now rejects these before conversion for the new cash-bounded caller. Other callers retain their current defaults. The career entry comment now says no financial routes/full domain bundle, since the shared gateway also exports shelved financial helpers. The conversation evaluation runner's metadata says the optional model is disabled in that harness, rather than incorrectly asserting that the source contains no model. Frozen expectations and old evidence are unchanged.
+
+
+## Independent model gateway boundary review
+
+The author report at f3a9d183 said personal/completion claims were rejected by
+its strict coaching interface and three unknown outcomes stopped campaign
+spending. Independent staged-entry probes accepted seven unsupported advice
+strings as generated coaching; real SQL admitted old tickets after the stop and
+ignored crashed started calls whose receipt deadlines had passed. Full
+reservations remained charged, so this was not a reproduced cap overdraft.
+
+The runtime now accepts only host-authored coaching advice, with personalization
+confined to exact labelled current fact quotes. The source-only SQL proposal
+checks explicit unknown and overdue-started calls at both reservation and
+consume under the campaign lock. Frozen oracles, failed baselines and real
+monthly-RPC integration evidence are in the independent gateway review report.
+The old report is marked historical, its failed and passing evidence retained.
+No production migration or real budget configuration was performed.

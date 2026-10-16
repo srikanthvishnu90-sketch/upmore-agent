@@ -25183,6 +25183,12 @@ const CareerPortalApply = (() => {
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;
+      // Composed at the v224 combine: an EMPTY readback (absent or
+      // whitespace-only) is a persistence absence, not value drift —
+      // the doorstep repair loop + the D13 gate (BUG-207/209) own it
+      // and end it as repair or INCOMPLETE_PAYLOAD. Only a non-empty
+      // observed value that DIFFERS from the confirmed fact is drift.
+      if (payloadValueMissing(observed[id])) continue;
       const wanted = planned.value, actual = observed[id];
       const same = typeof wanted === "object" ? JSON.stringify(wanted) === JSON.stringify(actual)
         : norm(wanted) === norm(actual)
@@ -25191,7 +25197,17 @@ const CareerPortalApply = (() => {
       if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
     }
     for (const field of formDef.fields || []) {
-      if (field.required && observed[field.field_id] === undefined && !asks.some((a) => a.field_id === field.field_id)) {
+      // Composed at the v224 combine: a required field that WAS filled
+      // from confirmed facts (this round, or carried in the preparation
+      // payload from an earlier round) but does not read back is a
+      // persistence failure, not a user question — the user cannot fix
+      // the board's remount disease. It falls through to the doorstep,
+      // where the repair loop re-fills it and the D13 gate stops the
+      // run INCOMPLETE_PAYLOAD if it still will not persist
+      // (BUG-207/209, FR-364/365). The answer_not_observed ask remains
+      // for required fields that were never filled at all.
+      if (field.required && observed[field.field_id] === undefined && !asks.some((a) => a.field_id === field.field_id)
+        && !filled[field.field_id] && !(session.preparationPayload && session.preparationPayload[field.field_id] !== undefined)) {
         asks.push({ field_id: field.field_id, reason: "answer_not_observed" });
       }
     }

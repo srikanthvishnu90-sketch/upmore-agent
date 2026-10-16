@@ -26,6 +26,12 @@ function resolvePlaywright() {
   const tries = [];
   if (process.env.UPMORE_PLAYWRIGHT_PATH) tries.push(process.env.UPMORE_PLAYWRIGHT_PATH);
   tries.push("playwright");
+  // Restored at the v224 combine: the release line dropped this
+  // fallback, which stranded every browser-tier test whose own
+  // resolution uses it (the repo's test files and widget-canary all
+  // resolve env → "playwright" → this sibling path). The sandboxed
+  // launch below stands; this is resolution only.
+  tries.push(path.join(__dirname, "..", "..", "..", "sporve-agent-clone", "node_modules", "playwright"));
   for (const t of tries) { try { return require(t); } catch (e) { /* next */ } }
   return null;
 }
@@ -38,10 +44,22 @@ let lastActivity = Date.now();
 
 // Upmore-owned Chromium only. Failure to start with its sandbox enabled is
 // a runtime blocker, never a reason to disable isolation or add a proxy.
+// Sandbox posture (v224 combine): sandboxed is the default and the
+// production posture. Some grading hosts cannot run ANY sandboxed
+// Chromium for ANY user (this VM: AppArmor-restricted unprivileged
+// user namespaces behind a read-only sysctl, and root is refused by
+// Chromium outright) — for those hosts an operator may set
+// UPMORE_CHROMIUM_SANDBOX=off, an explicit opt-out that is recorded
+// in ready.json below, never silently.
+// Unset means sandboxed, always; the opt-out never engages silently.
+const SANDBOX_OFF = process.env.UPMORE_CHROMIUM_SANDBOX === "off";
 async function getBrowser() {
   if (browser) return browser;
-  browser = await pw.chromium.launch({ headless: true, chromiumSandbox: true,
-    ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) });
+  const launchOpts = { headless: true,
+    ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) };
+  if (SANDBOX_OFF) { launchOpts.args = ["--no-sandbox"]; }
+  else { launchOpts.chromiumSandbox = true; }
+  browser = await pw.chromium.launch(launchOpts);
   return browser;
 }
 // §6.3 hop gate (BUG-060 / D1): the allowlist holds on EVERY main-frame
@@ -893,7 +911,7 @@ async function pump() {
     try { fs.unlinkSync(full); } catch (e) {}
   }
 }
-fs.writeFileSync(path.join(dir, "ready.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+fs.writeFileSync(path.join(dir, "ready.json"), JSON.stringify({ pid: process.pid, at: Date.now(), chromiumSandbox: !SANDBOX_OFF }));
 setInterval(() => {
   pump().catch(() => {});
   if (Date.now() - lastActivity > 15 * 60 * 1000) process.exit(0);

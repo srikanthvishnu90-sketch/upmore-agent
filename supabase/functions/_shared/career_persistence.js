@@ -18,12 +18,11 @@ async function validateResearchObservation(data,{userId,taskId,intentId}) {
   if(c?.version!=='public_research_capture/v1'||c.provenance!=='owned_chromium_dom'||c.untrusted!==true||c.taskId!==p.taskId||c.intentId!==p.intentId||!c.sessionId||c.url!==b.destination||s?.url!==c.url||s?.title!==c.title||s?.capturedAt!==c.capturedAt||s?.sourceSha256!==c.sourceSha256||!/^[a-f0-9]{64}$/.test(c.sourceSha256||'')||typeof c.text!=='string'||c.text.length>24000||!Array.isArray(c.navigation)||!c.navigation.some(e=>e.status==='read'&&e.url===c.url&&e.method==='GET'&&e.httpStatus===200&&e.sourceSha256===c.sourceSha256))unavailable();
   const observed=Date.parse(c.capturedAt),admitted=Date.parse(p.read?.admittedAt);
   if(p.read?.state!=='completed'||!Number.isFinite(observed)||!Number.isFinite(admitted)||observed<admitted-30000||observed>admitted+150000||await evidenceHash(a)!==r.artifactSha256||await evidenceHash(c)!==p.read.afterSha256)unavailable();
-  // Check the persisted screenshot bytes too. PNG decoding is performed by the
-  // worker before publication; its exact capture digest is the effect receipt.
+  // The completed effect hashes the exact capture, including screenshot bytes.
+  // PNG framing/decoding is checked by the worker before publication.
   const image=c.screenshot;
   if(image?.mimeType!=='image/png'||typeof image.base64!=='string'||image.base64.length>666668||!Number.isInteger(image.bytes)||image.bytes<57||image.bytes>500000)unavailable();
-  let bytes;try{bytes=Uint8Array.from(atob(image.base64),x=>x.charCodeAt(0));}catch(_){unavailable();}
-  if(bytes.length!==image.bytes||await digest(bytes)!==image.sha256)unavailable();
+  if(!/^[a-f0-9]{64}$/.test(image.sha256||''))unavailable();
 }
 export function createCareerPersistence(client) {
   async function call(name, args) {

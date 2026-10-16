@@ -86,7 +86,7 @@ const CareerConversation = (() => {
     const st=box(ctx),ownFacts=(ctx.statedFacts?.facts||[]).filter(f=>["year","majors","school"].includes(f.kind));
     const year=ownFacts.find(f=>f.kind==="year")?.value,major=ownFacts.find(f=>f.kind==="majors")?.value,school=ownFacts.find(f=>f.kind==="school")?.value;
     const facts=[];if(year||major||school)facts.push(`${year?`I am a ${year}`:"I am a student"}${major?`, studying ${major}`:""}${school?` at ${school}`:""}`);
-    if(get(st,"background"))facts.push(get(st,"background"));
+    if(get(st,"background")){const background=string(get(st,"background")).replace(/[.!]+$/,"");if(!facts.length)facts.push(background);else{const detail=background.match(/\bwith\s+([^.!]+)/i);if(detail)facts.push(`My coursework includes ${detail[1]}`);}}
     if(get(st,"disputed_experience"))facts.push(get(st,"disputed_experience"));
     if(!facts.length)for(const f of ctx.profile?.facts||[])if(["education","project","skill"].includes(f.kind)&&!f.unproven)facts.push(f.text||f.name||f.title);
     return facts.length?facts.join('; '):null;
@@ -124,8 +124,8 @@ const CareerConversation = (() => {
   function nextMove(ctx) {
     const st=box(ctx),city=st?.locationWithdrawn?null:(get(st,"target_city")||(ctx.statedFacts?.facts||[]).find(f=>f.kind==="geography")?.value);
     const firm=(ctx.statedFacts?.facts||[]).find(f=>f.kind==="target_firm")?.value;
-    const time=get(st,"availability"),interest=get(st,"interest"),paid=get(st,"paid")?"paid ":"";
-    const context=[time?`Within ${time}`:null,firm?`for ${firm}`:null,city?`in ${city}`:null].filter(Boolean).join(', ');
+    const time=string(get(st,"availability")).replace(/\s+free$/i, ""),interest=get(st,"interest"),paid=get(st,"paid")?"paid ":"";
+    const context=[time?`${/minutes?|hours?/i.test(time)?"Within":"During"} ${time}`:null,firm?`for ${firm}`:null,city?`in ${city}`:null].filter(Boolean).join(', ');
     return result("conversation_next_step",`${context?context+': ':"One next step: "}${firm?`review one sourced analyst profile at ${firm}`:`review one real ${paid}${interest&&/pattern|explain/i.test(interest)?"data analyst ":""}posting or class-project example`}. Write one sentence about why the work fits you; nothing needs to be submitted. ${city?'':st?.locationWithdrawn?'The target city is unknown in this active conversation. ':''}Paste what you find and we can work on it together.`);
   }
   function matchesPosting(posting,st,profile) {
@@ -164,7 +164,8 @@ const CareerConversation = (() => {
       const evidence=plain(raw),evidenceLow=low(evidence);
       let m=evidence.match(/\b(?:i have|i can spend|i only have)\s+(.{1,65}?(?:minutes?|hours?|afternoons?|mornings?)(?:\s+(?:a|per|each)\s+\w+)?(?:\s+(?:free|daily))?)/i);
       if(m)put("availability",m[1]);
-      if(/\b(?:i (?:like|enjoy|prefer)|i.m interested in)\b/.test(evidenceLow))put("interest",evidence.replace(/^[^.]*?\b(?:like|enjoy|prefer|interested in)\s+/i,"").replace(/[.!]+$/,""));
+      const preference=evidence.match(/(?:^|[.!?]\s*)I (?:actually |really )?(?:like|enjoy|prefer|am interested in)\s+([^.!?]+)/i);
+      if(preference)put("interest",preference[1]);
       if(/\b(?:need|require|must be)\b[^.]*\bpaid\b|\brent\b[^.]*\bdue\b/.test(evidenceLow))put("paid",true);
       if(/\bremote only|\bremote-only/.test(evidenceLow))put("remote_only",true);
       if(/\bpart.time\b/.test(evidenceLow))put("part_time",true);
@@ -218,7 +219,7 @@ const CareerConversation = (() => {
     if(pastedPosting&&/\btailor\b[^.]*\bresume\b/.test(t)&&deps.tailor&&ctx.profile){
       ctx.posting={source:"user_pasted",jd_text:pastedPosting[1],pasted_at:new Date(now(ctx)).toISOString()};
       const tailored=deps.tailor(raw,ctx);
-      if(tailored?.artifact?.text){const saved=artifact(ctx,"tailored_resume",tailored.artifact.text,(ctx.profile.facts||[]).filter(f=>!f.unproven).map(f=>f.text||f.name||f.title));tailored.reply+=`\n\nThe actual resume text for review:\n${saved.text}`;}
+      if(tailored?.artifact?.text){const saved=artifact(ctx,"tailored_resume",tailored.artifact.text,(ctx.profile.facts||[]).filter(f=>!f.unproven).map(f=>f.text||f.name||f.title));tailored.reply+=`\n\nThe actual resume text for review:\n${saved.text}\n\nReview this draft and tell me what to change; nothing was submitted.`;}
       return tailored;
     }
     if(/\b(?:resume|bullet|coursework|class project)\b/.test(t)&&/\b(?:draft|write|show|revised|use only|truthful|keep it truthful|label)\b/.test(t)&&!/\btailor\b/.test(t))return resumeBullet(ctx);

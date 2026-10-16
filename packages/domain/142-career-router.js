@@ -598,7 +598,7 @@ const CareerRouter = (() => {
     const preferredSkillGaps = tailored.preferredGaps ? skillGapNames(tailored.preferredGaps) : [...(jd.niceToHaveSkills || [])].filter((sk, i, a) => a.indexOf(sk) === i && !proven.includes(lc(sk)) && !requiredSkillGaps.includes(sk));
     const gaps = [...requiredSkillGaps, ...preferredSkillGaps];
     const matched = [...(jd.mustHaveSkills || [])].filter((sk) => proven.includes(lc(sk)));
-    const titleLine = posting ? `${posting.title} at ${posting.company}` : "that role";
+    const titleLine = posting ? `${posting.title || "the supplied role"}${posting.company ? ` at ${posting.company}` : " (employer not specified)"}` : "that role";
     const parseVerdict = rendered.parseCheck ? (typeof rendered.parseCheck === "string" ? rendered.parseCheck : rendered.parseCheck.verdict || rendered.parseCheck.status || null) : null;
     // BUG-049: when the ask names its own lead — "lead with X" or an
     // "X, Y forward" tail — the reply names THAT lead. The generic
@@ -5747,7 +5747,7 @@ const CareerRouter = (() => {
       return { intent: "intent_sensitive_correction", resultStatus: "awaiting_user", reply, correction: parsed, invalidation: inv };
     }
     const factSentence = parsed.kind === "future_need" ? "You will need sponsorship in the future — that is what your profile now says." : "You no longer need sponsorship — that is what your profile now says.";
-    const reply = compose({ headline: "Updated — I saved your corrected sponsorship answer to your profile.", facts: [factSentence, "The prepared packet still carries the old answer, so it is invalid now and will not be submitted."], nextStep: "I can re-prepare it with the corrected answer and bring it back for your re-confirmation." });
+    const reply = compose({ headline: "Updated — I saved your corrected sponsorship answer to your profile.", facts: [factSentence, "Any prepared packet that uses the old answer is invalid now and will not be submitted without a new review."], nextStep: "I can re-prepare it with the corrected answer and bring it back for your re-confirmation." });
     return { intent: "intent_sensitive_correction", resultStatus: "completed", reply, correction: { kind: parsed.kind, needsSponsorship: parsed.needsSponsorship, clause: parsed.clause }, audit, invalidation: inv };
   }
 

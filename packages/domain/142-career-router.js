@@ -6269,6 +6269,15 @@ const CareerRouter = (() => {
     // turns on EVERY route are held (drafting / reading / status still run).
     const paused = handlePauseGate(text, c);
     if (paused) return paused;
+    // Capability 2 owns read-only resume/role, gap, location and current-source
+    // recommendations. It takes only host-injected profile/postings; it never
+    // falls back to the filesystem corpus or touches alert/browser state.
+    const recommendations = typeof CareerRecommendations !== "undefined" ? CareerRecommendations : req("./154-career-recommendations.js");
+    const recommendationIntent = recommendations && recommendations.intentFor(text);
+    if (recommendationIntent) {
+      const rec = recommendations.recommend(Object.assign({}, c, { recommendationIntent, text: s(text) }));
+      return { intent: "career_recommendations", reply: rec.text, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec, artifact: rec };
+    }
     // ALERTS HOST WIRING (W4): alert-watch intents (152) — manage before
     // create, so "stop watching X" / "what am I watching" are never read as
     // new-watch asks. Both step aside when 152 is absent from the bundle.

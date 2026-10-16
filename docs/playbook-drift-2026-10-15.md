@@ -68,3 +68,25 @@ the regression test checks that status, host control ownership and null action.
 The frozen independent probes remain unchanged. Full protocol, active-copy
 erasure limits, local PostgreSQL evidence and the unchanged Chromium blocker
 are documented in `docs/career/owned-browser-worker.md`.
+## Capability 2 evidence grounding
+
+Module 144's header promised every factual claim traced to confirmed facts,
+but quant comparison unconditionally said the user had an in-progress CS
+degree, Python and a built project. Its generic plan assumed existing project
+and Python work even for law/nontechnical/empty profiles; data-science and
+interest-change replies also assumed Python/SQL or an age of 32. These claims
+are removed or replaced by confirmed fact citations and explicit unknowns.
+The new 154 adapter supplies evidence-labeled role hypotheses across the
+technical and nontechnical catalog, and requirement-specific skill gaps.
+
+The bundle contribution fixed module reachability; it did not connect current
+job observations or upload confirmation to the handler. The new host contract
+in docs/career/capability2-host-interface.md records that distinction. Local
+fixtures never qualify as current openings in this recommendation path.
+
+The optional broader clock guard cannot start in a clean workspace because
+it reads `$HOME/workspace/your_files/upmore-career-300-scenarios.md` at module
+load (tests/career-clock-source-guard.test.cjs:42). That external artifact is
+absent here. Its frozen expectations and source were left unchanged; the
+failure is preserved in the verification evidence, rather than manufacturing
+a substitute scenario document or relabeling the check as passed.

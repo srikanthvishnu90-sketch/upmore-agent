@@ -52,3 +52,38 @@ export async function planCareerTaskIntent({ taskRequest, message, userId, threa
     intent_id: intentId, bindings: intent, provenance: { source: "atomic_career_task_intent", threadId, turnKey } };
   return { intent, out: reply("The browser task intent is queued for a separate worker. No browser action is claimed by this chat reply; its immutable intent reference is attached.", "queued", task) };
 }
+
+// ---------------------------------------------------------------------------
+// J8 (LOOP ACCEPTANCE tier-1 join, Crew B 2026-10-15): board resolution
+// for the batch-apply drive stage (module 155). 155's deps take a
+// SYNCHRONOUS boardFor(posting) -> board | null, where a board is
+// module 149's contract — the methods open/form/fill/answers/atReview/
+// submit — and null is the named stop BOARD_NOT_WIRED.
+//
+// The owned browser worker supplies board sessions inside its own
+// process (150's board factory, executed from committed
+// career_task_intent/v1 intents — the asynchronous path above). A
+// composition root that can supply sessions synchronously installs a
+// PROVIDER here: an object { boardFor(posting), transport? }. This
+// factory is the single resolution point every composition root (the
+// Edge handler, the harness) goes through, so the wiring cannot drift.
+//
+// Fail-closed, always: no provider, a provider whose boardFor throws
+// (worker unreachable), a provider that returns nothing, or a returned
+// object missing any of 149's board methods all resolve to null — the
+// drive stops named BOARD_NOT_WIRED and no board is ever faked into
+// existence. A bare UPMORE_CAREER_WORKER_URL is NOT a provider: it
+// addresses the worker's asynchronous task API (the intent path at the
+// top of this file); it cannot vend synchronous board sessions and is
+// never treated as one.
+const BOARD_METHODS = ["open", "form", "fill", "answers", "atReview", "submit"];
+export function createCareerBoardFor(provider) {
+  if (!provider || typeof provider.boardFor !== "function") return null;
+  return function careerBoardFor(posting) {
+    let board = null;
+    try { board = provider.boardFor(posting); } catch (_) { return null; }
+    if (!board || typeof board !== "object") return null;
+    for (const m of BOARD_METHODS) if (typeof board[m] !== "function") return null;
+    return board;
+  };
+}

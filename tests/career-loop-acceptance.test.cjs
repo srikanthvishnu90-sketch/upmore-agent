@@ -323,6 +323,105 @@ test("chat path: the three owner message shapes all reach the batch intent", () 
   }
 });
 
+// ---------------------------------------------------------------------------
+// J8: the tier-1 join (Crew B, 2026-10-15). The deployed composition:
+// handler-career.ts builds the host with a boardFor resolved through
+// career_task_bridge (createCareerBoardFor) and the host attaches it to
+// every turn ctx as ctx.batchDeps.boardFor. These cases compose the
+// host EXACTLY that way — the tests never put boardFor into ctx
+// themselves — with the bridge's test double standing in for the owned
+// browser worker's session supply. They run as a fresh user (J8USER)
+// and sit BEFORE the pause case on purpose: a global pause mirrors
+// across an account's threads by design, so any turn composed after
+// that case would be held — ordering, not isolation, is the honest
+// arrangement.
+// ---------------------------------------------------------------------------
+const Bridge = require(path.join(root, "supabase/functions/_shared/career_task_bridge.js"));
+const J8USER = "user-j8-join";
+function hostShapedLikeHandler(boardForFn) {
+  return CareerHost.createCareerHost({
+    CareerAccess: D("120-career-access.js"),
+    CareerOnboarding: D("130-career-onboarding.js"),
+    CareerRouter: D("142-career-router.js"),
+    CareerDoorstep: D("141-career-doorstep.js"),
+    CareerReply: D("140-career-reply.js"),
+    CareerContainment: D("143-career-containment.js"),
+    boardFor: boardForFn || undefined,
+  });
+}
+
+test("join: the bridge resolves no provider, a down worker, and a malformed board all to no board", () => {
+  assert.equal(Bridge.createCareerBoardFor(null), null, "no provider -> no boardFor at all");
+  assert.equal(Bridge.createCareerBoardFor({}), null, "a provider without boardFor is no provider");
+  const down = Bridge.createCareerBoardFor({ boardFor() { throw new Error("worker unreachable"); } });
+  assert.equal(typeof down, "function");
+  assert.equal(down(MARKET[0]), null, "an unreachable worker yields no board — the stop stays BOARD_NOT_WIRED");
+  const malformed = Bridge.createCareerBoardFor({ boardFor: () => ({ atsFamily: "greenhouse" }) });
+  assert.equal(malformed(MARKET[0]), null, "an object without module 149's board methods is no board, never a fake drive");
+  const good = Bridge.createCareerBoardFor({ transport: "owned_browser_worker", boardFor });
+  const b = good(MARKET[0]);
+  assert.ok(b && typeof b.submit === "function" && b.atsFamily === MARKET[0].atsFamily, "a contract-satisfying board passes through");
+});
+
+test("join: composed as the handler composes it with no provider, the loop stops named BOARD_NOT_WIRED at the drive stage", () => {
+  const host = hostShapedLikeHandler(Bridge.createCareerBoardFor(null));
+  const log = { records: [] };
+  const ctx = host.createTurnCtx({ userId: J8USER, threadId: "thread-j8-unwired", now: NOW, snapshot: null, profile: MASTER, postings: MARKET, batchDeps: { log, attestations: ATTEST } });
+  ctx.portalProfile = PROFILE;
+  assert.equal(ctx.batchDeps.boardFor, undefined, "no boardFor is attached when the bridge resolved no provider");
+  const turn = host.runTurn("apply to 15 software engineering intern roles", ctx);
+  assert.equal(turn.intent, "career_batch_apply", turn.reply);
+  assert.equal(turn.capabilities.portal_browser.status, "NOT_WIRED");
+  const run = ctx.batchApplyState;
+  assert.equal(run.summary.submitted, 0);
+  assert.equal(run.summary.doorstep, 0);
+  assert.equal(run.summary.stops.length, 15, "every selected application reaches the drive stage and stops there");
+  assert.ok(run.summary.stops.every((x) => x.code === "BOARD_NOT_WIRED"), "one honest name on every stop");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 0, "nothing was faked into a submission");
+});
+
+test("join: with the bridge's test double wired through the host, the same message submits 13", () => {
+  const boardForFn = Bridge.createCareerBoardFor({ transport: "owned_browser_worker", boardFor });
+  assert.equal(typeof boardForFn, "function");
+  const host = hostShapedLikeHandler(boardForFn);
+  const log = { records: [] };
+  const deps = { log, attestations: ATTEST };
+  const ctx1 = host.createTurnCtx({ userId: J8USER, threadId: "thread-j8-wired-1", now: NOW, snapshot: null, profile: MASTER, postings: MARKET, batchDeps: deps });
+  assert.equal(ctx1.batchDeps.boardFor, boardForFn, "the boardFor arrived from the host composition — the test never set it on ctx");
+  ctx1.portalProfile = PROFILE;
+  const turn1 = host.runTurn("apply to 15 software engineering intern roles", ctx1);
+  assert.equal(turn1.intent, "career_batch_apply", turn1.reply);
+  assert.equal(turn1.resultStatus, "awaiting_approval", turn1.reply);
+  assert.equal(turn1.capabilities.portal_browser.status, "WIRED");
+  assert.equal(turn1.capabilities.portal_browser.transport, "career_task_bridge");
+  assert.equal(ctx1.batchApplyState.summary.doorstep, 13, "the full fixture trajectory still holds through the join");
+  const snap = host.extractSnapshot(ctx1);
+  assert.ok(!("batchDeps" in snap.stores), "runtime wiring never rides the snapshot");
+  const ctx2 = host.createTurnCtx({ userId: J8USER, threadId: "thread-j8-wired-2", now: NOW, snapshot: snap, profile: MASTER, postings: [], batchDeps: deps });
+  assert.equal(ctx2.batchDeps.boardFor, boardForFn, "the host re-attaches boardFor on the resumed invocation");
+  ctx2.portalProfile = PROFILE;
+  ctx2.batchApproval = { approvedByUser: true };
+  const turn2 = host.runTurn("yes", ctx2);
+  assert.equal(turn2.intent, "career_batch_apply", turn2.reply);
+  assert.equal(ctx2.batchApplyState.summary.submitted, 13, "the wired path submits where the unwired path stopped BOARD_NOT_WIRED");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 13);
+});
+
+test("join: a wired bridge whose worker is down stops every drive named BOARD_NOT_WIRED — nothing faked, nothing submitted", () => {
+  const downBoardFor = Bridge.createCareerBoardFor({ transport: "owned_browser_worker", boardFor() { throw new Error("worker unreachable"); } });
+  const host = hostShapedLikeHandler(downBoardFor);
+  const log = { records: [] };
+  const ctx = host.createTurnCtx({ userId: J8USER, threadId: "thread-j8-down", now: NOW, snapshot: null, profile: MASTER, postings: MARKET, batchDeps: { log, attestations: ATTEST } });
+  ctx.portalProfile = PROFILE;
+  const turn = host.runTurn("apply to 15 software engineering intern roles", ctx);
+  assert.equal(turn.intent, "career_batch_apply", turn.reply);
+  const run = ctx.batchApplyState;
+  assert.equal(run.summary.submitted, 0);
+  assert.equal(run.summary.stops.length, 15);
+  assert.ok(run.summary.stops.every((x) => x.code === "BOARD_NOT_WIRED"), "the worker being down degrades to the same named stop, per application");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 0);
+});
+
 test("chat path: under the global pause the batch does NOT run (the pause gate keeps priority over the seam)", () => {
   const ctx = seam.createTurnCtx({ userId: USER, threadId: "thread-loop-paused", now: NOW, snapshot: null, profile: MASTER, postings: MARKET });
   ctx.globalPause = { set: true, at: new Date(NOW).toISOString(), source: "user" };

@@ -31,7 +31,7 @@ import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../_shared/router_core.career.js";
-import { planCareerTaskIntent, normalizeCareerTaskRequest } from "../_shared/career_task_bridge.js";
+import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 
@@ -160,7 +160,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // dispatch the gauntlet grades (tests/career-http-host.test.cjs).
     // Per-thread career state rides agent_flow_state.state under the
     // "career" key, mirroring the flow router's own use of that table.
-    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
+    // J8 (LOOP ACCEPTANCE tier-1 join): module 155's drive stage takes
+    // its board adapter from ctx.batchDeps.boardFor, which the host now
+    // supplies from this composition root. Resolution lives in
+    // career_task_bridge (createCareerBoardFor): a provider supplies
+    // board sessions and every failure mode resolves to null, the
+    // named BOARD_NOT_WIRED stop — never a faked board. The owned
+    // browser worker supplies sessions inside its own process (150's
+    // factory, executed from committed career_task_intent/v1 intents);
+    // this Edge runtime installs no in-process provider, so the bridge
+    // resolves null today: the seam is wired end to end, the stop
+    // stays honest, and installing a provider is a change to this one
+    // call site alone.
+    const boardFor = createCareerBoardFor(null);
+    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor });
     let careerTask;
     try { careerTask = normalizeCareerTaskRequest(body.career_task); }
     catch (_) { return json(cors, { error: "invalid_career_task", action: null, turn_key: turnKey }, 400); }

@@ -1,0 +1,63 @@
+{
+  "entry": "agent-chat/index-career.ts",
+  "mode": "RAW (esbuild unavailable \u2014 total is an upper bound)",
+  "files": 11,
+  "totalBytes": 3910936,
+  "fileList": [
+    {
+      "path": "_shared/career_host.js",
+      "bytes": 15427,
+      "sha256": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e"
+    },
+    {
+      "path": "_shared/career_persistence.js",
+      "bytes": 6213,
+      "sha256": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec"
+    },
+    {
+      "path": "_shared/career_research_policy.js",
+      "bytes": 2242,
+      "sha256": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a"
+    },
+    {
+      "path": "_shared/career_task_bridge.js",
+      "bytes": 6066,
+      "sha256": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743"
+    },
+    {
+      "path": "_shared/identity_redact.ts",
+      "bytes": 5660,
+      "sha256": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83"
+    },
+    {
+      "path": "_shared/router_core.career.js",
+      "bytes": 3857103,
+      "sha256": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044"
+    },
+    {
+      "path": "agent-chat/_shared/chat_cors.ts",
+      "bytes": 778,
+      "sha256": "a2b2d1842471e86573601fe7e31075d8105a432b9d5fa053cfcd12fe591c7796"
+    },
+    {
+      "path": "agent-chat/_shared/chat_input.ts",
+      "bytes": 2034,
+      "sha256": "1929990c0e2f3ce56c59b67b413c6026aab0e15ae6b44daa3578076c17da2662"
+    },
+    {
+      "path": "agent-chat/_shared/chat_session.ts",
+      "bytes": 1326,
+      "sha256": "25aee5ae5b24d3150a8551ebfbe0db98297aed75fbb3a8b0423b52b2b29ec623"
+    },
+    {
+      "path": "agent-chat/handler-career.ts",
+      "bytes": 13511,
+      "sha256": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7"
+    },
+    {
+      "path": "agent-chat/index.ts",
+      "bytes": 576,
+      "sha256": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7"
+    }
+  ]
+}

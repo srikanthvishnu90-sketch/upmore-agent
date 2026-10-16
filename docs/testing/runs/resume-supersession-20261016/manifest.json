@@ -1,0 +1,145 @@
+{
+  "baseCommit": "e66e39cf9e30044341773298c9896007fc12663c",
+  "testedSourceCommit": "567389b8c7887b24ac0f751abb5f00375172ac23",
+  "sourceDigest": "6714b50c5edb0db84b974422d25fbbabc024578855c97d890497bfb4d1f3ef0c",
+  "baselineSourceDigestWithNewOracles": "49829e8dfe03a01c5201ae89aa37c0604e94b63eca7192412f6c728d25789451",
+  "libraryFinding": {
+    "libraryFileId": "libfile_60ab0ce72ad881918d78370d0ec266ff",
+    "archiveSha256": "7cddad0d31ffce9e4c65bea5fa18c800ffadd65a3b6ad9842aea18b0b4902e5e",
+    "selectedArchivePath": "evidence/REPLACEMENT_UNIQUE_SUPERSESSION_FINDING.json"
+  },
+  "bundleReplacementProof": {
+    "supabase/functions/_shared/router_core.js": {
+      "before": "fd87f88ecac44e67b71b508ee4327c5efb13eac6d722508e4b4f81c75a1e228d",
+      "after": "a16f93eeaf5a5de2cb4843b6cf0c348f7d402cd249ff97c4ae50d2bc705026e7",
+      "onlyModule130Replacement": true
+    },
+    "supabase/functions/_shared/router_core.career.js": {
+      "before": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044",
+      "after": "70827dcff4a3635f452f75ee08e0265445a3b716e3b251e7a37c11c932cddc63",
+      "onlyModule130Replacement": true
+    }
+  },
+  "counts": {
+    "baselineNew": {
+      "pass": 1,
+      "fail": 30
+    },
+    "afterNewSourceAndStaged": {
+      "pass": 31,
+      "fail": 0
+    },
+    "afterRealSQL": {
+      "pass": 4,
+      "fail": 0
+    },
+    "baselineAndAfterWider": {
+      "pass": 177,
+      "fail": 2
+    }
+  },
+  "legacyAPIs": "INERT_UNCHANGED",
+  "paidProviderCalls": 0,
+  "browserTasks": 0,
+  "productionActions": 0,
+  "newPersistenceOrSchema": false,
+  "tooling": "Existing authorized git, not the superseded archive publication attempt",
+  "finalRecord": "docs/testing/runs/resume-supersession-20261016-final/results.json",
+  "files": {
+    "docs/testing/runs/resume-supersession-20261016/after-final-oracles.log": {
+      "sha256": "87a6ce3f8fb1bfadfaef6ac87fd7f01296d8591747ea9037904a6f798b9f0ab1",
+      "bytes": 3577
+    },
+    "docs/testing/runs/resume-supersession-20261016/after.log": {
+      "sha256": "6b774b9e8036ca1a80a525d593d87e52001750ea13e860dc6919b48cb52f1c11",
+      "bytes": 3474
+    },
+    "docs/testing/runs/resume-supersession-20261016/baseline.log": {
+      "sha256": "2c114f1f335e8639b9a47bf04db098ccee6873a44dec0299a97811588b968534",
+      "bytes": 40520
+    },
+    "docs/testing/runs/resume-supersession-20261016/compatibility.log": {
+      "sha256": "6bbfce4ab9cfa69e243d9e2ff982788602e6dced575e72eebebe9757aa42d280",
+      "bytes": 4293
+    },
+    "docs/testing/runs/resume-supersession-20261016/employment-ambiguity-before-guard.log": {
+      "sha256": "5b6b27ecc58b8895168d6cd9820c079e9cf555bb8df36f66fca809e51e80dba6",
+      "bytes": 1095
+    },
+    "docs/testing/runs/resume-supersession-20261016/final-local-database.sql.gz": {
+      "sha256": "2ccd4b9eb0dcb6675e5cbff96714bc5ee1d74cc6f416773121833eb5ea807ac8",
+      "bytes": 12298
+    },
+    "docs/testing/runs/resume-supersession-20261016/final-oracles-baseline.log": {
+      "sha256": "8e950d3c4b610313c7d935c1f30cf58cfbedd2ce809650d9fc2f329a045beac4",
+      "bytes": 42657
+    },
+    "docs/testing/runs/resume-supersession-20261016/postgres-after.log": {
+      "sha256": "df6ccbb3e41461a1f001894aec1428037b28773dc8470e0d25cc6dd2af8651ca",
+      "bytes": 885
+    },
+    "docs/testing/runs/resume-supersession-20261016/recovered-finding.json": {
+      "sha256": "414dfda216dc943c04a8d160fe0b038bed0e1cc8f8ab281a48dfaa9b1cf3e862",
+      "bytes": 329
+    },
+    "docs/testing/runs/resume-supersession-20261016/regressions-after.log": {
+      "sha256": "b4154b50ddf2044dcad72de02d18d9d31a6fbd88e88a7e88ab69f1b14839c7aa",
+      "bytes": 20840
+    },
+    "docs/testing/runs/resume-supersession-20261016/regressions-baseline.log": {
+      "sha256": "a46f7cdc451724fdc7205835f28cc78dc7ce82ce389e26f2ad0fe7d3a7c6d0bf",
+      "bytes": 20823
+    },
+    "docs/testing/runs/resume-supersession-20261016/reported-reproduction-after.json": {
+      "sha256": "27d2bd36d457e96df1a4a109114d9adf068f3aefb0ecc84ff655177dbbfb512c",
+      "bytes": 3413
+    },
+    "docs/testing/runs/resume-supersession-20261016/reported-reproduction-baseline.json": {
+      "sha256": "d9331caa556a50bbf9adebc3c3e1a603ddcd946049c5caf14df6e9a8efeb2219",
+      "bytes": 2058
+    },
+    "docs/testing/runs/resume-supersession-20261016/stage-after.json": {
+      "sha256": "bbc82298b676847f3283e7ad7f3cc4283f6e5a65d6b1380f1aad12d51e344e95",
+      "bytes": 1974
+    },
+    "docs/testing/runs/resume-supersession-20261016/stage-baseline.json": {
+      "sha256": "74b8776d85ff314249c49fa16c3f7c0c4fd05f8a1ed8786c717ade7ef01f841d",
+      "bytes": 1974
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/career-bundle.log": {
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "bytes": 23
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/diff-whitespace.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/full-bundle.log": {
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "bytes": 23
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/regressions.log": {
+      "sha256": "126970edf75f395e96332ec9b33361a435dc95af31062f7a364a340d3dd768e2",
+      "bytes": 20836
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/results.json": {
+      "sha256": "bc899bff79c26711a5551ca7e189839bc794ae2bc08b4fd98da81795ebf84ff6",
+      "bytes": 28298
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/stage.log": {
+      "sha256": "2fc2305cae8b32978ca3befc10143a230c9c2ecbe8ae71a884c44994c78ce009",
+      "bytes": 737
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/supersession-postgres.log": {
+      "sha256": "e42899b94ff55358c5e683343171a0a7f3713a781f0c4ec45d17644fe67f071a",
+      "bytes": 886
+    },
+    "docs/testing/runs/resume-supersession-20261016-final/supersession-source.log": {
+      "sha256": "83953e323a43d3eb9ceda5a3a4683cb6c07dc0f19b85355a1c6430f28f336857",
+      "bytes": 3578
+    }
+  },
+  "stagedChangedFiles": [
+    "_shared/router_core.career.js"
+  ]
+}

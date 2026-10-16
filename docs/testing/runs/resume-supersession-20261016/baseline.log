@@ -1,0 +1,885 @@
+(node:788) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:788) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ exact staged entry commits repeated owned updates, free replay and fresh-handler recall (342.001411ms)
+✖ repeated update source authority never crosses owners with default-id (193.028037ms)
+✖ repeated update source authority never crosses owners with name (182.888178ms)
+✖ repeated update source authority never crosses owners with email (183.909349ms)
+✖ failed repeated update leaves 2028 and can retry the same key once without leaking 2033 to B (182.88354ms)
+✖ mere source import/recall does not update a fact, and a superseded source cannot replay on a new key (190.451546ms)
+✖ reported CP10: confirmed 2028 can explicitly become 2033 then 2030, preserving fact identity and prior active audit (7.498001ms)
+✖ explicit current source wins over unresolved historical old/new labels (0.522824ms)
+✖ existing explicit source alias resumeTexts.new can supersede a confirmed fact (0.306905ms)
+✖ existing explicit source alias resumeTexts.newText can supersede a confirmed fact (0.461795ms)
+✖ existing explicit source alias resumeSources.resume-new.txt can supersede a confirmed fact (0.344313ms)
+✖ an initially confirmed education record can accept an explicit new date (0.198036ms)
+✖ current explicit source is idempotent across JSON reload, with no version or audit bump (0.390822ms)
+✖ a previously adopted, superseded source cannot replay after fresh profile reload (0.474985ms)
+✖ adopted source fingerprint is owner-profile metadata, not a global correction store (1.037837ms)
+✖ ambiguous/stale explicit source never falls back to old labels: missing date (0.444054ms)
+✖ ambiguous/stale explicit source never falls back to old labels: empty new source (0.248587ms)
+✖ ambiguous/stale explicit source never falls back to old labels: old source only (0.166565ms)
+✖ ambiguous/stale explicit source never falls back to old labels: conflicting aliases (0.254995ms)
+✖ ambiguous/stale explicit source never falls back to old labels: conflicting source boxes (0.146243ms)
+✖ ambiguous/stale explicit source never falls back to old labels: multiple graduation dates (0.085271ms)
+✖ ambiguous/stale explicit source never falls back to old labels: structured unowned source is not text (0.078674ms)
+✖ multiple education targets cannot all receive one unbound graduation correction (0.551988ms)
+✖ an ambiguous education update cannot partially confirm another employment conflict (0.446441ms)
+✖ repeat employment-date corrections replace the active range annotation and audit the previous range (0.192094ms)
+✖ non-direct correction text cannot mutate a profile: Suppose I say use the new resume. (2.061228ms)
+✖ non-direct correction text cannot mutate a profile: What does "use the new resume" mean? (0.765325ms)
+✖ non-direct correction text cannot mutate a profile: "Use the new resume" (0.619711ms)
+✖ non-direct correction text cannot mutate a profile: Use the new resume if the date is verified. (0.470823ms)
+✔ without a newly selected source, confirmed history remains immutable on correction/read/legacy replay (1.156302ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 1
+ℹ fail 29
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1513.339692
+
+✖ failing tests:
+
+test at tests/resume-supersession-entry.test.cjs:4:1
+✖ exact staged entry commits repeated owned updates, free replay and fresh-handler recall (342.001411ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession-entry.test.cjs:5:182)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession-entry.test.cjs:8:54
+✖ repeated update source authority never crosses owners with default-id (193.028037ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession-entry.test.cjs:9:108)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession-entry.test.cjs:8:54
+✖ repeated update source authority never crosses owners with name (182.888178ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession-entry.test.cjs:9:108)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession-entry.test.cjs:8:54
+✖ repeated update source authority never crosses owners with email (183.909349ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession-entry.test.cjs:9:108)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession-entry.test.cjs:12:1
+✖ failed repeated update leaves 2028 and can retry the same key once without leaking 2033 to B (182.88354ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession-entry.test.cjs:14:59)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession-entry.test.cjs:16:1
+✖ mere source import/recall does not update a fact, and a superseded source cannot replay on a new key (190.451546ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession-entry.test.cjs:17:185)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:6:1
+✖ reported CP10: confirmed 2028 can explicitly become 2033 then 2030, preserving fact identity and prior active audit (7.498001ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"code":"no_resolvable_conflict","changes":[],"text":"I do not have a newer resume source on file that resolves a stored conflict, so I changed nothing. Upload the new resume or tell me the corrected value and I will record it."}
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:8:101)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:11:1
+✖ explicit current source wins over unresolved historical old/new labels (0.522824ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '2028' !== '2033'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:11:168)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '2028',
+    expected: '2033',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:12:108
+✖ existing explicit source alias resumeTexts.new can supersede a confirmed fact (0.306905ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:13:116)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:12:108
+✖ existing explicit source alias resumeTexts.newText can supersede a confirmed fact (0.461795ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:13:116)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:12:108
+✖ existing explicit source alias resumeSources.resume-new.txt can supersede a confirmed fact (0.344313ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:13:116)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:15:1
+✖ an initially confirmed education record can accept an explicit new date (0.198036ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:15:211)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:16:1
+✖ current explicit source is idempotent across JSON reload, with no version or audit bump (0.390822ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:17:125)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:20:1
+✖ a previously adopted, superseded source cannot replay after fresh profile reload (0.474985ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:21:84)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:24:1
+✖ adopted source fingerprint is owner-profile metadata, not a global correction store (1.037837ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'f6b367a0d14a40e960a8766577e58e4d09398573f8a3cc3ed02c0c21aa3b3cde'
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:25:181)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'f6b367a0d14a40e960a8766577e58e4d09398573f8a3cc3ed02c0c21aa3b3cde',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: missing date (0.444054ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: empty new source (0.248587ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: old source only (0.166565ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: conflicting aliases (0.254995ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: conflicting source boxes (0.146243ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: multiple graduation dates (0.085271ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:35:4
+✖ ambiguous/stale explicit source never falls back to old labels: structured unowned source is not text (0.078674ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:35:86)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:36:1
+✖ multiple education targets cannot all receive one unbound graduation correction (0.551988ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:36:172)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:37:1
+✖ an ambiguous education update cannot partially confirm another employment conflict (0.446441ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at unchanged (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:5:101)
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:39:2)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:41:1
+✖ repeat employment-date corrections replace the active range annotation and audit the previous range (0.192094ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:43:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:45:168
+✖ non-direct correction text cannot mutate a profile: Suppose I say use the new resume. (2.061228ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      basics: {},
+      constraints: {
+  +     graduationDate: '2028'
+  -     graduationDate: '2027'
+      },
+  +   dependent_state: {
+  +     based_on_source: 'resume-new.txt',
+  +     confirmed_fact_count: 1,
+  +     eligibility: 'recomputed from confirmed facts only',
+  +     materials: 'invalidated and rebuilt on the new facts',
+  +     rebuilt: true,
+  +     rebuilt_at: null
+  +   },
+  +   fact_version: 1,
+      facts: [
+        {
+          id: 'SYNTHETIC-GRAD',
+          kind: 'education',
+  +       needs_confirmation: false,
+  +       resolution: {
+  +         at: null,
+  +         basis: 'user instruction in chat: use the new resume; the old one is wrong',
+  +         source: 'resume-new.txt',
+  +         value: '2028'
+  +       },
+  +       status: 'confirmed',
+  +       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028 Resolved by your instruction to use the new resume: 2028.',
+  -       needs_confirmation: true,
+  -       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028',
+          title: 'Graduation conflict'
+        }
+      ],
+      id: 'profile-1',
+      preferences: {},
+  +   profile_corrections: [
+  +     {
+  +       at: null,
+  +       changes: [
+  +         {
+  +           fact_id: 'SYNTHETIC-GRAD',
+  +           field: 'graduation_date',
+  +           from: '2027',
+  +           source: 'resume-new.txt',
+  +           to: '2028'
+  +         }
+  +       ],
+  +       instruction: 'Suppose I say use the new resume.',
+  +       outcome: 'user-directed correction',
+  +       precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +       source: 'resume-new.txt'
+  +     }
+  +   ],
+  +   resume_sources: {
+  +     active: 'resume-new.txt',
+  +     precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +     status: 'active_new_wins'
+  +   }
+    }
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:46:112)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2028' }, facts: [ [Object] ], fact_version: 1, profile_corrections: [ [Object] ], resume_sources: { active: 'resume-new.txt', status: 'active_new_wins', precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted" }, dependent_state: { rebuilt: true, rebuilt_at: null, based_on_source: 'resume-new.txt', eligibility: 'recomputed from confirmed facts only', materials: 'invalidated and rebuilt on the new facts', confirmed_fact_count: 1 } },
+    expected: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2027' }, facts: [ [Object] ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:45:168
+✖ non-direct correction text cannot mutate a profile: What does "use the new resume" mean? (0.765325ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      basics: {},
+      constraints: {
+  +     graduationDate: '2028'
+  -     graduationDate: '2027'
+      },
+  +   dependent_state: {
+  +     based_on_source: 'resume-new.txt',
+  +     confirmed_fact_count: 1,
+  +     eligibility: 'recomputed from confirmed facts only',
+  +     materials: 'invalidated and rebuilt on the new facts',
+  +     rebuilt: true,
+  +     rebuilt_at: null
+  +   },
+  +   fact_version: 1,
+      facts: [
+        {
+          id: 'SYNTHETIC-GRAD',
+          kind: 'education',
+  +       needs_confirmation: false,
+  +       resolution: {
+  +         at: null,
+  +         basis: 'user instruction in chat: use the new resume; the old one is wrong',
+  +         source: 'resume-new.txt',
+  +         value: '2028'
+  +       },
+  +       status: 'confirmed',
+  +       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028 Resolved by your instruction to use the new resume: 2028.',
+  -       needs_confirmation: true,
+  -       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028',
+          title: 'Graduation conflict'
+        }
+      ],
+      id: 'profile-1',
+      preferences: {},
+  +   profile_corrections: [
+  +     {
+  +       at: null,
+  +       changes: [
+  +         {
+  +           fact_id: 'SYNTHETIC-GRAD',
+  +           field: 'graduation_date',
+  +           from: '2027',
+  +           source: 'resume-new.txt',
+  +           to: '2028'
+  +         }
+  +       ],
+  +       instruction: 'What does "use the new resume" mean?',
+  +       outcome: 'user-directed correction',
+  +       precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +       source: 'resume-new.txt'
+  +     }
+  +   ],
+  +   resume_sources: {
+  +     active: 'resume-new.txt',
+  +     precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +     status: 'active_new_wins'
+  +   }
+    }
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:46:112)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2028' }, facts: [ [Object] ], fact_version: 1, profile_corrections: [ [Object] ], resume_sources: { active: 'resume-new.txt', status: 'active_new_wins', precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted" }, dependent_state: { rebuilt: true, rebuilt_at: null, based_on_source: 'resume-new.txt', eligibility: 'recomputed from confirmed facts only', materials: 'invalidated and rebuilt on the new facts', confirmed_fact_count: 1 } },
+    expected: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2027' }, facts: [ [Object] ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:45:168
+✖ non-direct correction text cannot mutate a profile: "Use the new resume" (0.619711ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      basics: {},
+      constraints: {
+  +     graduationDate: '2028'
+  -     graduationDate: '2027'
+      },
+  +   dependent_state: {
+  +     based_on_source: 'resume-new.txt',
+  +     confirmed_fact_count: 1,
+  +     eligibility: 'recomputed from confirmed facts only',
+  +     materials: 'invalidated and rebuilt on the new facts',
+  +     rebuilt: true,
+  +     rebuilt_at: null
+  +   },
+  +   fact_version: 1,
+      facts: [
+        {
+          id: 'SYNTHETIC-GRAD',
+          kind: 'education',
+  +       needs_confirmation: false,
+  +       resolution: {
+  +         at: null,
+  +         basis: 'user instruction in chat: use the new resume; the old one is wrong',
+  +         source: 'resume-new.txt',
+  +         value: '2028'
+  +       },
+  +       status: 'confirmed',
+  +       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028 Resolved by your instruction to use the new resume: 2028.',
+  -       needs_confirmation: true,
+  -       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028',
+          title: 'Graduation conflict'
+        }
+      ],
+      id: 'profile-1',
+      preferences: {},
+  +   profile_corrections: [
+  +     {
+  +       at: null,
+  +       changes: [
+  +         {
+  +           fact_id: 'SYNTHETIC-GRAD',
+  +           field: 'graduation_date',
+  +           from: '2027',
+  +           source: 'resume-new.txt',
+  +           to: '2028'
+  +         }
+  +       ],
+  +       instruction: '"Use the new resume"',
+  +       outcome: 'user-directed correction',
+  +       precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +       source: 'resume-new.txt'
+  +     }
+  +   ],
+  +   resume_sources: {
+  +     active: 'resume-new.txt',
+  +     precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +     status: 'active_new_wins'
+  +   }
+    }
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:46:112)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2028' }, facts: [ [Object] ], fact_version: 1, profile_corrections: [ [Object] ], resume_sources: { active: 'resume-new.txt', status: 'active_new_wins', precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted" }, dependent_state: { rebuilt: true, rebuilt_at: null, based_on_source: 'resume-new.txt', eligibility: 'recomputed from confirmed facts only', materials: 'invalidated and rebuilt on the new facts', confirmed_fact_count: 1 } },
+    expected: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2027' }, facts: [ [Object] ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/resume-supersession.test.cjs:45:168
+✖ non-direct correction text cannot mutate a profile: Use the new resume if the date is verified. (0.470823ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      basics: {},
+      constraints: {
+  +     graduationDate: '2028'
+  -     graduationDate: '2027'
+      },
+  +   dependent_state: {
+  +     based_on_source: 'resume-new.txt',
+  +     confirmed_fact_count: 1,
+  +     eligibility: 'recomputed from confirmed facts only',
+  +     materials: 'invalidated and rebuilt on the new facts',
+  +     rebuilt: true,
+  +     rebuilt_at: null
+  +   },
+  +   fact_version: 1,
+      facts: [
+        {
+          id: 'SYNTHETIC-GRAD',
+          kind: 'education',
+  +       needs_confirmation: false,
+  +       resolution: {
+  +         at: null,
+  +         basis: 'user instruction in chat: use the new resume; the old one is wrong',
+  +         source: 'resume-new.txt',
+  +         value: '2028'
+  +       },
+  +       status: 'confirmed',
+  +       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028 Resolved by your instruction to use the new resume: 2028.',
+  -       needs_confirmation: true,
+  -       text: 'resume-old.txt says graduation 2027; resume-new.txt says graduation 2028',
+          title: 'Graduation conflict'
+        }
+      ],
+      id: 'profile-1',
+      preferences: {},
+  +   profile_corrections: [
+  +     {
+  +       at: null,
+  +       changes: [
+  +         {
+  +           fact_id: 'SYNTHETIC-GRAD',
+  +           field: 'graduation_date',
+  +           from: '2027',
+  +           source: 'resume-new.txt',
+  +           to: '2028'
+  +         }
+  +       ],
+  +       instruction: 'Use the new resume if the date is verified.',
+  +       outcome: 'user-directed correction',
+  +       precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +       source: 'resume-new.txt'
+  +     }
+  +   ],
+  +   resume_sources: {
+  +     active: 'resume-new.txt',
+  +     precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +     status: 'active_new_wins'
+  +   }
+    }
+  
+      at TestContext.<anonymous> (/workspace/upmore-resume-supersession/tests/resume-supersession.test.cjs:46:112)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2028' }, facts: [ [Object] ], fact_version: 1, profile_corrections: [ [Object] ], resume_sources: { active: 'resume-new.txt', status: 'active_new_wins', precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted" }, dependent_state: { rebuilt: true, rebuilt_at: null, based_on_source: 'resume-new.txt', eligibility: 'recomputed from confirmed facts only', materials: 'invalidated and rebuilt on the new facts', confirmed_fact_count: 1 } },
+    expected: { id: 'profile-1', basics: {}, preferences: {}, constraints: { graduationDate: '2027' }, facts: [ [Object] ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

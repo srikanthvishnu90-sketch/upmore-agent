@@ -1,0 +1,104 @@
+{
+  "first": {
+    "intent": "profile_correction",
+    "resultStatus": "completed",
+    "ok": true,
+    "changes": [
+      {
+        "fact_id": "SYNTHETIC-GRAD",
+        "field": "graduation_date",
+        "from": "2027",
+        "to": "2028",
+        "source": "resume-new.txt"
+      }
+    ],
+    "audit": {
+      "at": "2026-10-16T12:00:00Z",
+      "instruction": "use the new one, old resume's wrong",
+      "source": "resume-new.txt",
+      "precedence": "new source wins per the user's explicit instruction; prior sources are superseded, not deleted",
+      "changes": [
+        {
+          "fact_id": "SYNTHETIC-GRAD",
+          "field": "graduation_date",
+          "from": "2027",
+          "to": "2028",
+          "source": "resume-new.txt"
+        }
+      ],
+      "outcome": "user-directed correction"
+    },
+    "reply": "Done — I switched your active resume to the new one and recorded that it wins over the old one. Your graduation year is now 2028 from the new resume, and I rebuilt your eligibility and materials on the new facts."
+  },
+  "second": {
+    "intent": "profile_correction",
+    "resultStatus": "completed",
+    "ok": true,
+    "changes": [
+      {
+        "fact_id": "SYNTHETIC-GRAD",
+        "field": "graduation_date",
+        "from": "2028",
+        "to": "2033",
+        "source": "resume-new.txt"
+      }
+    ],
+    "audit": {
+      "at": "2026-10-16T12:01:00Z",
+      "instruction": "use the new resume",
+      "source": "resume-new.txt",
+      "precedence": "new source wins per the user's explicit instruction; prior sources are superseded, not deleted",
+      "changes": [
+        {
+          "fact_id": "SYNTHETIC-GRAD",
+          "field": "graduation_date",
+          "from": "2028",
+          "to": "2033",
+          "source": "resume-new.txt"
+        }
+      ],
+      "outcome": "user-directed correction",
+      "source_sha256": "5af1af2dfa91fd0772e37c32f448794694cb74f0eb7a549dbdda0dca54f2935a"
+    },
+    "reply": "Done — I switched your active resume to the new one and recorded that it wins over the old one. Your graduation year is now 2033 from the new resume, and I rebuilt your eligibility and materials on the new facts."
+  },
+  "activeGraduation": "2033",
+  "factVersion": 2,
+  "auditEntries": 2,
+  "corrections": [
+    {
+      "at": "2026-10-16T12:00:00Z",
+      "instruction": "use the new one, old resume's wrong",
+      "source": "resume-new.txt",
+      "precedence": "new source wins per the user's explicit instruction; prior sources are superseded, not deleted",
+      "changes": [
+        {
+          "fact_id": "SYNTHETIC-GRAD",
+          "field": "graduation_date",
+          "from": "2027",
+          "to": "2028",
+          "source": "resume-new.txt"
+        }
+      ],
+      "outcome": "user-directed correction"
+    },
+    {
+      "at": "2026-10-16T12:01:00Z",
+      "instruction": "use the new resume",
+      "source": "resume-new.txt",
+      "precedence": "new source wins per the user's explicit instruction; prior sources are superseded, not deleted",
+      "changes": [
+        {
+          "fact_id": "SYNTHETIC-GRAD",
+          "field": "graduation_date",
+          "from": "2028",
+          "to": "2033",
+          "source": "resume-new.txt"
+        }
+      ],
+      "outcome": "user-directed correction",
+      "source_sha256": "5af1af2dfa91fd0772e37c32f448794694cb74f0eb7a549dbdda0dca54f2935a"
+    }
+  ],
+  "legacyCacheExport": []
+}

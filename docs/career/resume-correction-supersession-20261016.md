@@ -3,7 +3,8 @@
 Base: latest remote integrated privacy branch
 `codex/privacy-research-conversation-integration-20261016` at
 `e66e39cf9e30044341773298c9896007fc12663c`. Isolated review branch:
-`codex/resume-correction-supersession-20261016`. Shared release, earlier privacy
+`codex/resume-correction-supersession-20261016`. Final tested source:
+`567389b8c7887b24ac0f751abb5f00375172ac23`. Shared release, earlier privacy
 and model-gateway contributions are not updated or merged. Muse retains
 integration, merge and deployment ownership.
 

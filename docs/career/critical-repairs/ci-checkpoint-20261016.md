@@ -34,3 +34,11 @@ An engineering-only green job cannot certify the original complete suite.
 No paid calls, production mutations, sends or browser outcomes were performed.
 Actual model/verifier quality and all 15 live-browser outcomes remain NOT_RUN.
 Muse owns final merge, migrations and deployment.
+
+Fresh flexible-grounding controls ran against implementation commit
+`98d6d99ba5c5c50e250277648a3704be2ff7ce2a`: all 52 unmutated checks passed,
+then all 15 independently planted defects were killed. Their raw logs remain
+under `docs/testing/runs/career-flexible-grounding-20261016/spec-a-ci-final-98d6d99b/`.
+The following evidence-only commit changes no runtime or test oracle. The three
+common mutation guard/report checks also pass. This is MOCK_CONTRACT evidence;
+actual provider and semantic verifier quality remain NOT_RUN.

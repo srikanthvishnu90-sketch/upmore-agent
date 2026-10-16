@@ -1,9 +1,9 @@
 {
  "capability": "CAREER-FLEXIBLE-GROUNDING",
- "run_at": "2026-10-16T23:20:09.731Z",
- "commit": "3e05a64c7f22bb0ebf1b182af1b06b146fc9d892",
+ "run_at": "2026-10-16T23:55:46.174Z",
+ "commit": "98d6d99ba5c5c50e250277648a3704be2ff7ce2a",
  "runner": "scripts/career/flexible-grounding/mutations.cjs",
- "evidence": "docs/testing/runs/career-flexible-grounding-20261016/spec-a-ci-compat",
+ "evidence": "docs/testing/runs/career-flexible-grounding-20261016/spec-a-ci-final-98d6d99b",
  "baseline_all_green": true,
  "sub_capabilities": 15,
  "proven": 15,

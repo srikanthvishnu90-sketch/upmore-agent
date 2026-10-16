@@ -1,0 +1,114 @@
+{
+  "commit": "98d6d99ba5c5c50e250277648a3704be2ff7ce2a",
+  "verification": "LOCAL_INTENTIONAL_DEFECTS_SCRIPTED_PROVIDER_AND_SEMANTIC_ORACLE",
+  "actualModelQuality": "NOT_RUN",
+  "actualSemanticVerifierQuality": "NOT_RUN",
+  "paidCalls": 0,
+  "results": [
+    {
+      "id": "T01",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T01 flexible prose",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T02",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T02 unavailable verifier",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T03",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T03 known IDs",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T04",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T04 unlisted",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T05",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T05 reject model action",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T06",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T06 owned context",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T07",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T07 recent dialogue",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T08",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T08 correction and withdrawal",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T09",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T09 current sourced",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T10",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T10 current draft",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T11",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T11 jd_text",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T12",
+      "file": "supabase/functions/agent-chat/handler-career.ts",
+      "pattern": "^T12 request JSON",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T13",
+      "file": "supabase/functions/_shared/career_model_reply.ts",
+      "pattern": "^T13 shared budget",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T14",
+      "file": "supabase/functions/agent-chat/handler-career.ts",
+      "pattern": "^T14 assistant/draft",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "T15",
+      "file": "supabase/functions/_shared/career_model_grounded.ts",
+      "pattern": "^T15 generated metadata",
+      "exitCode": 1,
+      "killed": true
+    }
+  ]
+}

@@ -49,7 +49,7 @@ A fresh health-only launch used installed Playwright and `/usr/bin/chromium` wit
 
 ## Red tests and remaining blockers
 
-The author positive fixtures in `tests/career-public-research.test.cjs` and `tests/career-public-research-postgres.test.cjs` contain ten bytes `89504e470d0a1a0a0000`, not PNG chunks/pixels; the PostgreSQL fixture also uses a fixed 00:00 capture timestamp and omits navigation time. Their expected evidence_ready result now correctly returns RESEARCH_EVIDENCE_INVALID. The tests are unchanged and their before/after logs are retained. Do not weaken production validation or special-case MOCK to restore green. Muse must approve legitimate fixture corrections before an all-green merge gate can be claimed.
+The author positive fixtures in `tests/career-public-research.test.cjs` and `tests/career-public-research-postgres.test.cjs` contain ten bytes `89504e470d0a1a0a0000`, not PNG chunks/pixels; the PostgreSQL fixture also uses a fixed 00:00 capture timestamp and omits navigation time. Their expected evidence_ready result now correctly returns RESEARCH_EVIDENCE_INVALID. The tests are unchanged and their before/after logs are retained. Raw Node assertion logs retain space-only lines; full artifact diff whitespace checking flags those original bytes. Source/docs whitespace checks excluding raw run artifacts pass; no evidence was normalized to hide a failure. Do not weaken production validation or special-case MOCK to restore green. Muse must approve legitimate fixture corrections before an all-green merge gate can be claimed.
 
 Remaining exact blocks:
 

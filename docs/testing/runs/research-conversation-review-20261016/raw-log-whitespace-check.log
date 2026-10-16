@@ -1,0 +1,60 @@
+docs/testing/runs/research-conversation-review-20261016/author-after-postgres/test.log:26: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-after-postgres/test.log:29: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-after-source/test.log:28: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-after-source/test.log:31: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-postgres-final-command.log:26: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-postgres-final-command.log:29: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-source-final-command.log:28: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/author-source-final-command.log:31: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres-command.log:31: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres-command.log:34: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres-command.log:64: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres-command.log:67: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/test.log:31: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/test.log:34: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/test.log:64: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-postgres/test.log:67: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source-command.log:41: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source-command.log:63: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source-command.log:125: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source/test.log:41: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source/test.log:63: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/corrected-baseline-source/test.log:125: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres-command.log:32: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres-command.log:35: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres/test.log:32: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/fix-iteration-postgres/test.log:35: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/ipv6-before-command.log:28: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/ipv6-before-command.log:33: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/ipv6-before/test.log:28: trailing whitespace.
++  
+docs/testing/runs/research-conversation-review-20261016/ipv6-before/test.log:33: trailing whitespace.
++  

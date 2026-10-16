@@ -1,0 +1,22 @@
+{
+  "rawEvidenceCommand": [
+    "git",
+    "diff",
+    "--check",
+    "3d0addd9",
+    "HEAD"
+  ],
+  "rawEvidenceExitCode": 2,
+  "reason": "Unmodified Node assertion-failure logs contain space-only lines. Retain original bytes and hashes.",
+  "sourceAndDocsCommand": [
+    "git",
+    "diff",
+    "--check",
+    "f67db048",
+    "HEAD",
+    "--",
+    ".",
+    ":!docs/testing/runs"
+  ],
+  "sourceAndDocsExitCode": 0
+}

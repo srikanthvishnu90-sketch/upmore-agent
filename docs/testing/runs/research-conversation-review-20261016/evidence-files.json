@@ -121,7 +121,9 @@
     "docs/testing/runs/research-conversation-review-20261016/task-authority-final-local-database.sql.gz": "844ecd7c5a669f510ffea52260603e00757957436c4cc630a4716e91d224bed0",
     "docs/testing/runs/research-conversation-review-20261016/task-authority-regressions.json": "edeb79996cf3b9042cbe449d16fd3b4559f6bb2da8aac32b47ab54783cbc5d4d",
     "docs/testing/runs/research-conversation-review-20261016/task-authority-regressions.log": "f7002f8a05c9c2ff0df2351a1d8d0ec40208a59337b06c0cd5fe8ca792eb6464",
-    "docs/testing/runs/research-conversation-review-20261016/fixture-cleanup.json": "6c0d497fbd1ca82a42a91c59be3da711da9efb4f66138f246be5c09cbc560a20"
+    "docs/testing/runs/research-conversation-review-20261016/fixture-cleanup.json": "6c0d497fbd1ca82a42a91c59be3da711da9efb4f66138f246be5c09cbc560a20",
+    "docs/testing/runs/research-conversation-review-20261016/raw-log-whitespace-check.log": "afc46f43ee8fd087fc8af32a7dd6234f1a95c27bc97f04efa4f2dedd88f8571d",
+    "docs/testing/runs/research-conversation-review-20261016/delivery-whitespace.json": "2bce77deca35212da94c7d605d83617f5dc1767a19612fa1538064dbcb53ec0c"
   },
-  "reportSha256": "c2c06cc44ca5a565527c716235e134e6120e0147ee27ce3ee2fc68d89760b661"
+  "reportSha256": "aed30bcb102d7a1329f5b24e892371bfa73d885b4103fbae5b71541a6d2a7073"
 }

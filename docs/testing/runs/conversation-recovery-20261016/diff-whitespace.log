@@ -3,11 +3,13 @@
     "git",
     "diff",
     "--check",
-    "d61cf32",
-    "review-branch"
+    "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+    "HEAD"
   ],
+  "checkedReviewCommit": "1efceaee7b0d4ddd28ad68bf6694f916bde8bd29",
   "exitCode": 2,
   "rawOutputEncoding": "JSON string, preserving original output bytes",
   "stdout": "docs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log:34: trailing whitespace.\n+  \ndocs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log:36: trailing whitespace.\n+  \n",
+  "stderr": "",
   "note": "Two original trailing-space lines in the verbatim integration failure log. Source-only check passes."
 }

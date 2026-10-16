@@ -44,8 +44,11 @@ export function groundedContext(d:any,read:any) {
   }
   if(st.locationWithdrawn&&!statuses.some(x=>x.kind==='target_city'))statuses.push({kind:'target_city',status:'withdrawn',value_omitted:true});
   const profile=ctx.profile||{},profileFacts=Array.isArray(profile.facts)?profile.facts:[],educationUncertain=profileFacts.some((f:any)=>f?.kind==='education'&&f.needs_confirmation);
+  const resolvedEducation=profileFacts.filter((f:any)=>f?.kind==='education'&&f.resolution?.value&&!f.needs_confirmation);
+  const educationMirrorSafe=(value:any)=>!resolvedEducation.length||resolvedEducation.every((f:any)=>String(f.resolution.value)===String(value));
   const constraints=profile.constraints||{};
-  if(!educationUncertain)add('graduation_date',constraints.graduationDate,'profile.constraints.graduationDate');
+  if(!educationUncertain&&educationMirrorSafe(constraints.graduationDate))add('graduation_date',constraints.graduationDate,'profile.constraints.graduationDate');
+  else if(constraints.graduationDate)statuses.push({kind:'graduation_date',status:'disputed',value_omitted:true});
   add('work_authorization',constraints.workAuthorization,'profile.constraints.workAuthorization');
   if(!st.facts?.sponsorship)add('sponsorship_required',constraints.needsSponsorship,'profile.constraints.needsSponsorship');
   for(const f of profileFacts){
@@ -56,7 +59,7 @@ export function groundedContext(d:any,read:any) {
     else add(f.kind,f.text||f.name||f.title,'profile.facts.'+f.id,'active',contextText(f.source,80)||'profile',f.id);
   }
   if(!st.facts?.disputed_experience){add('project',st.project,'conversationState.project');add('answer',st.answer,'conversationState.answer');for(const [i,x] of (Array.isArray(st.outcomes)?st.outcomes:[]).slice(-3).entries())add('outcome',x,'conversationState.outcomes.'+i);}
-  for(const f of Array.isArray(ctx.statedFacts?.facts)?ctx.statedFacts.facts:[])if(['year','school','majors','target_firm','geography'].includes(f?.kind)&&!(st.locationWithdrawn&&f.kind==='geography')&&!(educationUncertain&&f.kind==='year'))add(f.kind,f.value,'statedFacts.'+f.kind);
+  for(const f of Array.isArray(ctx.statedFacts?.facts)?ctx.statedFacts.facts:[])if(['year','school','majors','target_firm','geography'].includes(f?.kind)&&!(st.locationWithdrawn&&f.kind==='geography')&&!(f.kind==='year'&&(educationUncertain||!educationMirrorSafe(f.value))))add(f.kind,f.value,'statedFacts.'+f.kind);
   const dialogue=(Array.isArray(read.dialogue)?read.dialogue:[]).slice(-8).map((x:any,i:number)=>({id:'H'+(i+1),trust:'dialogue_not_canonical_facts',user:contextText(x.user,1200),assistant:contextText(x.assistant,1800)}));
   const goals=[...(!read.barrier_version?[st.goal,...(Array.isArray(st.goals)?st.goals:[])]:[]),st.facts?.interest?.value,st.facts?.role?.value].map(x=>contextText(x,500)).filter(Boolean).slice(0,6);
   const pending=(!read.barrier_version?[...(Array.isArray(st.pendingAsks)?st.pendingAsks:[]),...(Array.isArray(ctx.intentQueue)?ctx.intentQueue:[])]:[]).map(x=>contextText(typeof x==='string'?x:x?.ask||x?.message||x?.intent,500)).filter(Boolean).slice(0,6);

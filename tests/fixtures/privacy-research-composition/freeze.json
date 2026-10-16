@@ -1,0 +1,68 @@
+{
+  "frozenAt": "2026-10-16T03:13:48.204327+00:00",
+  "reviewProduct": "2d29c27bee16d3d943840ef87e9e7e95ad25d307",
+  "documentationOnlyFollowup": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+  "privacyPublished": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+  "privacyOwnerTestsSha256": {
+    "tests/correction-authority-privacy.test.cjs": "82ed6a18bf680b5d7b39ebd46780b77624132131bb94daf50adb1eb75f55b50b",
+    "tests/correction-authority-postgres.test.cjs": "86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4",
+    "tests/helpers/correction-privacy-fixture.cjs": "c9879c2dd2f5eac730c41603aa0eda3e473adea5f5e557a401c9ad67822a169b"
+  },
+  "expected": {
+    "ownerPrivacySource": {
+      "tests": 10,
+      "pass": 10
+    },
+    "ownerPrivacySQL": {
+      "tests": 7,
+      "pass": 7
+    },
+    "existingPersistenceSQL": {
+      "tests": 30,
+      "pass": 30
+    },
+    "authoritySQL": {
+      "tests": 21,
+      "pass": 21
+    },
+    "originalConversation": {
+      "turns": 83,
+      "checks": 543,
+      "failed": 0
+    },
+    "heldoutConversation": {
+      "turns": 82,
+      "checks": 426,
+      "failed": 0
+    },
+    "researchSource": {
+      "tests": 12,
+      "pass": 12
+    },
+    "researchSQL": {
+      "tests": 17,
+      "pass": 17
+    },
+    "authorResearchSource": {
+      "tests": 12,
+      "pass": 12
+    },
+    "authorResearchSQL": {
+      "tests": 7,
+      "pass": 7
+    },
+    "jointProbe": [
+      "Committed correction remains owned through research capture/status; another owner with colliding profile id/name/fact id recalls only its own graduation year.",
+      "After epoch erasure, research status and fresh-process recall cannot revive corrected graduation/audit/source state.",
+      "Legacy correction store export/restore/replay APIs remain inert; profile JSON is sole authority."
+    ],
+    "inheritedC37": "Compare unchanged baseline failure signatures; do not rewrite expected routing results or call them privacy passes."
+  },
+  "prohibited": [
+    "paid/provider calls",
+    "real browser outcomes",
+    "production mutation",
+    "release merge/deploy",
+    "new security/credential configuration"
+  ]
+}

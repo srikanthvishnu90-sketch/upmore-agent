@@ -46397,7 +46397,23 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerAler
 
    Delivery itself (scheduler + channel send) is HOST wiring and is
    deliberately NOT in this module, exactly as in 151. Pure-ish domain idiom:
-   all I/O arrives injected { postings | alerts, watchProfile, store, now }. */
+   all I/O arrives injected { postings | alerts, watchProfile, store, now }.
+
+   MI-117 (Spec 2 §4.1/§4.4) — the alert-fatigue policy lives in THIS
+   delivery layer, between the queue and the host's channel send:
+   planDelivery() decides, per drained reminder, instant vs batched vs
+   digest vs held, under the user's alert_policy (on the watch profile):
+   per-user quiet hours in the user's timezone (an alert inside them holds
+   to the window's end unless the user opted into night alerts), at most
+   instant_daily_cap instant alerts per local day (default 5, until the
+   user raises it) with the overflow folding into a digest, and batching of
+   near-simultaneous openings at one company into ONE batched alert listing
+   the best 3. recordAlertFeedback() carries the skip signal back: five
+   skips in a row auto-tightens (the effective instant cap halves) and the
+   tightening announces itself in exactly one sentence. Fatigue state is
+   persisted per user under FATIGUE_KEY, so caps/streaks bind across
+   cycles, never per call. runAssignCycle's queue semantics are unchanged —
+   the policy never eats a reminder, it only decides how it is delivered. */
 const CareerAssign = (() => {
   const Jobs = (typeof require !== "undefined")
     ? (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })()
@@ -46410,6 +46426,9 @@ const CareerAssign = (() => {
   const PROFILE_KEY = (uid) => `career:watch-profile:${uid}`;
   const QUEUE_KEY = (uid) => `career:reminder-queue:${uid}`;
   const HISTORY_KEY = (uid) => `career:reminder-history:${uid}`;
+  const FATIGUE_KEY = (uid) => `career:alert-fatigue:${uid}`;
+  const DEFAULT_INSTANT_CAP = 5; // Spec 2 §4.4: ≤5 instant/day until raised
+  const DEFAULT_SKIP_TIGHTEN_AFTER = 5; // Spec 2 §4.4: "skips 5 alerts in a row"
 
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
@@ -46474,6 +46493,7 @@ const CareerAssign = (() => {
         filters: Object.assign({ locations: [], remote_ok: true, bands: [], firms_include: [], firms_exclude: [] }, i.filters || {}),
         created_at: i.created_at || null,
       })),
+      alert_policy: normalizeAlertPolicy(seed.alert_policy),
       opt_out: Object.assign({ global: false, companies: [] }, seed.opt_out || {}),
       scoring_profile: seed.scoring_profile || null, // the 121 scoreFit shape (proven-fact skills etc.)
       updated_at: seed.updated_at || null,
@@ -46492,6 +46512,17 @@ const CareerAssign = (() => {
       if (!Array.isArray(role.terms) || !role.terms.length) errors.push(`interest ${i.interest_id || "?"}: role.terms must carry at least one title term`);
       const f = i.filters || {};
       if (!Array.isArray(f.locations) || !Array.isArray(f.bands)) errors.push(`interest ${i.interest_id || "?"}: filters.locations and filters.bands must be arrays`);
+    }
+    const ap = wp && wp.alert_policy;
+    if (ap != null) {
+      if (ap.instant_daily_cap != null && (!Number.isInteger(ap.instant_daily_cap) || ap.instant_daily_cap < 1))
+        errors.push("alert_policy.instant_daily_cap must be a positive integer (Spec 2 §4.4)");
+      if (ap.skip_tighten_after != null && (!Number.isInteger(ap.skip_tighten_after) || ap.skip_tighten_after < 1))
+        errors.push("alert_policy.skip_tighten_after must be a positive integer");
+      if (ap.quiet_hours != null) {
+        if (parseHHMM(ap.quiet_hours.start) == null || parseHHMM(ap.quiet_hours.end) == null)
+          errors.push("alert_policy.quiet_hours start/end must be HH:MM");
+      }
     }
     return { ok: errors.length === 0, errors };
   }
@@ -46840,10 +46871,219 @@ const CareerAssign = (() => {
     };
   }
 
+  // ---- MI-117: alert-fatigue policy (Spec 2 §4.1/§4.4), the delivery layer ----
+  function parseHHMM(v) {
+    if (typeof v === "number" && Number.isFinite(v)) { const h = Math.floor(v); return (h >= 0 && h <= 23) ? h * 60 : null; }
+    const m = /^(\d{1,2}):(\d{2})$/.exec(s(v).trim());
+    if (!m) return null;
+    const h = Number(m[1]), mi = Number(m[2]);
+    return (h <= 23 && mi <= 59) ? h * 60 + mi : null;
+  }
+  const fmtHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+
+  function normalizeAlertPolicy(raw) {
+    raw = raw || {};
+    let quiet = { start: "22:00", end: "07:00", timezone: "UTC" };
+    if (raw.quiet_hours === null) quiet = null;
+    else if (raw.quiet_hours) {
+      const q = raw.quiet_hours;
+      quiet = {
+        start: parseHHMM(q.start) != null ? fmtHHMM(parseHHMM(q.start)) : s(q.start || "22:00"),
+        end: parseHHMM(q.end) != null ? fmtHHMM(parseHHMM(q.end)) : s(q.end || "07:00"),
+        timezone: s(q.timezone || q.tz || "UTC") || "UTC",
+      };
+    }
+    const cap = raw.instant_daily_cap != null ? raw.instant_daily_cap
+      : raw.instant_cap != null ? raw.instant_cap
+      : raw.max_instant_per_day != null ? raw.max_instant_per_day : DEFAULT_INSTANT_CAP;
+    const tighten = raw.skip_tighten_after != null ? raw.skip_tighten_after : DEFAULT_SKIP_TIGHTEN_AFTER;
+    return {
+      quiet_hours: quiet,
+      night_alerts: raw.night_alerts === true || raw.night_alerts_opt_in === true,
+      instant_daily_cap: Number.isInteger(cap) && cap >= 1 ? cap : DEFAULT_INSTANT_CAP,
+      skip_tighten_after: Number.isInteger(tighten) && tighten >= 1 ? tighten : DEFAULT_SKIP_TIGHTEN_AFTER,
+    };
+  }
+
+  function setAlertPolicy(wp, patch) {
+    wp.alert_policy = normalizeAlertPolicy(Object.assign({}, wp.alert_policy || {}, patch || {}));
+    return wp;
+  }
+
+  // Local wall-clock in the policy timezone (Intl is the only clock source;
+  // an unknown timezone falls back to UTC rather than guessing).
+  const _dtfCache = new Map();
+  function tzParts(ms, tz) {
+    const zone = tz || "UTC";
+    try {
+      if (!_dtfCache.has(zone)) _dtfCache.set(zone, new Intl.DateTimeFormat("en-US",
+        { timeZone: zone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }));
+      const parts = {};
+      for (const part of _dtfCache.get(zone).formatToParts(new Date(ms))) parts[part.type] = part.value;
+      return { year: parts.year, month: parts.month, day: parts.day, hour: Number(parts.hour) % 24, minute: Number(parts.minute) };
+    } catch { return tzParts(ms, "UTC"); }
+  }
+  const localDayKey = (ms, tz) => { const p = tzParts(ms, tz); return `${p.year}-${p.month}-${p.day}`; };
+  const policyTz = (policy) => (policy.quiet_hours && policy.quiet_hours.timezone) || "UTC";
+
+  function isInQuietHours(ms, policy) {
+    const pol = normalizeAlertPolicy(policy);
+    if (!pol.quiet_hours) return false;
+    const start = parseHHMM(pol.quiet_hours.start), end = parseHHMM(pol.quiet_hours.end);
+    if (start == null || end == null || start === end) return false;
+    const p = tzParts(ms, pol.quiet_hours.timezone);
+    const cur = p.hour * 60 + p.minute;
+    return start < end ? (cur >= start && cur < end) : (cur >= start || cur < end);
+  }
+
+  // The first minute the quiet window ends at/after ms (minute-aligned), or
+  // null when ms is not inside the window. Minute-scan in the policy
+  // timezone: correct across DST and overnight wraps by construction.
+  function quietReleaseAt(ms, policy) {
+    if (!isInQuietHours(ms, policy)) return null;
+    let t = Math.floor(ms / 60000) * 60000;
+    for (let i = 0; i < 1500; i++) { if (!isInQuietHours(t, policy)) return t; t += 60000; }
+    return t;
+  }
+
+  function defaultFatigueState(day) {
+    return { type: "career_alert_fatigue_state", version: 1, day, instant_sent: 0,
+      digest_job_ids: [], held: [], skip_streak: 0, tightened: false,
+      tighten_notice: null, tightened_at: null };
+  }
+  async function loadFatigueState(store, userId, policy, now) {
+    const day = localDayKey(now, policyTz(policy));
+    const raw = store ? await store.get(FATIGUE_KEY(userId)) : null;
+    const st = Object.assign(defaultFatigueState(day), raw || {});
+    if (st.day !== day) { st.day = day; st.instant_sent = 0; st.digest_job_ids = []; } // a new local day refills the instant budget; held/skips/tightening persist
+    return st;
+  }
+  async function saveFatigueState(store, userId, state) { if (store) await store.set(FATIGUE_KEY(userId), state); return state; }
+
+  function effectiveInstantCap(policy, state) {
+    const base = normalizeAlertPolicy(policy).instant_daily_cap;
+    return state && state.tightened ? Math.max(1, Math.floor(base / 2)) : base;
+  }
+
+  function composeBatchedAlert(company, reminders) {
+    const sorted = reminders.slice().sort((a, b) => ((b.fit && b.fit.score) || 0) - ((a.fit && a.fit.score) || 0));
+    const top = sorted.slice(0, 3).map((r) => ({ job_id: r.job_id, reminder_id: r.reminder_id, title: r.title, url: r.url }));
+    const more = sorted.length - top.length;
+    return {
+      type: "career_batched_alert", company, count: reminders.length,
+      job_ids: reminders.map((r) => r.job_id), reminder_ids: reminders.map((r) => r.reminder_id), top,
+      speak_line: `${reminders.length} new postings at ${company}, including ${top.map((t) => t.title).join(", ")}${more > 0 ? `, and ${more} more` : ""}.`,
+    };
+  }
+
+  function composeDigest(reminders, now) {
+    return {
+      type: "career_alert_digest", count: reminders.length,
+      job_ids: reminders.map((r) => r.job_id), reminder_ids: reminders.map((r) => r.reminder_id),
+      at: new Date(now).toISOString(),
+      speak_line: reminders.length === 1
+        ? `One more matching posting is in your digest: ${reminders[0].title} at ${reminders[0].company || "an employer whose name is not stated in the posting"}.`
+        : `${reminders.length} more matching postings are in your digest.`,
+    };
+  }
+
+  // Decide delivery for a batch of drained reminders. Returns the plan and
+  // persists the fatigue state (cap consumption, held set, digest census).
+  async function planDelivery(deps) {
+    deps = deps || {};
+    const wp = deps.watchProfile;
+    if (!wp) throw new Error("152 planDelivery requires a watchProfile (createWatchProfile)");
+    const store = deps.store;
+    if (!store || typeof store.get !== "function" || typeof store.set !== "function")
+      throw new Error("152 planDelivery requires an injected store {get,set}");
+    const now = nowMs(deps.now);
+    const policy = normalizeAlertPolicy(wp.alert_policy);
+    const state = await loadFatigueState(store, wp.user_id, policy, now);
+
+    const seen = new Set();
+    const fresh = [];
+    for (const r of deps.reminders || []) { if (r && r.reminder_id && !seen.has(r.reminder_id)) { seen.add(r.reminder_id); fresh.push(r); } }
+
+    // Quiet hours (§4.1): hold everything to the window's end unless the
+    // user opted into night alerts. Held alerts consume no instant budget.
+    if (isInQuietHours(now, policy) && !policy.night_alerts) {
+      const release = quietReleaseAt(now, policy);
+      const heldById = new Map((state.held || []).map((h) => [h.reminder.reminder_id, h]));
+      for (const r of fresh) heldById.set(r.reminder_id, { reminder: r, release_at: new Date(release).toISOString() });
+      state.held = [...heldById.values()];
+      await saveFatigueState(store, wp.user_id, state);
+      return { type: "career_delivery_plan", user_id: wp.user_id, at: new Date(now).toISOString(),
+        instant: [], batched: [], digest: [], digest_record: null,
+        held: state.held.map((h) => h.reminder), release_at: new Date(release).toISOString(),
+        notices: [], instant_sent: state.instant_sent, effective_cap: effectiveInstantCap(policy, state),
+        tightened: !!state.tightened };
+    }
+
+    // Window ended (or never applied): previously held reminders re-enter
+    // ahead of fresh ones, oldest first.
+    const candidates = [...(state.held || []).map((h) => h.reminder), ...fresh.filter((r) => !(state.held || []).some((h) => h.reminder.reminder_id === r.reminder_id))];
+    state.held = [];
+
+    // Batching (§4.4): near-simultaneous openings at ONE stated company —
+    // one delivery unit. Company-less reminders never share a unit: an
+    // unstated company is not one employer (TN-1a honesty binds here too).
+    const units = []; const byCompany = new Map();
+    for (const r of candidates) {
+      const key = r.company ? `co:${lc(r.company)}` : `solo:${r.reminder_id}`;
+      if (!byCompany.has(key)) { const u = { company: r.company || null, reminders: [] }; byCompany.set(key, u); units.push(u); }
+      byCompany.get(key).reminders.push(r);
+    }
+
+    const instant = [], batched = [], digest = [];
+    const effCap = effectiveInstantCap(policy, state);
+    for (const u of units) {
+      const isBatch = u.company && u.reminders.length >= 2;
+      if (state.instant_sent < effCap) {
+        state.instant_sent += 1; // a batched alert consumes exactly one slot
+        if (isBatch) batched.push(composeBatchedAlert(u.company, u.reminders)); else instant.push(u.reminders[0]);
+      } else digest.push(...u.reminders);
+    }
+    if (digest.length) state.digest_job_ids = [...new Set([...(state.digest_job_ids || []), ...digest.map((r) => r.job_id)])];
+    await saveFatigueState(store, wp.user_id, state);
+    return { type: "career_delivery_plan", user_id: wp.user_id, at: new Date(now).toISOString(),
+      instant, batched, digest, digest_record: digest.length ? composeDigest(digest, now) : null,
+      held: [], release_at: null, notices: [], instant_sent: state.instant_sent,
+      effective_cap: effCap, tightened: !!state.tightened };
+  }
+
+  // The skip signal (§4.4 auto-tune): a skip extends the streak, any other
+  // action resets it. At skip_tighten_after in a row the policy tightens
+  // (effective instant cap halves) and the tightening announces itself in
+  // exactly one sentence — returned here, once, and recorded on the state.
+  async function recordAlertFeedback(store, wp, action, opts) {
+    opts = opts || {};
+    const userId = typeof wp === "string" ? wp : (wp && wp.user_id);
+    if (!userId) throw new Error("152 recordAlertFeedback requires a watch profile or user id");
+    const policy = normalizeAlertPolicy((wp && wp.alert_policy) || opts.policy);
+    const now = nowMs(opts.now);
+    const state = await loadFatigueState(store, userId, policy, now);
+    let notice = null;
+    if (lc(action) === "skip") {
+      state.skip_streak = (state.skip_streak || 0) + 1;
+      if (!state.tightened && state.skip_streak >= policy.skip_tighten_after) {
+        state.tightened = true;
+        state.tightened_at = new Date(now).toISOString();
+        notice = `I am tightening your instant alerts to ${effectiveInstantCap(policy, state)} a day because you skipped the last ${state.skip_streak} in a row and the rest will go to your digest.`;
+        state.tighten_notice = notice;
+      }
+    } else state.skip_streak = 0;
+    await saveFatigueState(store, userId, state);
+    return { user_id: userId, action: s(action), skip_streak: state.skip_streak,
+      tightened: !!state.tightened, notice, effective_cap: effectiveInstantCap(policy, state) };
+  }
+
   return { createWatchProfile, validateWatchProfile, upsertInterest, removeInterest, setOptOut,
     saveWatchProfile, loadWatchProfile, roleSpecFor, SPLITS, matchInterest, matchBasisLines, composeReminder,
     speakLine, extractDeadline, createReminderQueue, runAssignCycle,
-    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, SEAT_WINDOW_MS };
+    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, SEAT_WINDOW_MS,
+    normalizeAlertPolicy, setAlertPolicy, isInQuietHours, quietReleaseAt, effectiveInstantCap,
+    composeBatchedAlert, composeDigest, planDelivery, recordAlertFeedback,
+    loadFatigueState, saveFatigueState, FATIGUE_KEY, DEFAULT_INSTANT_CAP, DEFAULT_SKIP_TIGHTEN_AFTER };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerAssign;
 

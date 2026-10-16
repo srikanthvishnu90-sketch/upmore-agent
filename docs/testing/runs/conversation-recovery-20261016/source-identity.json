@@ -1,0 +1,116 @@
+{
+  "release": {
+    "root": "/workspace/upmore-release",
+    "sha": "afc460ec872f61eb2dcdbbca4d34140fb8b345c0",
+    "head": {
+      "exit": 0,
+      "stdout": "afc460ec872f61eb2dcdbbca4d34140fb8b345c0",
+      "stderr": ""
+    },
+    "remote": {
+      "exit": 0,
+      "stdout": "https://github.com/srikanthvishnu90-sketch/upmore-agent.git",
+      "stderr": ""
+    },
+    "filesAtCommit": {
+      "AGENTS.md": "9acf0668d24e2fd66e9ece11a745f1b01a32250c4ce33d75bf3028cb3db068fe",
+      "docs/instinct-spec-series/BUILD-STATUS.md": "19f7e8e7c8ca96288540c62fc03a96aeae69ac2b27a529f4c73c1ada21579b60",
+      "supabase/functions/agent-chat/index-career.ts": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7",
+      "supabase/functions/agent-chat/handler-career.ts": "f28a338a950319ba2bbf57248936587c1d3522efca1b7846fb8dba10791182a9",
+      "supabase/functions/_shared/career_host.js": "28f9fb29ffd3df30d322e9e81c2d823526e2095c031519525c01c0290f70bb98",
+      "supabase/functions/_shared/router_core.career.js": "292c9a9f05fa428ff244b0fb9e653092f8c4ab65b704605b30fd2b509e64cf28",
+      "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f"
+    },
+    "changedFromRelease": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "releaseIsAncestor": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "integration": {
+    "root": "/workspace/upmore-eval",
+    "sha": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+    "head": {
+      "exit": 0,
+      "stdout": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+      "stderr": ""
+    },
+    "remote": {
+      "exit": 0,
+      "stdout": "https://github.com/srikanthvishnu90-sketch/upmore-agent.git",
+      "stderr": ""
+    },
+    "filesAtCommit": {
+      "AGENTS.md": "9acf0668d24e2fd66e9ece11a745f1b01a32250c4ce33d75bf3028cb3db068fe",
+      "docs/instinct-spec-series/BUILD-STATUS.md": "ec79c647566fac99a54cbef93b04f1ff1c876bd62512d97fc4f4a795793b6a1d",
+      "supabase/functions/agent-chat/index-career.ts": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7",
+      "supabase/functions/agent-chat/handler-career.ts": "e066ef487fe0af3daffd86932b057db0d5f897f468b7bd049d11920ea8621385",
+      "supabase/functions/_shared/career_host.js": "5df4d286419a59115d2f144b290bd8da7f9bac9395a9b2dfe9c645698a53bdee",
+      "supabase/functions/_shared/router_core.career.js": "b3ee677d7b5b25ab2fb3539baabd34c1450149e466223b17d36e47ddb98a9bb1",
+      "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f"
+    },
+    "changedFromRelease": {
+      "exit": 0,
+      "stdout": "M\tdocs/career/alerts-host-wiring.md\nA\tdocs/career/host-durability-20261015.md\nA\tdocs/career/owned-browser-worker.md\nA\tdocs/career/task-intent-integration-20261015.md\nM\tdocs/instinct-spec-series/BUILD-STATUS.md\nA\tdocs/playbook-drift-2026-10-15.md\nM\tdocs/testing/evidence-ledger.json\nA\tdocs/testing/runs/career-bundle-reachability-20261015/adjacent-domain.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/bundle-and-host.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/diff-whitespace.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/results.json\nA\tdocs/testing/runs/career-bundle-reachability-20261015/staged-entry.log\nA\tdocs/testing/runs/career-host-durability-20261015/baseline-five-red.log\nA\tdocs/testing/runs/career-host-durability-20261015/local-57.log\nA\tdocs/testing/runs/career-host-durability-20261015/results.json\nA\tdocs/testing/runs/career-owned-worker-20261015/browser-runtime.log\nA\tdocs/testing/runs/career-owned-worker-20261015/bundle-and-host.log\nA\tdocs/testing/runs/career-owned-worker-20261015/diff-whitespace.log\nA\tdocs/testing/runs/career-owned-worker-20261015/portal-and-apply.log\nA\tdocs/testing/runs/career-owned-worker-20261015/results.json\nA\tdocs/testing/runs/career-owned-worker-20261015/staged-chat.log\nA\tdocs/testing/runs/career-owned-worker-20261015/worker-core.log\nA\tdocs/testing/runs/career-worker-integration-20261015/browser-fixture-syntax.log\nA\tdocs/testing/runs/career-worker-integration-20261015/bundle-freshness.log\nA\tdocs/testing/runs/career-worker-integration-20261015/diff-whitespace.log\nA\tdocs/testing/runs/career-worker-integration-20261015/domain-worker-and-bundles.log\nA\tdocs/testing/runs/career-worker-integration-20261015/frozen-account-observation.log\nA\tdocs/testing/runs/career-worker-integration-20261015/memory-alerts-real-postgres.log\nA\tdocs/testing/runs/career-worker-integration-20261015/results.json\nA\tdocs/testing/runs/career-worker-integration-20261015/staged-and-frozen.log\nA\tdocs/testing/runs/career-worker-integration-20261015/task-authority-real-postgres.log\nM\tpackages/domain/142-career-router.js\nM\tpackages/domain/149-career-portal-apply.js\nM\tpackages/domain/150-career-portal-browser.js\nM\tscripts/build-router-core.py\nM\tscripts/career/alerts-host.mjs\nM\tscripts/career/portal-browser-helper.cjs\nM\tsupabase/functions/_shared/career_host.js\nA\tsupabase/functions/_shared/career_persistence.js\nA\tsupabase/functions/_shared/career_task_bridge.js\nM\tsupabase/functions/_shared/router_core.career.js\nM\tsupabase/functions/_shared/router_core.js\nM\tsupabase/functions/agent-chat/handler-career.ts\nM\tsupabase/migrations/20261015020000_career_watch_kv.sql\nA\tsupabase/migrations/20261015234000_career_task_intents_v1.sql\nM\ttests/career-alerts-host-wiring.test.cjs\nA\ttests/career-bundle-reachability.test.cjs\nA\ttests/career-durability.test.cjs\nM\ttests/career-http-host.test.cjs\nA\ttests/career-owned-worker-browser.test.cjs\nA\ttests/career-owned-worker.test.cjs\nA\ttests/career-persistence-postgres.test.cjs\nM\ttests/career-portal-browser.test.cjs\nA\ttests/career-task-authority-postgres.test.cjs\nA\ttests/fixtures/career-persistence-schema.sql\nA\ttests/fixtures/owned-portal.cjs\nA\ttests/fixtures/owned-worker-authority.cjs\nA\ttests/fixtures/owned-worker-fixture.cjs\nA\ttests/helpers/career-alerts-rpc-fake.cjs\nA\ttests/helpers/career-persistence-fake.cjs\nA\ttests/helpers/career-staged-entry.cjs\nA\ttests/helpers/career-task-sql.cjs\nA\ttests/independent-worker-atomic-interplay.test.cjs\nA\tworkers/career-browser/authority.cjs\nA\tworkers/career-browser/http.cjs\nA\tworkers/career-browser/protocol.cjs\nA\tworkers/career-browser/run.cjs\nA\tworkers/career-browser/service.cjs\nA\tworkers/career-browser/store.cjs",
+      "stderr": ""
+    },
+    "releaseIsAncestor": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "capability2": {
+    "root": "/workspace/upmore-cap2",
+    "sha": "49b7872c822cbf26107c3d49727c9f5ed2acbc9f",
+    "head": {
+      "exit": 0,
+      "stdout": "49b7872c822cbf26107c3d49727c9f5ed2acbc9f",
+      "stderr": ""
+    },
+    "remote": {
+      "exit": 0,
+      "stdout": "https://github.com/srikanthvishnu90-sketch/upmore-agent.git",
+      "stderr": ""
+    },
+    "filesAtCommit": {
+      "AGENTS.md": "9acf0668d24e2fd66e9ece11a745f1b01a32250c4ce33d75bf3028cb3db068fe",
+      "docs/instinct-spec-series/BUILD-STATUS.md": "8103d02666cc49895d8618dc49e90a3c368a23e31d74247528c5bed72f458f4e",
+      "supabase/functions/agent-chat/index-career.ts": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7",
+      "supabase/functions/agent-chat/handler-career.ts": "24ce2726eae6afa2033f9e914aed68b46dbef08b4bde7e59d611a630933f94da",
+      "supabase/functions/_shared/career_host.js": "2043f3e50984e4665c0acafe964ae0033fb6d9fbe2daab2c9acce58209bc9e02",
+      "supabase/functions/_shared/router_core.career.js": "7a826cb42f99a8fd635d4f7f2d0c3ed01e619d88061a294289d92839b617bf49",
+      "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f"
+    },
+    "changedFromRelease": {
+      "exit": 0,
+      "stdout": "M\tdocs/career/alerts-host-wiring.md\nA\tdocs/career/capability2-host-interface.md\nA\tdocs/depth/CAPABILITY2.md\nM\tdocs/instinct-spec-series/BUILD-STATUS.md\nA\tdocs/playbook-drift-2026-10-15.md\nA\tdocs/playbook-drift-2026-10-16.md\nM\tdocs/testing/evidence-ledger.json\nA\tdocs/testing/runs/capability2-followup-20261016/REVIEW.md\nA\tdocs/testing/runs/capability2-followup-20261016/adjacent-regressions.log\nA\tdocs/testing/runs/capability2-followup-20261016/agent100-dry.log\nA\tdocs/testing/runs/capability2-followup-20261016/atomic-composition.log\nA\tdocs/testing/runs/capability2-followup-20261016/boundary-regressions.log\nA\tdocs/testing/runs/capability2-followup-20261016/bundle-http.log\nA\tdocs/testing/runs/capability2-followup-20261016/diff-whitespace.log\nA\tdocs/testing/runs/capability2-followup-20261016/frozen-baseline-11-fail.log\nA\tdocs/testing/runs/capability2-followup-20261016/frozen-boundaries.log\nA\tdocs/testing/runs/capability2-followup-20261016/frozen-execution.json\nA\tdocs/testing/runs/capability2-followup-20261016/frozen-original-runner.log\nA\tdocs/testing/runs/capability2-followup-20261016/grounding-scale.log\nA\tdocs/testing/runs/capability2-followup-20261016/mutations.log\nA\tdocs/testing/runs/capability2-followup-20261016/release-harness.log\nA\tdocs/testing/runs/capability2-followup-20261016/results.json\nA\tdocs/testing/runs/capability2-grounded-20261015/REVIEW.md\nA\tdocs/testing/runs/capability2-grounded-20261015/agent100-dry.log\nA\tdocs/testing/runs/capability2-grounded-20261015/baseline-reproduction.log\nA\tdocs/testing/runs/capability2-grounded-20261015/bundle-host.log\nA\tdocs/testing/runs/capability2-grounded-20261015/diff-whitespace.log\nA\tdocs/testing/runs/capability2-grounded-20261015/grounding-scale.log\nA\tdocs/testing/runs/capability2-grounded-20261015/mutations.log\nA\tdocs/testing/runs/capability2-grounded-20261015/optional-clock-guard.log\nA\tdocs/testing/runs/capability2-grounded-20261015/regression.log\nA\tdocs/testing/runs/capability2-grounded-20261015/release-harness.log\nA\tdocs/testing/runs/capability2-grounded-20261015/results.json\nA\tdocs/testing/runs/career-bundle-reachability-20261015/adjacent-domain.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/bundle-and-host.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/diff-whitespace.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/results.json\nA\tdocs/testing/runs/career-bundle-reachability-20261015/staged-entry.log\nA\tevals/depth/CAPABILITY2.mutations.cjs\nM\tpackages/domain/142-career-router.js\nM\tpackages/domain/144-career-guidance.js\nA\tpackages/domain/154-career-recommendations.js\nM\tscripts/build-router-core.py\nA\tscripts/career/run-capability2-frozen.cjs\nM\tsupabase/functions/_shared/career_host.js\nM\tsupabase/functions/_shared/router_core.career.js\nM\tsupabase/functions/_shared/router_core.js\nM\tsupabase/functions/agent-chat/handler-career.ts\nA\ttests/capability2-bundle.test.cjs\nA\ttests/capability2-followup-bundle.test.cjs\nA\ttests/capability2-grounding.test.cjs\nA\ttests/capability2-independent-boundaries.test.cjs\nA\ttests/career-bundle-reachability.test.cjs\nA\ttests/fixtures/capability2-independent/INDEPENDENT_CAPABILITY2_HOLDOUTS_v1.json\nA\ttests/fixtures/capability2-independent/README.md\nA\ttests/fixtures/capability2-independent/freeze-metadata.json\nA\ttests/fixtures/capability2-independent/run_independent_holdouts.cjs\nA\ttests/fixtures/capability2/frozen-manifest.json\nA\ttests/fixtures/capability2/resumes.cjs\nA\ttests/helpers/capability2-staged-entry.cjs",
+      "stderr": ""
+    },
+    "releaseIsAncestor": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "release-current": {
+    "root": "/workspace/upmore-release-current",
+    "sha": "f67db048599db308f2691a7be7feada841143da5",
+    "observedAt": "2026-10-16T00:52:49.034325+00:00",
+    "filesAtCommit": {
+      "AGENTS.md": "9acf0668d24e2fd66e9ece11a745f1b01a32250c4ce33d75bf3028cb3db068fe",
+      "docs/instinct-spec-series/BUILD-STATUS.md": "2ca110b03c933e8250e26261f6c02208d54cef2de70df2e2992031cf53b3a3f0",
+      "supabase/functions/agent-chat/index-career.ts": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7",
+      "supabase/functions/agent-chat/handler-career.ts": "e066ef487fe0af3daffd86932b057db0d5f897f468b7bd049d11920ea8621385",
+      "supabase/functions/_shared/career_host.js": "4bb84d3923d824a99f6152c56a1f03e15fd2750108a8f85ae45f2d50f335d6fa",
+      "supabase/functions/_shared/router_core.career.js": "dd1c0693a995d8b5f10657b70eafe3de6f4fb756deb3715ef058d764be0d0e3c",
+      "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f"
+    },
+    "changedFromInitialRelease": "M\tdocs/bug-ledger.md\nM\tdocs/career/alerts-host-wiring.md\nA\tdocs/career/capability2-host-interface.md\nA\tdocs/career/combine-merge-record-2026-10-15.md\nA\tdocs/career/contracts/mi-110-cap-enforcement.md\nA\tdocs/career/contracts/mi-115-unknown-outcome-resolver.md\nA\tdocs/career/contracts/mi-116-approval-payload-binding.md\nM\tdocs/career/forbidden-rules.md\nA\tdocs/career/host-durability-20261015.md\nA\tdocs/career/owned-browser-worker.md\nA\tdocs/career/task-intent-integration-20261015.md\nA\tdocs/career/writing-pattern-prompt-v1.md\nA\tdocs/career/writing-pattern-prompt-v2.md\nA\tdocs/depth/CAPABILITY2.md\nM\tdocs/depth/MUTATION-COVERAGE.md\nM\tdocs/instinct-spec-series/BUILD-STATUS.md\nA\tdocs/playbook-drift-2026-10-15.md\nM\tdocs/testing/evidence-ledger.json\nA\tdocs/testing/runs/capability2-grounded-20261015/REVIEW.md\nA\tdocs/testing/runs/capability2-grounded-20261015/agent100-dry.log\nA\tdocs/testing/runs/capability2-grounded-20261015/baseline-reproduction.log\nA\tdocs/testing/runs/capability2-grounded-20261015/bundle-host.log\nA\tdocs/testing/runs/capability2-grounded-20261015/diff-whitespace.log\nA\tdocs/testing/runs/capability2-grounded-20261015/grounding-scale.log\nA\tdocs/testing/runs/capability2-grounded-20261015/mutations.log\nA\tdocs/testing/runs/capability2-grounded-20261015/optional-clock-guard.log\nA\tdocs/testing/runs/capability2-grounded-20261015/regression.log\nA\tdocs/testing/runs/capability2-grounded-20261015/release-harness.log\nA\tdocs/testing/runs/capability2-grounded-20261015/results.json\nA\tdocs/testing/runs/career-bundle-reachability-20261015/adjacent-domain.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/bundle-and-host.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/diff-whitespace.log\nA\tdocs/testing/runs/career-bundle-reachability-20261015/results.json\nA\tdocs/testing/runs/career-bundle-reachability-20261015/staged-entry.log\nA\tdocs/testing/runs/career-host-durability-20261015/baseline-five-red.log\nA\tdocs/testing/runs/career-host-durability-20261015/local-57.log\nA\tdocs/testing/runs/career-host-durability-20261015/results.json\nA\tdocs/testing/runs/career-owned-worker-20261015/browser-runtime.log\nA\tdocs/testing/runs/career-owned-worker-20261015/bundle-and-host.log\nA\tdocs/testing/runs/career-owned-worker-20261015/diff-whitespace.log\nA\tdocs/testing/runs/career-owned-worker-20261015/portal-and-apply.log\nA\tdocs/testing/runs/career-owned-worker-20261015/results.json\nA\tdocs/testing/runs/career-owned-worker-20261015/staged-chat.log\nA\tdocs/testing/runs/career-owned-worker-20261015/worker-core.log\nA\tevals/depth/CAPABILITY2-mutation-runner.cjs\nA\tpackages/career-data/fixtures/writing-pattern-corpus.json\nM\tpackages/domain/123-career-tailor.js\nM\tpackages/domain/124-career-outreach.js\nM\tpackages/domain/142-career-router.js\nM\tpackages/domain/144-career-guidance.js\nM\tpackages/domain/149-career-portal-apply.js\nM\tpackages/domain/150-career-portal-browser.js\nA\tpackages/domain/154-career-recommendations.js\nA\tpackages/domain/154-career-writing.js\nM\tscripts/build-router-core.py\nM\tscripts/career/alerts-host.mjs\nM\tscripts/career/portal-browser-helper.cjs\nA\tscripts/career/writing-pattern-blinded-pairs.json\nA\tscripts/career/writing-pattern-proof.cjs\nM\tsupabase/functions/_shared/career_host.js\nA\tsupabase/functions/_shared/career_persistence.js\nA\tsupabase/functions/_shared/career_task_bridge.js\nM\tsupabase/functions/_shared/router_core.career.js\nM\tsupabase/functions/_shared/router_core.js\nM\tsupabase/functions/agent-chat/handler-career.ts\nM\tsupabase/migrations/20261015020000_career_watch_kv.sql\nA\tsupabase/migrations/20261015234000_career_task_intents_v1.sql\nA\ttests/capability2-bundle.test.cjs\nA\ttests/capability2-grounding.test.cjs\nM\ttests/career-alerts-host-wiring.test.cjs\nA\ttests/career-bundle-reachability.test.cjs\nA\ttests/career-durability.test.cjs\nM\ttests/career-http-host.test.cjs\nA\ttests/career-owned-worker-browser.test.cjs\nA\ttests/career-owned-worker.test.cjs\nA\ttests/career-persistence-postgres.test.cjs\nM\ttests/career-portal-apply.test.cjs\nM\ttests/career-portal-browser.test.cjs\nA\ttests/career-portal-caps.test.cjs\nA\ttests/career-portal-payload-binding.test.cjs\nM\ttests/career-portal-submit-path.test.cjs\nA\ttests/career-task-authority-postgres.test.cjs\nA\ttests/career-unknown-outcome-resolver.test.cjs\nA\ttests/career-writing-pattern.test.cjs\nA\ttests/fixtures/capability2/frozen-manifest.json\nA\ttests/fixtures/capability2/resumes.cjs\nA\ttests/fixtures/career-persistence-schema.sql\nA\ttests/fixtures/owned-portal.cjs\nA\ttests/fixtures/owned-worker-authority.cjs\nA\ttests/fixtures/owned-worker-fixture.cjs\nA\ttests/helpers/career-alerts-rpc-fake.cjs\nA\ttests/helpers/career-persistence-fake.cjs\nA\ttests/helpers/career-staged-entry.cjs\nA\ttests/helpers/career-task-sql.cjs\nA\ttests/independent-worker-atomic-interplay.test.cjs\nA\tworkers/career-browser/authority.cjs\nA\tworkers/career-browser/http.cjs\nA\tworkers/career-browser/protocol.cjs\nA\tworkers/career-browser/run.cjs\nA\tworkers/career-browser/service.cjs\nA\tworkers/career-browser/store.cjs\n"
+  }
+}

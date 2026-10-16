@@ -1,0 +1,3655 @@
+[
+  {
+    "caseId": "C07",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:47:55.588Z",
+    "input": {
+      "message": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+      "contains": [
+        "entry|analyst",
+        "remote"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_internship_discovery",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+        "action": null,
+        "turn_key": "C07-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches entry|analyst",
+        "pass": false
+      },
+      {
+        "name": "reply matches remote",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-1",
+          "p_hash": "aba912e1c756607f45d53bee9989f97c5117994cf47236f2fa301aff0625a976"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-1",
+          "p_hash": "aba912e1c756607f45d53bee9989f97c5117994cf47236f2fa301aff0625a976",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "altRoleText": null,
+                  "whereText": null,
+                  "remote": true,
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "at": "2026-10-16T00:47:55.269Z"
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_internship_discovery",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:47:56.414Z",
+    "input": {
+      "message": "I cannot relocate. Exclude director jobs and unpaid internships.",
+      "contains": [
+        "relocat|director|unpaid|exclude"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C07-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:56.163Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches relocat|director|unpaid|exclude",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-2",
+          "p_hash": "8556be0572d1d72141e1209c6f37374e2f9604cb1cb993ab9afb558d54465f6b"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-2",
+          "p_hash": "8556be0572d1d72141e1209c6f37374e2f9604cb1cb993ab9afb558d54465f6b",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "at": "2026-10-16T00:47:55.269Z",
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "remote": true,
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "whereText": null,
+                  "altRoleText": null
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:47:57.265Z",
+    "input": {
+      "message": "I need employer sponsorship. Do not assume I am authorized.",
+      "contains": [
+        "sponsor|authoriz"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "company_intel",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+        "action": null,
+        "turn_key": "C07-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches sponsor|authoriz",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-3",
+          "p_hash": "7e1da7113ab14ac48f7e2be34d9e5d8ecbc11028d59374d6ff56aae8bb82db94"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-3",
+          "p_hash": "7e1da7113ab14ac48f7e2be34d9e5d8ecbc11028d59374d6ff56aae8bb82db94",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "at": "2026-10-16T00:47:55.269Z",
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "remote": true,
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "whereText": null,
+                  "altRoleText": null
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need employer sponsorship. Do not assume I am authorized.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "company_intel",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:47:58.153Z",
+    "input": {
+      "message": "If I could move to New York one day, would that open more roles?",
+      "contains": [
+        "if|hypothet|move|New York"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C07-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:57.828Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches if|hypothet|move|New York",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-4",
+          "p_hash": "4cffe792e2c259e3522d8d06e32a8e233fe9265bd570606109145c9e31717754"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-4",
+          "p_hash": "4cffe792e2c259e3522d8d06e32a8e233fe9265bd570606109145c9e31717754",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "at": "2026-10-16T00:47:55.269Z",
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "remote": true,
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "whereText": null,
+                  "altRoleText": null
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "If I could move to New York one day, would that open more roles?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:47:59.061Z",
+    "input": {
+      "message": "That move was hypothetical. Repeat my actual hard constraints.",
+      "contains": [
+        "remote",
+        "paid",
+        "sponsor",
+        "part.time"
+      ],
+      "absent": [
+        "willing to relocate"
+      ]
+    },
+    "requestKey": "C07-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C07-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:58.744Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches remote",
+        "pass": false
+      },
+      {
+        "name": "reply matches paid",
+        "pass": false
+      },
+      {
+        "name": "reply matches sponsor",
+        "pass": false
+      },
+      {
+        "name": "reply matches part.time",
+        "pass": false
+      },
+      {
+        "name": "reply excludes willing to relocate",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "b64f7f48-82fa-4b63-9fa8-2d44359d975d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "c97ca9b9-e0e4-41ea-a3c6-a1b276bb2399",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-5",
+          "p_hash": "280f4502fad06e12c97bc1f434feb55326c32e8c3094798c3d7a67ebfcab59ce"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-5",
+          "p_hash": "280f4502fad06e12c97bc1f434feb55326c32e8c3094798c3d7a67ebfcab59ce",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "at": "2026-10-16T00:47:55.269Z",
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "remote": true,
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "whereText": null,
+                  "altRoleText": null
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "That move was hypothetical. Repeat my actual hard constraints.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:47:59.893Z",
+    "input": {
+      "message": "How would you handle a director posting with a perfect keyword match?",
+      "contains": [
+        "director|senior|exclude|mismatch"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C07-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:59.625Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches director|senior|exclude|mismatch",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "b64f7f48-82fa-4b63-9fa8-2d44359d975d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "c97ca9b9-e0e4-41ea-a3c6-a1b276bb2399",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "b64f7f48-82fa-4b63-9fa8-2d44359d975d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "c97ca9b9-e0e4-41ea-a3c6-a1b276bb2399",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "82a2a76f-b1d7-49c4-aeb5-1cf5ea878949",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "How would you handle a director posting with a perfect keyword match?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:59.741617+00:00"
+        },
+        {
+          "id": "d1542cbf-079c-464e-bd88-4f82936ef289",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-6"
+          },
+          "created_at": "2026-10-16T00:47:59.741617+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-6",
+          "p_hash": "5a7db919d6b9713ff9570465c63ac95dd5d08bff9dcb6d296d5cb7d3cf84c8f8"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-6",
+          "p_hash": "5a7db919d6b9713ff9570465c63ac95dd5d08bff9dcb6d296d5cb7d3cf84c8f8",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "at": "2026-10-16T00:47:55.269Z",
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "remote": true,
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "whereText": null,
+                  "altRoleText": null
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "How would you handle a director posting with a perfect keyword match?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T00:48:00.798Z",
+    "input": {
+      "message": "Give me a next step that respects these limits without applying.",
+      "contains": [
+        "posting|confirm|filter|search|paste|review"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C07-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:00.466Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches posting|confirm|filter|search|paste|review",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "b64f7f48-82fa-4b63-9fa8-2d44359d975d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "c97ca9b9-e0e4-41ea-a3c6-a1b276bb2399",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "82a2a76f-b1d7-49c4-aeb5-1cf5ea878949",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "How would you handle a director posting with a perfect keyword match?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:59.741617+00:00"
+        },
+        {
+          "id": "d1542cbf-079c-464e-bd88-4f82936ef289",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-6"
+          },
+          "created_at": "2026-10-16T00:47:59.741617+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:47:55.269Z",
+              "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+              "bands": [
+                "intern",
+                "new_grad",
+                "junior"
+              ],
+              "remote": true,
+              "families": [
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "08a9ca16-ef00-4748-bd5b-ca11698fbeba",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "446665ae-b86e-4ffb-a7b8-2768e9656233",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "For Summer 2027, using the profile you already gave me (graduating 2028, Python), these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+          "meta": {
+            "career": true,
+            "intent": "career_internship_discovery",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T00:47:55.426473+00:00"
+        },
+        {
+          "id": "00020295-3a05-47b0-87b4-5c4323accb3a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "718998b5-3703-4594-82a1-58a499d88c1d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:56.27424+00:00"
+        },
+        {
+          "id": "551db3b3-c9f0-4788-8f97-abcc7666853a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Here is the honest answer, from the record.\nNo — past filings are history, not a current promise. The record shows this employer filed petitions in past years, for other roles. Three questions are being merged into one, and they are separate: your present eligibility to work, sponsorship in the future, and this employer's willingness to sponsor this role for you now.\nEach of those is unknown from a filing history, and the history does not prove sponsorship for this role or this candidate. Source: No filing-history snapshot was supplied — the history itself is spoken of only as the user described it, as of 2026-10-13. Ask the employer directly whether this role is sponsorship-eligible now, and keep the three questions separate when you do.",
+          "meta": {
+            "career": true,
+            "intent": "company_intel",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "e9c0e61e-7a4c-454c-b608-9b579830e79d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.117413+00:00"
+        },
+        {
+          "id": "5c81ee42-2de4-4419-9399-27cc598ec77e",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "6625160d-f4d2-4b78-9a90-09dec18b42c7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T00:47:57.976949+00:00"
+        },
+        {
+          "id": "b64f7f48-82fa-4b63-9fa8-2d44359d975d",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "c97ca9b9-e0e4-41ea-a3c6-a1b276bb2399",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T00:47:58.874732+00:00"
+        },
+        {
+          "id": "82a2a76f-b1d7-49c4-aeb5-1cf5ea878949",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "How would you handle a director posting with a perfect keyword match?",
+          "meta": null,
+          "created_at": "2026-10-16T00:47:59.741617+00:00"
+        },
+        {
+          "id": "d1542cbf-079c-464e-bd88-4f82936ef289",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-6"
+          },
+          "created_at": "2026-10-16T00:47:59.741617+00:00"
+        },
+        {
+          "id": "ad1799dd-b5c0-4878-afb4-626f088796ed",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C07-7"
+          },
+          "created_at": "2026-10-16T00:48:00.664495+00:00"
+        },
+        {
+          "id": "f736d9d4-53a0-41e0-a14f-cbfc1fbe64bb",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Give me a next step that respects these limits without applying.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:00.664495+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-7",
+          "p_hash": "bc98d8cbb92208274e6e57406d70fa8562dd966a906b3c9ad03b6cb4a21c50d3"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-7",
+          "p_hash": "bc98d8cbb92208274e6e57406d70fa8562dd966a906b3c9ad03b6cb4a21c50d3",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "discovery": {
+                "lastParams": {
+                  "at": "2026-10-16T00:47:55.269Z",
+                  "ask": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                  "bands": [
+                    "intern",
+                    "new_grad",
+                    "junior"
+                  ],
+                  "remote": true,
+                  "families": [
+                    "Data/ML"
+                  ],
+                  "roleText": null,
+                  "whereText": null,
+                  "altRoleText": null
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Give me a next step that respects these limits without applying.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  }
+]

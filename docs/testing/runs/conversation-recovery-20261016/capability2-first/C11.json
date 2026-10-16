@@ -1,0 +1,3027 @@
+[
+  {
+    "caseId": "C11",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:45.926Z",
+    "input": {
+      "message": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+      "contains": [
+        "data|software",
+        "interview|second|next|held"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches data|software",
+        "pass": false
+      },
+      {
+        "name": "reply matches interview|second|next|held",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:45.621Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "result_status": "awaiting_user",
+            "contained": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:46.981Z",
+    "input": {
+      "message": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+      "contains": [
+        "pattern|explain|data"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:46.526Z\",\"session_id\":\"00000000-0000-4000-8000-000000000112\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches pattern|explain|data",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:46.526Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:48.089Z",
+    "input": {
+      "message": "Before we continue, what does a data analyst actually do each day?",
+      "contains": [
+        "data|analyst"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:47.614Z\",\"session_id\":\"00000000-0000-4000-8000-000000000112\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches data|analyst",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?"
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:47.614Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:49.002Z",
+    "input": {
+      "message": "Return to the choice using what I enjoy, but do not make it sound certain.",
+      "contains": [
+        "pattern|explain|data",
+        "uncertain|test|try|evidence|may|could"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:48.684Z\",\"session_id\":\"00000000-0000-4000-8000-000000000112\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches pattern|explain|data",
+        "pass": false
+      },
+      {
+        "name": "reply matches uncertain|test|try|evidence|may|could",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:48.684Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:49.849Z",
+    "input": {
+      "message": "Now do the second ask: prepare one interview answer about a class project.",
+      "contains": [
+        "project|interview|question"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches project|interview|question",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        },
+        {
+          "id": "b186d084-84ae-4135-9dbb-1f2ef17252de",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:49.427835+00:00"
+        },
+        {
+          "id": "987cd396-3083-43c8-93ef-2afdb546d694",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:49.735384+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:49.534Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "result_status": "awaiting_user",
+            "contained": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:50.712Z",
+    "input": {
+      "message": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+      "contains": [
+        "duplicate|survey|dashboard"
+      ],
+      "absent": []
+    },
+    "requestKey": "C11-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:50.402Z\",\"session_id\":\"00000000-0000-4000-8000-000000000112\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches duplicate|survey|dashboard",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        },
+        {
+          "id": "b186d084-84ae-4135-9dbb-1f2ef17252de",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:49.427835+00:00"
+        },
+        {
+          "id": "987cd396-3083-43c8-93ef-2afdb546d694",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:49.735384+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        },
+        {
+          "id": "b186d084-84ae-4135-9dbb-1f2ef17252de",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:49.427835+00:00"
+        },
+        {
+          "id": "987cd396-3083-43c8-93ef-2afdb546d694",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:49.735384+00:00"
+        },
+        {
+          "id": "0716b0b5-faed-4d67-aae5-e47403a82547",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:50.271454+00:00"
+        },
+        {
+          "id": "ff7b04a9-286d-4052-b8b9-e0351b87c70a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:50.602416+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:50.403Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C11",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-16T00:48:51.649Z",
+    "input": {
+      "message": "Give me the actual answer, with no made-up numbers.",
+      "contains": [
+        "duplicate|survey|dashboard"
+      ],
+      "absent": [
+        "increased revenue|saved \\$"
+      ]
+    },
+    "requestKey": "C11-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "capabilities": {
+          "portal_browser": {
+            "status": "NOT_WIRED",
+            "reason": "The Node browser worker is not connected to this Edge handler."
+          },
+          "job_alert_delivery": {
+            "status": "NOT_WIRED",
+            "reason": "No alert scheduler or delivery channel is connected to this Edge handler; watch state is saved in this conversation only."
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:51.277Z\",\"session_id\":\"00000000-0000-4000-8000-000000000112\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches duplicate|survey|dashboard",
+        "pass": false
+      },
+      {
+        "name": "reply excludes increased revenue|saved \\$",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        },
+        {
+          "id": "b186d084-84ae-4135-9dbb-1f2ef17252de",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:49.427835+00:00"
+        },
+        {
+          "id": "987cd396-3083-43c8-93ef-2afdb546d694",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:49.735384+00:00"
+        },
+        {
+          "id": "0716b0b5-faed-4d67-aae5-e47403a82547",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:50.271454+00:00"
+        },
+        {
+          "id": "ff7b04a9-286d-4052-b8b9-e0351b87c70a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:50.602416+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "571075f2-6ace-4234-9077-099674e87bf1",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Two asks: help me choose between data analysis and software engineering, then help prepare one interview answer.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:45.492556+00:00"
+        },
+        {
+          "id": "151420b8-7446-46e9-8db4-6890f616f341",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:45.810829+00:00"
+        },
+        {
+          "id": "d1ffefc5-12d1-414f-bde0-53e188f3f0a3",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Start with the choice. I enjoy explaining patterns more than building interfaces.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:46.394415+00:00"
+        },
+        {
+          "id": "07305f93-5873-43a1-b019-9621ab4b6aae",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:46.818319+00:00"
+        },
+        {
+          "id": "93e6b8bf-b011-425e-94ec-d5d0e7f71fdb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Before we continue, what does a data analyst actually do each day?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:47.457677+00:00"
+        },
+        {
+          "id": "be2fbdad-bf2f-4c25-a361-87bd57c78a57",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:47.926849+00:00"
+        },
+        {
+          "id": "b85acbb4-ac38-422c-869d-4334f16e8147",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Return to the choice using what I enjoy, but do not make it sound certain.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:48.542477+00:00"
+        },
+        {
+          "id": "90506eb7-e30d-4cba-b59b-1ee5f0084e0d",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:48.898234+00:00"
+        },
+        {
+          "id": "b186d084-84ae-4135-9dbb-1f2ef17252de",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Now do the second ask: prepare one interview answer about a class project.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:49.427835+00:00"
+        },
+        {
+          "id": "987cd396-3083-43c8-93ef-2afdb546d694",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:49.735384+00:00"
+        },
+        {
+          "id": "0716b0b5-faed-4d67-aae5-e47403a82547",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "The project was a survey dashboard built in class, and I cleaned duplicate rows.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:50.271454+00:00"
+        },
+        {
+          "id": "ff7b04a9-286d-4052-b8b9-e0351b87c70a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:50.602416+00:00"
+        },
+        {
+          "id": "2f8a2e65-8023-48c8-a651-ae07aeeef51a",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Give me the actual answer, with no made-up numbers.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:51.147738+00:00"
+        },
+        {
+          "id": "b84d611f-7ba9-4441-b655-e0cbb7ba94cf",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:51.531676+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Give me the actual answer, with no made-up numbers."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:51.277Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  }
+]

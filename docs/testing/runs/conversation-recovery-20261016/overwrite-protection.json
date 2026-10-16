@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-16T00:54:16.854345+00:00",
+  "status": "PASS",
+  "attempt": "same output label integration-first",
+  "result": "EEXIST before any new database or handler call",
+  "exitCode": 1,
+  "transcriptSha256Before": "3559c7edf303d176be5c4930550bb2c5bee365742b98a603836a331ebccabe12",
+  "transcriptSha256After": "3559c7edf303d176be5c4930550bb2c5bee365742b98a603836a331ebccabe12",
+  "stderr": "node:fs:1411\n  const result = binding.mkdir(\n                         ^\n\nError: EEXIST: file already exists, mkdir '/workspace/upmore-eval/docs/testing/runs/conversation-recovery-20261016/integration-first'\n    at Object.mkdirSync (node:fs:1411:26)\n    at Object.<anonymous> (/workspace/upmore-eval/scripts/career/conversation-recovery/run.cjs:10:90)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  errno: -17,\n  code: 'EEXIST',\n  syscall: 'mkdir',\n  path: '/workspace/upmore-eval/docs/testing/runs/conversation-recovery-20261016/integration-first'\n}\n\nNode.js v24.19.0\n"
+}

@@ -1,0 +1,95 @@
+{
+  "label": "release-current-first",
+  "target": "/workspace/upmore-release-current",
+  "commit": "f67db048599db308f2691a7be7feada841143da5",
+  "started": "2026-10-16T00:52:38.367Z",
+  "frozenAt": "2026-10-16T00:45:39.972859+00:00",
+  "expectationSha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+  "execution": "actual staged index -> handler-career.ts -> generated career bundle -> real PostgreSQL 16; synthetic identity and unlimited local rate limiter; no provider; no browser",
+  "profile": "SYNTHETIC",
+  "database": "career_test_recovery_release_current_first",
+  "container": "upmore-career-integration-pg-recovery",
+  "checks": 543,
+  "passed": 414,
+  "failed": 129,
+  "turns": 83,
+  "networkAttempts": 0,
+  "cases": [
+    {
+      "id": "C01",
+      "topic": "Human conversation and pacing",
+      "passed": 34,
+      "failed": 12
+    },
+    {
+      "id": "C02",
+      "topic": "Corrections used after intervening turns",
+      "passed": 42,
+      "failed": 6
+    },
+    {
+      "id": "C03",
+      "topic": "Hypothetical, quoted and actual facts",
+      "passed": 36,
+      "failed": 10
+    },
+    {
+      "id": "C04",
+      "topic": "Fresh process and fresh thread",
+      "passed": 35,
+      "failed": 11
+    },
+    {
+      "id": "C05",
+      "topic": "Selective forgetting with honest scope",
+      "passed": 35,
+      "failed": 11
+    },
+    {
+      "id": "C06",
+      "topic": "Resume truthfulness and artifact delivery",
+      "passed": 32,
+      "failed": 13
+    },
+    {
+      "id": "C07",
+      "topic": "Role, seniority and schedule constraints",
+      "passed": 32,
+      "failed": 15
+    },
+    {
+      "id": "C08",
+      "topic": "Interview coaching with answer-specific feedback",
+      "passed": 31,
+      "failed": 16
+    },
+    {
+      "id": "C09",
+      "topic": "Negotiation, interruption and actual draft",
+      "passed": 37,
+      "failed": 10
+    },
+    {
+      "id": "C10",
+      "topic": "Honest unavailable execution and uncertain failures",
+      "passed": 34,
+      "failed": 9
+    },
+    {
+      "id": "C11",
+      "topic": "Interruptions and multi-intent continuation",
+      "passed": 30,
+      "failed": 15
+    },
+    {
+      "id": "C12",
+      "topic": "Durable save failure, same-key retry and conflict",
+      "passed": 36,
+      "failed": 1
+    }
+  ],
+  "finished": "2026-10-16T00:54:28.880Z",
+  "verdict": "FAIL",
+  "browserOutcomes": 0,
+  "modelResponseQuality": "NOT_EVALUATED: actual career entry contains no model and network is denied"
+}

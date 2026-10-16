@@ -50679,6 +50679,445 @@
         "Not browser, sandbox-provider or live verification."
       ],
       "worker_source_digest": "ce818d061bc3bb529045434700c8dde1d18e5b3e3e2178c2cc5681363f24d05a"
+    },
+    {
+      "id": "conversation-recovery-20261016:release-first",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/conversation-recovery/run.cjs",
+        "/workspace/upmore-release",
+        "release-first"
+      ],
+      "observed_at": "2026-10-16T00:51:35.508965+00:00",
+      "commit": "afc460ec872f61eb2dcdbbca4d34140fb8b345c0",
+      "source_digest": "5d96d61367b4751331b72dc9c47e9481cda12a31cbe10fc7e9bb2d99c6906de5",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+        "database": "real PostgreSQL 16 in disposable network-none Docker fixture"
+      },
+      "result": "FAIL",
+      "reported_outcomes": {
+        "turns": 83,
+        "checks": 543,
+        "passed": 399,
+        "failed": 144,
+        "browser_completed": 0,
+        "external_network_attempts": 0
+      },
+      "exit_code": 1,
+      "log": "docs/testing/runs/conversation-recovery-20261016/release-first.log",
+      "log_sha256": "f6c54c5cef083142bebc6af5fc46588b67c5baef06aa0b7f29a285dc087266be",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic identity; real local SQL; deterministic actual career entry",
+      "screenshots": [],
+      "test_ids": [
+        "C01: Human conversation and pacing",
+        "C02: Corrections used after intervening turns",
+        "C03: Hypothetical, quoted and actual facts",
+        "C04: Fresh process and fresh thread",
+        "C05: Selective forgetting with honest scope",
+        "C06: Resume truthfulness and artifact delivery",
+        "C07: Role, seniority and schedule constraints",
+        "C08: Interview coaching with answer-specific feedback",
+        "C09: Negotiation, interruption and actual draft",
+        "C10: Honest unavailable execution and uncertain failures",
+        "C11: Interruptions and multi-intent continuation",
+        "C12: Durable save failure, same-key retry and conflict"
+      ],
+      "limitations": [
+        "Not live, browser or model response-quality verification.",
+        "Frozen lexical check totals are not conversational quality scores.",
+        "No module-130 cross-user evaluation; separate owner."
+      ],
+      "expectations_sha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c"
+    },
+    {
+      "id": "conversation-recovery-20261016:integration-first",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/conversation-recovery/run.cjs",
+        "/workspace/upmore-eval",
+        "integration-first"
+      ],
+      "observed_at": "2026-10-16T00:51:35.508965+00:00",
+      "commit": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+      "source_digest": "5d96d61367b4751331b72dc9c47e9481cda12a31cbe10fc7e9bb2d99c6906de5",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+        "database": "real PostgreSQL 16 in disposable network-none Docker fixture"
+      },
+      "result": "FAIL",
+      "reported_outcomes": {
+        "turns": 83,
+        "checks": 543,
+        "passed": 412,
+        "failed": 131,
+        "browser_completed": 0,
+        "external_network_attempts": 0
+      },
+      "exit_code": 1,
+      "log": "docs/testing/runs/conversation-recovery-20261016/integration-first.log",
+      "log_sha256": "a4e5e4a5e1992f610eb714c85c256f3eb396479a24bb996efaf10cfcf2b87f59",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic identity; real local SQL; deterministic actual career entry",
+      "screenshots": [],
+      "test_ids": [
+        "C01: Human conversation and pacing",
+        "C02: Corrections used after intervening turns",
+        "C03: Hypothetical, quoted and actual facts",
+        "C04: Fresh process and fresh thread",
+        "C05: Selective forgetting with honest scope",
+        "C06: Resume truthfulness and artifact delivery",
+        "C07: Role, seniority and schedule constraints",
+        "C08: Interview coaching with answer-specific feedback",
+        "C09: Negotiation, interruption and actual draft",
+        "C10: Honest unavailable execution and uncertain failures",
+        "C11: Interruptions and multi-intent continuation",
+        "C12: Durable save failure, same-key retry and conflict"
+      ],
+      "limitations": [
+        "Not live, browser or model response-quality verification.",
+        "Frozen lexical check totals are not conversational quality scores.",
+        "No module-130 cross-user evaluation; separate owner."
+      ],
+      "expectations_sha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c"
+    },
+    {
+      "id": "conversation-recovery-20261016:capability2-first",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/conversation-recovery/run.cjs",
+        "/workspace/upmore-cap2",
+        "capability2-first"
+      ],
+      "observed_at": "2026-10-16T00:51:35.508965+00:00",
+      "commit": "49b7872c822cbf26107c3d49727c9f5ed2acbc9f",
+      "source_digest": "5d96d61367b4751331b72dc9c47e9481cda12a31cbe10fc7e9bb2d99c6906de5",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+        "database": "real PostgreSQL 16 in disposable network-none Docker fixture"
+      },
+      "result": "FAIL",
+      "reported_outcomes": {
+        "turns": 83,
+        "checks": 543,
+        "passed": 402,
+        "failed": 141,
+        "browser_completed": 0,
+        "external_network_attempts": 0
+      },
+      "exit_code": 1,
+      "log": "docs/testing/runs/conversation-recovery-20261016/capability2-first.log",
+      "log_sha256": "e83995d2b6d80630418da3ef8a76d91be2a7f56780130b043faf5817b44183fa",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic identity; real local SQL; deterministic actual career entry",
+      "screenshots": [],
+      "test_ids": [
+        "C01: Human conversation and pacing",
+        "C02: Corrections used after intervening turns",
+        "C03: Hypothetical, quoted and actual facts",
+        "C04: Fresh process and fresh thread",
+        "C05: Selective forgetting with honest scope",
+        "C06: Resume truthfulness and artifact delivery",
+        "C07: Role, seniority and schedule constraints",
+        "C08: Interview coaching with answer-specific feedback",
+        "C09: Negotiation, interruption and actual draft",
+        "C10: Honest unavailable execution and uncertain failures",
+        "C11: Interruptions and multi-intent continuation",
+        "C12: Durable save failure, same-key retry and conflict"
+      ],
+      "limitations": [
+        "Not live, browser or model response-quality verification.",
+        "Frozen lexical check totals are not conversational quality scores.",
+        "No module-130 cross-user evaluation; separate owner."
+      ],
+      "expectations_sha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c"
+    },
+    {
+      "id": "conversation-recovery-20261016:existing-integration",
+      "command": [
+        "node",
+        "--test",
+        "tests/career-conversation-depth.test.cjs",
+        "tests/career-http-host.test.cjs"
+      ],
+      "observed_at": "2026-10-16T00:51:35.508965+00:00",
+      "commit": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+      "source_digest": "5d96d61367b4751331b72dc9c47e9481cda12a31cbe10fc7e9bb2d99c6906de5",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "FAIL",
+      "reported_outcomes": {
+        "passed": 18,
+        "failed": 1,
+        "skipped": 0
+      },
+      "exit_code": 1,
+      "log": "docs/testing/runs/conversation-recovery-20261016/integration-existing-conversation-tests.log",
+      "log_sha256": "f4d97d6f343dc0f5ad44fd43d2914dc0095b4f24d4d8c74a8275e2ee58ffb965",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap",
+        "negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1",
+        "career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step",
+        "fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city",
+        "fact chain survives the shallow-copy harness (Lane C semantics)",
+        "pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record",
+        "pause chain (shallow-copy harness): the lifted pause survives to the send turn",
+        "multi-intent: parts are answered/named, and a novel continuation delivers part two",
+        "adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state",
+        "set mapping: a healthcare-consulting ask never proposes the bulge-bracket set",
+        "set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set",
+        "track events: plain-words reports are claimed and routed to the tracker ingest",
+        "track events adversarial: a question or a friend's event writes nothing to the user's tracker",
+        "host creates and a networking ask is answered by the career path",
+        "apply ask with an empty live pool fabricates no roles",
+        "tracking ask gets a career answer, never the finance product",
+        "kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx",
+        "a finance ask is NOT served as the finance product",
+        "garbage input never throws and still returns a reply"
+      ],
+      "limitations": [
+        "No browser, model, real-account or live verification.",
+        "Capability2 H20 remains explicitly skipped by the existing suite."
+      ]
+    },
+    {
+      "id": "conversation-recovery-20261016:existing-capability2",
+      "command": [
+        "node",
+        "--test",
+        "tests/capability2-independent-boundaries.test.cjs",
+        "tests/capability2-followup-bundle.test.cjs"
+      ],
+      "observed_at": "2026-10-16T00:51:35.508965+00:00",
+      "commit": "49b7872c822cbf26107c3d49727c9f5ed2acbc9f",
+      "source_digest": "5d96d61367b4751331b72dc9c47e9481cda12a31cbe10fc7e9bb2d99c6906de5",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": {
+        "passed": 68,
+        "failed": 0,
+        "skipped": 1
+      },
+      "exit_code": 0,
+      "log": "docs/testing/runs/conversation-recovery-20261016/capability2-existing-boundary-tests.log",
+      "log_sha256": "641602fc7b3ead0da070da33198ad4ae20a7f0f153adda834e686cbdb0afb591",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "followup staged HTTP and ESM source boundaries",
+        "independent manifest and runner bytes match their Library freeze",
+        "H01 frozen: A scheduling mention of Python engineers is not evidence that the scheduler can program",
+        "H02 frozen: Zero experience is negative evidence, not demonstrated experience",
+        "H03 frozen: An ordinary negative contraction cannot prove a skill",
+        "H04 frozen: An unresolved newer explicit denial must not leave old skill evidence unqualified",
+        "H05 frozen: A concrete confirmed project can support evidence",
+        "H06 frozen: An extracted draft cannot support skill evidence",
+        "H07 frozen: Duplicate IDs cannot establish one canonical supporting fact",
+        "H08 frozen: Legacy stable fact_id identifiers must survive non-mutating resume adaptation",
+        "H09 frozen: Fresh remote openings require known hiring geography even with no preferred city",
+        "H10 frozen: Known location constraints exclude unknown remote geography",
+        "H11 frozen: A newer closed observation supersedes an older open observation of the same requisition",
+        "H12 frozen: An explicitly closed sole posting cannot be current",
+        "H13 frozen: Old source observations cannot be current",
+        "H14 frozen: Recognized fixture flags cannot become current openings",
+        "H15 frozen: Reserved example.org sources are examples, not current openings",
+        "H16 frozen: A normalized fresh matching observation with an explicit geography remains available for review",
+        "H17 frozen: The actual chat route must retain an explicitly named missing skill",
+        "H18 frozen: The actual chat route must retain an explicit one-hour weekly budget rather than silently substitute role recipes",
+        "H19 frozen: A stable in-place correction must remove old positive evidence",
+        "H21 frozen: A global capability alias should not silently erase an explicit per-skill employer requirement",
+        "H22 frozen: Known paid-only constraints exclude unspecified compensation",
+        "D01: distinct grounded mechanical engineer hypotheses and honest gaps",
+        "D02: distinct grounded electrician hypotheses and honest gaps",
+        "D03: distinct grounded teacher hypotheses and honest gaps",
+        "D04: distinct grounded graphic designer hypotheses and honest gaps",
+        "relation negative or mention: Scheduled interviews for Python engineers",
+        "relation negative or mention: Scheduled interviews with Python engineers",
+        "relation negative or mention: Recruited Python developers",
+        "relation negative or mention: Hired engineers using Python",
+        "relation negative or mention: Reviewed notes about Python",
+        "relation negative or mention: Built a hiring pipeline for Python engineers",
+        "relation negative or mention: I have zero Python experience",
+        "relation negative or mention: I haven't used Python",
+        "relation negative or mention: I have never used Python",
+        "relation negative or mention: I cannot program Python",
+        "relation negative or mention: I don't know Python",
+        "relation negative or mention: Learning Python",
+        "relation negative or mention: I lack Python experience",
+        "relation negative or mention: Without Python experience",
+        "relation positive: Built Python scripts",
+        "relation positive: Used Python to validate records",
+        "relation positive: Implemented a Python parser",
+        "relation positive: Developed services using Python",
+        "relation positive: Wrote a Python script with tests",
+        "scheduling morphology is real work even when programmers are interviewees",
+        "conflicts are explicit and independent of input order; only confirmed supersession resolves them",
+        "newest closed observation suppresses old open; reversed=false",
+        "newest closed observation suppresses old open; reversed=true",
+        "same-time closed tombstone wins, latest rows do not borrow old geography or requirements",
+        "reserved example source: https://example.org/x",
+        "reserved example source: https://jobs.example.org/x",
+        "reserved example source: https://EXAMPLE.NET/x",
+        "reserved example source: https://careers.example.com/x",
+        "reserved example source: https://localhost/x",
+        "reserved example source: https://jobs.demo.test/x",
+        "query retains target and budget: What SQL skill gaps should I close? I can spend one hour per week.",
+        "query retains target and budget: What Rust skill gaps should I close? 90 minutes a week.",
+        "query retains target and budget: What CAD skill gaps should I close? two hours weekly.",
+        "query retains target and budget: What legal research skill gaps should I close? half an hour per week.",
+        "ambiguous query asks instead of substituting: What SQL and Excel skill gaps should I close?",
+        "ambiguous query asks instead of substituting: What SQL skill gaps should I close? one hour per week or two hours weekly.",
+        "ambiguous query asks instead of substituting: What SQL skill gaps should I close? zero hours per week.",
+        "legacy canonical identity and source references survive ingestion without changing the input",
+        "specific SQL gap request retains priority when framed as resume advice",
+        "requisition numeric/string aliases coalesce and placeholder geography stays unknown",
+        "typed grounding retains canonical revision/epoch and original quote without inventing a hash"
+      ],
+      "limitations": [
+        "No browser, model, real-account or live verification.",
+        "Capability2 H20 remains explicitly skipped by the existing suite."
+      ]
+    },
+    {
+      "id": "conversation-recovery-20261016:browser-sandbox",
+      "command": [
+        "Playwright chromium.launch",
+        "chromiumSandbox:true",
+        "executablePath:/usr/bin/chromium"
+      ],
+      "observed_at": "2026-10-16T00:51:35.508965+00:00",
+      "commit": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+      "source_digest": "5d96d61367b4751331b72dc9c47e9481cda12a31cbe10fc7e9bb2d99c6906de5",
+      "result": "NOT_RUN",
+      "exit_code": null,
+      "log": "docs/testing/runs/conversation-recovery-20261016/browser-sandbox.json",
+      "log_sha256": "516b628f1f11099c0a059ac0e8d2b1cda444fa5220a9b8f9f03a480b83f4e0f2",
+      "verification_level": "LOCAL",
+      "provider_mode": "none",
+      "screenshots": [],
+      "test_ids": [
+        "B01-B15 public read-only browser tasks"
+      ],
+      "limitations": [
+        "Sandboxed Chromium failed before any page opened.",
+        "Published worker has no public read-only research-browser adapter.",
+        "Zero genuine browser outcomes."
+      ]
+    },
+    {
+      "id": "conversation-recovery-20261016:release-current-first",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/conversation-recovery/run.cjs",
+        "/workspace/upmore-release-current",
+        "release-current-first"
+      ],
+      "observed_at": "2026-10-16T00:55:26.731829+00:00",
+      "commit": "f67db048599db308f2691a7be7feada841143da5",
+      "source_digest": "934d0f3827cd99a2eed3a8a698186e14e1922d78380a715a90099ecda74cc0ae",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+        "database": "real PostgreSQL 16 in disposable network-none Docker fixture"
+      },
+      "result": "FAIL",
+      "reported_outcomes": {
+        "turns": 83,
+        "checks": 543,
+        "passed": 414,
+        "failed": 129,
+        "browser_completed": 0,
+        "external_network_attempts": 0
+      },
+      "exit_code": 1,
+      "log": "docs/testing/runs/conversation-recovery-20261016/release-current-first.log",
+      "log_sha256": "b55b1666becdd2079823c96dd4730940d6bed3022ea5766daa5bf296e589966e",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic identity; real local SQL; deterministic actual career entry",
+      "screenshots": [],
+      "test_ids": [
+        "C01: Human conversation and pacing",
+        "C02: Corrections used after intervening turns",
+        "C03: Hypothetical, quoted and actual facts",
+        "C04: Fresh process and fresh thread",
+        "C05: Selective forgetting with honest scope",
+        "C06: Resume truthfulness and artifact delivery",
+        "C07: Role, seniority and schedule constraints",
+        "C08: Interview coaching with answer-specific feedback",
+        "C09: Negotiation, interruption and actual draft",
+        "C10: Honest unavailable execution and uncertain failures",
+        "C11: Interruptions and multi-intent continuation",
+        "C12: Durable save failure, same-key retry and conflict"
+      ],
+      "limitations": [
+        "Not live, browser or model response-quality verification.",
+        "Exact newly observed release SHA; no merge or deploy.",
+        "No module-130 cross-user evaluation; separate owner."
+      ],
+      "expectations_sha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c"
+    },
+    {
+      "id": "conversation-recovery-20261016:existing-current-release",
+      "command": [
+        "node",
+        "--test",
+        "tests/career-conversation-depth.test.cjs",
+        "tests/career-http-host.test.cjs"
+      ],
+      "observed_at": "2026-10-16T00:55:26.731829+00:00",
+      "commit": "f67db048599db308f2691a7be7feada841143da5",
+      "source_digest": "934d0f3827cd99a2eed3a8a698186e14e1922d78380a715a90099ecda74cc0ae",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": {
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0
+      },
+      "exit_code": 0,
+      "log": "docs/testing/runs/conversation-recovery-20261016/current-existing-conversation-tests.log",
+      "log_sha256": "3010fb9a992490ec8f0a496f95723deafd1c84b519e00d814a55e1233e31746d",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap",
+        "negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1",
+        "career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step",
+        "fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city",
+        "fact chain survives the shallow-copy harness (Lane C semantics)",
+        "pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record",
+        "pause chain (shallow-copy harness): the lifted pause survives to the send turn",
+        "multi-intent: parts are answered/named, and a novel continuation delivers part two",
+        "adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state",
+        "set mapping: a healthcare-consulting ask never proposes the bulge-bracket set",
+        "set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set",
+        "track events: plain-words reports are claimed and routed to the tracker ingest",
+        "track events adversarial: a question or a friend's event writes nothing to the user's tracker",
+        "host creates and a networking ask is answered by the career path",
+        "apply ask with an empty live pool fabricates no roles",
+        "tracking ask gets a career answer, never the finance product",
+        "kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx",
+        "a finance ask is NOT served as the finance product",
+        "garbage input never throws and still returns a reply"
+      ],
+      "limitations": [
+        "Narrower existing tests pass while all 12 broader conversations still fail.",
+        "No browser, model, real-account or live verification."
+      ]
     }
   ],
   "limitations": [

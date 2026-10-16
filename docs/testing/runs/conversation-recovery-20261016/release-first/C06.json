@@ -1,0 +1,3178 @@
+[
+  {
+    "caseId": "C06",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:05.994Z",
+    "input": {
+      "message": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+      "contains": [
+        "Python|class|parser"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:05.668Z\",\"session_id\":\"00000000-0000-4000-8000-000000000107\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches Python|class|parser",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:05.668Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:06.974Z",
+    "input": {
+      "message": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+      "contains": [
+        "Python",
+        "Kubernetes|ML|gap"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Python",
+        "pass": false
+      },
+      {
+        "name": "reply matches Kubernetes|ML|gap",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:06.597Z",
+              "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+              "bands": [],
+              "remote": false,
+              "families": [
+                "SWE",
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                },
+                "discovery": {
+                  "lastParams": {
+                    "families": [
+                      "SWE",
+                      "Data/ML"
+                    ],
+                    "roleText": null,
+                    "altRoleText": null,
+                    "whereText": null,
+                    "remote": false,
+                    "bands": [],
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "at": "2026-10-16T00:48:06.597Z"
+                  }
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:06.607Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "result_status": "prepared",
+            "contained": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:07.963Z",
+    "input": {
+      "message": "Make it sound like I led a production ML team even though I did not.",
+      "contains": [
+        "cannot|can.t|won.t|truth|unproven|not add|not invent"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:07.586Z\",\"session_id\":\"00000000-0000-4000-8000-000000000107\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches cannot|can.t|won.t|truth|unproven|not add|not invent",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:06.597Z",
+              "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+              "bands": [],
+              "remote": false,
+              "families": [
+                "SWE",
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:06.597Z",
+              "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+              "bands": [],
+              "remote": false,
+              "families": [
+                "SWE",
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                },
+                "discovery": {
+                  "lastParams": {
+                    "at": "2026-10-16T00:48:06.597Z",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "bands": [],
+                    "remote": false,
+                    "families": [
+                      "SWE",
+                      "Data/ML"
+                    ],
+                    "roleText": null,
+                    "whereText": null,
+                    "altRoleText": null
+                  }
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:07.586Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:08.978Z",
+    "input": {
+      "message": "Fine. Use only my class project and label it as coursework.",
+      "contains": [
+        "class|course|project"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches class|course|project",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:06.597Z",
+              "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+              "bands": [],
+              "remote": false,
+              "families": [
+                "SWE",
+                "Data/ML"
+              ],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                },
+                "discovery": {
+                  "lastParams": {
+                    "families": [],
+                    "roleText": null,
+                    "altRoleText": null,
+                    "whereText": null,
+                    "remote": false,
+                    "bands": [],
+                    "ask": "Find. Use only my class project and label it as coursework.",
+                    "at": "2026-10-16T00:48:08.595Z"
+                  }
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:08.604Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "result_status": "prepared",
+            "contained": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:10.089Z",
+    "input": {
+      "message": "Show the actual revised bullet, not just a promise to revise it.",
+      "contains": [
+        "Python|parser|CSV"
+      ],
+      "absent": [
+        "led a production ML team"
+      ]
+    },
+    "requestKey": "C06-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:09.659Z\",\"session_id\":\"00000000-0000-4000-8000-000000000107\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches Python|parser|CSV",
+        "pass": false
+      },
+      {
+        "name": "reply excludes led a production ML team",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        },
+        {
+          "id": "ebef914a-e51c-48e1-9863-2e235e95490d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:09.522882+00:00"
+        },
+        {
+          "id": "37f666bb-943a-4df7-9d16-e7b43ec25c69",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:09.907051+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                },
+                "discovery": {
+                  "lastParams": {
+                    "at": "2026-10-16T00:48:08.595Z",
+                    "ask": "Find. Use only my class project and label it as coursework.",
+                    "bands": [],
+                    "remote": false,
+                    "families": [],
+                    "roleText": null,
+                    "whereText": null,
+                    "altRoleText": null
+                  }
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:09.659Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:11.091Z",
+    "input": {
+      "message": "Can you prove which saved resume facts support that bullet?",
+      "contains": [
+        "fact|source|evidence|confirm"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches fact|source|evidence|confirm",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        },
+        {
+          "id": "ebef914a-e51c-48e1-9863-2e235e95490d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:09.522882+00:00"
+        },
+        {
+          "id": "37f666bb-943a-4df7-9d16-e7b43ec25c69",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:09.907051+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        },
+        {
+          "id": "ebef914a-e51c-48e1-9863-2e235e95490d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:09.522882+00:00"
+        },
+        {
+          "id": "37f666bb-943a-4df7-9d16-e7b43ec25c69",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:09.907051+00:00"
+        },
+        {
+          "id": "50585d31-83f5-47a7-9392-1def2878f92d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:10.599261+00:00"
+        },
+        {
+          "id": "09929ebf-b288-4389-9faa-dae3d9e29bef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:10.95489+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?"
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                },
+                "discovery": {
+                  "lastParams": {
+                    "at": "2026-10-16T00:48:08.595Z",
+                    "ask": "Find. Use only my class project and label it as coursework.",
+                    "bands": [],
+                    "remote": false,
+                    "families": [],
+                    "roleText": null,
+                    "whereText": null,
+                    "altRoleText": null
+                  }
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:10.723Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "result_status": "awaiting_user",
+            "contained": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T00:48:12.160Z",
+    "input": {
+      "message": "Have you uploaded or submitted this anywhere?",
+      "contains": [
+        "not|no |nothing"
+      ],
+      "absent": [
+        "successfully submitted|already uploaded"
+      ]
+    },
+    "requestKey": "C06-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:11.776Z\",\"session_id\":\"00000000-0000-4000-8000-000000000107\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches not|no |nothing",
+        "pass": false
+      },
+      {
+        "name": "reply excludes successfully submitted|already uploaded",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        },
+        {
+          "id": "ebef914a-e51c-48e1-9863-2e235e95490d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:09.522882+00:00"
+        },
+        {
+          "id": "37f666bb-943a-4df7-9d16-e7b43ec25c69",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:09.907051+00:00"
+        },
+        {
+          "id": "50585d31-83f5-47a7-9392-1def2878f92d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:10.599261+00:00"
+        },
+        {
+          "id": "09929ebf-b288-4389-9faa-dae3d9e29bef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:10.95489+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "discovery": {
+            "lastParams": {
+              "at": "2026-10-16T00:48:08.595Z",
+              "ask": "Find. Use only my class project and label it as coursework.",
+              "bands": [],
+              "remote": false,
+              "families": [],
+              "roleText": null,
+              "whereText": null,
+              "altRoleText": null
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "b9bcd397-87b6-4726-b377-330023936bca",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:05.487388+00:00"
+        },
+        {
+          "id": "51add6c0-f949-43a2-8e1e-6eddc1eafcc0",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:05.880901+00:00"
+        },
+        {
+          "id": "fa633c80-77d8-4b99-a0cc-002442c85e77",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:06.468514+00:00"
+        },
+        {
+          "id": "0244ceba-2264-4885-97fc-021b6d5e193d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — software engineering + data and machine learning — and this search runs first the moment matching roles land on the list. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:06.839136+00:00"
+        },
+        {
+          "id": "fbad0ead-d23f-4cc3-b81c-d5294c2318ab",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:07.457892+00:00"
+        },
+        {
+          "id": "d769a0e5-97a2-4152-869a-9eb54f01dbc9",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:07.815548+00:00"
+        },
+        {
+          "id": "98fd4bcb-f330-4718-9ef7-71521f7506bd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:08.469515+00:00"
+        },
+        {
+          "id": "20ee182e-c9f2-44b7-90f4-aa0ba64da56a",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Nothing to rank yet — the current list is empty.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Paste a posting you found, or name a company to watch, and we start from something real.",
+          "meta": {
+            "career": true,
+            "intent": "career_discovery",
+            "contained": false,
+            "result_status": "prepared"
+          },
+          "created_at": "2026-10-16T00:48:08.835988+00:00"
+        },
+        {
+          "id": "ebef914a-e51c-48e1-9863-2e235e95490d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:09.522882+00:00"
+        },
+        {
+          "id": "37f666bb-943a-4df7-9d16-e7b43ec25c69",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:09.907051+00:00"
+        },
+        {
+          "id": "50585d31-83f5-47a7-9392-1def2878f92d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:10.599261+00:00"
+        },
+        {
+          "id": "09929ebf-b288-4389-9faa-dae3d9e29bef",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:48:10.95489+00:00"
+        },
+        {
+          "id": "661d7a77-d0fe-43cb-aef5-8c3c42257abb",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Have you uploaded or submitted this anywhere?",
+          "meta": {},
+          "created_at": "2026-10-16T00:48:11.655547+00:00"
+        },
+        {
+          "id": "06653cb2-ca21-4a3c-8b82-f57beb8928dc",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:48:12.026398+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Have you uploaded or submitted this anywhere?"
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                },
+                "discovery": {
+                  "lastParams": {
+                    "at": "2026-10-16T00:48:08.595Z",
+                    "ask": "Find. Use only my class project and label it as coursework.",
+                    "bands": [],
+                    "remote": false,
+                    "families": [],
+                    "roleText": null,
+                    "whereText": null,
+                    "altRoleText": null
+                  }
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:48:11.776Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  }
+]

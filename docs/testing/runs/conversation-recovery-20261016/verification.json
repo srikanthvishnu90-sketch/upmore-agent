@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-16T00:55:47.563051+00:00",
+  "status": "PASS",
+  "frozenExpectationsUnchanged": true,
+  "allReportLinksResolve": true,
+  "allEvaluatedProductPathsUnchanged": true,
+  "historicalLedgerEntriesPreserved": true,
+  "newLedgerEntries": 8,
+  "fixtureContainersRemoved": true,
+  "syntax": "All four new CJS files passed node --check",
+  "limitations": "Conversation runs are intentionally FAIL; normal browser launch is NOT_RUN; no model response-quality verification."
+}

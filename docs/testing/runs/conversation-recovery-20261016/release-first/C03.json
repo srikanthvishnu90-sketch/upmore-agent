@@ -1,0 +1,3579 @@
+[
+  {
+    "caseId": "C03",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:39.892Z",
+    "input": {
+      "message": "Suppose I were a senior with ten years of Rust experience. What would change?",
+      "contains": [],
+      "absent": [],
+      "stateAbsent": [
+        "ten years of Rust"
+      ]
+    },
+    "requestKey": "C03-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:39.444Z\",\"session_id\":\"00000000-0000-4000-8000-000000000103\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "active state excludes ten years of Rust",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?"
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": []
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:39.444Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:41.055Z",
+    "input": {
+      "message": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+      "contains": [
+        "junior|econ|Python"
+      ],
+      "absent": []
+    },
+    "requestKey": "C03-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches junior|econ|Python",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "kind": "year",
+                          "value": "junior",
+                          "evidence": "I am a junior",
+                          "at": "2026-10-16T00:47:40.647Z"
+                        },
+                        {
+                          "kind": "majors",
+                          "value": "reality I am a junior economics",
+                          "evidence": "reality I am a junior economics major",
+                          "at": "2026-10-16T00:47:40.647Z"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T00:47:40.647Z"
+                    }
+                  }
+                },
+                "statedFacts": {
+                  "facts": [
+                    {
+                      "kind": "year",
+                      "value": "junior",
+                      "evidence": "I am a junior",
+                      "at": "2026-10-16T00:47:40.647Z"
+                    },
+                    {
+                      "kind": "majors",
+                      "value": "reality I am a junior economics",
+                      "evidence": "reality I am a junior economics major",
+                      "at": "2026-10-16T00:47:40.647Z"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T00:47:40.647Z"
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:40.656Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "result_status": "completed",
+            "contained": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:42.014Z",
+    "input": {
+      "message": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+      "contains": [],
+      "absent": [],
+      "profileAbsent": [
+        "NASA"
+      ]
+    },
+    "requestKey": "C03-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:41.657Z\",\"session_id\":\"00000000-0000-4000-8000-000000000103\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "profile excludes NASA",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "year",
+                          "value": "junior",
+                          "evidence": "I am a junior"
+                        },
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "majors",
+                          "value": "reality I am a junior economics",
+                          "evidence": "reality I am a junior economics major"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T00:47:40.647Z"
+                    }
+                  }
+                },
+                "statedFacts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "year",
+                      "value": "junior",
+                      "evidence": "I am a junior"
+                    },
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "majors",
+                      "value": "reality I am a junior economics",
+                      "evidence": "reality I am a junior economics major"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T00:47:40.647Z"
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:41.657Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:43.009Z",
+    "input": {
+      "message": "Could you draft a truthful two-line introduction from my real background?",
+      "contains": [
+        "junior|econ|Python"
+      ],
+      "absent": [
+        "I worked at NASA|ten years of Rust"
+      ]
+    },
+    "requestKey": "C03-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:42.627Z\",\"session_id\":\"00000000-0000-4000-8000-000000000103\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches junior|econ|Python",
+        "pass": false
+      },
+      {
+        "name": "reply excludes I worked at NASA|ten years of Rust",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?"
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "year",
+                          "value": "junior",
+                          "evidence": "I am a junior"
+                        },
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "majors",
+                          "value": "reality I am a junior economics",
+                          "evidence": "reality I am a junior economics major"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T00:47:40.647Z"
+                    }
+                  }
+                },
+                "statedFacts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "year",
+                      "value": "junior",
+                      "evidence": "I am a junior"
+                    },
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "majors",
+                      "value": "reality I am a junior economics",
+                      "evidence": "reality I am a junior economics major"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T00:47:40.647Z"
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:42.627Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:44.071Z",
+    "input": {
+      "message": "If I won a national coding award next year, would it help?",
+      "contains": [],
+      "absent": [],
+      "profileAbsent": [
+        "national coding award"
+      ]
+    },
+    "requestKey": "C03-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:43.664Z\",\"session_id\":\"00000000-0000-4000-8000-000000000103\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "profile excludes national coding award",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        },
+        {
+          "id": "b80e3596-141c-482c-b26c-80360013a4b0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:43.504507+00:00"
+        },
+        {
+          "id": "f1790165-d865-4151-8fa9-ca3428c662a5",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:43.937454+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?"
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "year",
+                          "value": "junior",
+                          "evidence": "I am a junior"
+                        },
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "majors",
+                          "value": "reality I am a junior economics",
+                          "evidence": "reality I am a junior economics major"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T00:47:40.647Z"
+                    }
+                  }
+                },
+                "statedFacts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "year",
+                      "value": "junior",
+                      "evidence": "I am a junior"
+                    },
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "majors",
+                      "value": "reality I am a junior economics",
+                      "evidence": "reality I am a junior economics major"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T00:47:40.647Z"
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:43.664Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:45.179Z",
+    "input": {
+      "message": "Now tell me which of those details are verified and which were hypothetical.",
+      "contains": [
+        "hypothet|unverified|not confirmed",
+        "junior|econ|Python"
+      ],
+      "absent": []
+    },
+    "requestKey": "C03-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:47:44.735Z\",\"session_id\":\"00000000-0000-4000-8000-000000000103\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches hypothet|unverified|not confirmed",
+        "pass": false
+      },
+      {
+        "name": "reply matches junior|econ|Python",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        },
+        {
+          "id": "b80e3596-141c-482c-b26c-80360013a4b0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:43.504507+00:00"
+        },
+        {
+          "id": "f1790165-d865-4151-8fa9-ca3428c662a5",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:43.937454+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        },
+        {
+          "id": "b80e3596-141c-482c-b26c-80360013a4b0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:43.504507+00:00"
+        },
+        {
+          "id": "f1790165-d865-4151-8fa9-ca3428c662a5",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:43.937454+00:00"
+        },
+        {
+          "id": "cc488320-7a07-4eed-9dd0-fccb46eb61a4",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:44.609438+00:00"
+        },
+        {
+          "id": "4f0d1ad0-c27c-49c3-8890-f0f2ce70c017",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:45.04833+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "year",
+                          "value": "junior",
+                          "evidence": "I am a junior"
+                        },
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "majors",
+                          "value": "reality I am a junior economics",
+                          "evidence": "reality I am a junior economics major"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T00:47:40.647Z"
+                    }
+                  }
+                },
+                "statedFacts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "year",
+                      "value": "junior",
+                      "evidence": "I am a junior"
+                    },
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "majors",
+                      "value": "reality I am a junior economics",
+                      "evidence": "reality I am a junior economics major"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T00:47:40.647Z"
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:44.735Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "result_status": null,
+            "contained": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C03",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000103",
+    "at": "2026-10-16T00:47:46.184Z",
+    "input": {
+      "message": "Keep the hypothetical achievements off my resume.",
+      "contains": [
+        "hypothet|truth|confirm|not add|exclude"
+      ],
+      "absent": [],
+      "profileAbsent": [
+        "NASA",
+        "national coding award"
+      ]
+    },
+    "requestKey": "C03-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "thread_id": "00000000-0000-4000-8000-000000000103",
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches hypothet|truth|confirm|not add|exclude",
+        "pass": false
+      },
+      {
+        "name": "profile excludes NASA",
+        "pass": true
+      },
+      {
+        "name": "profile excludes national coding award",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        },
+        {
+          "id": "b80e3596-141c-482c-b26c-80360013a4b0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:43.504507+00:00"
+        },
+        {
+          "id": "f1790165-d865-4151-8fa9-ca3428c662a5",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:43.937454+00:00"
+        },
+        {
+          "id": "cc488320-7a07-4eed-9dd0-fccb46eb61a4",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:44.609438+00:00"
+        },
+        {
+          "id": "4f0d1ad0-c27c-49c3-8890-f0f2ce70c017",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:45.04833+00:00"
+        }
+      ],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "year",
+                    "value": "junior",
+                    "evidence": "I am a junior"
+                  },
+                  {
+                    "at": "2026-10-16T00:47:40.647Z",
+                    "kind": "majors",
+                    "value": "reality I am a junior economics",
+                    "evidence": "reality I am a junior economics major"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:47:40.647Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "year",
+                "value": "junior",
+                "evidence": "I am a junior"
+              },
+              {
+                "at": "2026-10-16T00:47:40.647Z",
+                "kind": "majors",
+                "value": "reality I am a junior economics",
+                "evidence": "reality I am a junior economics major"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:47:40.647Z"
+          }
+        }
+      },
+      "messages": [
+        {
+          "id": "98cc5ccb-e7ec-4d47-977b-710b904508d1",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Suppose I were a senior with ten years of Rust experience. What would change?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:39.106893+00:00"
+        },
+        {
+          "id": "1f777399-fff8-42d2-a632-0e0fdfa49ad3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:39.760692+00:00"
+        },
+        {
+          "id": "c0843950-566a-401c-b7c1-6dc505a3bb1c",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "That was hypothetical. In reality I am a junior economics major with one Python class.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:40.505123+00:00"
+        },
+        {
+          "id": "8ef4395c-d889-4bcb-8967-e26e37f99a76",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: you're a junior; you study reality I am a junior economics. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed"
+          },
+          "created_at": "2026-10-16T00:47:40.905707+00:00"
+        },
+        {
+          "id": "513d224a-6861-4119-86b8-8edcd3afdb36",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "My roommate said \"I worked at NASA for five years.\" That is his story, not mine.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:41.532836+00:00"
+        },
+        {
+          "id": "2b19c0bc-620f-4f12-acf5-73064423b2c8",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:41.899565+00:00"
+        },
+        {
+          "id": "d7250605-3f19-44eb-a185-e6f38506e7d0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Could you draft a truthful two-line introduction from my real background?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:42.49662+00:00"
+        },
+        {
+          "id": "223999b2-0cb1-49f6-94a7-28147bd9981d",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:42.878456+00:00"
+        },
+        {
+          "id": "b80e3596-141c-482c-b26c-80360013a4b0",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "If I won a national coding award next year, would it help?",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:43.504507+00:00"
+        },
+        {
+          "id": "f1790165-d865-4151-8fa9-ca3428c662a5",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:43.937454+00:00"
+        },
+        {
+          "id": "cc488320-7a07-4eed-9dd0-fccb46eb61a4",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Now tell me which of those details are verified and which were hypothetical.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:44.609438+00:00"
+        },
+        {
+          "id": "4f0d1ad0-c27c-49c3-8890-f0f2ce70c017",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null
+          },
+          "created_at": "2026-10-16T00:47:45.04833+00:00"
+        },
+        {
+          "id": "3c0b85d5-fd2e-4dab-8cb0-b3bc849bc437",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Keep the hypothetical achievements off my resume.",
+          "meta": {},
+          "created_at": "2026-10-16T00:47:45.671091+00:00"
+        },
+        {
+          "id": "8b7190b3-05da-427d-8435-0a55d23c76c3",
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user"
+          },
+          "created_at": "2026-10-16T00:47:46.046212+00:00"
+        }
+      ],
+      "account": null
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "user",
+          "content": "Keep the hypothetical achievements off my resume."
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_flow_state",
+        "filters": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "upsert",
+        "table": "agent_flow_state",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "state": {
+            "career": {
+              "v": 1,
+              "stores": {
+                "profile": {
+                  "facts": [
+                    {
+                      "end": "2028-05",
+                      "org": "Synthetic University",
+                      "kind": "education",
+                      "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                      "title": "B.A. Economics",
+                      "fact_id": "REC-E1",
+                      "evidence": [
+                        "synthetic fixture supplied education"
+                      ],
+                      "unproven": false
+                    },
+                    {
+                      "kind": "skill",
+                      "name": "Python",
+                      "text": "Class Python CSV parser",
+                      "fact_id": "REC-S1",
+                      "evidence": [
+                        "synthetic class project"
+                      ],
+                      "unproven": false
+                    }
+                  ],
+                  "basics": {
+                    "name": "Synthetic Recovery Learner",
+                    "location": "Chicago, IL"
+                  },
+                  "constraints": {},
+                  "preferences": {
+                    "locations": [
+                      "Chicago"
+                    ],
+                    "starredCompanies": []
+                  },
+                  "_careerTrackStore": {
+                    "rows": []
+                  }
+                },
+                "trackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "year",
+                          "value": "junior",
+                          "evidence": "I am a junior"
+                        },
+                        {
+                          "at": "2026-10-16T00:47:40.647Z",
+                          "kind": "majors",
+                          "value": "reality I am a junior economics",
+                          "evidence": "reality I am a junior economics major"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T00:47:40.647Z"
+                    }
+                  }
+                },
+                "statedFacts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "year",
+                      "value": "junior",
+                      "evidence": "I am a junior"
+                    },
+                    {
+                      "at": "2026-10-16T00:47:40.647Z",
+                      "kind": "majors",
+                      "value": "reality I am a junior economics",
+                      "evidence": "reality I am a junior economics major"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T00:47:40.647Z"
+                }
+              }
+            }
+          },
+          "updated_at": "2026-10-16T00:47:45.815Z"
+        }
+      },
+      {
+        "kind": "insert",
+        "table": "agent_messages",
+        "row": {
+          "thread_id": "00000000-0000-4000-8000-000000000103",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "result_status": "awaiting_user",
+            "contained": false
+          }
+        }
+      }
+    ]
+  }
+]

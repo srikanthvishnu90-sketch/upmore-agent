@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-16T00:48:00.766992+00:00",
+  "executor": "fresh selected /workspace environment; commands and local Docker admission working",
+  "uid": {
+    "exit": 0,
+    "stdout": "uid=1000(agent) gid=1000(agent) groups=1000(agent)",
+    "stderr": ""
+  },
+  "node": {
+    "exit": 0,
+    "stdout": "v24.19.0",
+    "stderr": ""
+  },
+  "python": {
+    "exit": 0,
+    "stdout": "Python 3.12.14",
+    "stderr": ""
+  },
+  "chromium": {
+    "exit": 0,
+    "stdout": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+    "stderr": ""
+  },
+  "sandboxHelper": {
+    "exit": 0,
+    "stdout": "nobody nogroup 4755 /usr/lib/chromium/chrome-sandbox",
+    "stderr": ""
+  },
+  "docker": {
+    "exit": 0,
+    "stdout": "28.4.0",
+    "stderr": ""
+  },
+  "fixtureContainer": {
+    "exit": 0,
+    "stdout": "none {}",
+    "stderr": ""
+  },
+  "postgresImage": {
+    "exit": 0,
+    "stdout": "[\"postgres@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d\"]",
+    "stderr": ""
+  },
+  "skills": "/workspace/.agents exists and is empty; .agents/skills absent; no .agents tree in three inspected commits. Read AGENTS.md and full BUILD-STATUS before edits. Applied cloud Supabase skill to local handler review.",
+  "unavailableCommands": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

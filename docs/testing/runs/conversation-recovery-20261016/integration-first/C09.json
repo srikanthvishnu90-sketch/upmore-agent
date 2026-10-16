@@ -1,0 +1,4387 @@
+[
+  {
+    "caseId": "C09",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:08.734Z",
+    "input": {
+      "message": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+      "contains": [
+        "Maple Ridge",
+        "82|Thursday"
+      ],
+      "absent": []
+    },
+    "requestKey": "C09-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "negotiation_advice",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+        "action": null,
+        "turn_key": "C09-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Maple Ridge",
+        "pass": true
+      },
+      {
+        "name": "reply matches 82|Thursday",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-1",
+          "p_hash": "babdf470d6c753ecfa0ba174ea0aa2417c989d65167e8427d9cd89d37461b61b"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-1",
+          "p_hash": "babdf470d6c753ecfa0ba174ea0aa2417c989d65167e8427d9cd89d37461b61b",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "negotiation": {
+                      "firm": "Maple Ridge",
+                      "amount": 82000,
+                      "role": "analyst role",
+                      "deadline": "Thursday",
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    },
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "company": null,
+                      "at": "2026-10-16T00:48:08.401Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "negotiation": {
+                    "firm": "Maple Ridge",
+                    "amount": 82000,
+                    "role": "analyst role",
+                    "deadline": "Thursday",
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  },
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                    "company": null,
+                    "at": "2026-10-16T00:48:08.401Z"
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "negotiation_advice",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C09",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:09.529Z",
+    "input": {
+      "message": "Could I ask for until Monday without sounding uninterested?",
+      "contains": [
+        "Monday|extension|deadline"
+      ],
+      "absent": []
+    },
+    "requestKey": "C09-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C09-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:09.250Z\",\"session_id\":\"00000000-0000-4000-8000-000000000110\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches Monday|extension|deadline",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-2",
+          "p_hash": "fdc948d0bacb5bfaa85b15add2d1bfa8c59f7736e0080d56f986d9e5b7c2c069"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-2",
+          "p_hash": "fdc948d0bacb5bfaa85b15add2d1bfa8c59f7736e0080d56f986d9e5b7c2c069",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "firm": "Maple Ridge",
+                      "role": "analyst role",
+                      "amount": 82000,
+                      "deadline": "Thursday",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "firm": "Maple Ridge",
+                    "role": "analyst role",
+                    "amount": 82000,
+                    "deadline": "Thursday",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Could I ask for until Monday without sounding uninterested?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C09",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:10.369Z",
+    "input": {
+      "message": "Brief detour: what is the difference between base and bonus?",
+      "contains": [
+        "base",
+        "bonus"
+      ],
+      "absent": []
+    },
+    "requestKey": "C09-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C09-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:10.087Z\",\"session_id\":\"00000000-0000-4000-8000-000000000110\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches base",
+        "pass": false
+      },
+      {
+        "name": "reply matches bonus",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-3",
+          "p_hash": "9a40136f1750c63750872e19ddbdd0e27db6492e1441f8a8b350e0bfb007402e"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-3",
+          "p_hash": "9a40136f1750c63750872e19ddbdd0e27db6492e1441f8a8b350e0bfb007402e",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "firm": "Maple Ridge",
+                      "role": "analyst role",
+                      "amount": 82000,
+                      "deadline": "Thursday",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "firm": "Maple Ridge",
+                    "role": "analyst role",
+                    "amount": 82000,
+                    "deadline": "Thursday",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Brief detour: what is the difference between base and bonus?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C09",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:11.165Z",
+    "input": {
+      "message": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+      "contains": [
+        "Subject:",
+        "Maple Ridge",
+        "Monday"
+      ],
+      "absent": []
+    },
+    "requestKey": "C09-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "negotiation_draft",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+        "action": null,
+        "turn_key": "C09-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Subject:",
+        "pass": true
+      },
+      {
+        "name": "reply matches Maple Ridge",
+        "pass": true
+      },
+      {
+        "name": "reply matches Monday",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:10.856Z",
+                "ask": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+                "kind": "negotiation",
+                "intent": "negotiation_draft",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-4",
+          "p_hash": "823c6b50b6960deefcc67a8d16861e581f5e16a348f235621460b7b4a24a487f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-4",
+          "p_hash": "823c6b50b6960deefcc67a8d16861e581f5e16a348f235621460b7b4a24a487f",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "firm": "Maple Ridge",
+                      "role": "analyst role",
+                      "amount": 82000,
+                      "deadline": "Thursday",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "kind": "negotiation",
+                    "intent": "negotiation_draft",
+                    "ask": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+                    "company": null,
+                    "at": "2026-10-16T00:48:10.856Z"
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "firm": "Maple Ridge",
+                    "role": "analyst role",
+                    "amount": 82000,
+                    "deadline": "Thursday",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "negotiation_draft",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C09",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:11.928Z",
+    "input": {
+      "message": "Make the tone warmer and shorter, but preserve the request.",
+      "contains": [
+        "Monday"
+      ],
+      "absent": []
+    },
+    "requestKey": "C09-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "profile_correction",
+          "contained": false,
+          "result_status": "completed"
+        },
+        "reply": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+        "action": null,
+        "turn_key": "C09-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Monday",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:10.856Z",
+                "ask": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+                "kind": "negotiation",
+                "intent": "negotiation_draft",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:10.856Z",
+                "ask": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+                "kind": "negotiation",
+                "intent": "negotiation_draft",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:48:11.679Z",
+                "kind": "tone",
+                "value": "warmer",
+                "evidence": "Make the tone warmer"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:48:11.679Z"
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "709fd645-b01c-49fa-9093-5cbab62b2986",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Make the tone warmer and shorter, but preserve the request.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "aeda8a7a-b3c5-4073-81e6-f8a11a2102e5",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "C09-5"
+          },
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-5",
+          "p_hash": "c22a095933263962c31b0f58fe9dd57d3f3897fc514fbd145a241dcd51fc4e9f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-5",
+          "p_hash": "c22a095933263962c31b0f58fe9dd57d3f3897fc514fbd145a241dcd51fc4e9f",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "firm": "Maple Ridge",
+                      "role": "analyst role",
+                      "amount": 82000,
+                      "deadline": "Thursday",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T00:48:10.856Z",
+                    "ask": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_draft",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "firm": "Maple Ridge",
+                    "role": "analyst role",
+                    "amount": 82000,
+                    "deadline": "Thursday",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "tone",
+                        "value": "warmer",
+                        "evidence": "Make the tone warmer",
+                        "at": "2026-10-16T00:48:11.679Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T00:48:11.679Z"
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer",
+                    "at": "2026-10-16T00:48:11.679Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Make the tone warmer and shorter, but preserve the request.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "profile_correction",
+              "result_status": "completed",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C09",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:12.853Z",
+    "input": {
+      "message": "I am not accepting yet. Please recap exactly what remains undecided.",
+      "contains": [
+        "accept|undecided|decision"
+      ],
+      "absent": []
+    },
+    "requestKey": "C09-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "negotiation_advice",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Where we landed, from this thread's own record.\nThe offer on the table: Maple Ridge, $82,000, decide by Thursday — and the plan for it is extension first if the window is tight, then one written counter; nothing has been sent. Your facts on record: the tone is warmer from here. Name the piece to move next and it runs from exactly this state.",
+        "action": null,
+        "turn_key": "C09-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches accept|undecided|decision",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:10.856Z",
+                "ask": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+                "kind": "negotiation",
+                "intent": "negotiation_draft",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:48:11.679Z",
+                "kind": "tone",
+                "value": "warmer",
+                "evidence": "Make the tone warmer"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:48:11.679Z"
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "709fd645-b01c-49fa-9093-5cbab62b2986",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Make the tone warmer and shorter, but preserve the request.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "aeda8a7a-b3c5-4073-81e6-f8a11a2102e5",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "C09-5"
+          },
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:12.509Z",
+                "ask": "I am not accepting yet. Please recap exactly what remains undecided.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:48:11.679Z",
+                "kind": "tone",
+                "value": "warmer",
+                "evidence": "Make the tone warmer"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:48:11.679Z"
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "709fd645-b01c-49fa-9093-5cbab62b2986",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Make the tone warmer and shorter, but preserve the request.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "aeda8a7a-b3c5-4073-81e6-f8a11a2102e5",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "C09-5"
+          },
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "478616b6-6bb8-45af-984a-329005151eb8",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Where we landed, from this thread's own record.\nThe offer on the table: Maple Ridge, $82,000, decide by Thursday — and the plan for it is extension first if the window is tight, then one written counter; nothing has been sent. Your facts on record: the tone is warmer from here. Name the piece to move next and it runs from exactly this state.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-6"
+          },
+          "created_at": "2026-10-16T00:48:12.659319+00:00"
+        },
+        {
+          "id": "df533e08-0bf9-4104-91aa-42ad2cff8f29",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "I am not accepting yet. Please recap exactly what remains undecided.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:12.659319+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-6",
+          "p_hash": "94b0f14c516d229ad0889528465987e47286f0eb5e78e2330554c094238412fc"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-6",
+          "p_hash": "94b0f14c516d229ad0889528465987e47286f0eb5e78e2330554c094238412fc",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "firm": "Maple Ridge",
+                      "role": "analyst role",
+                      "amount": 82000,
+                      "deadline": "Thursday",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T00:48:11.679Z",
+                        "kind": "tone",
+                        "value": "warmer",
+                        "evidence": "Make the tone warmer"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T00:48:11.679Z"
+                  },
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "ask": "I am not accepting yet. Please recap exactly what remains undecided.",
+                    "company": null,
+                    "at": "2026-10-16T00:48:12.509Z"
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "firm": "Maple Ridge",
+                    "role": "analyst role",
+                    "amount": 82000,
+                    "deadline": "Thursday",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I am not accepting yet. Please recap exactly what remains undecided.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "Where we landed, from this thread's own record.\nThe offer on the table: Maple Ridge, $82,000, decide by Thursday — and the plan for it is extension first if the window is tight, then one written counter; nothing has been sent. Your facts on record: the tone is warmer from here. Name the piece to move next and it runs from exactly this state.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "negotiation_advice",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C09",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000110",
+    "at": "2026-10-16T00:48:14.046Z",
+    "input": {
+      "message": "Did any email actually leave my account?",
+      "contains": [
+        "not|no |nothing"
+      ],
+      "absent": [
+        "I sent|has been sent"
+      ]
+    },
+    "requestKey": "C09-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "C09-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000110",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T00:48:13.747Z\",\"session_id\":\"00000000-0000-4000-8000-000000000110\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      },
+      {
+        "name": "reply matches not|no |nothing",
+        "pass": false
+      },
+      {
+        "name": "reply excludes I sent|has been sent",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:12.509Z",
+                "ask": "I am not accepting yet. Please recap exactly what remains undecided.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:48:11.679Z",
+                "kind": "tone",
+                "value": "warmer",
+                "evidence": "Make the tone warmer"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:48:11.679Z"
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "709fd645-b01c-49fa-9093-5cbab62b2986",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Make the tone warmer and shorter, but preserve the request.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "aeda8a7a-b3c5-4073-81e6-f8a11a2102e5",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "C09-5"
+          },
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "478616b6-6bb8-45af-984a-329005151eb8",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Where we landed, from this thread's own record.\nThe offer on the table: Maple Ridge, $82,000, decide by Thursday — and the plan for it is extension first if the window is tight, then one written counter; nothing has been sent. Your facts on record: the tone is warmer from here. Name the piece to move next and it runs from exactly this state.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-6"
+          },
+          "created_at": "2026-10-16T00:48:12.659319+00:00"
+        },
+        {
+          "id": "df533e08-0bf9-4104-91aa-42ad2cff8f29",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "I am not accepting yet. Please recap exactly what remains undecided.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:12.659319+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Maple Ridge",
+            "base_salary": 82000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Maple Ridge",
+                  "base_salary": 82000
+                },
+                "lastWork": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-16T00:48:08.401Z",
+                  "firm": "Maple Ridge",
+                  "role": "analyst role",
+                  "amount": 82000,
+                  "deadline": "Thursday",
+                  "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "lastWork": {
+                "at": "2026-10-16T00:48:12.509Z",
+                "ask": "I am not accepting yet. Please recap exactly what remains undecided.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-16T00:48:08.401Z",
+                "firm": "Maple Ridge",
+                "role": "analyst role",
+                "amount": 82000,
+                "deadline": "Thursday",
+                "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T00:48:11.679Z",
+                "kind": "tone",
+                "value": "warmer",
+                "evidence": "Make the tone warmer"
+              }
+            ],
+            "updatedAt": "2026-10-16T00:48:11.679Z"
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "4313c08f-7bee-4334-b884-3df9d5e18af7",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $82,000 from Maple Ridge, with a decision due by Thursday — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-16.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-1"
+          },
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "55e2903b-58b2-4961-b40c-cc05078e60d2",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:08.574826+00:00"
+        },
+        {
+          "id": "89253308-37b6-4fe1-85b2-5b9473bda179",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Could I ask for until Monday without sounding uninterested?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "ccab0c9b-b031-49e4-8883-ba9c8cf573ed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-2"
+          },
+          "created_at": "2026-10-16T00:48:09.380154+00:00"
+        },
+        {
+          "id": "434166de-3b46-48af-a70d-f108012b03cb",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Brief detour: what is the difference between base and bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "d4645bc1-e61b-428c-9503-517d542e4d37",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-3"
+          },
+          "created_at": "2026-10-16T00:48:10.210751+00:00"
+        },
+        {
+          "id": "b00d91c7-fb45-4f4e-ae40-0da841363814",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Back to Maple Ridge: write the actual extension email, with a subject and body.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "c6a9dd06-ddb5-42ad-9eaa-3d285ea43fed",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "The extension email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $82,000 base at Maple Ridge, decide by Thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Maple Ridge and I'm taking it seriously. Approve it as written, or tell me the exact change.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_draft",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-4"
+          },
+          "created_at": "2026-10-16T00:48:11.016574+00:00"
+        },
+        {
+          "id": "709fd645-b01c-49fa-9093-5cbab62b2986",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Make the tone warmer and shorter, but preserve the request.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "aeda8a7a-b3c5-4073-81e6-f8a11a2102e5",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Recorded — that is on your record now, in your words.\nOn record so far: the tone is warmer from here. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these.",
+          "meta": {
+            "career": true,
+            "intent": "profile_correction",
+            "contained": false,
+            "result_status": "completed",
+            "career_turn_key": "C09-5"
+          },
+          "created_at": "2026-10-16T00:48:11.787376+00:00"
+        },
+        {
+          "id": "478616b6-6bb8-45af-984a-329005151eb8",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "Where we landed, from this thread's own record.\nThe offer on the table: Maple Ridge, $82,000, decide by Thursday — and the plan for it is extension first if the window is tight, then one written counter; nothing has been sent. Your facts on record: the tone is warmer from here. Name the piece to move next and it runs from exactly this state.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C09-6"
+          },
+          "created_at": "2026-10-16T00:48:12.659319+00:00"
+        },
+        {
+          "id": "df533e08-0bf9-4104-91aa-42ad2cff8f29",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "I am not accepting yet. Please recap exactly what remains undecided.",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:12.659319+00:00"
+        },
+        {
+          "id": "209b7b11-49f6-4bd5-9d86-35020e5c7f33",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "user",
+          "content": "Did any email actually leave my account?",
+          "meta": null,
+          "created_at": "2026-10-16T00:48:13.884112+00:00"
+        },
+        {
+          "id": "29071c1e-f265-4ebe-aa87-e8347962874a",
+          "thread_id": "00000000-0000-4000-8000-000000000110",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "C09-7"
+          },
+          "created_at": "2026-10-16T00:48:13.884112+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000110",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-7",
+          "p_hash": "602f020a0f7368e260efa10d8d26723db517aff498530d3725e02a31486a03c7"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000110",
+          "p_key": "C09-7",
+          "p_hash": "602f020a0f7368e260efa10d8d26723db517aff498530d3725e02a31486a03c7",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Maple Ridge",
+                      "base_salary": 82000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "ask": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-16T00:48:08.401Z",
+                      "firm": "Maple Ridge",
+                      "role": "analyst role",
+                      "amount": 82000,
+                      "deadline": "Thursday",
+                      "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T00:48:11.679Z",
+                        "kind": "tone",
+                        "value": "warmer",
+                        "evidence": "Make the tone warmer"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T00:48:11.679Z"
+                  },
+                  "offer": {
+                    "company": "Maple Ridge",
+                    "base_salary": 82000
+                  },
+                  "lastWork": {
+                    "at": "2026-10-16T00:48:12.509Z",
+                    "ask": "I am not accepting yet. Please recap exactly what remains undecided.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-16T00:48:08.401Z",
+                    "firm": "Maple Ridge",
+                    "role": "analyst role",
+                    "amount": 82000,
+                    "deadline": "Thursday",
+                    "evidence": "Maple Ridge offered me an analyst role at $82k base; the decision deadline is Thursday."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Maple Ridge",
+                "base_salary": 82000
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T00:48:11.679Z",
+                    "kind": "tone",
+                    "value": "warmer",
+                    "evidence": "Make the tone warmer"
+                  }
+                ],
+                "updatedAt": "2026-10-16T00:48:11.679Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Did any email actually leave my account?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000110",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C09-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  }
+]

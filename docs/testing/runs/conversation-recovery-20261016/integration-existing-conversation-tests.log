@@ -1,0 +1,50 @@
+✔ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (171.497801ms)
+✔ negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1 (3.299346ms)
+✔ career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step (15.445209ms)
+✔ fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city (50.901579ms)
+✔ fact chain survives the shallow-copy harness (Lane C semantics) (15.390319ms)
+✖ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (2.246896ms)
+✔ pause chain (shallow-copy harness): the lifted pause survives to the send turn (2.43694ms)
+✔ multi-intent: parts are answered/named, and a novel continuation delivers part two (18.860664ms)
+✔ adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state (60.217914ms)
+✔ set mapping: a healthcare-consulting ask never proposes the bulge-bracket set (6.791443ms)
+✔ set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set (4.199055ms)
+✔ track events: plain-words reports are claimed and routed to the tracker ingest (22.553814ms)
+✔ track events adversarial: a question or a friend's event writes nothing to the user's tracker (9.284151ms)
+✔ host creates and a networking ask is answered by the career path (137.255999ms)
+✔ apply ask with an empty live pool fabricates no roles (64.905558ms)
+✔ tracking ask gets a career answer, never the finance product (38.988741ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (4.303829ms)
+✔ a finance ask is NOT served as the finance product (11.594641ms)
+✔ garbage input never throws and still returns a reply (43.317514ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 18
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 699.355775
+
+✖ failing tests:
+
+test at tests/career-conversation-depth.test.cjs:176:1
+✖ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (2.246896ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /nothing was sent/i. Input:
+  
+  'Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.'
+  
+      at TestContext.<anonymous> (/workspace/upmore-eval/tests/career-conversation-depth.test.cjs:186:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.',
+    expected: /nothing was sent/i,
+    operator: 'match',
+    diff: 'simple'
+  }

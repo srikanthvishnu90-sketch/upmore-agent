@@ -1,0 +1,27 @@
+✔ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (543.391364ms)
+✔ negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1 (22.493355ms)
+✔ career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step (50.350005ms)
+✔ fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city (33.078892ms)
+✔ fact chain survives the shallow-copy harness (Lane C semantics) (10.33639ms)
+✔ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (3.490038ms)
+✔ pause chain (shallow-copy harness): the lifted pause survives to the send turn (14.860574ms)
+✔ multi-intent: parts are answered/named, and a novel continuation delivers part two (24.412484ms)
+✔ adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state (10.398621ms)
+✔ set mapping: a healthcare-consulting ask never proposes the bulge-bracket set (64.466089ms)
+✔ set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set (3.719319ms)
+✔ track events: plain-words reports are claimed and routed to the tracker ingest (13.652163ms)
+✔ track events adversarial: a question or a friend's event writes nothing to the user's tracker (4.106524ms)
+✔ host creates and a networking ask is answered by the career path (96.637489ms)
+✔ apply ask with an empty live pool fabricates no roles (31.034594ms)
+✔ tracking ask gets a career answer, never the finance product (3.142472ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (2.686399ms)
+✔ a finance ask is NOT served as the finance product (24.055071ms)
+✔ garbage input never throws and still returns a reply (52.153579ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1103.865006

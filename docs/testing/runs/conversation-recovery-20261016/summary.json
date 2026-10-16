@@ -1,0 +1,64 @@
+{
+  "expectationsUnchanged": true,
+  "modelQuality": "NOT_EVALUATED",
+  "browserCompleted": 0,
+  "browserPlanned": 15,
+  "runs": [
+    {
+      "label": "release-first",
+      "commit": "afc460ec872f61eb2dcdbbca4d34140fb8b345c0",
+      "turns": 83,
+      "checks": 543,
+      "passed": 399,
+      "failed": 144,
+      "failedConversations": 12,
+      "unmatchedFallbacks": 57,
+      "externalNetworkAttempts": 0,
+      "transcriptSha256": "664a9cb4e2078f377102e0e804e866dd4580100ce745fb320b354377c91adec9",
+      "started": "2026-10-16T00:47:20.685Z",
+      "finished": "2026-10-16T00:48:59.691Z"
+    },
+    {
+      "label": "integration-first",
+      "commit": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+      "turns": 83,
+      "checks": 543,
+      "passed": 412,
+      "failed": 131,
+      "failedConversations": 12,
+      "unmatchedFallbacks": 52,
+      "externalNetworkAttempts": 0,
+      "transcriptSha256": "3559c7edf303d176be5c4930550bb2c5bee365742b98a603836a331ebccabe12",
+      "started": "2026-10-16T00:47:13.232Z",
+      "finished": "2026-10-16T00:48:32.276Z"
+    },
+    {
+      "label": "capability2-first",
+      "commit": "49b7872c822cbf26107c3d49727c9f5ed2acbc9f",
+      "turns": 83,
+      "checks": 543,
+      "passed": 402,
+      "failed": 141,
+      "failedConversations": 12,
+      "unmatchedFallbacks": 56,
+      "externalNetworkAttempts": 0,
+      "transcriptSha256": "927f0e4264c5fc903dd70ff1ebaeee890cd566af986d4ecf1fab92dacce53378",
+      "started": "2026-10-16T00:47:20.630Z",
+      "finished": "2026-10-16T00:48:58.187Z"
+    },
+    {
+      "label": "release-current-first",
+      "commit": "f67db048599db308f2691a7be7feada841143da5",
+      "turns": 83,
+      "checks": 543,
+      "passed": 414,
+      "failed": 129,
+      "failedConversations": 12,
+      "unmatchedFallbacks": 51,
+      "externalNetworkAttempts": 0,
+      "transcriptSha256": "47ba8e5ce5455bd2580b816026d88fd2c0e5f3a6df349e9895d5a8e2b8a32bd3",
+      "started": "2026-10-16T00:52:38.367Z",
+      "finished": "2026-10-16T00:54:28.880Z"
+    }
+  ]
+}

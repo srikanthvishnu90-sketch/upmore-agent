@@ -632,9 +632,17 @@ const CareerPortalApply = (() => {
       // observed value that DIFFERS from the confirmed fact is drift.
       if (payloadValueMissing(observed[id])) continue;
       const wanted = planned.value, actual = observed[id];
-      const same = typeof wanted === "object" ? JSON.stringify(wanted) === JSON.stringify(actual)
-        : norm(wanted) === norm(actual)
-          || (/^(yes|no)\b/.test(norm(wanted)) && norm(wanted).match(/^(yes|no)\b/)[1] === norm(actual))
+      // Composed at the v224 combine: when the board verified the fill
+      // against its own rendering (FR-395 — a widget's single-value,
+      // including short forms like the country dial code "+1" for
+      // "United States"), the readback is compared against that
+      // rendering, not the profile text. A board that renders
+      // differently from BOTH is still drift and still stops here.
+      const rendered = board.renderedValues && board.renderedValues[id];
+      const expected = rendered !== undefined ? rendered : wanted;
+      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+        : norm(expected) === norm(actual)
+          || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
           || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
       if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
     }
@@ -678,10 +686,20 @@ const CareerPortalApply = (() => {
     }
 
     // the doorstep: final review, exact payload snapshot, STOP (§6.1 step 5/6 boundary)
-    const review = board.atReview();
+    let review = board.atReview();
     // §6.3 hop gate at review too (BUG-060 / D1): a Next/Continue click
     // that navigated off the allowlist stops the run before any submit.
-    if (review && review.code) {
+    // FORM_VALIDATION_FAILED is NOT a hop (composed at the v224
+    // combine): the board never left the form — its own validation
+    // rejected the page as-is, which on a remount/reset board means
+    // values the drive verified were dropped after their fills. That
+    // is exactly what the doorstep repair below exists for, so the
+    // verdict defers: repair runs first and the review is re-checked
+    // once; only a still-failing validation stops the run, under its
+    // own name.
+    const reviewValidationPending = !!(review && review.code === "FORM_VALIDATION_FAILED");
+    if (reviewValidationPending) logStep("review_validation_deferred", { note: "the board's own validation rejects the form as-is; the doorstep repair runs before any stop is named" });
+    if (review && review.code && !reviewValidationPending) {
       logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
       return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null });
     }
@@ -693,7 +711,7 @@ const CareerPortalApply = (() => {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
       return prepareRound(session, inp, true, round + 1, stepLog);
     }
-    if (review.atFinalReview === false) return blocked("FINAL_REVIEW_NOT_OBSERVED");
+    if (review.atFinalReview === false && !reviewValidationPending) return blocked("FINAL_REVIEW_NOT_OBSERVED");
     // Composed at the v224 combine: the release line's buildPayload
     // signature (board, session — the union preparation state under live
     // answers) stands; the drive-blockers D11 repair loop below reassigns
@@ -737,6 +755,27 @@ const CareerPortalApply = (() => {
     if (missing.length) {
       logStep("incomplete_payload_stop", { missing: missing.map((m) => m.field_id) });
       return blocked("INCOMPLETE_PAYLOAD", { reason: "the board's readback is missing values for required fields — the fills did not persist; submitting would send a hollow application, so the run stops here", missing, formAnalysis, asks });
+    }
+    // Deferred review re-check (v224 combine): the payload is complete
+    // and the repair has run — ask the board's validation again. Only
+    // now may a FORM_VALIDATION_FAILED verdict stand, and any other
+    // review outcome takes its normal path.
+    if (reviewValidationPending) {
+      const recheck = board.atReview();
+      if (recheck && recheck.code) {
+        logStep("review_validation_failed_after_repair", { code: recheck.code });
+        return blocked(recheck.code, { reason: "the board's own validation still rejects the form after the doorstep repair restored every readback value — the stop is the board's, named as-is", formAnalysis, asks });
+      }
+      if (recheck && recheck.captcha) {
+        logStep("captcha_stop", { at: "review_recheck" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+      }
+      if (recheck && (recheck.needsFields || recheck.advanced)) {
+        if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+        return prepareRound(session, inp, true, round + 1, stepLog);
+      }
+      if (!recheck || recheck.atFinalReview !== true) return blocked("FINAL_REVIEW_NOT_OBSERVED");
+      review = recheck;
     }
     const payloadSha256 = sha256(JSON.stringify(payload));
     session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,

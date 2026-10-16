@@ -710,7 +710,10 @@ async function attachFilePageLevel(board, cmd) {
       }
     }
   }
-  if (!attached) attached = await page.waitForSelector(b.selector, { state: "attached", timeout: 30000 }).then(() => true).catch(() => false);
+  // Tail wait for a slow mount: the attach-control poll above already
+  // waited ~21s; 12s here keeps the whole ladder inside the caller's
+  // 60s ceiling (the ladder runs once per call — see cmdFill).
+  if (!attached) attached = await page.waitForSelector(b.selector, { state: "attached", timeout: 12000 }).then(() => true).catch(() => false);
   if (!attached) return { ok: false, selectorUsed: selector };
   try {
     await page.setInputFiles(selector, cmd.filePath, { timeout: 20000 });
@@ -740,7 +743,7 @@ async function cmdFill(board, cmd) {
     await board.page.waitForTimeout(settleMs[0]);
     const rendered = await board.page.evaluate(fnWidgetValue, b.selector).catch(() => null);
     if (widgetPersisted(rendered === null ? undefined : rendered, driven)) {
-      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined };
+      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined, rendered: driven.expect };
     }
     return { filled: false, reason: "value_did_not_persist", wanted: String(value) };
   }
@@ -761,11 +764,14 @@ async function cmdFill(board, cmd) {
       if (!attached) {
         const rec = await attachFilePageLevel(board, cmd);
         attached = rec.ok; selectorUsed = rec.selectorUsed;
-      }
-      if (!attached) {
-        if (attempt === 3) return { filled: false, reason: "file_input_not_mounted" };
-        await board.page.waitForTimeout(settleMs[attempt - 1]);
-        continue;
+        // The ladder IS the recovery budget (scroll into view,
+        // re-discovery, attach-control engagement, mount poll, long
+        // wait). Re-running it verbatim inside the same call cannot
+        // change the answer and stacks past the caller's 60s ceiling —
+        // which would surface as a driver timeout instead of the
+        // truthful not-mounted verdict (BUG-207's "the run does not
+        // die" guard). Its negative verdict returns at once.
+        if (!attached) return { filled: false, reason: "file_input_not_mounted" };
       }
       await board.page.waitForTimeout(settleMs[attempt - 1]);
       // Verified = the live input still holds the file. When the
@@ -794,17 +800,80 @@ async function cmdFill(board, cmd) {
     if (!last.filled) return last; // e.g. option_not_found — retrying cannot invent an option
     await board.page.waitForTimeout(settleMs[attempt - 1]);
     let got;
-    try { got = await readbackBinding(board, b); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
+    // The verification readback re-observes on stale (readbackBindingFresh):
+    // a node the board remounted mid-drive reads as its CURRENT value —
+    // on a never-persist board that is "absent", which is the truth this
+    // loop exists to judge, not an error that aborts the fill.
+    try { got = await readbackBindingFresh(board, b); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
     if (persistedMatches(got, last.expect, b.inputType)) {
-      return { filled: true, verified: true, attempts: attempt };
+      return { filled: true, verified: true, attempts: attempt, rendered: last.expect };
     }
   }
   return { filled: false, reason: "value_did_not_persist", wanted: String(value && value.filename ? value.filename : value) };
 }
+// Re-observe ONE binding in place (v224 combine): a board that
+// remounts a node between the drive and the readback (the Greenhouse
+// delayed-reset / fresh-id shapes) leaves the observed refs pointing
+// at detached husks, and connected() rightly calls that stale. The
+// protocol's answer to stale is "re-observe" — here that means a
+// fresh discovery, the field found again by its selector, and new
+// handles minted under the current observation version (the same
+// scheme cmdDiscover uses). Returns a cloned binding with live refs,
+// or null when the field is gone from the page (which reads back as
+// absent — the truth).
+async function reresolveBinding(board, b) {
+  board.handles = board.handles || new Map();
+  board.refMetadata = board.refMetadata || new Map();
+  const fields = await board.page.evaluate(fnDiscoverFields);
+  const version = (board.observation && board.observation.version) || "re";
+  const mint = async (f) => {
+    const h = f.selector.startsWith("upmore-idx-")
+      ? await board.page.locator("input,select,textarea").nth(f.domIndex).elementHandle()
+      : await board.page.locator(f.selector).elementHandle();
+    if (!h) return null;
+    const ref = version + ":f:" + f.domIndex;
+    board.handles.set(ref, h);
+    board.refMetadata.set(ref, f);
+    return ref;
+  };
+  const selectors = b.selectors || (b.selector ? [b.selector] : (b.options || []).map((x) => x.selector));
+  const elementRefs = [];
+  for (const sel of selectors) {
+    const f = fields.find((x) => x.selector === sel);
+    if (!f) continue;
+    const ref = await mint(f);
+    if (ref) elementRefs.push(ref);
+  }
+  if (!elementRefs.length) return null;
+  const clone = Object.assign({}, b, { elementRefs });
+  if (b.options) {
+    clone.options = [];
+    for (const opt of b.options) {
+      const f = fields.find((x) => x.selector === opt.selector);
+      const ref = f ? await mint(f) : null;
+      clone.options.push(Object.assign({}, opt, { ref: ref || opt.ref }));
+    }
+  }
+  return clone;
+}
+
+// readbackBinding with the protocol's re-observe recovery: one stale
+// verdict triggers one re-resolution and one retry; a field that is
+// gone reads back absent; a second stale verdict propagates.
+async function readbackBindingFresh(board, b) {
+  try { return await readbackBinding(board, b); }
+  catch (e) {
+    if (!e || e.code !== "STALE_OBSERVATION") throw e;
+    const fresh = await reresolveBinding(board, b);
+    if (!fresh) return undefined;
+    return await readbackBinding(board, fresh);
+  }
+}
+
 async function cmdReadback(board, cmd) {
   const answers = {};
   for (const b of cmd.bindings) {
-    const value = await readbackBinding(board, b);
+    const value = await readbackBindingFresh(board, b);
     if (value !== undefined) answers[b.field_id] = value;
   }
   return { answers };

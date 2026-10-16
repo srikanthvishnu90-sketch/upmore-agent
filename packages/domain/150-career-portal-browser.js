@@ -407,7 +407,7 @@ const CareerPortalBrowser = (() => {
     const gate = hostAllowed(o.url);
     const state = {
       opened: false, closed: false, defs: null, bindings: null,
-      filledValues: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
+      filledValues: {}, renderedValues: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
       resumeShaChecked: null, submitAttempted: false, submitCapture: null,
       observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
@@ -445,6 +445,11 @@ const CareerPortalBrowser = (() => {
       host: gate.host || "", contextId: boardId, calls, driverLog,
       get accountName() { return o.accountName || null; },
       get fillFailures() { return state.fillFailures.slice(); },
+      // The board's own rendering of each verified fill (FR-395: a
+      // widget's single-value, including its short forms like the
+      // country dial code) — module 149's observation check compares
+      // the readback against THIS, not against the profile text.
+      get renderedValues() { return Object.assign({}, state.renderedValues); },
       get captchaTech() { return state.captchaTech.slice(); },
       get finalUrl() { return state.finalUrl; },
       get submitArmed() { return state.armed; },
@@ -570,7 +575,8 @@ const CareerPortalBrowser = (() => {
           return undefined;
         }
         state.filledValues[fieldId] = value;
-        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null });
+        if (r && r.rendered !== undefined) state.renderedValues[fieldId] = r.rendered;
+        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null });
         return value;
       },
       answers() {
@@ -583,7 +589,20 @@ const CareerPortalBrowser = (() => {
         // than the drive-blockers presence probe (whose file_present
         // command therefore has no caller in the composed tree).
         const list = Object.values(state.bindings);
-        const r = call(boardId, { type: "readback", observationVersion: state.observation.version, bindings: list }, 30000);
+        let r;
+        try {
+          r = call(boardId, { type: "readback", observationVersion: state.observation.version, bindings: list }, 30000);
+        } catch (e) {
+          // Re-observe, then read again (v224 combine): a board that
+          // remounts nodes between the drive and the readback (the
+          // delayed-reset / fresh-id shapes) stales the observed refs.
+          // The protocol's answer is a fresh observation — the same
+          // recovery fill() and atReview() already perform — never a
+          // fabricated value. A second stale verdict propagates.
+          if (!e || e.code !== "STALE_OBSERVATION") throw e;
+          board.form();
+          r = call(boardId, { type: "readback", observationVersion: state.observation.version, bindings: Object.values(state.bindings) }, 30000);
+        }
         return r.answers || {};
       },
       atReview() {

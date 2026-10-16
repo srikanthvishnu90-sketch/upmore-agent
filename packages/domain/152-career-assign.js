@@ -369,6 +369,203 @@ const CareerAssign = (() => {
     };
   }
 
+  // ---- MI-117 fatigue policy (Spec 2 §4.1/§4.4 — the delivery layer) --------
+  // Until this build the delivery layer had no throttle of any kind: the day
+  // the scheduler landed, every reminder the queue produced would have been
+  // delivered the moment it was composed, at any hour, in any volume. The
+  // policy, in the spec's own numbers:
+  //   - quiet hours 22:00–08:00 in the USER's timezone; nothing delivers
+  //     inside them unless the user opted into night alerts;
+  //   - at most 5 instant alerts per day (user-raisable via opts.instantCap);
+  //     further matches FOLD into the morning digest regardless of score;
+  //   - near-simultaneous openings at one company — arrivals chained within
+  //     a 10-minute window — collapse into ONE batched alert that counts
+  //     once against the budget;
+  //   - the digest flushes as ONE delivery at the first plan on a new day
+  //     outside quiet hours (08:00 is quiet's end — the morning digest);
+  //   - a skip is a delivered alert with no open (reported back through
+  //     noteDeliveryOutcome / recordDeliveryOutcome); 3 consecutive skips
+  //     TIGHTEN: the instant threshold rises one bucket tier (Reach-bucket
+  //     units fold to the digest even with budget left) and the daily cap
+  //     drops 5 -> 3, announced in exactly one sentence carried on the next
+  //     delivered unit; 3 consecutive opens restore the standard policy.
+  // planDeliveries is pure — state in, plan out; the host persists the state
+  // under DELIVERY_KEY in the same per-user store and delivers exactly the
+  // units the plan returns (a unit's members are delivered together, under
+  // the unit's own record). Nothing here invents engagement: skips and opens
+  // exist only when the product reports them.
+  const DELIVERY_KEY = (uid) => `career:delivery-state:${uid}`;
+  const FATIGUE = {
+    instantCapPerDay: 5,
+    tightenedCapPerDay: 3,
+    skipStreakToTighten: 3,
+    opensToRestore: 3,
+    quietStartMin: 22 * 60,
+    quietEndMin: 8 * 60,
+    batchWindowMs: 10 * 60 * 1000,
+  };
+  const TIGHTEN_NOTICE = "You haven't opened the last three alerts, so I'm tightening what reaches you instantly — the daily cap drops to 3 and lower-ranked matches go to your morning digest until you start opening them again.";
+  const BUCKET_RANK = { Reach: 0, Match: 1, Safety: 2 };
+  const bucketRank = (r) => {
+    const b = r && r.fit && r.fit.bucket;
+    return b && b in BUCKET_RANK ? BUCKET_RANK[b] : 0;
+  };
+
+  function defaultDeliveryState(userId) {
+    return {
+      type: "career_delivery_state", version: 1, user_id: s(userId),
+      day: null, instant_sent: 0, digest_ids: [],
+      skip_streak: 0, open_streak: 0, tightened: false, notice_pending: null,
+      updated_at: null,
+    };
+  }
+  async function loadDeliveryState(store, userId) {
+    const raw = await store.get(DELIVERY_KEY(userId));
+    return raw && raw.type === "career_delivery_state" && raw.user_id === s(userId) ? raw : null;
+  }
+  async function saveDeliveryState(store, state) {
+    if (!state || state.type !== "career_delivery_state" || !s(state.user_id))
+      throw new Error("invalid delivery state (type + user_id required — delivery state is per-user)");
+    state.updated_at = new Date().toISOString();
+    await store.set(DELIVERY_KEY(state.user_id), state);
+    return state;
+  }
+
+  function localParts(now, tzOffsetMinutes) {
+    const shifted = new Date(nowMs(now) + (tzOffsetMinutes || 0) * 60000);
+    return { day: shifted.toISOString().slice(0, 10), minutes: shifted.getUTCHours() * 60 + shifted.getUTCMinutes() };
+  }
+  function inQuiet(minutes, quiet) {
+    const a = quiet && quiet.startMin != null ? quiet.startMin : FATIGUE.quietStartMin;
+    const b = quiet && quiet.endMin != null ? quiet.endMin : FATIGUE.quietEndMin;
+    return a <= b ? (minutes >= a && minutes < b) : (minutes >= a || minutes < b);
+  }
+
+  function batchSpeakLine(unit) {
+    const members = unit.reminders;
+    const company = unit.company;
+    const roles = [...new Set(members.map((m) => m.role_title).filter(Boolean))];
+    const head = roles.length === 1
+      ? `${members.length} new ${roles[0]} postings${company ? ` at ${company}` : ""}`
+      : `${members.length} new postings${company ? ` at ${company}` : ""}`;
+    const parts = members.map((m) =>
+      `"${m.title}"${m.location ? ` — ${m.location}` : ""}${m.deadline ? ` (deadline, in the posting's own words: "${m.deadline.text}")` : ""}`);
+    const links = members.map((m) => m.url).filter(Boolean);
+    return `${head}: ${parts.join("; ")}.${links.length ? ` Apply: ${links.join(" · ")}` : ""}`;
+  }
+  function digestSpeakLine(unit) {
+    const members = unit.reminders;
+    const parts = members.map((m) =>
+      `${m.company ? `${m.company}: ` : ""}"${m.title}"${m.deadline ? ` (deadline, in the posting's own words: "${m.deadline.text}")` : ""}`);
+    const links = members.map((m) => m.url).filter(Boolean);
+    return `Your morning digest — ${members.length} posting${members.length === 1 ? "" : "s"} held for you: ${parts.join("; ")}.${links.length ? ` Apply: ${links.join(" · ")}` : ""}`;
+  }
+
+  function planDeliveries(reminders, state, opts) {
+    opts = opts || {};
+    const input = (reminders || []).slice();
+    const uid = (state && state.user_id) || opts.userId || (input[0] && input[0].user_id);
+    if (!uid) throw new Error("152 planDeliveries requires a user (state, opts.userId, or the reminders' user_id)");
+    const st = Object.assign(defaultDeliveryState(uid), state ? JSON.parse(JSON.stringify(state)) : {});
+    const now = nowMs(opts.now);
+    const lp = localParts(now, opts.tzOffsetMinutes || 0);
+    const quiet = inQuiet(lp.minutes, opts.quiet) && !opts.nightOptIn;
+
+    const dayChanged = st.day !== lp.day;
+    if (dayChanged) { st.day = lp.day; st.instant_sent = 0; }
+
+    const foldedIds = new Set(st.digest_ids);
+    const priorDigest = input.filter((r) => foldedIds.has(r.reminder_id));
+    const fresh = input.filter((r) => !foldedIds.has(r.reminder_id));
+
+    const units = [], digested = [], held = [];
+    // Quiet hours hold EVERYTHING, the digest flush included (the flush's
+    // own hour — 08:00 — is quiet's end by construction).
+    if (quiet) {
+      return { units, digested, held: input.slice(), flushed: null, notice: null, state: st };
+    }
+    // Morning flush: a new day (or a forced flush) delivers the fold as one
+    // digest unit and clears it. The flush is not an instant alert and does
+    // not consume the day's budget.
+    let flushed = null;
+    if ((dayChanged || opts.flushDigest) && priorDigest.length) {
+      flushed = { kind: "digest", company: null, reminders: priorDigest.slice() };
+      flushed.speak_line = digestSpeakLine(flushed);
+      units.push(flushed);
+      st.digest_ids = st.digest_ids.filter((id) => !priorDigest.some((r) => r.reminder_id === id));
+    } else {
+      held.push(...priorDigest); // folded earlier, flush not due — stays folded
+    }
+
+    // Batch: chain-group fresh arrivals by company, consecutive arrivals
+    // within the 10-minute window in one group. Unstated-company postings
+    // never batch together (TN-1a: "not stated" is not a company).
+    const sorted = fresh.slice().sort((a, b) => Date.parse(a.detected_at || 0) - Date.parse(b.detected_at || 0));
+    const openGroups = new Map();
+    const groups = [];
+    for (const r of sorted) {
+      const key = r.company ? `co:${lc(r.company)}` : `solo:${r.reminder_id}`;
+      const at = Date.parse(r.detected_at || 0) || now;
+      const g = openGroups.get(key);
+      if (g && at - g.lastAt <= FATIGUE.batchWindowMs) { g.reminders.push(r); g.lastAt = at; }
+      else { const ng = { key, company: r.company || null, reminders: [r], lastAt: at }; openGroups.set(key, ng); groups.push(ng); }
+    }
+    const cap = st.tightened ? FATIGUE.tightenedCapPerDay : (opts.instantCap || FATIGUE.instantCapPerDay);
+    for (const g of groups) {
+      const unit = g.reminders.length > 1
+        ? { kind: "batch", company: g.company, reminders: g.reminders }
+        : { kind: "instant", company: g.company, reminders: g.reminders };
+      if (unit.kind === "batch") unit.speak_line = batchSpeakLine(unit);
+      else unit.speak_line = speakLine(g.reminders[0]);
+      // Tightened threshold: a unit whose weakest member ranks below Match
+      // folds to the digest even with budget left.
+      if (st.tightened && Math.min(...g.reminders.map(bucketRank)) < 1) {
+        digested.push(...g.reminders);
+        for (const r of g.reminders) if (!st.digest_ids.includes(r.reminder_id)) st.digest_ids.push(r.reminder_id);
+        continue;
+      }
+      if (st.instant_sent < cap) { st.instant_sent += 1; units.push(unit); }
+      else {
+        digested.push(...g.reminders);
+        for (const r of g.reminders) if (!st.digest_ids.includes(r.reminder_id)) st.digest_ids.push(r.reminder_id);
+      }
+    }
+
+    // The tightening notice rides the next delivered unit, exactly once.
+    let notice = null;
+    if (st.notice_pending && units.length) {
+      notice = st.notice_pending;
+      units[0] = Object.assign({}, units[0], { notice });
+      st.notice_pending = null;
+    }
+    return { units, digested, held, flushed, notice, state: st };
+  }
+
+  // One reported delivery outcome. Pure: the caller persists the returned
+  // state (recordDeliveryOutcome does it against the store).
+  function noteDeliveryOutcome(state, outcome) {
+    const st = Object.assign(defaultDeliveryState(state && state.user_id), state ? JSON.parse(JSON.stringify(state)) : {});
+    let notice = null;
+    if (outcome === "skipped") {
+      st.skip_streak += 1; st.open_streak = 0;
+      if (st.skip_streak >= FATIGUE.skipStreakToTighten && !st.tightened) {
+        st.tightened = true;
+        st.notice_pending = TIGHTEN_NOTICE;
+        notice = TIGHTEN_NOTICE;
+      }
+    } else if (outcome === "opened" || outcome === "acted") {
+      st.open_streak += 1; st.skip_streak = 0;
+      if (st.tightened && st.open_streak >= FATIGUE.opensToRestore) st.tightened = false;
+    }
+    return { state: st, notice };
+  }
+  async function recordDeliveryOutcome(store, userId, outcome) {
+    const cur = (await loadDeliveryState(store, userId)) || defaultDeliveryState(userId);
+    const r = noteDeliveryOutcome(cur, outcome);
+    await saveDeliveryState(store, r.state);
+    return r;
+  }
+
   // ---- the assignment cycle ------------------------------------------------------
   function normalizeCandidate(c) {
     if (c && c.type === "career_job_alert") {
@@ -479,6 +676,8 @@ const CareerAssign = (() => {
   return { createWatchProfile, validateWatchProfile, upsertInterest, removeInterest, setOptOut,
     saveWatchProfile, loadWatchProfile, roleSpecFor, SPLITS, matchInterest, matchBasisLines, composeReminder,
     speakLine, extractDeadline, createReminderQueue, runAssignCycle,
-    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, SEAT_WINDOW_MS };
+    defaultDeliveryState, loadDeliveryState, saveDeliveryState, planDeliveries,
+    noteDeliveryOutcome, recordDeliveryOutcome, batchSpeakLine, digestSpeakLine,
+    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, DELIVERY_KEY, FATIGUE, TIGHTEN_NOTICE, SEAT_WINDOW_MS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerAssign;

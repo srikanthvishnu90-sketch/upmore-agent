@@ -337,12 +337,61 @@ const CareerAlertWatch = (() => {
     const watched = watchedFamiliesOf(profile, deps);
     const alerts = [], gated = [];
     let alerts_emitted = 0;
+    // MI-029 (BUG-237) — the gate evidence pass. The scale path polls the
+    // board directory LIST-FIRST (feedsFromDirectory drops ?content=true at
+    // ~1/100th the payload), so a posting can reach this gate with jd_text ""
+    // — and MI-095's JD-head occupation leg then reads an empty string and
+    // can never fire. Lane A counted 18 postings killed this way (class
+    // gated_at_151): convention-form titles whose own job text names the
+    // watched occupation. The gate was correct; its evidence never arrived.
+    // So: a NEW posting that fails the gate on the watch leg (role_family /
+    // watched occupation) with no JD text earns ONE full-text fetch of its
+    // board — 121's own content feed, through the same deadline-bounded
+    // seam, at most once per board per cycle — and is re-gated on the
+    // enriched record. The same gatePosting decides both times; a posting
+    // whose full text does not establish the occupation stays gated, so the
+    // false-alert rate cannot move.
+    const fullTextByBoard = new Map();
+    let gateEvidenceRecovered = 0;
+    const fullTextFor = async (posting) => {
+      // job_id's middle segment is the normalized COMPANY name (121
+      // basePosting), not the board token — so match by trying each
+      // same-source feed's full-text payload (cached per board) until the
+      // posting's own job_id is found.
+      for (const feed of feeds) {
+        if (!feed || feed.source !== posting.source || !Jobs.feeds[posting.source]) continue;
+        const boardKey = `${posting.source}:${feed.company_token}`;
+        if (!fullTextByBoard.has(boardKey)) {
+          const fullFeed = Jobs.feeds[posting.source](feed.company_token);
+          let byId = null;
+          if (fullFeed && fullFeed.url !== feed.url) {
+            try {
+              const r = await Jobs.fetchFeed(fullFeed, { fetch: fetchFn || undefined });
+              byId = new Map((r.postings || []).map((p) => [p.job_id, p]));
+            } catch { byId = null; }
+          }
+          fullTextByBoard.set(boardKey, byId);
+        }
+        const byId = fullTextByBoard.get(boardKey);
+        if (byId && byId.has(posting.job_id)) return byId.get(posting.job_id);
+      }
+      return null;
+    };
     for (const posting of result.new_postings || []) {
       if (seeded && !deps.alertOnSeed) continue; // baseline only — named by `seeded` on the result
-      const fit = Jobs.scoreFit(posting, profile);
-      const gate = gatePosting(posting, profile, fit, watched);
+      let candidate = posting;
+      let fit = Jobs.scoreFit(candidate, profile);
+      let gate = gatePosting(candidate, profile, fit, watched);
+      if (!gate.pass && !candidate.jd_text && gate.reasons.some((r) => /role_family|watched occupation/.test(r))) {
+        const enriched = await fullTextFor(candidate);
+        if (enriched && enriched.jd_text) {
+          const fit2 = Jobs.scoreFit(enriched, profile);
+          const gate2 = gatePosting(enriched, profile, fit2, watched);
+          if (gate2.pass) { candidate = enriched; fit = fit2; gate = gate2; gateEvidenceRecovered += 1; }
+        }
+      }
       if (!gate.pass) { gated.push({ job_id: posting.job_id, reasons: gate.reasons }); continue; }
-      const record = composeAlert(posting, fit, profile, detectedMs);
+      const record = composeAlert(candidate, fit, profile, detectedMs);
       // MI-095 audit: when the watch leg passed on a watched occupation, the
       // alert record carries why it matched (occupation, basis, term, and —
       // for JD evidence — the JD fragment that named it).
@@ -378,6 +427,7 @@ const CareerAlertWatch = (() => {
       alerts,
       gated_out: gated.length,
       gated,
+      gate_evidence_recovered: gateEvidenceRecovered,
       removed,
       errors,
       source_health: health,
@@ -417,8 +467,25 @@ const CareerAlertWatch = (() => {
     else if (obs.ewma_new_per_day >= 0.02) { tier = "standard"; base = CADENCE.standard; why = `${obs.ewma_new_per_day.toFixed(2)} new/day: standard tier`; }
     else { tier = "quiet"; base = CADENCE.quiet; why = "no new postings observed: quiet tier"; }
     if (obs.starred && base > CADENCE.active) { base = CADENCE.active; tier = "active"; why += "; starred company capped at 15 min"; }
-    if (errors === 1) { base = Math.min(CADENCE.quiet, base * 2); why += "; one consecutive error: interval doubled"; }
-    if (errors >= 2) { base = CADENCE.quiet; tier = "quiet"; why += "; repeated errors: parked at the cap"; }
+    // MI-033 (BUG-238): the error backoff must distinguish WHY the board
+    // failed. A TRANSPORT error (no HTTP response at all — DNS, reset,
+    // timeout) is not a sick or rate-limiting board; doubling its interval
+    // (60 -> 120) and parking it at 240 pushed retries past MT2's Window 2
+    // and manufactured 8 delayed-not-lost misses from a 29% transport error
+    // tax. Transport retries on the short cycle; sustained transport failure
+    // (3+) settles at no less than standard cadence — a dead board is not
+    // hammered every 15 minutes, and never parked at the HTTP cap. HTTP
+    // errors (429 above all) keep the polite backoff below, untouched.
+    const transportCount = obs.consecutive_transport_errors || 0;
+    if (obs.error_kind === "transport" && transportCount < 3) {
+      base = Math.min(base, CADENCE.active);
+      why += "; transport error (no HTTP response): short retry cycle — a network failure is not a sick board (MI-033)";
+    } else if (obs.error_kind === "transport") {
+      if (base < CADENCE.standard) base = CADENCE.standard;
+      why += "; sustained transport failure (3+): hold at no less than standard cadence — unreachable is not rate-limiting (MI-033)";
+    }
+    else if (errors === 1) { base = Math.min(CADENCE.quiet, base * 2); why += "; one consecutive error: interval doubled"; }
+    else if (errors >= 2) { base = CADENCE.quiet; tier = "quiet"; why += "; repeated errors: parked at the cap"; }
     return { tier, interval_minutes: base, reason: why };
   }
 
@@ -499,6 +566,14 @@ const CareerAlertWatch = (() => {
       st.last_polled_at = now;
       if (st.first_attempt_at == null) st.first_attempt_at = now;
       st.consecutive_errors = failed ? (prev.consecutive_errors || 0) + 1 : 0;
+      // MI-033: classify this cycle's failure for planCadence. The board's
+      // own feed status is the evidence: 0/null means no HTTP response ever
+      // arrived (transport); a real status — 429 above all — is the board
+      // answering, and keeps the polite backoff.
+      const feedStatus = res && res.feed_results && res.feed_results[0] ? res.feed_results[0].status : null;
+      const errorKind = !failed ? null : (feedStatus ? "http" : "transport");
+      st.consecutive_transport_errors = errorKind === "transport" ? (prev.consecutive_transport_errors || 0) + 1 : 0;
+      st.last_error_kind = errorKind;
       if (!failed) st.last_ok_at = now;
       const newSeen = res ? res.new_seen : 0;
       if (res && !res.seeded) {
@@ -506,7 +581,7 @@ const CareerAlertWatch = (() => {
         const sample = newSeen * (1440 / Math.max(1, intervalUsed)); // new/day at this cadence
         st.ewma_new_per_day = prev.ewma_new_per_day == null ? sample : 0.7 * prev.ewma_new_per_day + 0.3 * sample;
       } else if (st.ewma_new_per_day == null) st.ewma_new_per_day = 0;
-      const plan = planCadence({ cycles_observed: st.cycles_observed, ewma_new_per_day: st.ewma_new_per_day, consecutive_errors: st.consecutive_errors, starred: starred.includes(lc(feed.company)) });
+      const plan = planCadence({ cycles_observed: st.cycles_observed, ewma_new_per_day: st.ewma_new_per_day, consecutive_errors: st.consecutive_errors, error_kind: errorKind, consecutive_transport_errors: st.consecutive_transport_errors, starred: starred.includes(lc(feed.company)) });
       st.interval_minutes = plan.interval_minutes; st.tier = plan.tier;
       boardsState[id] = st;
       boardSummary[id] = { tier: st.tier, interval_minutes: st.interval_minutes, last_status: failed ? "error" : "ok", ewma_new_per_day: Math.round((st.ewma_new_per_day || 0) * 100) / 100, new_seen: newSeen, removed: res ? res.removed : 0 };

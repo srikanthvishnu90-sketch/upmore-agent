@@ -6121,9 +6121,16 @@ const CareerRouter = (() => {
   // curated split by name or by one of its curated terms. Anything else is
   // not silently derived — a saved interest needs a SOC the taxonomy
   // carries, and inventing one would corrupt the profile the host polls on.
+  // P8 phrases users actually say for a split whose canonical term is a
+  // job title ("data analyst") — nobody asks to watch for "data analyst
+  // roles" in the wild; they say "data roles". Aliases live HERE, in the
+  // language layer, never in 152's title-term sets (a posting title term
+  // must stay a title). Each alias resolves to a curated split by name.
+  const WATCH_ROLE_ALIASES = { "data roles": "Data Analyst", "data role": "Data Analyst" };
   function watchRoleFromText(text) {
     const A = getAssign(); if (!A || !A.SPLITS) return null;
     const t = lc(text);
+    for (const [phrase, split] of Object.entries(WATCH_ROLE_ALIASES)) if (t.includes(phrase)) return A.roleSpecFor({ split });
     for (const [split, spec] of Object.entries(A.SPLITS)) {
       if (!spec.soc) continue; // a split with no SOC cannot pass 152 validation; never saved
       if (t.includes(lc(split))) return A.roleSpecFor({ split });
@@ -6148,6 +6155,29 @@ const CareerRouter = (() => {
     const bands = (f.bands || []).length ? ` — ${(f.bands || []).join(" / ")} only` : "";
     const firms = (f.firms_include || []).length ? ` at ${(f.firms_include || []).join(", ")}` : "";
     return `${(i.role || {}).title || i.interest_id}${firms} — ${where}${remote}${bands}`;
+  }
+  // P8's second turn: a bare "yes, set that up for me" after a watch was
+  // JUST created in this conversation. The affirmation writes nothing —
+  // it confirms, from the saved record, what is already standing. Gated
+  // on recency (an interest created within the last 15 minutes) so a
+  // stray "yes, do it" in an unrelated conversation can never be read as
+  // watch business; with no recent watch it returns null and the turn
+  // falls through exactly as before.
+  function handleWatchAffirm(text, ctx) {
+    const A = getAssign(); if (!A) return null;
+    const wp = loadWatchProfileSync(ctx);
+    if (!wp || !Array.isArray(wp.interests) || !wp.interests.length) return null;
+    const now = nowOf(ctx);
+    const recent = wp.interests.filter((i) => i.created_at && (now - Date.parse(i.created_at)) <= 15 * 60 * 1000 && (now - Date.parse(i.created_at)) >= -60 * 1000);
+    if (!recent.length) return null;
+    // The line goes through watchInterestLine, with the band enum rendered
+    // in human words: 140's reply screen vetoes the WHOLE composed reply
+    // when a fact carries the raw "new_grad" token (it reads as an
+    // internal enum leaking into user text — verified in isolation), so a
+    // raw band name here would silently replace this confirmation with
+    // the "nothing solid" fallback.
+    const reply = compose({ headline: "Already set — that watch is live.", facts: recent.map((i) => `Watching: ${watchInterestLine(i).replaceAll("new_grad", "new grad")}.`), nextStep: "Want another role watched, or the full list of what you are watching?" });
+    return { intent: "career_watch_affirm", reply, resultStatus: "completed", sends: 0, watch_profile: wp };
   }
   function handleWatchCreate(text, ctx) {
     const A = getAssign(); if (!A) return null;
@@ -6285,7 +6315,11 @@ const CareerRouter = (() => {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b/.test(t)) {
+    if (/^(yes|yeah|yep|sure|ok|okay)[,.]?\s+(set that up|set it up|do it)( for me)?[.!]?$/.test(t.trim())) {
+      const wa = handleWatchAffirm(text, c);
+      if (wa) return wa;
+    }
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }

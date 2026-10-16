@@ -41671,9 +41671,16 @@ const CareerRouter = (() => {
   // curated split by name or by one of its curated terms. Anything else is
   // not silently derived — a saved interest needs a SOC the taxonomy
   // carries, and inventing one would corrupt the profile the host polls on.
+  // P8 phrases users actually say for a split whose canonical term is a
+  // job title ("data analyst") — nobody asks to watch for "data analyst
+  // roles" in the wild; they say "data roles". Aliases live HERE, in the
+  // language layer, never in 152's title-term sets (a posting title term
+  // must stay a title). Each alias resolves to a curated split by name.
+  const WATCH_ROLE_ALIASES = { "data roles": "Data Analyst", "data role": "Data Analyst" };
   function watchRoleFromText(text) {
     const A = getAssign(); if (!A || !A.SPLITS) return null;
     const t = lc(text);
+    for (const [phrase, split] of Object.entries(WATCH_ROLE_ALIASES)) if (t.includes(phrase)) return A.roleSpecFor({ split });
     for (const [split, spec] of Object.entries(A.SPLITS)) {
       if (!spec.soc) continue; // a split with no SOC cannot pass 152 validation; never saved
       if (t.includes(lc(split))) return A.roleSpecFor({ split });
@@ -41698,6 +41705,29 @@ const CareerRouter = (() => {
     const bands = (f.bands || []).length ? ` — ${(f.bands || []).join(" / ")} only` : "";
     const firms = (f.firms_include || []).length ? ` at ${(f.firms_include || []).join(", ")}` : "";
     return `${(i.role || {}).title || i.interest_id}${firms} — ${where}${remote}${bands}`;
+  }
+  // P8's second turn: a bare "yes, set that up for me" after a watch was
+  // JUST created in this conversation. The affirmation writes nothing —
+  // it confirms, from the saved record, what is already standing. Gated
+  // on recency (an interest created within the last 15 minutes) so a
+  // stray "yes, do it" in an unrelated conversation can never be read as
+  // watch business; with no recent watch it returns null and the turn
+  // falls through exactly as before.
+  function handleWatchAffirm(text, ctx) {
+    const A = getAssign(); if (!A) return null;
+    const wp = loadWatchProfileSync(ctx);
+    if (!wp || !Array.isArray(wp.interests) || !wp.interests.length) return null;
+    const now = nowOf(ctx);
+    const recent = wp.interests.filter((i) => i.created_at && (now - Date.parse(i.created_at)) <= 15 * 60 * 1000 && (now - Date.parse(i.created_at)) >= -60 * 1000);
+    if (!recent.length) return null;
+    // The line goes through watchInterestLine, with the band enum rendered
+    // in human words: 140's reply screen vetoes the WHOLE composed reply
+    // when a fact carries the raw "new_grad" token (it reads as an
+    // internal enum leaking into user text — verified in isolation), so a
+    // raw band name here would silently replace this confirmation with
+    // the "nothing solid" fallback.
+    const reply = compose({ headline: "Already set — that watch is live.", facts: recent.map((i) => `Watching: ${watchInterestLine(i).replaceAll("new_grad", "new grad")}.`), nextStep: "Want another role watched, or the full list of what you are watching?" });
+    return { intent: "career_watch_affirm", reply, resultStatus: "completed", sends: 0, watch_profile: wp };
   }
   function handleWatchCreate(text, ctx) {
     const A = getAssign(); if (!A) return null;
@@ -41835,7 +41865,11 @@ const CareerRouter = (() => {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b/.test(t)) {
+    if (/^(yes|yeah|yep|sure|ok|okay)[,.]?\s+(set that up|set it up|do it)( for me)?[.!]?$/.test(t.trim())) {
+      const wa = handleWatchAffirm(text, c);
+      if (wa) return wa;
+    }
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -45682,12 +45716,61 @@ const CareerAlertWatch = (() => {
     const watched = watchedFamiliesOf(profile, deps);
     const alerts = [], gated = [];
     let alerts_emitted = 0;
+    // MI-029 (BUG-237) — the gate evidence pass. The scale path polls the
+    // board directory LIST-FIRST (feedsFromDirectory drops ?content=true at
+    // ~1/100th the payload), so a posting can reach this gate with jd_text ""
+    // — and MI-095's JD-head occupation leg then reads an empty string and
+    // can never fire. Lane A counted 18 postings killed this way (class
+    // gated_at_151): convention-form titles whose own job text names the
+    // watched occupation. The gate was correct; its evidence never arrived.
+    // So: a NEW posting that fails the gate on the watch leg (role_family /
+    // watched occupation) with no JD text earns ONE full-text fetch of its
+    // board — 121's own content feed, through the same deadline-bounded
+    // seam, at most once per board per cycle — and is re-gated on the
+    // enriched record. The same gatePosting decides both times; a posting
+    // whose full text does not establish the occupation stays gated, so the
+    // false-alert rate cannot move.
+    const fullTextByBoard = new Map();
+    let gateEvidenceRecovered = 0;
+    const fullTextFor = async (posting) => {
+      // job_id's middle segment is the normalized COMPANY name (121
+      // basePosting), not the board token — so match by trying each
+      // same-source feed's full-text payload (cached per board) until the
+      // posting's own job_id is found.
+      for (const feed of feeds) {
+        if (!feed || feed.source !== posting.source || !Jobs.feeds[posting.source]) continue;
+        const boardKey = `${posting.source}:${feed.company_token}`;
+        if (!fullTextByBoard.has(boardKey)) {
+          const fullFeed = Jobs.feeds[posting.source](feed.company_token);
+          let byId = null;
+          if (fullFeed && fullFeed.url !== feed.url) {
+            try {
+              const r = await Jobs.fetchFeed(fullFeed, { fetch: fetchFn || undefined });
+              byId = new Map((r.postings || []).map((p) => [p.job_id, p]));
+            } catch { byId = null; }
+          }
+          fullTextByBoard.set(boardKey, byId);
+        }
+        const byId = fullTextByBoard.get(boardKey);
+        if (byId && byId.has(posting.job_id)) return byId.get(posting.job_id);
+      }
+      return null;
+    };
     for (const posting of result.new_postings || []) {
       if (seeded && !deps.alertOnSeed) continue; // baseline only — named by `seeded` on the result
-      const fit = Jobs.scoreFit(posting, profile);
-      const gate = gatePosting(posting, profile, fit, watched);
+      let candidate = posting;
+      let fit = Jobs.scoreFit(candidate, profile);
+      let gate = gatePosting(candidate, profile, fit, watched);
+      if (!gate.pass && !candidate.jd_text && gate.reasons.some((r) => /role_family|watched occupation/.test(r))) {
+        const enriched = await fullTextFor(candidate);
+        if (enriched && enriched.jd_text) {
+          const fit2 = Jobs.scoreFit(enriched, profile);
+          const gate2 = gatePosting(enriched, profile, fit2, watched);
+          if (gate2.pass) { candidate = enriched; fit = fit2; gate = gate2; gateEvidenceRecovered += 1; }
+        }
+      }
       if (!gate.pass) { gated.push({ job_id: posting.job_id, reasons: gate.reasons }); continue; }
-      const record = composeAlert(posting, fit, profile, detectedMs);
+      const record = composeAlert(candidate, fit, profile, detectedMs);
       // MI-095 audit: when the watch leg passed on a watched occupation, the
       // alert record carries why it matched (occupation, basis, term, and —
       // for JD evidence — the JD fragment that named it).
@@ -45723,6 +45806,7 @@ const CareerAlertWatch = (() => {
       alerts,
       gated_out: gated.length,
       gated,
+      gate_evidence_recovered: gateEvidenceRecovered,
       removed,
       errors,
       source_health: health,
@@ -45762,8 +45846,25 @@ const CareerAlertWatch = (() => {
     else if (obs.ewma_new_per_day >= 0.02) { tier = "standard"; base = CADENCE.standard; why = `${obs.ewma_new_per_day.toFixed(2)} new/day: standard tier`; }
     else { tier = "quiet"; base = CADENCE.quiet; why = "no new postings observed: quiet tier"; }
     if (obs.starred && base > CADENCE.active) { base = CADENCE.active; tier = "active"; why += "; starred company capped at 15 min"; }
-    if (errors === 1) { base = Math.min(CADENCE.quiet, base * 2); why += "; one consecutive error: interval doubled"; }
-    if (errors >= 2) { base = CADENCE.quiet; tier = "quiet"; why += "; repeated errors: parked at the cap"; }
+    // MI-033 (BUG-238): the error backoff must distinguish WHY the board
+    // failed. A TRANSPORT error (no HTTP response at all — DNS, reset,
+    // timeout) is not a sick or rate-limiting board; doubling its interval
+    // (60 -> 120) and parking it at 240 pushed retries past MT2's Window 2
+    // and manufactured 8 delayed-not-lost misses from a 29% transport error
+    // tax. Transport retries on the short cycle; sustained transport failure
+    // (3+) settles at no less than standard cadence — a dead board is not
+    // hammered every 15 minutes, and never parked at the HTTP cap. HTTP
+    // errors (429 above all) keep the polite backoff below, untouched.
+    const transportCount = obs.consecutive_transport_errors || 0;
+    if (obs.error_kind === "transport" && transportCount < 3) {
+      base = Math.min(base, CADENCE.active);
+      why += "; transport error (no HTTP response): short retry cycle — a network failure is not a sick board (MI-033)";
+    } else if (obs.error_kind === "transport") {
+      if (base < CADENCE.standard) base = CADENCE.standard;
+      why += "; sustained transport failure (3+): hold at no less than standard cadence — unreachable is not rate-limiting (MI-033)";
+    }
+    else if (errors === 1) { base = Math.min(CADENCE.quiet, base * 2); why += "; one consecutive error: interval doubled"; }
+    else if (errors >= 2) { base = CADENCE.quiet; tier = "quiet"; why += "; repeated errors: parked at the cap"; }
     return { tier, interval_minutes: base, reason: why };
   }
 
@@ -45844,6 +45945,14 @@ const CareerAlertWatch = (() => {
       st.last_polled_at = now;
       if (st.first_attempt_at == null) st.first_attempt_at = now;
       st.consecutive_errors = failed ? (prev.consecutive_errors || 0) + 1 : 0;
+      // MI-033: classify this cycle's failure for planCadence. The board's
+      // own feed status is the evidence: 0/null means no HTTP response ever
+      // arrived (transport); a real status — 429 above all — is the board
+      // answering, and keeps the polite backoff.
+      const feedStatus = res && res.feed_results && res.feed_results[0] ? res.feed_results[0].status : null;
+      const errorKind = !failed ? null : (feedStatus ? "http" : "transport");
+      st.consecutive_transport_errors = errorKind === "transport" ? (prev.consecutive_transport_errors || 0) + 1 : 0;
+      st.last_error_kind = errorKind;
       if (!failed) st.last_ok_at = now;
       const newSeen = res ? res.new_seen : 0;
       if (res && !res.seeded) {
@@ -45851,7 +45960,7 @@ const CareerAlertWatch = (() => {
         const sample = newSeen * (1440 / Math.max(1, intervalUsed)); // new/day at this cadence
         st.ewma_new_per_day = prev.ewma_new_per_day == null ? sample : 0.7 * prev.ewma_new_per_day + 0.3 * sample;
       } else if (st.ewma_new_per_day == null) st.ewma_new_per_day = 0;
-      const plan = planCadence({ cycles_observed: st.cycles_observed, ewma_new_per_day: st.ewma_new_per_day, consecutive_errors: st.consecutive_errors, starred: starred.includes(lc(feed.company)) });
+      const plan = planCadence({ cycles_observed: st.cycles_observed, ewma_new_per_day: st.ewma_new_per_day, consecutive_errors: st.consecutive_errors, error_kind: errorKind, consecutive_transport_errors: st.consecutive_transport_errors, starred: starred.includes(lc(feed.company)) });
       st.interval_minutes = plan.interval_minutes; st.tier = plan.tier;
       boardsState[id] = st;
       boardSummary[id] = { tier: st.tier, interval_minutes: st.interval_minutes, last_status: failed ? "error" : "ok", ewma_new_per_day: Math.round((st.ewma_new_per_day || 0) * 100) / 100, new_seen: newSeen, removed: res ? res.removed : 0 };
@@ -46317,6 +46426,203 @@ const CareerAssign = (() => {
     };
   }
 
+  // ---- MI-117 fatigue policy (Spec 2 §4.1/§4.4 — the delivery layer) --------
+  // Until this build the delivery layer had no throttle of any kind: the day
+  // the scheduler landed, every reminder the queue produced would have been
+  // delivered the moment it was composed, at any hour, in any volume. The
+  // policy, in the spec's own numbers:
+  //   - quiet hours 22:00–08:00 in the USER's timezone; nothing delivers
+  //     inside them unless the user opted into night alerts;
+  //   - at most 5 instant alerts per day (user-raisable via opts.instantCap);
+  //     further matches FOLD into the morning digest regardless of score;
+  //   - near-simultaneous openings at one company — arrivals chained within
+  //     a 10-minute window — collapse into ONE batched alert that counts
+  //     once against the budget;
+  //   - the digest flushes as ONE delivery at the first plan on a new day
+  //     outside quiet hours (08:00 is quiet's end — the morning digest);
+  //   - a skip is a delivered alert with no open (reported back through
+  //     noteDeliveryOutcome / recordDeliveryOutcome); 3 consecutive skips
+  //     TIGHTEN: the instant threshold rises one bucket tier (Reach-bucket
+  //     units fold to the digest even with budget left) and the daily cap
+  //     drops 5 -> 3, announced in exactly one sentence carried on the next
+  //     delivered unit; 3 consecutive opens restore the standard policy.
+  // planDeliveries is pure — state in, plan out; the host persists the state
+  // under DELIVERY_KEY in the same per-user store and delivers exactly the
+  // units the plan returns (a unit's members are delivered together, under
+  // the unit's own record). Nothing here invents engagement: skips and opens
+  // exist only when the product reports them.
+  const DELIVERY_KEY = (uid) => `career:delivery-state:${uid}`;
+  const FATIGUE = {
+    instantCapPerDay: 5,
+    tightenedCapPerDay: 3,
+    skipStreakToTighten: 3,
+    opensToRestore: 3,
+    quietStartMin: 22 * 60,
+    quietEndMin: 8 * 60,
+    batchWindowMs: 10 * 60 * 1000,
+  };
+  const TIGHTEN_NOTICE = "You haven't opened the last three alerts, so I'm tightening what reaches you instantly — the daily cap drops to 3 and lower-ranked matches go to your morning digest until you start opening them again.";
+  const BUCKET_RANK = { Reach: 0, Match: 1, Safety: 2 };
+  const bucketRank = (r) => {
+    const b = r && r.fit && r.fit.bucket;
+    return b && b in BUCKET_RANK ? BUCKET_RANK[b] : 0;
+  };
+
+  function defaultDeliveryState(userId) {
+    return {
+      type: "career_delivery_state", version: 1, user_id: s(userId),
+      day: null, instant_sent: 0, digest_ids: [],
+      skip_streak: 0, open_streak: 0, tightened: false, notice_pending: null,
+      updated_at: null,
+    };
+  }
+  async function loadDeliveryState(store, userId) {
+    const raw = await store.get(DELIVERY_KEY(userId));
+    return raw && raw.type === "career_delivery_state" && raw.user_id === s(userId) ? raw : null;
+  }
+  async function saveDeliveryState(store, state) {
+    if (!state || state.type !== "career_delivery_state" || !s(state.user_id))
+      throw new Error("invalid delivery state (type + user_id required — delivery state is per-user)");
+    state.updated_at = new Date().toISOString();
+    await store.set(DELIVERY_KEY(state.user_id), state);
+    return state;
+  }
+
+  function localParts(now, tzOffsetMinutes) {
+    const shifted = new Date(nowMs(now) + (tzOffsetMinutes || 0) * 60000);
+    return { day: shifted.toISOString().slice(0, 10), minutes: shifted.getUTCHours() * 60 + shifted.getUTCMinutes() };
+  }
+  function inQuiet(minutes, quiet) {
+    const a = quiet && quiet.startMin != null ? quiet.startMin : FATIGUE.quietStartMin;
+    const b = quiet && quiet.endMin != null ? quiet.endMin : FATIGUE.quietEndMin;
+    return a <= b ? (minutes >= a && minutes < b) : (minutes >= a || minutes < b);
+  }
+
+  function batchSpeakLine(unit) {
+    const members = unit.reminders;
+    const company = unit.company;
+    const roles = [...new Set(members.map((m) => m.role_title).filter(Boolean))];
+    const head = roles.length === 1
+      ? `${members.length} new ${roles[0]} postings${company ? ` at ${company}` : ""}`
+      : `${members.length} new postings${company ? ` at ${company}` : ""}`;
+    const parts = members.map((m) =>
+      `"${m.title}"${m.location ? ` — ${m.location}` : ""}${m.deadline ? ` (deadline, in the posting's own words: "${m.deadline.text}")` : ""}`);
+    const links = members.map((m) => m.url).filter(Boolean);
+    return `${head}: ${parts.join("; ")}.${links.length ? ` Apply: ${links.join(" · ")}` : ""}`;
+  }
+  function digestSpeakLine(unit) {
+    const members = unit.reminders;
+    const parts = members.map((m) =>
+      `${m.company ? `${m.company}: ` : ""}"${m.title}"${m.deadline ? ` (deadline, in the posting's own words: "${m.deadline.text}")` : ""}`);
+    const links = members.map((m) => m.url).filter(Boolean);
+    return `Your morning digest — ${members.length} posting${members.length === 1 ? "" : "s"} held for you: ${parts.join("; ")}.${links.length ? ` Apply: ${links.join(" · ")}` : ""}`;
+  }
+
+  function planDeliveries(reminders, state, opts) {
+    opts = opts || {};
+    const input = (reminders || []).slice();
+    const uid = (state && state.user_id) || opts.userId || (input[0] && input[0].user_id);
+    if (!uid) throw new Error("152 planDeliveries requires a user (state, opts.userId, or the reminders' user_id)");
+    const st = Object.assign(defaultDeliveryState(uid), state ? JSON.parse(JSON.stringify(state)) : {});
+    const now = nowMs(opts.now);
+    const lp = localParts(now, opts.tzOffsetMinutes || 0);
+    const quiet = inQuiet(lp.minutes, opts.quiet) && !opts.nightOptIn;
+
+    const dayChanged = st.day !== lp.day;
+    if (dayChanged) { st.day = lp.day; st.instant_sent = 0; }
+
+    const foldedIds = new Set(st.digest_ids);
+    const priorDigest = input.filter((r) => foldedIds.has(r.reminder_id));
+    const fresh = input.filter((r) => !foldedIds.has(r.reminder_id));
+
+    const units = [], digested = [], held = [];
+    // Quiet hours hold EVERYTHING, the digest flush included (the flush's
+    // own hour — 08:00 — is quiet's end by construction).
+    if (quiet) {
+      return { units, digested, held: input.slice(), flushed: null, notice: null, state: st };
+    }
+    // Morning flush: a new day (or a forced flush) delivers the fold as one
+    // digest unit and clears it. The flush is not an instant alert and does
+    // not consume the day's budget.
+    let flushed = null;
+    if ((dayChanged || opts.flushDigest) && priorDigest.length) {
+      flushed = { kind: "digest", company: null, reminders: priorDigest.slice() };
+      flushed.speak_line = digestSpeakLine(flushed);
+      units.push(flushed);
+      st.digest_ids = st.digest_ids.filter((id) => !priorDigest.some((r) => r.reminder_id === id));
+    } else {
+      held.push(...priorDigest); // folded earlier, flush not due — stays folded
+    }
+
+    // Batch: chain-group fresh arrivals by company, consecutive arrivals
+    // within the 10-minute window in one group. Unstated-company postings
+    // never batch together (TN-1a: "not stated" is not a company).
+    const sorted = fresh.slice().sort((a, b) => Date.parse(a.detected_at || 0) - Date.parse(b.detected_at || 0));
+    const openGroups = new Map();
+    const groups = [];
+    for (const r of sorted) {
+      const key = r.company ? `co:${lc(r.company)}` : `solo:${r.reminder_id}`;
+      const at = Date.parse(r.detected_at || 0) || now;
+      const g = openGroups.get(key);
+      if (g && at - g.lastAt <= FATIGUE.batchWindowMs) { g.reminders.push(r); g.lastAt = at; }
+      else { const ng = { key, company: r.company || null, reminders: [r], lastAt: at }; openGroups.set(key, ng); groups.push(ng); }
+    }
+    const cap = st.tightened ? FATIGUE.tightenedCapPerDay : (opts.instantCap || FATIGUE.instantCapPerDay);
+    for (const g of groups) {
+      const unit = g.reminders.length > 1
+        ? { kind: "batch", company: g.company, reminders: g.reminders }
+        : { kind: "instant", company: g.company, reminders: g.reminders };
+      if (unit.kind === "batch") unit.speak_line = batchSpeakLine(unit);
+      else unit.speak_line = speakLine(g.reminders[0]);
+      // Tightened threshold: a unit whose weakest member ranks below Match
+      // folds to the digest even with budget left.
+      if (st.tightened && Math.min(...g.reminders.map(bucketRank)) < 1) {
+        digested.push(...g.reminders);
+        for (const r of g.reminders) if (!st.digest_ids.includes(r.reminder_id)) st.digest_ids.push(r.reminder_id);
+        continue;
+      }
+      if (st.instant_sent < cap) { st.instant_sent += 1; units.push(unit); }
+      else {
+        digested.push(...g.reminders);
+        for (const r of g.reminders) if (!st.digest_ids.includes(r.reminder_id)) st.digest_ids.push(r.reminder_id);
+      }
+    }
+
+    // The tightening notice rides the next delivered unit, exactly once.
+    let notice = null;
+    if (st.notice_pending && units.length) {
+      notice = st.notice_pending;
+      units[0] = Object.assign({}, units[0], { notice });
+      st.notice_pending = null;
+    }
+    return { units, digested, held, flushed, notice, state: st };
+  }
+
+  // One reported delivery outcome. Pure: the caller persists the returned
+  // state (recordDeliveryOutcome does it against the store).
+  function noteDeliveryOutcome(state, outcome) {
+    const st = Object.assign(defaultDeliveryState(state && state.user_id), state ? JSON.parse(JSON.stringify(state)) : {});
+    let notice = null;
+    if (outcome === "skipped") {
+      st.skip_streak += 1; st.open_streak = 0;
+      if (st.skip_streak >= FATIGUE.skipStreakToTighten && !st.tightened) {
+        st.tightened = true;
+        st.notice_pending = TIGHTEN_NOTICE;
+        notice = TIGHTEN_NOTICE;
+      }
+    } else if (outcome === "opened" || outcome === "acted") {
+      st.open_streak += 1; st.skip_streak = 0;
+      if (st.tightened && st.open_streak >= FATIGUE.opensToRestore) st.tightened = false;
+    }
+    return { state: st, notice };
+  }
+  async function recordDeliveryOutcome(store, userId, outcome) {
+    const cur = (await loadDeliveryState(store, userId)) || defaultDeliveryState(userId);
+    const r = noteDeliveryOutcome(cur, outcome);
+    await saveDeliveryState(store, r.state);
+    return r;
+  }
+
   // ---- the assignment cycle ------------------------------------------------------
   function normalizeCandidate(c) {
     if (c && c.type === "career_job_alert") {
@@ -46427,7 +46733,9 @@ const CareerAssign = (() => {
   return { createWatchProfile, validateWatchProfile, upsertInterest, removeInterest, setOptOut,
     saveWatchProfile, loadWatchProfile, roleSpecFor, SPLITS, matchInterest, matchBasisLines, composeReminder,
     speakLine, extractDeadline, createReminderQueue, runAssignCycle,
-    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, SEAT_WINDOW_MS };
+    defaultDeliveryState, loadDeliveryState, saveDeliveryState, planDeliveries,
+    noteDeliveryOutcome, recordDeliveryOutcome, batchSpeakLine, digestSpeakLine,
+    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, DELIVERY_KEY, FATIGUE, TIGHTEN_NOTICE, SEAT_WINDOW_MS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerAssign;
 

@@ -1,4 +1,5 @@
 import { careerModelReply } from "../_shared/career_model_reply.ts";
+import { dialogueStamp, groundedEnabled, type CareerModelDependencies } from "../_shared/career_model_grounded.ts";
 import { researchCommand } from "../_shared/career_research_policy.js";
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
@@ -42,9 +43,17 @@ const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
 
-export async function handleChat(req: Request): Promise<Response> {
+// Runtime dependencies are chosen by the server entry, never by request JSON,
+// headers, persisted profile fields or a model-produced verification receipt.
+export function createCareerChatHandler(dependencies: CareerModelDependencies = {}) {
+  const fixed = Object.freeze({...dependencies});
+  return (req: Request) => handleChatWithDependencies(req,fixed);
+}
+export const handleChat = createCareerChatHandler();
+
+async function handleChatWithDependencies(req: Request, dependencies: CareerModelDependencies): Promise<Response> {
   const ctx: TurnCtx = { note: null, user: null, thread: null };
-  const res = await handleChatInner(req, ctx);
+  const res = await handleChatInner(req, ctx, dependencies);
   if (!ctx.note || res.status !== 200) return res;
   try {
     const body = await res.clone().json();
@@ -55,7 +64,7 @@ export async function handleChat(req: Request): Promise<Response> {
   } catch { return res; }
 }
 
-async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response> {
+async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: CareerModelDependencies): Promise<Response> {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -183,14 +192,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence });
         out = plan.out; taskIntent = plan.intent;
       }
-      const model = await careerModelReply({env:Deno.env,admin,ctx,out,careerTask,message,loaded,turnKey,requestHash});
+      const model = await careerModelReply({env:Deno.env,admin,ctx,out,careerTask,message,loaded,turnKey,requestHash,dependencies});
       if (model) out = {...out,reply:model.reply};
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
       const researchObservation = careerTask?.action === "research_status" && !ctx._hostPatch && out.intent === "career_browser_task";
       const reminders = !researchObservation && Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(model ? { career_model:model.meta } : {}) } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(model ? { career_model:model.meta } : {}), ...(groundedEnabled(Deno.env)&&Deno.env.get('CAREER_MODEL_ENABLED')==='true'?{career_dialogue:dialogueStamp({ctx,out,loaded,message})}:{}) } };
       // Observation cannot revoke its own queued research by bumping the
       // shared account version. It creates no turn receipt or memory write.
       if (researchObservation) { flowCtx.note = null; return json(cors, { ...response, read_only: true }, 200); }

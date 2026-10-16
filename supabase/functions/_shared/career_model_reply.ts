@@ -3,6 +3,7 @@
 import { chatReply, modelConfig, newMeter, toOpenAI, PRICES } from './model_gateway.ts';
 import { reserveModelCall, recordModelUsage } from './model_calls.ts';
 import { redactIdentity } from './identity_redact.ts';
+import { groundedEnabled, prepareGroundedReply } from './career_model_grounded.ts';
 
 const QUESTIONS: Record<string,string> = {
   example:'What happened, and what did you personally do?',
@@ -69,14 +70,21 @@ const SYSTEM=`You provide bounded career coaching, not actions. Facts and author
 
 export async function careerModelReply(d:any){
   if(d.env.get('CAREER_MODEL_ENABLED')!=='true')return null;
-  if(!ELIGIBLE.has(d.out.intent)||d.careerTask||d.out.contained||d.ctx._hostPatch||d.ctx.globalPause?.set||/\b(?:send|submit|approve|apply|forget|erase|delete|stop|cancel|purchase|pay|password|credential)\b/i.test(d.message))return null;
+  const flexible=groundedEnabled(d.env),flexibleDraft=flexible&&d.out.intent==='conversation_draft';
+  // A recorded null dispatch is an unmatched conversational turn. Throws and
+  // malformed/empty handler results remain contained and never infer.
+  const unmatched=flexible&&d.out.contained===true&&d.out.handler===null&&d.ctx.containmentRecords?.length===1&&d.ctx.containmentRecords[0].boundary==='null_result';
+  const eligible=unmatched||ELIGIBLE.has(d.out.intent)||(flexible&&['conversation_draft','conversation_choice','conversation_explanation'].includes(d.out.intent));
+  if(!eligible||d.careerTask||(d.out.contained&&!unmatched)||d.ctx._hostPatch||d.ctx.globalPause?.set||(!flexibleDraft&&/\b(?:send|submit|approve|apply|forget|erase|delete|stop|cancel|purchase|pay|password|credential)\b/i.test(d.message)))return null;
   const fallback=(status:string,calls=0)=>({reply:'AI coaching is unavailable for this turn. '+d.out.reply,meta:{status,provider_calls:calls}});
   const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const cfg=modelConfig(d.env,'chat'),price=PRICES[cfg.model];
   if(!cfg.apiKey)return fallback('not_configured');
   if(cfg.provider!=='openai'||!price)return fallback('unpriced_or_unsupported_model');
   if(!d.ctx.userId||!d.ctx.threadId) return fallback('owned_context_required');
-  const view=careerModelContext(d.ctx,d.message),payload={max_tokens:512,system:SYSTEM,messages:[{role:'user',content:JSON.stringify(view)}]};
+  let strategy:any=null;
+  if(flexible){try{strategy=await prepareGroundedReply(d);}catch(_){return fallback('read_context_unavailable');}if(strategy.error)return fallback(strategy.error);}
+  const view=strategy?strategy.view:careerModelContext(d.ctx,d.message),payload={max_tokens:strategy?.max_tokens||512,system:strategy?.system||SYSTEM,messages:[{role:'user',content:JSON.stringify(view)}]};
   const converted=toOpenAI(payload,cfg),inputBound=new TextEncoder().encode(JSON.stringify(converted)).length+2048+128*converted.messages.length,outputBound=converted.max_completion_tokens;
   const bound=Math.ceil(inputBound*price.input+outputBound*price.output),priceKey=await hash({provider:cfg.provider,model:cfg.model,input:price.input,cached:price.cached,output:price.output}),payloadHash=await hash(converted);
   if(!Number.isSafeInteger(bound)||bound<1||bound>25000)return fallback('budget_denied');
@@ -106,9 +114,9 @@ export async function careerModelReply(d:any){
     if(confirmed.contextCurrent!==true)throw Object.assign(Error('career_context_changed'),{code:'career_model_context_changed'});
     const blocks=generated.message.content;
     if(generated.message.stop_reason!=='end_turn'||!Array.isArray(blocks)||blocks.length!==1||blocks[0].type!=='text')return fallback('invalid_response',calls);
-    let safe;try{safe=renderCareerModelReply(blocks[0].text,view);}catch(_){return fallback('invalid_response',calls);}
-    d.ctx.conversationState ||= {v:1,facts:{},sources:[],hypotheticals:[],mode:null};d.ctx.conversationState.modelQuestion=safe.question;
-    return {reply:safe.reply,meta:{status:'generated',provider_calls:1,context_sha256:await hash(view)}};
+    let safe;try{safe=strategy?await strategy.render(blocks[0].text):renderCareerModelReply(blocks[0].text,view);}catch(_){return fallback(flexible?'semantic_or_contract_rejected':'invalid_response',calls);}
+    if(!flexible){d.ctx.conversationState ||= {v:1,facts:{},sources:[],hypotheticals:[],mode:null};d.ctx.conversationState.modelQuestion=safe.question;}
+    return {reply:safe.reply,meta:{status:'generated',provider_calls:1,context_sha256:await hash(view),...(safe.meta||{})}};
   }catch(e){
     if(ticket){try{await settle(started||consumeUncertain?'unknown':'not_sent',started||consumeUncertain?null:0,started||consumeUncertain?null:{});}catch(_){/* retain the full reservation when outcome is uncertain */}}
     if(['career_model_context_changed','turn_key_conflict'].includes((e as any)?.code))throw e;

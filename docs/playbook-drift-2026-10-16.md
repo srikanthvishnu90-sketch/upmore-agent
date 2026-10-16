@@ -104,3 +104,9 @@ consume under the campaign lock. Frozen oracles, failed baselines and real
 monthly-RPC integration evidence are in the independent gateway review report.
 The old report is marked historical, its failed and passing evidence retained.
 No production migration or real budget configuration was performed.
+
+### Flexible grounded conversation after boundary review 2471747f
+
+The independent review correctly restricted arbitrary advice to an exact catalog; that safe selector does not meet the owner's conversational goal. This isolated continuation adds an explicitly versioned grounded_v2 contract, optional server-injected local semantic verifier, bounded owner-scoped read-only receipt context and flexible prose/draft/advice/hypothesis/question blocks. The verifier must certify whole-response entailment, hidden-claim coverage and authority safety; valid schema/IDs alone are insufficient. No real verifier is installed and no actual model-quality claim follows from scripted tests. Legacy v1 behavior remains compatible.
+
+Initial flexible tests retained two failures: natural follow-ups and draft revisions hit the generic null dispatch, not a supported conversational intent. The adapter now admits only a host-recorded null_result with no matching handler into grounded_v2; throws and malformed/empty results remain contained. Receipt metadata is host-stamped and committed atomically; correction/privacy barriers prevent historical dialogue or advisory drafts bypassing withdrawals. Budget/global uncertainty-stop and module-130 source bytes are preserved. SQL remains an unapplied proposal.

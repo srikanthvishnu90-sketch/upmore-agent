@@ -18,7 +18,7 @@ module.exports=async function stagedEntry(root,client,options={}){
     else if(id==='https://esm.sh/@supabase/supabase-js@2.117.1')m=new vm.SyntheticModule(['createClient'],function(){this.setExport('createClient',()=>client);},{context,identifier:id});
     else{if(!id.startsWith(stage+path.sep))throw Error('import escaped staged graph');let code=fs.readFileSync(id,'utf8');if(id.endsWith('.ts'))code=stripTypeScriptTypes(code,{mode:'transform'});m=new vm.SourceTextModule(code,{context,identifier:id});}modules.set(id,m);return m;
   }
-  try{const entry=load(path.join(stage,'agent-chat/index.ts'));await entry.link((s,r)=>load(s.startsWith('https:')?s:path.resolve(path.dirname(r.identifier),s)));await entry.evaluate();}
+  try{const entry=load(path.join(stage,'agent-chat/index.ts'));await entry.link((s,r)=>load(s.startsWith('https:')?s:path.resolve(path.dirname(r.identifier),s)));await entry.evaluate();if(options.dependencies)handle=modules.get(path.join(stage,'agent-chat/handler-career.ts')).namespace.createCareerChatHandler(options.dependencies);}
   catch(e){fs.rmSync(stage,{recursive:true,force:true});throw e;}
   return {exportsFor(relative){const m=modules.get(path.join(stage,relative));if(!m||m.status!=='evaluated')throw Error('Staged module not evaluated');return m.namespace;},async request(thread,message,key,careerTask){const res=await handle(new Request('https://upmore.example.test/chat',{method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({thread_id:thread,message,turn_key:key,career_task:careerTask})}));if(networkCalls)throw Error('external network was attempted');return {status:res.status,body:await res.json()};},close(){fs.rmSync(stage,{recursive:true,force:true});}};
 };

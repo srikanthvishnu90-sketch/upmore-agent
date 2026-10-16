@@ -1,0 +1,126 @@
+{
+  "label": "heldouts-before",
+  "target": "/workspace/upmore-release-current",
+  "commit": "f67db048599db308f2691a7be7feada841143da5",
+  "started": "2026-10-16T01:13:03.318Z",
+  "frozenAt": "2026-10-16T01:02:13.626677+00:00",
+  "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+  "suite": "heldouts",
+  "sourceFiles": {
+    "packages/domain/142-career-router.js": "96041cb20084b67632684048b163fb90f3006eac9c5ccaad55381605235437e5",
+    "packages/domain/128-career-negotiation.js": "685e83b7993db9937a456494c052354293e6c3d9ca1acafacb37493c214822fd",
+    "supabase/functions/_shared/career_host.js": "4bb84d3923d824a99f6152c56a1f03e15fd2750108a8f85ae45f2d50f335d6fa",
+    "supabase/functions/_shared/router_core.career.js": "dd1c0693a995d8b5f10657b70eafe3de6f4fb756deb3715ef058d764be0d0e3c"
+  },
+  "execution": "actual staged index -> handler-career.ts -> generated career bundle -> real PostgreSQL 16; synthetic identity and unlimited local rate limiter; no provider; no browser",
+  "profile": "SYNTHETIC",
+  "database": "career_test_recovery_heldouts_before",
+  "container": "upmore-career-integration-pg-recovery",
+  "checks": 426,
+  "passed": 353,
+  "failed": 73,
+  "turns": 82,
+  "networkAttempts": 0,
+  "cases": [
+    {
+      "id": "H01",
+      "topic": "Canonical correction survives another task and reload",
+      "passed": 24,
+      "failed": 2
+    },
+    {
+      "id": "H02",
+      "topic": "Repeated multiword location corrections",
+      "passed": 19,
+      "failed": 2
+    },
+    {
+      "id": "H03",
+      "topic": "Selective withdrawal is scoped and never claims account deletion",
+      "passed": 31,
+      "failed": 5
+    },
+    {
+      "id": "H04",
+      "topic": "Unsupported deletion field is refused precisely",
+      "passed": 13,
+      "failed": 3
+    },
+    {
+      "id": "H05",
+      "topic": "Quoted and hypothetical accomplishments never become user evidence",
+      "passed": 21,
+      "failed": 5
+    },
+    {
+      "id": "H06",
+      "topic": "Schedule and financial constraints survive mentoring detour",
+      "passed": 29,
+      "failed": 7
+    },
+    {
+      "id": "H07",
+      "topic": "Hard role constraints and a hypothetical move",
+      "passed": 25,
+      "failed": 6
+    },
+    {
+      "id": "H08",
+      "topic": "Answer-specific interview coaching with a fresh project",
+      "passed": 28,
+      "failed": 8
+    },
+    {
+      "id": "H09",
+      "topic": "Coaching facts survive fresh realm and a detour",
+      "passed": 23,
+      "failed": 3
+    },
+    {
+      "id": "H10",
+      "topic": "Resume bullet uses source quotes and no invented seniority",
+      "passed": 24,
+      "failed": 7
+    },
+    {
+      "id": "H11",
+      "topic": "Request date persists through detour and draft revision",
+      "passed": 27,
+      "failed": 4
+    },
+    {
+      "id": "H12",
+      "topic": "Missing deadline is asked for rather than invented",
+      "passed": 14,
+      "failed": 2
+    },
+    {
+      "id": "H13",
+      "topic": "Two tasks survive explanatory interruption",
+      "passed": 28,
+      "failed": 8
+    },
+    {
+      "id": "H14",
+      "topic": "Capabilities are factual rather than a dossier for a word",
+      "passed": 16,
+      "failed": 5
+    },
+    {
+      "id": "H15",
+      "topic": "Correction updates active plan without silently changing approvals",
+      "passed": 19,
+      "failed": 2
+    },
+    {
+      "id": "H16",
+      "topic": "Negated claims and unsupported facts remain unknown",
+      "passed": 12,
+      "failed": 4
+    }
+  ],
+  "finished": "2026-10-16T01:15:16.848Z",
+  "verdict": "FAIL",
+  "browserOutcomes": 0,
+  "modelResponseQuality": "NOT_EVALUATED: actual career entry contains no model and network is denied"
+}

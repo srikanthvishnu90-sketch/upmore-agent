@@ -1,0 +1,205 @@
+{
+  "recordedAt": "2026-10-16T01:40:57.036612+00:00",
+  "baseRelease": "f67db048599db308f2691a7be7feada841143da5",
+  "reviewedSource": "1b312e7ed9e5c83b2dadc2de5f1813b9ad2f3db0",
+  "originalBefore": {
+    "sourceReview": "0519b0ffd33a67c06e00fda047321231cdd8667c",
+    "run": "release-current-first",
+    "commit": "f67db048599db308f2691a7be7feada841143da5",
+    "checks": 543,
+    "passed": 414,
+    "failed": 129,
+    "turns": 83
+  },
+  "runs": [
+    {
+      "label": "fixes-first",
+      "commit": "f67db048599db308f2691a7be7feada841143da5",
+      "suite": "original",
+      "turns": 83,
+      "checks": 543,
+      "passed": 539,
+      "failed": 4,
+      "failingConversations": 3,
+      "networkAttempts": 0,
+      "expectationSha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+      "transcripts": "../conversation-recovery-20261016/fixes-first/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "da2c13c318e6ad7d35d7a004ea7809979242fc59d078568822bdf7b1cc5112ff",
+        "packages/domain/142-career-router.js": "6d44378e92887c556da2dc003a7953015267e5bdf249052130348a61751df64d",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "7ed93cd0143e092aefdd00463415f81af65035f5555c549fcbc5a41aa9846c8f"
+      }
+    },
+    {
+      "label": "heldouts-before",
+      "commit": "f67db048599db308f2691a7be7feada841143da5",
+      "suite": "heldouts",
+      "turns": 82,
+      "checks": 426,
+      "passed": 353,
+      "failed": 73,
+      "failingConversations": 16,
+      "networkAttempts": 0,
+      "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+      "transcripts": "../conversation-recovery-20261016/heldouts-before/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/142-career-router.js": "96041cb20084b67632684048b163fb90f3006eac9c5ccaad55381605235437e5",
+        "packages/domain/128-career-negotiation.js": "685e83b7993db9937a456494c052354293e6c3d9ca1acafacb37493c214822fd",
+        "supabase/functions/_shared/career_host.js": "4bb84d3923d824a99f6152c56a1f03e15fd2750108a8f85ae45f2d50f335d6fa",
+        "supabase/functions/_shared/router_core.career.js": "dd1c0693a995d8b5f10657b70eafe3de6f4fb756deb3715ef058d764be0d0e3c"
+      }
+    },
+    {
+      "label": "heldouts-after-first",
+      "commit": "f67db048599db308f2691a7be7feada841143da5",
+      "suite": "heldouts",
+      "turns": 82,
+      "checks": 426,
+      "passed": 426,
+      "failed": 0,
+      "failingConversations": 0,
+      "networkAttempts": 0,
+      "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+      "transcripts": "../conversation-recovery-20261016/heldouts-after-first/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "da2c13c318e6ad7d35d7a004ea7809979242fc59d078568822bdf7b1cc5112ff",
+        "packages/domain/142-career-router.js": "6d44378e92887c556da2dc003a7953015267e5bdf249052130348a61751df64d",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "7ed93cd0143e092aefdd00463415f81af65035f5555c549fcbc5a41aa9846c8f"
+      }
+    },
+    {
+      "label": "fixes-final",
+      "commit": "d112fe5c12435b5979c15f8330c81f78b676b7a4",
+      "suite": "original",
+      "turns": 83,
+      "checks": 543,
+      "passed": 541,
+      "failed": 2,
+      "failingConversations": 1,
+      "networkAttempts": 0,
+      "expectationSha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+      "transcripts": "../conversation-recovery-20261016/fixes-final/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "cf67388179ecb4b1e1c2de9d7ec4e69f8c962059f387e0a4dab0c59e1de7c4ac",
+        "packages/domain/142-career-router.js": "f1a74287fd77d004b77b79c0e3f4afdf36566d67b7eadf1589daee49c3fc6d0c",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "6d2b4b215876a6bfe0a9b4d0e8e51a3aeeb0bdcd4797399fb3d0390d6382ada0"
+      }
+    },
+    {
+      "label": "heldouts-after-final",
+      "commit": "d112fe5c12435b5979c15f8330c81f78b676b7a4",
+      "suite": "heldouts",
+      "turns": 82,
+      "checks": 426,
+      "passed": 426,
+      "failed": 0,
+      "failingConversations": 0,
+      "networkAttempts": 0,
+      "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+      "transcripts": "../conversation-recovery-20261016/heldouts-after-final/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "cf67388179ecb4b1e1c2de9d7ec4e69f8c962059f387e0a4dab0c59e1de7c4ac",
+        "packages/domain/142-career-router.js": "f1a74287fd77d004b77b79c0e3f4afdf36566d67b7eadf1589daee49c3fc6d0c",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "6d2b4b215876a6bfe0a9b4d0e8e51a3aeeb0bdcd4797399fb3d0390d6382ada0"
+      }
+    },
+    {
+      "label": "fixes-reviewed",
+      "commit": "47c697509f272cde7fce2a40f88bdc66ebf58a19",
+      "suite": "original",
+      "turns": 83,
+      "checks": 543,
+      "passed": 543,
+      "failed": 0,
+      "failingConversations": 0,
+      "networkAttempts": 0,
+      "expectationSha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+      "transcripts": "../conversation-recovery-20261016/fixes-reviewed/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "2a1b02db2808f25cba590238fee3054efe3a00f3080e73915a0a5a51fa354593",
+        "packages/domain/142-career-router.js": "b39295f97caa5c765fa5f91330fc43df16212630c1388932c01e3615cfe75fac",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "a26c314a6253795217b23a38f6b36cafe31dde8efe9053f33efe010174a5c9b4"
+      }
+    },
+    {
+      "label": "heldouts-after-reviewed",
+      "commit": "47c697509f272cde7fce2a40f88bdc66ebf58a19",
+      "suite": "heldouts",
+      "turns": 82,
+      "checks": 426,
+      "passed": 426,
+      "failed": 0,
+      "failingConversations": 0,
+      "networkAttempts": 0,
+      "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+      "transcripts": "../conversation-recovery-20261016/heldouts-after-reviewed/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "2a1b02db2808f25cba590238fee3054efe3a00f3080e73915a0a5a51fa354593",
+        "packages/domain/142-career-router.js": "b39295f97caa5c765fa5f91330fc43df16212630c1388932c01e3615cfe75fac",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "a26c314a6253795217b23a38f6b36cafe31dde8efe9053f33efe010174a5c9b4"
+      }
+    },
+    {
+      "label": "fixes-human-reviewed",
+      "commit": "1b312e7ed9e5c83b2dadc2de5f1813b9ad2f3db0",
+      "suite": "original",
+      "turns": 83,
+      "checks": 543,
+      "passed": 543,
+      "failed": 0,
+      "failingConversations": 0,
+      "networkAttempts": 0,
+      "expectationSha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+      "transcripts": "../conversation-recovery-20261016/fixes-human-reviewed/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+        "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "b28473fd3642d231a10b44486a7a7ba380bab21b4269c0fea2c8f2d0e9c9aa2d"
+      }
+    },
+    {
+      "label": "heldouts-human-reviewed",
+      "commit": "1b312e7ed9e5c83b2dadc2de5f1813b9ad2f3db0",
+      "suite": "heldouts",
+      "turns": 82,
+      "checks": 426,
+      "passed": 426,
+      "failed": 0,
+      "failingConversations": 0,
+      "networkAttempts": 0,
+      "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+      "transcripts": "../conversation-recovery-20261016/heldouts-human-reviewed/transcripts.jsonl",
+      "sourceFiles": {
+        "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+        "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+        "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+        "supabase/functions/_shared/career_host.js": "b8ee3736954745a66a34c6bd21d9a478ba860022022b6a46d070da660e962e0e",
+        "supabase/functions/_shared/router_core.career.js": "b28473fd3642d231a10b44486a7a7ba380bab21b4269c0fea2c8f2d0e9c9aa2d"
+      }
+    }
+  ],
+  "turnsThisFollowup": 742,
+  "paidCalls": 0,
+  "modelCalls": 0,
+  "publicBrowserOutcomes": 0,
+  "limitations": [
+    "The two earliest changed-source iterations had an uncommitted working tree; sourceFiles hashes describe those evaluated bytes, while commit denotes their then-HEAD. Their full failed transcripts remain.",
+    "Final runs are pinned to committed source 1b312e7e; product file hashes match that commit. Earlier 47c69750 checks passed, then human transcript review caught further display/preference issues fixed in the final source.",
+    "Synthetic identity/profile, actual staging graph and real local PostgreSQL; no production auth/gateway, model quality or live browser verification.",
+    "Module 130 privacy/cross-account repair is separate and still release-blocking."
+  ]
+}

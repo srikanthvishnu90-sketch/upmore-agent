@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "error": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Tampa/. Input:\n\n\"Where we landed, from this thread's own record.\\n\" +\n  \"The outreach plan stands targeting Fieldstone in Austin — no list built yet, no sends, everything waits on your approval of the whole plan. Your facts on record: you're targeting Austin; your target firm is Fieldstone. Name the piece to move next and it runs from exactly this state.\"\n\n    at has (/workspace/upmore-conversation-fix/tests/helpers/conversation-heldout-predicates.cjs:3:55)\n    at Object.H15 (/workspace/upmore-conversation-fix/tests/helpers/conversation-heldout-predicates.cjs:20:10)\n    at /workspace/upmore-conversation-fix/scripts/career/conversation-recovery/run.cjs:42:141"
+}

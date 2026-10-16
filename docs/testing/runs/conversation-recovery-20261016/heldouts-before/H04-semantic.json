@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "error": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /not|cannot|no /i. Input:\n\n\"I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.\"\n\n    at has (/workspace/upmore-conversation-fix/tests/helpers/conversation-heldout-predicates.cjs:3:55)\n    at Object.H04 (/workspace/upmore-conversation-fix/tests/helpers/conversation-heldout-predicates.cjs:9:10)\n    at /workspace/upmore-conversation-fix/scripts/career/conversation-recovery/run.cjs:42:141"
+}

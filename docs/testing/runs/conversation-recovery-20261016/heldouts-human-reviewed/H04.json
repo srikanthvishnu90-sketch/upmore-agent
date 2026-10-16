@@ -1,0 +1,2488 @@
+[
+  {
+    "caseId": "H04",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000104",
+    "at": "2026-10-16T01:38:23.216Z",
+    "input": {
+      "message": "I want to network into Finch Data in Miami.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H04-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "outreach_clarification",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+        "action": null,
+        "turn_key": "H04-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000104",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T01:38:22.956Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Finch Data"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Finch Data"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Miami",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Finch Data in Miami.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T01:38:22.956Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Miami",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Finch Data in Miami.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "geography",
+                      "value": "Miami",
+                      "evidence": "in Miami"
+                    },
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "target_firm",
+                      "value": "Finch Data",
+                      "evidence": "network into Finch Data"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T01:38:22.956Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "geography",
+                "value": "Miami",
+                "evidence": "in Miami"
+              },
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "target_firm",
+                "value": "Finch Data",
+                "evidence": "network into Finch Data"
+              }
+            ],
+            "updatedAt": "2026-10-16T01:38:22.956Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6042490c-7fde-4483-a96f-c93878938555",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H04-1"
+          },
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "67cbe2a4-14b7-4b7d-ba69-9128b7e27031",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "I want to network into Finch Data in Miami.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000104",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000104",
+          "p_key": "H04-1",
+          "p_hash": "8086c2ec59203d9d0b9ae0f690802f5b6b624896b62159eff6ecffdec7ab5c5f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000104",
+          "p_key": "H04-1",
+          "p_hash": "8086c2ec59203d9d0b9ae0f690802f5b6b624896b62159eff6ecffdec7ab5c5f",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "kind": "geography",
+                          "value": "Miami",
+                          "evidence": "in Miami",
+                          "at": "2026-10-16T01:38:22.956Z"
+                        },
+                        {
+                          "kind": "target_firm",
+                          "value": "Finch Data",
+                          "evidence": "network into Finch Data",
+                          "at": "2026-10-16T01:38:22.956Z"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T01:38:22.956Z"
+                    },
+                    "plan": {
+                      "kind": "campaign_plan",
+                      "scheduled": 0,
+                      "days": 0,
+                      "deferred": [],
+                      "lastAsk": "I want to network into Finch Data in Miami.",
+                      "count": 40,
+                      "firms": [
+                        "Finch Data"
+                      ],
+                      "firms_named": true,
+                      "firm_set": null,
+                      "firms_source": "named",
+                      "role_family": "investment_banking",
+                      "purpose": null,
+                      "target": {
+                        "industry": "investment_banking",
+                        "firm_set": null,
+                        "firms": [
+                          "Finch Data"
+                        ],
+                        "firms_named": true,
+                        "firms_source": "named",
+                        "role_family": "investment_banking",
+                        "seniority_band": null,
+                        "geography": "Miami",
+                        "school_filter": null,
+                        "background_filters": {},
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "count": 40,
+                        "vague": false,
+                        "proposed_default": null,
+                        "count_source": "default",
+                        "role_phrase": null
+                      },
+                      "at": "2026-10-16T01:38:22.956Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "geography",
+                        "value": "Miami",
+                        "evidence": "in Miami",
+                        "at": "2026-10-16T01:38:22.956Z"
+                      },
+                      {
+                        "kind": "target_firm",
+                        "value": "Finch Data",
+                        "evidence": "network into Finch Data",
+                        "at": "2026-10-16T01:38:22.956Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T01:38:22.956Z"
+                  },
+                  "plan": {
+                    "kind": "campaign_plan",
+                    "scheduled": 0,
+                    "days": 0,
+                    "deferred": [],
+                    "lastAsk": "I want to network into Finch Data in Miami.",
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "firms_named": true,
+                    "firm_set": null,
+                    "firms_source": "named",
+                    "role_family": "investment_banking",
+                    "purpose": null,
+                    "target": {
+                      "industry": "investment_banking",
+                      "firm_set": null,
+                      "firms": [
+                        "Finch Data"
+                      ],
+                      "firms_named": true,
+                      "firms_source": "named",
+                      "role_family": "investment_banking",
+                      "seniority_band": null,
+                      "geography": "Miami",
+                      "school_filter": null,
+                      "background_filters": {},
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "count": 40,
+                      "vague": false,
+                      "proposed_default": null,
+                      "count_source": "default",
+                      "role_phrase": null
+                    },
+                    "at": "2026-10-16T01:38:22.956Z"
+                  }
+                }
+              },
+              "plan": {
+                "kind": "campaign_plan",
+                "scheduled": 0,
+                "days": 0,
+                "deferred": [],
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "firms_named": true,
+                "firm_set": null,
+                "firms_source": "named",
+                "role_family": "investment_banking",
+                "purpose": null,
+                "target": {
+                  "industry": "investment_banking",
+                  "firm_set": null,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "firms_named": true,
+                  "firms_source": "named",
+                  "role_family": "investment_banking",
+                  "seniority_band": null,
+                  "geography": "Miami",
+                  "school_filter": null,
+                  "background_filters": {},
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "count": 40,
+                  "vague": false,
+                  "proposed_default": null,
+                  "count_source": "default",
+                  "role_phrase": null
+                },
+                "at": "2026-10-16T01:38:22.956Z"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami",
+                    "at": "2026-10-16T01:38:22.956Z"
+                  },
+                  {
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data",
+                    "at": "2026-10-16T01:38:22.956Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I want to network into Finch Data in Miami.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000104",
+            "reply": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H04-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "outreach_clarification",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H04",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000104",
+    "at": "2026-10-16T01:38:23.874Z",
+    "input": {
+      "message": "Erase just my interview recordings everywhere, including backups.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H04-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_forgetting_unsupported",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Selective erasure of those saved records or backups is not supported here. I have not deleted them and cannot report that they are gone. The existing full-profile deletion control has its own stated scope; which record are you trying to stop using?",
+        "action": null,
+        "turn_key": "H04-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000104",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T01:38:22.956Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Finch Data"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Finch Data"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Miami",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Finch Data in Miami.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T01:38:22.956Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Miami",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Finch Data in Miami.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "geography",
+                      "value": "Miami",
+                      "evidence": "in Miami"
+                    },
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "target_firm",
+                      "value": "Finch Data",
+                      "evidence": "network into Finch Data"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T01:38:22.956Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "geography",
+                "value": "Miami",
+                "evidence": "in Miami"
+              },
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "target_firm",
+                "value": "Finch Data",
+                "evidence": "network into Finch Data"
+              }
+            ],
+            "updatedAt": "2026-10-16T01:38:22.956Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6042490c-7fde-4483-a96f-c93878938555",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H04-1"
+          },
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "67cbe2a4-14b7-4b7d-ba69-9128b7e27031",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "I want to network into Finch Data in Miami.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T01:38:22.956Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Finch Data"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Finch Data"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Miami",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Finch Data in Miami.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T01:38:22.956Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Miami",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Finch Data in Miami.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "geography",
+                      "value": "Miami",
+                      "evidence": "in Miami"
+                    },
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "target_firm",
+                      "value": "Finch Data",
+                      "evidence": "network into Finch Data"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T01:38:22.956Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "geography",
+                "value": "Miami",
+                "evidence": "in Miami"
+              },
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "target_firm",
+                "value": "Finch Data",
+                "evidence": "network into Finch Data"
+              }
+            ],
+            "updatedAt": "2026-10-16T01:38:22.956Z"
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6042490c-7fde-4483-a96f-c93878938555",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H04-1"
+          },
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "67cbe2a4-14b7-4b7d-ba69-9128b7e27031",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "I want to network into Finch Data in Miami.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "637171c3-09d3-4051-8702-792965f36c90",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Selective erasure of those saved records or backups is not supported here. I have not deleted them and cannot report that they are gone. The existing full-profile deletion control has its own stated scope; which record are you trying to stop using?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_forgetting_unsupported",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H04-2"
+          },
+          "created_at": "2026-10-16T01:38:23.726591+00:00"
+        },
+        {
+          "id": "65db75be-c7a6-4c30-bef0-3c25b2ba11e2",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "Erase just my interview recordings everywhere, including backups.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.726591+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000104",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000104",
+          "p_key": "H04-2",
+          "p_hash": "438a6fad4913b852f405a3821dca0431bde9cdb579549c14e87b1617079c2778"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000104",
+          "p_key": "H04-2",
+          "p_hash": "438a6fad4913b852f405a3821dca0431bde9cdb579549c14e87b1617079c2778",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Finch Data"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Finch Data"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Miami",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Finch Data in Miami.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T01:38:22.956Z",
+                          "kind": "geography",
+                          "value": "Miami",
+                          "evidence": "in Miami"
+                        },
+                        {
+                          "at": "2026-10-16T01:38:22.956Z",
+                          "kind": "target_firm",
+                          "value": "Finch Data",
+                          "evidence": "network into Finch Data"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T01:38:22.956Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Finch Data"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Miami",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Finch Data in Miami.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T01:38:22.956Z",
+                        "kind": "geography",
+                        "value": "Miami",
+                        "evidence": "in Miami"
+                      },
+                      {
+                        "at": "2026-10-16T01:38:22.956Z",
+                        "kind": "target_firm",
+                        "value": "Finch Data",
+                        "evidence": "network into Finch Data"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T01:38:22.956Z"
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Erase just my interview recordings everywhere, including backups.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000104",
+            "reply": "Selective erasure of those saved records or backups is not supported here. I have not deleted them and cannot report that they are gone. The existing full-profile deletion control has its own stated scope; which record are you trying to stop using?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H04-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_forgetting_unsupported",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H04",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000104",
+    "at": "2026-10-16T01:38:25.342Z",
+    "input": {
+      "message": "Have all of those backups been deleted?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H04-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_forgetting_unsupported",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "No: I cannot confirm deletion of those records or backups. No selective erasure was performed. You can review the full-profile deletion control's scope before using it. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "H04-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000104",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T01:38:22.956Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Finch Data"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Finch Data"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Miami",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Finch Data in Miami.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T01:38:22.956Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Miami",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Finch Data in Miami.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "geography",
+                      "value": "Miami",
+                      "evidence": "in Miami"
+                    },
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "target_firm",
+                      "value": "Finch Data",
+                      "evidence": "network into Finch Data"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T01:38:22.956Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "geography",
+                "value": "Miami",
+                "evidence": "in Miami"
+              },
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "target_firm",
+                "value": "Finch Data",
+                "evidence": "network into Finch Data"
+              }
+            ],
+            "updatedAt": "2026-10-16T01:38:22.956Z"
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6042490c-7fde-4483-a96f-c93878938555",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H04-1"
+          },
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "67cbe2a4-14b7-4b7d-ba69-9128b7e27031",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "I want to network into Finch Data in Miami.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "637171c3-09d3-4051-8702-792965f36c90",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Selective erasure of those saved records or backups is not supported here. I have not deleted them and cannot report that they are gone. The existing full-profile deletion control has its own stated scope; which record are you trying to stop using?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_forgetting_unsupported",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H04-2"
+          },
+          "created_at": "2026-10-16T01:38:23.726591+00:00"
+        },
+        {
+          "id": "65db75be-c7a6-4c30-bef0-3c25b2ba11e2",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "Erase just my interview recordings everywhere, including backups.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.726591+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T01:38:22.956Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Finch Data"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Finch Data"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Miami",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Finch Data in Miami.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T01:38:22.956Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Miami",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Finch Data in Miami.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "geography",
+                      "value": "Miami",
+                      "evidence": "in Miami"
+                    },
+                    {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "kind": "target_firm",
+                      "value": "Finch Data",
+                      "evidence": "network into Finch Data"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T01:38:22.956Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "geography",
+                "value": "Miami",
+                "evidence": "in Miami"
+              },
+              {
+                "at": "2026-10-16T01:38:22.956Z",
+                "kind": "target_firm",
+                "value": "Finch Data",
+                "evidence": "network into Finch Data"
+              }
+            ],
+            "updatedAt": "2026-10-16T01:38:22.956Z"
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6042490c-7fde-4483-a96f-c93878938555",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Finch Data in Miami — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Finch Data in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H04-1"
+          },
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "67cbe2a4-14b7-4b7d-ba69-9128b7e27031",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "I want to network into Finch Data in Miami.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.083425+00:00"
+        },
+        {
+          "id": "637171c3-09d3-4051-8702-792965f36c90",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "Selective erasure of those saved records or backups is not supported here. I have not deleted them and cannot report that they are gone. The existing full-profile deletion control has its own stated scope; which record are you trying to stop using?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_forgetting_unsupported",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H04-2"
+          },
+          "created_at": "2026-10-16T01:38:23.726591+00:00"
+        },
+        {
+          "id": "65db75be-c7a6-4c30-bef0-3c25b2ba11e2",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "Erase just my interview recordings everywhere, including backups.",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:23.726591+00:00"
+        },
+        {
+          "id": "235a9665-0c18-455f-81ed-bf4778767eff",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "user",
+          "content": "Have all of those backups been deleted?",
+          "meta": null,
+          "created_at": "2026-10-16T01:38:25.110814+00:00"
+        },
+        {
+          "id": "e2cc0e74-bf05-4f78-b96a-bc95820a6671",
+          "thread_id": "00000000-0000-4000-8000-000000000104",
+          "role": "assistant",
+          "content": "No: I cannot confirm deletion of those records or backups. No selective erasure was performed. You can review the full-profile deletion control's scope before using it. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_forgetting_unsupported",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H04-3"
+          },
+          "created_at": "2026-10-16T01:38:25.110814+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000104",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000104",
+          "p_key": "H04-3",
+          "p_hash": "a4fa1f2a9428ce0324c8b860758ec84f27073493f7038a4baca4156397f83639"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000104",
+          "p_key": "H04-3",
+          "p_hash": "a4fa1f2a9428ce0324c8b860758ec84f27073493f7038a4baca4156397f83639",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T01:38:22.956Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Finch Data"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Finch Data"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Miami",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Finch Data in Miami.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T01:38:22.956Z",
+                          "kind": "geography",
+                          "value": "Miami",
+                          "evidence": "in Miami"
+                        },
+                        {
+                          "at": "2026-10-16T01:38:22.956Z",
+                          "kind": "target_firm",
+                          "value": "Finch Data",
+                          "evidence": "network into Finch Data"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T01:38:22.956Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Finch Data"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Finch Data"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Miami",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Finch Data in Miami.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T01:38:22.956Z",
+                        "kind": "geography",
+                        "value": "Miami",
+                        "evidence": "in Miami"
+                      },
+                      {
+                        "at": "2026-10-16T01:38:22.956Z",
+                        "kind": "target_firm",
+                        "value": "Finch Data",
+                        "evidence": "network into Finch Data"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T01:38:22.956Z"
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T01:38:22.956Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Finch Data"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Finch Data"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Miami",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Finch Data in Miami.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "geography",
+                    "value": "Miami",
+                    "evidence": "in Miami"
+                  },
+                  {
+                    "at": "2026-10-16T01:38:22.956Z",
+                    "kind": "target_firm",
+                    "value": "Finch Data",
+                    "evidence": "network into Finch Data"
+                  }
+                ],
+                "updatedAt": "2026-10-16T01:38:22.956Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Have all of those backups been deleted?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000104",
+            "reply": "No: I cannot confirm deletion of those records or backups. No selective erasure was performed. You can review the full-profile deletion control's scope before using it. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H04-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_forgetting_unsupported",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

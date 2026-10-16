@@ -1,0 +1,74 @@
+✖ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (90.982937ms)
+✔ negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1 (6.167324ms)
+✔ career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step (22.733156ms)
+✔ fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city (19.374621ms)
+✔ fact chain survives the shallow-copy harness (Lane C semantics) (12.868525ms)
+✔ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (3.900107ms)
+✔ pause chain (shallow-copy harness): the lifted pause survives to the send turn (2.210046ms)
+✔ multi-intent: parts are answered/named, and a novel continuation delivers part two (11.62197ms)
+✔ adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state (7.527784ms)
+✔ set mapping: a healthcare-consulting ask never proposes the bulge-bracket set (5.376765ms)
+✔ set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set (2.528965ms)
+✔ track events: plain-words reports are claimed and routed to the tracker ingest (13.248453ms)
+✔ track events adversarial: a question or a friend's event writes nothing to the user's tracker (3.39798ms)
+✔ host creates and a networking ask is answered by the career path (71.799845ms)
+✔ apply ask with an empty live pool fabricates no roles (35.381182ms)
+✔ tracking ask gets a career answer, never the finance product (3.239234ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (4.32554ms)
+✔ a finance ask is NOT served as the finance product (25.979178ms)
+✔ garbage input never throws and still returns a reply (21.716504ms)
+✔ NEGO-001 parse offer A: every field from the letter (3.850869ms)
+✔ NEGO-001 parse offer B: signing bonus is NOT an annual bonus; options unvalued (1.86538ms)
+✔ NEGO-001 store: stored values are the parsed values; deadline row created (0.388677ms)
+✔ NEGO-002 benchmark: only CIR figures, each with source+date; anecdotal labeled (1.498888ms)
+✔ NEGO-002 benchmark honesty: CIR with no published figure yields NO number (0.610777ms)
+✔ NEGO-005 total comp A: math + assumptions shown (15.266638ms)
+✔ NEGO-005/197 equity honesty: unpriced options are unvalued, never $0-worth, delta null (0.850926ms)
+✔ BUG-003 regression: weekly/monthly intern figures never enter annual benchmarks (1.798133ms)
+✔ NEGO-003 counter: strategy cites the sourced figure; scripts word-for-word; card gates send (0.90791ms)
+✔ NEGO-004 roleplay: recruiter pushes back; feedback after close (0.669219ms)
+✔ NEGO-006 extension: new date = expiry + days; tracking row drafted_not_sent (0.571457ms)
+✔ decline: warm checks pass, card-gated (0.450768ms)
+✔ deadline collision: both expire same day -> explicit sequence (1.495707ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 31
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 328.457389
+
+✖ failing tests:
+
+test at tests/career-conversation-depth.test.cjs:78:1
+✖ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (90.982937ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /85,?k|\$85/i. Input:
+  
+  'Draft for Meridian Labs; nothing has been sent.\n' +
+    '\n' +
+    'Subject: Request for a short extension — summer analyst seat\n' +
+    '\n' +
+    'Hi [Recruiter name],\n' +
+    '\n' +
+    "Thank you for the offer — I'm very excited about Meridian Labs and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline by 7 days, to [new date]?\n" +
+    '\n' +
+    "I don't expect to need longer than that, and I'll keep you posted either way.\n" +
+    '\n' +
+    'Thank you for understanding,\n' +
+    '[Your name]\n' +
+    '\n' +
+    'Tell me what to change; no message or application was sent.'
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-depth.test.cjs:96:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "Draft for Meridian Labs; nothing has been sent.\n\nSubject: Request for a short extension — summer analyst seat\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about Meridian Labs and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline by 7 days, to [new date]?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+    expected: /85,?k|\$85/i,
+    operator: 'match',
+    diff: 'simple'
+  }

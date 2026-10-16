@@ -1,0 +1,94 @@
+✔ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (299.256034ms)
+✔ negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1 (10.441272ms)
+✔ career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step (45.67558ms)
+✔ fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city (26.349641ms)
+✔ fact chain survives the shallow-copy harness (Lane C semantics) (14.65934ms)
+✔ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (6.284542ms)
+✔ pause chain (shallow-copy harness): the lifted pause survives to the send turn (4.705697ms)
+✔ multi-intent: parts are answered/named, and a novel continuation delivers part two (23.459863ms)
+✔ adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state (12.957721ms)
+✔ set mapping: a healthcare-consulting ask never proposes the bulge-bracket set (8.452096ms)
+✔ set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set (4.1902ms)
+✔ track events: plain-words reports are claimed and routed to the tracker ingest (24.080669ms)
+✔ track events adversarial: a question or a friend's event writes nothing to the user's tracker (4.691134ms)
+✔ H01: Canonical correction survives another task and reload (195.799188ms)
+✔ H02: Repeated multiword location corrections (155.973973ms)
+✔ H03: Selective withdrawal is scoped and never claims account deletion (21.094654ms)
+✔ H04: Unsupported deletion field is refused precisely (7.558859ms)
+✔ H05: Quoted and hypothetical accomplishments never become user evidence (5.923472ms)
+✔ H06: Schedule and financial constraints survive mentoring detour (7.419697ms)
+✔ H07: Hard role constraints and a hypothetical move (18.926966ms)
+✔ H08: Answer-specific interview coaching with a fresh project (6.373642ms)
+✔ H09: Coaching facts survive fresh realm and a detour (3.189221ms)
+✔ H10: Resume bullet uses source quotes and no invented seniority (5.605529ms)
+✔ H11: Request date persists through detour and draft revision (44.112411ms)
+✔ H12: Missing deadline is asked for rather than invented (11.337174ms)
+✖ H13: Two tasks survive explanatory interruption (17.398194ms)
+✔ H14: Capabilities are factual rather than a dossier for a word (2.329659ms)
+✔ H15: Correction updates active plan without silently changing approvals (5.424189ms)
+✔ H16: Negated claims and unsupported facts remain unknown (3.026396ms)
+✔ D01: conversation mechanism (2.881144ms)
+✔ D02: conversation mechanism (0.948551ms)
+✔ D03: conversation mechanism (1.35139ms)
+✔ D04: conversation mechanism (0.753059ms)
+✔ D05: conversation mechanism (0.927011ms)
+✔ D06: conversation mechanism (0.536702ms)
+✔ D07: conversation mechanism (5.046573ms)
+✔ D08: conversation mechanism (2.083503ms)
+✔ D09: conversation mechanism (0.517031ms)
+✔ D10: conversation mechanism (0.662551ms)
+✔ D11: conversation mechanism (0.304239ms)
+✔ D12: conversation mechanism (0.341987ms)
+✔ D13: conversation mechanism (0.774672ms)
+✔ D14: conversation mechanism (22.426496ms)
+✔ D15: conversation mechanism (0.67559ms)
+✔ host creates and a networking ask is answered by the career path (82.201101ms)
+✔ apply ask with an empty live pool fabricates no roles (29.635054ms)
+✔ tracking ask gets a career answer, never the finance product (2.435588ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (3.173361ms)
+✔ a finance ask is NOT served as the finance product (20.704018ms)
+✔ garbage input never throws and still returns a reply (19.335213ms)
+✔ NEGO-001 parse offer A: every field from the letter (4.26793ms)
+✔ NEGO-001 parse offer B: signing bonus is NOT an annual bonus; options unvalued (4.189699ms)
+✔ NEGO-001 store: stored values are the parsed values; deadline row created (0.657232ms)
+✔ NEGO-002 benchmark: only CIR figures, each with source+date; anecdotal labeled (2.752982ms)
+✔ NEGO-002 benchmark honesty: CIR with no published figure yields NO number (0.722688ms)
+✔ NEGO-005 total comp A: math + assumptions shown (27.673318ms)
+✔ NEGO-005/197 equity honesty: unpriced options are unvalued, never $0-worth, delta null (0.572251ms)
+✔ BUG-003 regression: weekly/monthly intern figures never enter annual benchmarks (1.621054ms)
+✔ NEGO-003 counter: strategy cites the sourced figure; scripts word-for-word; card gates send (1.095898ms)
+✔ NEGO-004 roleplay: recruiter pushes back; feedback after close (0.582779ms)
+✔ NEGO-006 extension: new date = expiry + days; tracking row drafted_not_sent (0.491663ms)
+✔ decline: warm checks pass, card-gated (0.422572ms)
+✔ deadline collision: both expire same day -> explicit sequence (1.558883ms)
+ℹ tests 63
+ℹ suites 0
+ℹ pass 62
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 935.686392
+
+✖ failing tests:
+
+test at tests/career-conversation-heldouts.test.cjs:12:27
+✖ H13: Two tasks survive explanatory interruption (17.398194ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:12:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

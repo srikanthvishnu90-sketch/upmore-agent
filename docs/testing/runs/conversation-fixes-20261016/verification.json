@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-16T01:47:40.035289+00:00",
+  "reviewedSource": "1b312e7ed9e5c83b2dadc2de5f1813b9ad2f3db0",
+  "status": "PASS",
+  "originalAndHeldoutOraclesUnchanged": true,
+  "finalProductBytesUnchanged": true,
+  "module130AndRecommendationsAndPersonalWritingSourceUnchanged": true,
+  "clockAssertionBodiesPreserved": true,
+  "reportLinksResolve": true,
+  "historicalLedgerRowsPreserved": true,
+  "appendedLedgerRows": 12,
+  "paidCalls": 0,
+  "modelCalls": 0,
+  "browserOutcomes": 0,
+  "limitations": [
+    "This is local source verification, not release/deployment permission.",
+    "Unknown/general language coverage and actual model quality are not certified."
+  ]
+}

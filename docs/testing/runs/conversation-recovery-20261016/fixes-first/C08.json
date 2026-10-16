@@ -1,0 +1,3746 @@
+[
+  {
+    "caseId": "C08",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:07.974Z",
+    "input": {
+      "message": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+      "contains": [
+        "\\?"
+      ],
+      "absent": [],
+      "maxQuestions": 1
+    },
+    "requestKey": "C08-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_interview",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+        "action": null,
+        "turn_key": "C08-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches \\?",
+        "pass": true
+      },
+      {
+        "name": "at most 1 question marks",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-1",
+          "p_hash": "5d29d89b946b371b54ab6a5f0b4cf72d8b8662aafe6248b7be7af575ed185d60"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-1",
+          "p_hash": "5d29d89b946b371b54ab6a5f0b4cf72d8b8662aafe6248b7be7af575ed185d60",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "interview",
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_interview",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C08",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:09.640Z",
+    "input": {
+      "message": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+      "contains": [
+        "delimiter|CSV|specific|result|impact"
+      ],
+      "absent": []
+    },
+    "requestKey": "C08-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "C08-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches delimiter|CSV|specific|result|impact",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-2",
+          "p_hash": "bbcebf282ed22f5b26e9335af6ce10b1f910afc836c3e64c2b006b5fee04bd41"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-2",
+          "p_hash": "bbcebf282ed22f5b26e9335af6ce10b1f910afc836c3e64c2b006b5fee04bd41",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "hypotheticals": [],
+                "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C08",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:10.613Z",
+    "input": {
+      "message": "What is the single biggest weakness in that answer?",
+      "contains": [
+        "result|impact|measure|detail|ownership"
+      ],
+      "absent": []
+    },
+    "requestKey": "C08-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "C08-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches result|impact|measure|detail|ownership",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-3",
+          "p_hash": "0ad90eca0ec519bb5ec1557231081f44d676f21f66a4c9204fcb47687ce50644"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-3",
+          "p_hash": "0ad90eca0ec519bb5ec1557231081f44d676f21f66a4c9204fcb47687ce50644",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "hypotheticals": [],
+                "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is the single biggest weakness in that answer?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C08",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:11.635Z",
+    "input": {
+      "message": "We processed 500 rows and saved the group two hours. Those are actual results.",
+      "contains": [
+        "500|two hours"
+      ],
+      "absent": []
+    },
+    "requestKey": "C08-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "C08-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches 500|two hours",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-4",
+          "p_hash": "f84b6448e59a8bb711d32624ccafcd8905a48d7747faf9d6a01e8cbb1565f36e"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-4",
+          "p_hash": "f84b6448e59a8bb711d32624ccafcd8905a48d7747faf9d6a01e8cbb1565f36e",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "hypotheticals": [],
+                "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "outcomes": [
+                  "We processed 500 rows and saved the group two hours. Those are actual results."
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C08",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:13.442Z",
+    "input": {
+      "message": "Rewrite my answer using those facts without inventing leadership or revenue.",
+      "contains": [
+        "500",
+        "two hours"
+      ],
+      "absent": [
+        "revenue.*increas|led a team"
+      ]
+    },
+    "requestKey": "C08-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "C08-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches 500",
+        "pass": true
+      },
+      {
+        "name": "reply matches two hours",
+        "pass": true
+      },
+      {
+        "name": "reply excludes revenue.*increas|led a team",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "We processed 500 rows and saved the group two hours. Those are actual results."
+              ]
+            },
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "348945de-7701-47c2-b46e-be059c90ec8d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my answer using those facts without inventing leadership or revenue.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "b50db2ce-9b45-49b7-8c16-d9b1003f09bb",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-5",
+          "p_hash": "e8f3108c713a5b60841ddb56508773aa141cc88dea085758feb8c5ee506050b9"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-5",
+          "p_hash": "e8f3108c713a5b60841ddb56508773aa141cc88dea085758feb8c5ee506050b9",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "sources": [],
+                "outcomes": [
+                  "We processed 500 rows and saved the group two hours. Those are actual results."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "hypotheticals": [],
+                "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "artifact": {
+                  "kind": "interview_answer",
+                  "format": "text",
+                  "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                    "We processed 500 rows and saved the group two hours. Those are actual results."
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Rewrite my answer using those facts without inventing leadership or revenue.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C08",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:15.223Z",
+    "input": {
+      "message": "Now ask a follow-up about the delimiter decision, one question only.",
+      "contains": [
+        "delimiter",
+        "\\?"
+      ],
+      "absent": [],
+      "maxQuestions": 1
+    },
+    "requestKey": "C08-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_interview",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "How did you choose your delimiter approach, and what test would show that it handles an ambiguous case correctly?",
+        "action": null,
+        "turn_key": "C08-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches delimiter",
+        "pass": true
+      },
+      {
+        "name": "reply matches \\?",
+        "pass": true
+      },
+      {
+        "name": "at most 1 question marks",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "We processed 500 rows and saved the group two hours. Those are actual results."
+              ]
+            },
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "348945de-7701-47c2-b46e-be059c90ec8d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my answer using those facts without inventing leadership or revenue.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "b50db2ce-9b45-49b7-8c16-d9b1003f09bb",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "We processed 500 rows and saved the group two hours. Those are actual results."
+              ]
+            },
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "348945de-7701-47c2-b46e-be059c90ec8d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my answer using those facts without inventing leadership or revenue.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "b50db2ce-9b45-49b7-8c16-d9b1003f09bb",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "3985263c-bba1-40dd-bb8a-7725d5b9e6de",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "How did you choose your delimiter approach, and what test would show that it handles an ambiguous case correctly?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-6"
+          },
+          "created_at": "2026-10-16T01:14:14.803857+00:00"
+        },
+        {
+          "id": "a9e31ef4-853a-430a-ad8c-baf38cb5dd2d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Now ask a follow-up about the delimiter decision, one question only.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:14.803857+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-6",
+          "p_hash": "49cdfdea970413e5d3611b810189b1c5fd538bee7dfe7cec2d178f4daa7c7381"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-6",
+          "p_hash": "49cdfdea970413e5d3611b810189b1c5fd538bee7dfe7cec2d178f4daa7c7381",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "sources": [],
+                "artifact": {
+                  "kind": "interview_answer",
+                  "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                    "We processed 500 rows and saved the group two hours. Those are actual results."
+                  ]
+                },
+                "outcomes": [
+                  "We processed 500 rows and saved the group two hours. Those are actual results."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "hypotheticals": [],
+                "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Now ask a follow-up about the delimiter decision, one question only.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "How did you choose your delimiter approach, and what test would show that it handles an ambiguous case correctly?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_interview",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C08",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:16.572Z",
+    "input": {
+      "message": "I guessed the delimiter and did not validate edge cases. Give honest feedback.",
+      "contains": [
+        "test|validat|edge|guess"
+      ],
+      "absent": []
+    },
+    "requestKey": "C08-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe validation is the weakness: a guessed rule can silently damage data. Test an ordinary case, an empty value and an ambiguous case, then explain what each result proves.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "C08-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches test|validat|edge|guess",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "We processed 500 rows and saved the group two hours. Those are actual results."
+              ]
+            },
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "348945de-7701-47c2-b46e-be059c90ec8d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my answer using those facts without inventing leadership or revenue.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "b50db2ce-9b45-49b7-8c16-d9b1003f09bb",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "3985263c-bba1-40dd-bb8a-7725d5b9e6de",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "How did you choose your delimiter approach, and what test would show that it handles an ambiguous case correctly?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-6"
+          },
+          "created_at": "2026-10-16T01:14:14.803857+00:00"
+        },
+        {
+          "id": "a9e31ef4-853a-430a-ad8c-baf38cb5dd2d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Now ask a follow-up about the delimiter decision, one question only.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:14.803857+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock behavioral interview for a junior data analyst",
+                "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "We processed 500 rows and saved the group two hours. Those are actual results."
+              ]
+            },
+            "outcomes": [
+              "We processed 500 rows and saved the group two hours. Those are actual results."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "I guessed the delimiter and did not validate edge cases. Give honest feedback.",
+            "hypotheticals": [],
+            "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2f3abb96-1fea-4c4a-bcda-d942b512d9d5",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "d3df41fa-cae5-46ac-97f3-3180ee0cdb06",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.700361+00:00"
+        },
+        {
+          "id": "8bce825a-0f84-4b44-876e-d0ddb6bde708",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "d8b6e346-706f-4dc4-bc8f-3654b232f31a",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.47095+00:00"
+        },
+        {
+          "id": "41d37201-f12d-4e37-9634-29ebc14a0a41",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "db460260-3ad0-45a7-8025-7bf382103080",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is the single biggest weakness in that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.455037+00:00"
+        },
+        {
+          "id": "55b4ebcc-09c9-4297-aa18-9bb62bd7925e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "64294683-44c8-4314-9060-34142210d962",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We processed 500 rows and saved the group two hours. Those are actual results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.465779+00:00"
+        },
+        {
+          "id": "348945de-7701-47c2-b46e-be059c90ec8d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my answer using those facts without inventing leadership or revenue.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "b50db2ce-9b45-49b7-8c16-d9b1003f09bb",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.100631+00:00"
+        },
+        {
+          "id": "3985263c-bba1-40dd-bb8a-7725d5b9e6de",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "How did you choose your delimiter approach, and what test would show that it handles an ambiguous case correctly?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-6"
+          },
+          "created_at": "2026-10-16T01:14:14.803857+00:00"
+        },
+        {
+          "id": "a9e31ef4-853a-430a-ad8c-baf38cb5dd2d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Now ask a follow-up about the delimiter decision, one question only.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:14.803857+00:00"
+        },
+        {
+          "id": "a22d5486-6a60-41e1-a092-713ac6da488e",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "I guessed the delimiter and did not validate edge cases. Give honest feedback.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:16.358623+00:00"
+        },
+        {
+          "id": "b0e64a75-b6fd-4746-a9fe-a30252b361ad",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe validation is the weakness: a guessed rule can silently damage data. Test an ordinary case, an empty value and an ambiguous case, then explain what each result proves.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C08-7"
+          },
+          "created_at": "2026-10-16T01:14:16.358623+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-7",
+          "p_hash": "77b5a1dea0f8ac7fc4d981a3b0fce08884e8f5148d8723e93be884c9a2305ada"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "C08-7",
+          "p_hash": "77b5a1dea0f8ac7fc4d981a3b0fce08884e8f5148d8723e93be884c9a2305ada",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock behavioral interview for a junior data analyst",
+                    "source": "Run a mock behavioral interview for a junior data analyst. Ask one question and wait for my answer.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "project": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                "sources": [],
+                "artifact": {
+                  "kind": "interview_answer",
+                  "text": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran. We processed 500 rows and saved the group two hours. Those are actual results.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.",
+                    "We processed 500 rows and saved the group two hours. Those are actual results."
+                  ]
+                },
+                "outcomes": [
+                  "We processed 500 rows and saved the group two hours. Those are actual results."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "I guessed the delimiter and did not validate edge cases. Give honest feedback.",
+                "hypotheticals": [],
+                "projectSource": "In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I guessed the delimiter and did not validate edge cases. Give honest feedback.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "You described: In my group project the CSV import broke. I checked the delimiter, fixed it, and our script ran.\nThe validation is the weakness: a guessed rule can silently damage data. Test an ordinary case, an empty value and an ambiguous case, then explain what each result proves.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C08-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+D01 CAUGHT plan review invalidation omitted
+D02 CAUGHT mirror geography retained
+D03 CAUGHT withdrawal leaves active facts
+D04 CAUGHT unsupported erasure falsely succeeds
+D05 CAUGHT hypothetical speech act lost
+D06 CAUGHT third-party speech act lost
+D07 CAUGHT resume invents leadership
+D08 CAUGHT answer drops supplied outcome evidence
+D09 CAUGHT two interview questions at once
+D10 CAUGHT feedback ignores actual answer
+D11 CAUGHT draft summarizer drops body
+D12 CAUGHT unsupported send claims success
+D13 CAUGHT unknown remote geography allowed
+D14 CAUGHT chosen extension date dropped
+D15 CAUGHT conversation work lost on reload

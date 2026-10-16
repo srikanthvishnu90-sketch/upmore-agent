@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "error": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /next Tuesday/. Input:\n\n'The extension email, written out — the real words, held for your approval.\\n' +\n  \"The extension email itself, composed from your offer record — held on its card, nothing sent: Subject: Request for a short extension — research analyst role Hi Recruiter name, Thank you for the offer — I'm very excited about Riverbend and I'm taking it seriously. Approve it as written, or tell me the exact change.\"\n\n    at has (/workspace/upmore-conversation-fix/tests/helpers/conversation-heldout-predicates.cjs:3:55)\n    at Object.H11 (/workspace/upmore-conversation-fix/tests/helpers/conversation-heldout-predicates.cjs:16:78)\n    at /workspace/upmore-conversation-fix/scripts/career/conversation-recovery/run.cjs:42:141"
+}

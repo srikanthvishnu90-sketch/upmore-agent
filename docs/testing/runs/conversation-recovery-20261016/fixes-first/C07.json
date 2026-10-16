@@ -1,0 +1,4140 @@
+[
+  {
+    "caseId": "C07",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:13:57.274Z",
+    "input": {
+      "message": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+      "contains": [
+        "entry|analyst",
+        "remote"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "C07-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches entry|analyst",
+        "pass": true
+      },
+      {
+        "name": "reply matches remote",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-1",
+          "p_hash": "aba912e1c756607f45d53bee9989f97c5117994cf47236f2fa301aff0625a976"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-1",
+          "p_hash": "aba912e1c756607f45d53bee9989f97c5117994cf47236f2fa301aff0625a976",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:13:58.080Z",
+    "input": {
+      "message": "I cannot relocate. Exclude director jobs and unpaid internships.",
+      "contains": [
+        "relocat|director|unpaid|exclude"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "C07-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches relocat|director|unpaid|exclude",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-2",
+          "p_hash": "8556be0572d1d72141e1209c6f37374e2f9604cb1cb993ab9afb558d54465f6b"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-2",
+          "p_hash": "8556be0572d1d72141e1209c6f37374e2f9604cb1cb993ab9afb558d54465f6b",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:13:58.906Z",
+    "input": {
+      "message": "I need employer sponsorship. Do not assume I am authorized.",
+      "contains": [
+        "sponsor|authoriz"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "C07-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches sponsor|authoriz",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-3",
+          "p_hash": "7e1da7113ab14ac48f7e2be34d9e5d8ecbc11028d59374d6ff56aae8bb82db94"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-3",
+          "p_hash": "7e1da7113ab14ac48f7e2be34d9e5d8ecbc11028d59374d6ff56aae8bb82db94",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "sponsorship": {
+                    "value": true,
+                    "source": "I need employer sponsorship. Do not assume I am authorized.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need employer sponsorship. Do not assume I am authorized.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:13:59.786Z",
+    "input": {
+      "message": "If I could move to New York one day, would that open more roles?",
+      "contains": [
+        "if|hypothet|move|New York"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_nonactual",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+        "action": null,
+        "turn_key": "C07-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches if|hypothet|move|New York",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-4",
+          "p_hash": "4cffe792e2c259e3522d8d06e32a8e233fe9265bd570606109145c9e31717754"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-4",
+          "p_hash": "4cffe792e2c259e3522d8d06e32a8e233fe9265bd570606109145c9e31717754",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "sponsorship": {
+                    "value": true,
+                    "source": "I need employer sponsorship. Do not assume I am authorized.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "scope": "hypothetical",
+                    "text": "If I could move to New York one day, would that open more roles?"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "If I could move to New York one day, would that open more roles?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_nonactual",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:01.383Z",
+    "input": {
+      "message": "That move was hypothetical. Repeat my actual hard constraints.",
+      "contains": [
+        "remote",
+        "paid",
+        "sponsor",
+        "part.time"
+      ],
+      "absent": [
+        "willing to relocate"
+      ]
+    },
+    "requestKey": "C07-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "C07-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches remote",
+        "pass": true
+      },
+      {
+        "name": "reply matches paid",
+        "pass": true
+      },
+      {
+        "name": "reply matches sponsor",
+        "pass": true
+      },
+      {
+        "name": "reply matches part.time",
+        "pass": true
+      },
+      {
+        "name": "reply excludes willing to relocate",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "39d4c056-c920-4f25-a051-08019514c671",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "d6cd0275-da70-4ebc-8464-bad214977016",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-5",
+          "p_hash": "280f4502fad06e12c97bc1f434feb55326c32e8c3094798c3d7a67ebfcab59ce"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-5",
+          "p_hash": "280f4502fad06e12c97bc1f434feb55326c32e8c3094798c3d7a67ebfcab59ce",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "sponsorship": {
+                    "value": true,
+                    "source": "I need employer sponsorship. Do not assume I am authorized.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "text": "If I could move to New York one day, would that open more roles?",
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "That move was hypothetical. Repeat my actual hard constraints.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:03.352Z",
+    "input": {
+      "message": "How would you handle a director posting with a perfect keyword match?",
+      "contains": [
+        "director|senior|exclude|mismatch"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_constraints",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+        "action": null,
+        "turn_key": "C07-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches director|senior|exclude|mismatch",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "39d4c056-c920-4f25-a051-08019514c671",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "d6cd0275-da70-4ebc-8464-bad214977016",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "39d4c056-c920-4f25-a051-08019514c671",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "d6cd0275-da70-4ebc-8464-bad214977016",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "16083bb0-c23b-49d4-a952-06d1f9efabca",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_constraints",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-6"
+          },
+          "created_at": "2026-10-16T01:14:03.160684+00:00"
+        },
+        {
+          "id": "cda003e5-f585-44ee-8120-4f53c27d9574",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "How would you handle a director posting with a perfect keyword match?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:03.160684+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-6",
+          "p_hash": "5a7db919d6b9713ff9570465c63ac95dd5d08bff9dcb6d296d5cb7d3cf84c8f8"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-6",
+          "p_hash": "5a7db919d6b9713ff9570465c63ac95dd5d08bff9dcb6d296d5cb7d3cf84c8f8",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "sponsorship": {
+                    "value": true,
+                    "source": "I need employer sponsorship. Do not assume I am authorized.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "text": "If I could move to New York one day, would that open more roles?",
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "How would you handle a director posting with a perfect keyword match?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_constraints",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C07",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:04.820Z",
+    "input": {
+      "message": "Give me a next step that respects these limits without applying.",
+      "contains": [
+        "posting|confirm|filter|search|paste|review"
+      ],
+      "absent": []
+    },
+    "requestKey": "C07-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_next_step",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "One next step: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+        "action": null,
+        "turn_key": "C07-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches posting|confirm|filter|search|paste|review",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "39d4c056-c920-4f25-a051-08019514c671",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "d6cd0275-da70-4ebc-8464-bad214977016",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "16083bb0-c23b-49d4-a952-06d1f9efabca",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_constraints",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-6"
+          },
+          "created_at": "2026-10-16T01:14:03.160684+00:00"
+        },
+        {
+          "id": "cda003e5-f585-44ee-8120-4f53c27d9574",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "How would you handle a director posting with a perfect keyword match?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:03.160684+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "role": {
+                "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "part_time": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "remote_only": {
+                "value": true,
+                "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                "status": "user_reported"
+              },
+              "sponsorship": {
+                "value": true,
+                "source": "I need employer sponsorship. Do not assume I am authorized.",
+                "status": "user_reported"
+              },
+              "no_relocation": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              },
+              "exclude_senior": {
+                "value": true,
+                "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": [
+              {
+                "text": "If I could move to New York one day, would that open more roles?",
+                "scope": "hypothetical"
+              }
+            ]
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6bd9b564-1a47-4b3f-b6ba-a9c4d93ac82c",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; remote only: true; part time: true; role: I need an entry-level data analyst role, remote only, part-time, and paid. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-1"
+          },
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "8b339983-9bd5-4d98-b9e5-4025c7e9a3fa",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:56.890204+00:00"
+        },
+        {
+          "id": "7114bb19-69b1-4b7b-8999-be58fd731869",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I cannot relocate. Exclude director jobs and unpaid internships.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "d91e65dc-9522-4ff4-8806-c7e9f7ae1ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-2"
+          },
+          "created_at": "2026-10-16T01:13:57.952604+00:00"
+        },
+        {
+          "id": "3131a226-274b-4f0c-b6c9-c06176e862fe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Recorded from your words: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; no relocation: true; exclude senior: true; sponsorship: true. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-3"
+          },
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "fec58931-4870-4dd1-a7e0-901aedcf4848",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I need employer sponsorship. Do not assume I am authorized.",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:58.721684+00:00"
+        },
+        {
+          "id": "157a7c66-35b0-4fa7-b8cb-dcc7a435c5c1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "That is hypothetical or about another person, not a fact about your experience. It won't become a resume claim or a relocation commitment. We can discuss what would change while keeping your actual constraints in place. Which part would you like to explore?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_nonactual",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-4"
+          },
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "21e778b9-a5ab-4357-a5f3-81dee9416461",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "If I could move to New York one day, would that open more roles?",
+          "meta": null,
+          "created_at": "2026-10-16T01:13:59.61672+00:00"
+        },
+        {
+          "id": "39d4c056-c920-4f25-a051-08019514c671",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "That move was hypothetical. Repeat my actual hard constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "d6cd0275-da70-4ebc-8464-bad214977016",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid: true; role: I need an entry-level data analyst role, remote only, part-time, and paid; part time: true; remote only: true; sponsorship: true; no relocation: true; exclude senior: true. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-5"
+          },
+          "created_at": "2026-10-16T01:14:01.097628+00:00"
+        },
+        {
+          "id": "16083bb0-c23b-49d4-a952-06d1f9efabca",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "Exclude that director or senior role: a keyword match cannot override your seniority constraint. Unknown eligibility is also not a verified fit. Paste an entry-level posting and we can check each stated requirement.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_constraints",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-6"
+          },
+          "created_at": "2026-10-16T01:14:03.160684+00:00"
+        },
+        {
+          "id": "cda003e5-f585-44ee-8120-4f53c27d9574",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "How would you handle a director posting with a perfect keyword match?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:03.160684+00:00"
+        },
+        {
+          "id": "cd595b7d-3e5e-4f1d-9752-26015199538a",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "One next step: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C07-7"
+          },
+          "created_at": "2026-10-16T01:14:04.432784+00:00"
+        },
+        {
+          "id": "d124e170-9ba3-4049-ba35-d06fe4609ffe",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Give me a next step that respects these limits without applying.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:04.432784+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-7",
+          "p_hash": "bc98d8cbb92208274e6e57406d70fa8562dd966a906b3c9ad03b6cb4a21c50d3"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "C07-7",
+          "p_hash": "bc98d8cbb92208274e6e57406d70fa8562dd966a906b3c9ad03b6cb4a21c50d3",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "role": {
+                    "value": "I need an entry-level data analyst role, remote only, part-time, and paid",
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "part_time": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "remote_only": {
+                    "value": true,
+                    "source": "I need an entry-level data analyst role, remote only, part-time, and paid.",
+                    "status": "user_reported"
+                  },
+                  "sponsorship": {
+                    "value": true,
+                    "source": "I need employer sponsorship. Do not assume I am authorized.",
+                    "status": "user_reported"
+                  },
+                  "no_relocation": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  },
+                  "exclude_senior": {
+                    "value": true,
+                    "source": "I cannot relocate. Exclude director jobs and unpaid internships.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [
+                  {
+                    "text": "If I could move to New York one day, would that open more roles?",
+                    "scope": "hypothetical"
+                  }
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Give me a next step that respects these limits without applying.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "One next step: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C07-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_next_step",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

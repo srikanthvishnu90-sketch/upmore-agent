@@ -1,0 +1,40 @@
+✔ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (88.98928ms)
+✔ negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1 (6.314321ms)
+✔ career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step (22.334951ms)
+✔ fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city (17.135433ms)
+✔ fact chain survives the shallow-copy harness (Lane C semantics) (9.277877ms)
+✔ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (3.466473ms)
+✔ pause chain (shallow-copy harness): the lifted pause survives to the send turn (2.157929ms)
+✔ multi-intent: parts are answered/named, and a novel continuation delivers part two (11.78213ms)
+✔ adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state (8.174859ms)
+✔ set mapping: a healthcare-consulting ask never proposes the bulge-bracket set (4.801434ms)
+✔ set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set (2.47173ms)
+✔ track events: plain-words reports are claimed and routed to the tracker ingest (13.675267ms)
+✔ track events adversarial: a question or a friend's event writes nothing to the user's tracker (3.112712ms)
+✔ host creates and a networking ask is answered by the career path (59.843297ms)
+✔ apply ask with an empty live pool fabricates no roles (34.643172ms)
+✔ tracking ask gets a career answer, never the finance product (2.313522ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (4.178961ms)
+✔ a finance ask is NOT served as the finance product (16.07168ms)
+✔ garbage input never throws and still returns a reply (14.840324ms)
+✔ NEGO-001 parse offer A: every field from the letter (4.974589ms)
+✔ NEGO-001 parse offer B: signing bonus is NOT an annual bonus; options unvalued (2.243595ms)
+✔ NEGO-001 store: stored values are the parsed values; deadline row created (0.630772ms)
+✔ NEGO-002 benchmark: only CIR figures, each with source+date; anecdotal labeled (2.080484ms)
+✔ NEGO-002 benchmark honesty: CIR with no published figure yields NO number (0.814414ms)
+✔ NEGO-005 total comp A: math + assumptions shown (22.496274ms)
+✔ NEGO-005/197 equity honesty: unpriced options are unvalued, never $0-worth, delta null (0.900395ms)
+✔ BUG-003 regression: weekly/monthly intern figures never enter annual benchmarks (2.035928ms)
+✔ NEGO-003 counter: strategy cites the sourced figure; scripts word-for-word; card gates send (1.05732ms)
+✔ NEGO-004 roleplay: recruiter pushes back; feedback after close (0.74905ms)
+✔ NEGO-006 extension: new date = expiry + days; tracking row drafted_not_sent (0.675194ms)
+✔ decline: warm checks pass, card-gated (0.559773ms)
+✔ deadline collision: both expire same day -> explicit sequence (1.51431ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 353.851519

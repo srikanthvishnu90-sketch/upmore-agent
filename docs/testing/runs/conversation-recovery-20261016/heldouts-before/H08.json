@@ -1,0 +1,3236 @@
+[
+  {
+    "caseId": "H08",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:08.032Z",
+    "input": {
+      "message": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_fallback",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-1",
+          "p_hash": "36e73d6898e0ed86b70922ea5884168f2fb14c75ec52399df844c3fc8961002f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-1",
+          "p_hash": "36e73d6898e0ed86b70922ea5884168f2fb14c75ec52399df844c3fc8961002f",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_fallback",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:09.465Z",
+    "input": {
+      "message": "In our class project I found duplicate survey responses and removed them.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:09.201Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-2",
+          "p_hash": "80908823bd522958ca49fbafb0188fcac7f3b0fd2462c25bb65ad8b1bbdb62f0"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-2",
+          "p_hash": "80908823bd522958ca49fbafb0188fcac7f3b0fd2462c25bb65ad8b1bbdb62f0",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "In our class project I found duplicate survey responses and removed them.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:10.862Z",
+    "input": {
+      "message": "What evidence is missing from that answer?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H08-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:10.546Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-3",
+          "p_hash": "f7b57152f9c2c87746afeb7f538d315e4643092dd2330e83240ec502510ac5ac"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-3",
+          "p_hash": "f7b57152f9c2c87746afeb7f538d315e4643092dd2330e83240ec502510ac5ac",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What evidence is missing from that answer?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:11.804Z",
+    "input": {
+      "message": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:11.465Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-4",
+          "p_hash": "8557cf34542aaeaed112d67ff7014224fc052f2bfcee27c68cb6cbb9bd3cda18"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-4",
+          "p_hash": "8557cf34542aaeaed112d67ff7014224fc052f2bfcee27c68cb6cbb9bd3cda18",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:14.087Z",
+    "input": {
+      "message": "Rewrite the answer using only those details.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:13.227Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "7b6b9f79-d175-4d49-96ea-ba0a35b37dd1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "ac68202d-e417-42d6-b985-0e414d0bc450",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-5",
+          "p_hash": "c3ac51df6360d1e367b54aee18ddd5ae24f2a4cc8b004047235dc1bc09e76d4e"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-5",
+          "p_hash": "c3ac51df6360d1e367b54aee18ddd5ae24f2a4cc8b004047235dc1bc09e76d4e",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Rewrite the answer using only those details.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:15.592Z",
+    "input": {
+      "message": "Ask one follow-up about validation.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:15.178Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "7b6b9f79-d175-4d49-96ea-ba0a35b37dd1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "ac68202d-e417-42d6-b985-0e414d0bc450",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "7b6b9f79-d175-4d49-96ea-ba0a35b37dd1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "ac68202d-e417-42d6-b985-0e414d0bc450",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "4c4a6b46-8e53-4281-9d9a-8a7d4d623ccb",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Ask one follow-up about validation.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:15.293805+00:00"
+        },
+        {
+          "id": "d6974451-1f69-4901-a972-20a5c9220e02",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-6"
+          },
+          "created_at": "2026-10-16T01:14:15.293805+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-6",
+          "p_hash": "254fb493de15b5d77c4deab8e1e93dadbf5414f490df68c504a1fb0c253024ea"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-6",
+          "p_hash": "254fb493de15b5d77c4deab8e1e93dadbf5414f490df68c504a1fb0c253024ea",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Ask one follow-up about validation.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H08",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000108",
+    "at": "2026-10-16T01:14:17.060Z",
+    "input": {
+      "message": "I did not check whether two people shared a name. What should I improve?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H08-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H08-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000108",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:16.503Z\",\"session_id\":\"00000000-0000-4000-8000-000000000108\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "7b6b9f79-d175-4d49-96ea-ba0a35b37dd1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "ac68202d-e417-42d6-b985-0e414d0bc450",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "4c4a6b46-8e53-4281-9d9a-8a7d4d623ccb",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Ask one follow-up about validation.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:15.293805+00:00"
+        },
+        {
+          "id": "d6974451-1f69-4901-a972-20a5c9220e02",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-6"
+          },
+          "created_at": "2026-10-16T01:14:15.293805+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2783bc63-80af-4035-93cf-e1ccafe7b087",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": "career_fallback",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H08-1"
+          },
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "65eed037-c3bb-4d17-8c70-8b70a94da3b0",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Let us practice a behavioral interview for a research assistant. Ask one question.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:07.786258+00:00"
+        },
+        {
+          "id": "780c9de0-7817-45e6-9c29-283c96c15f50",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "In our class project I found duplicate survey responses and removed them.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "b1e12611-509f-498f-bcb5-132413faf613",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-2"
+          },
+          "created_at": "2026-10-16T01:14:09.336712+00:00"
+        },
+        {
+          "id": "051d5bb8-d2a1-4f6a-8383-785654c25e73",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-3"
+          },
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "8b076757-53ab-4905-9543-809a1f9ea9a7",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "What evidence is missing from that answer?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:10.677709+00:00"
+        },
+        {
+          "id": "5be0c005-9875-4fee-bf2d-f495e9947fee",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-4"
+          },
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "cd2ed64d-0588-4d7b-bbf5-5150f27f1d27",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:11.612523+00:00"
+        },
+        {
+          "id": "7b6b9f79-d175-4d49-96ea-ba0a35b37dd1",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Rewrite the answer using only those details.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "ac68202d-e417-42d6-b985-0e414d0bc450",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-5"
+          },
+          "created_at": "2026-10-16T01:14:13.49206+00:00"
+        },
+        {
+          "id": "4c4a6b46-8e53-4281-9d9a-8a7d4d623ccb",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "Ask one follow-up about validation.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:15.293805+00:00"
+        },
+        {
+          "id": "d6974451-1f69-4901-a972-20a5c9220e02",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-6"
+          },
+          "created_at": "2026-10-16T01:14:15.293805+00:00"
+        },
+        {
+          "id": "fb6f143d-b9e4-4ae6-8635-fe56b3945f24",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "user",
+          "content": "I did not check whether two people shared a name. What should I improve?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:16.763875+00:00"
+        },
+        {
+          "id": "ffcfa764-e669-4a1d-8479-f1af40182119",
+          "thread_id": "00000000-0000-4000-8000-000000000108",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H08-7"
+          },
+          "created_at": "2026-10-16T01:14:16.763875+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000108",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-7",
+          "p_hash": "637c805cdcaebf34e3b4fc16287752022a9fb0d16e2ed658bf76e227b6552add"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000108",
+          "p_key": "H08-7",
+          "p_hash": "637c805cdcaebf34e3b4fc16287752022a9fb0d16e2ed658bf76e227b6552add",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I did not check whether two people shared a name. What should I improve?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000108",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H08-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  }
+]

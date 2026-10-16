@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-16T01:32:43.745594+00:00",
+  "base": "f67db048599db308f2691a7be7feada841143da5",
+  "reviewedSource": "1b312e7ed9e5c83b2dadc2de5f1813b9ad2f3db0",
+  "origin": "https://github.com/srikanthvishnu90-sketch/upmore-agent.git",
+  "ancestry": [
+    {
+      "sha": "005aae50cc2d3495c80cc4bb661114f059e66cec",
+      "isAncestorOfBase": true
+    },
+    {
+      "sha": "bfd857720ae1bd09d16dfb0f6357df2c4ac34122",
+      "isAncestorOfBase": true
+    },
+    {
+      "sha": "025f1252dcd759a3e25cdc389378c12918f5db2b",
+      "isAncestorOfBase": true
+    },
+    {
+      "sha": "7f2b11d9fa7227e7267ea96c24ca30bafa801ffa",
+      "isAncestorOfBase": true
+    },
+    {
+      "sha": "48f919d202c469a5d2ad1497a6eaaebc0a006d0f",
+      "isAncestorOfBase": true
+    },
+    {
+      "sha": "3157b65c84a4108f5320b2b91cd6f8a3ac577078",
+      "isAncestorOfBase": true
+    },
+    {
+      "sha": "49b7872c822cbf26107c3d49727c9f5ed2acbc9f",
+      "isAncestorOfBase": false
+    },
+    {
+      "sha": "d61cf32fd1903e2bc131f57bff4704f40280cc53",
+      "isAncestorOfBase": false
+    },
+    {
+      "sha": "780377560eee92879250f3db2bfa7125d8eb05d1",
+      "isAncestorOfBase": true
+    }
+  ],
+  "laterCapability2Diff": " packages/domain/142-career-router.js          |   2 +-\n packages/domain/154-career-recommendations.js | 176 ++++++++++++++++++++++----\n 2 files changed, 149 insertions(+), 29 deletions(-)\n",
+  "remoteReleaseAtPublish": "f67db048599db308f2691a7be7feada841143da5\trefs/heads/release/career-v223"
+}

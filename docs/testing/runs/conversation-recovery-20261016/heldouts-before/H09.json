@@ -1,0 +1,3651 @@
+[
+  {
+    "caseId": "H09",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:20.118Z",
+    "input": {
+      "message": "Run a mock interview for a junior analyst.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "prep_mock_start",
+          "contained": false,
+          "result_status": "running"
+        },
+        "reply": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+        "action": null,
+        "turn_key": "H09-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "question",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 0,
+                    "status": "in_progress",
+                    "answers": [],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about yourself and why this role."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:19.538Z",
+                "ask": "Run a mock interview for a junior analyst.",
+                "kind": "prep",
+                "intent": "prep_mock_start",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-1",
+          "p_hash": "b38f8c8fc16a55245e22c9d6d83c1d4a7f9d20560b0b51011acd033dd8ad0074"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-1",
+          "p_hash": "b38f8c8fc16a55245e22c9d6d83c1d4a7f9d20560b0b51011acd033dd8ad0074",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "lastWork": {
+                      "kind": "prep",
+                      "intent": "prep_mock_start",
+                      "ask": "Run a mock interview for a junior analyst.",
+                      "company": null,
+                      "at": "2026-10-16T01:14:19.538Z"
+                    }
+                  }
+                },
+                "_careerRouterPrep": {
+                  "store": {
+                    "stories": [],
+                    "mocks": [
+                      {
+                        "mock_id": "mock-921b2793",
+                        "company": null,
+                        "questions": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a hard problem you solved and how you approached it.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a failure and what you changed afterward.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Why this company, specifically?",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          }
+                        ],
+                        "idx": 0,
+                        "answers": [],
+                        "status": "in_progress",
+                        "started_at": "2026-10-16T01:14:19.587Z"
+                      }
+                    ],
+                    "debriefs": [],
+                    "packs": [],
+                    "drills": [
+                      {
+                        "kind": "mock",
+                        "mock_id": "mock-921b2793",
+                        "at": "2026-10-16T01:14:19.587Z"
+                      }
+                    ],
+                    "sent": []
+                  },
+                  "mockId": "mock-921b2793",
+                  "phase": "question",
+                  "currentQ": "Tell me about yourself and why this role.",
+                  "role": null
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "kind": "prep",
+                    "intent": "prep_mock_start",
+                    "ask": "Run a mock interview for a junior analyst.",
+                    "company": null,
+                    "at": "2026-10-16T01:14:19.538Z"
+                  }
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Run a mock interview for a junior analyst.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "prep_mock_start",
+              "result_status": "running",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:21.329Z",
+    "input": {
+      "message": "In my statistics project I checked a missing-value rule and repaired the import.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "prep_mock_followup",
+          "contained": false,
+          "result_status": "running"
+        },
+        "reply": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+        "action": null,
+        "turn_key": "H09-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "question",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 0,
+                    "status": "in_progress",
+                    "answers": [],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about yourself and why this role."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:19.538Z",
+                "ask": "Run a mock interview for a junior analyst.",
+                "kind": "prep",
+                "intent": "prep_mock_start",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "probe",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 1,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about yourself and why this role."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:21.047Z",
+                "ask": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "kind": "prep",
+                "intent": "prep_mock_followup",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-2",
+          "p_hash": "369fe65a9a1ccd20f5da6065a023ac56509e88ccf1b13bf28e621512877db365"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-2",
+          "p_hash": "369fe65a9a1ccd20f5da6065a023ac56509e88ccf1b13bf28e621512877db365",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerRouterPrep": {
+                  "role": null,
+                  "phase": "probe",
+                  "store": {
+                    "sent": [],
+                    "mocks": [
+                      {
+                        "idx": 1,
+                        "status": "in_progress",
+                        "answers": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                            "scores": {
+                              "structure": 1,
+                              "evidence": 0,
+                              "specificity": 1,
+                              "total": 2
+                            },
+                            "feedback": [
+                              "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                              "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                              "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                            ]
+                          }
+                        ],
+                        "company": null,
+                        "mock_id": "mock-921b2793",
+                        "questions": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a hard problem you solved and how you approached it.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a failure and what you changed afterward.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Why this company, specifically?",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          }
+                        ],
+                        "started_at": "2026-10-16T01:14:19.587Z"
+                      }
+                    ],
+                    "packs": [],
+                    "drills": [
+                      {
+                        "at": "2026-10-16T01:14:19.587Z",
+                        "kind": "mock",
+                        "mock_id": "mock-921b2793"
+                      }
+                    ],
+                    "stories": [],
+                    "debriefs": []
+                  },
+                  "mockId": "mock-921b2793",
+                  "currentQ": "Tell me about yourself and why this role."
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "lastWork": {
+                      "at": "2026-10-16T01:14:19.538Z",
+                      "ask": "Run a mock interview for a junior analyst.",
+                      "kind": "prep",
+                      "intent": "prep_mock_start",
+                      "company": null
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "kind": "prep",
+                    "intent": "prep_mock_followup",
+                    "ask": "In my statistics project I checked a missing-value rule and repaired the import.",
+                    "company": null,
+                    "at": "2026-10-16T01:14:21.047Z"
+                  }
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "prep_mock_followup",
+              "result_status": "running",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:22.474Z",
+    "input": {
+      "message": "What is base salary?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H09-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H09-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:22.144Z\",\"session_id\":\"00000000-0000-4000-8000-000000000109\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "probe",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 1,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about yourself and why this role."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:21.047Z",
+                "ask": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "kind": "prep",
+                "intent": "prep_mock_followup",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "probe",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 1,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about yourself and why this role."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:21.047Z",
+                "ask": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "kind": "prep",
+                "intent": "prep_mock_followup",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "8c8a01ed-e7c4-4eca-90bf-7d1b6a40060b",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "8f37bda4-6ce4-4b56-a009-0eade19cc598",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-3",
+          "p_hash": "07e4f41901f6a9fd6aa35e9afecdeda5c0af96079a45c9054a4aa70c5dc07842"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-3",
+          "p_hash": "07e4f41901f6a9fd6aa35e9afecdeda5c0af96079a45c9054a4aa70c5dc07842",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerRouterPrep": {
+                  "role": null,
+                  "phase": "probe",
+                  "store": {
+                    "sent": [],
+                    "mocks": [
+                      {
+                        "idx": 1,
+                        "status": "in_progress",
+                        "answers": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                            "scores": {
+                              "total": 2,
+                              "evidence": 0,
+                              "structure": 1,
+                              "specificity": 1
+                            },
+                            "feedback": [
+                              "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                              "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                              "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                            ]
+                          }
+                        ],
+                        "company": null,
+                        "mock_id": "mock-921b2793",
+                        "questions": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a hard problem you solved and how you approached it.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a failure and what you changed afterward.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Why this company, specifically?",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          }
+                        ],
+                        "started_at": "2026-10-16T01:14:19.587Z"
+                      }
+                    ],
+                    "packs": [],
+                    "drills": [
+                      {
+                        "at": "2026-10-16T01:14:19.587Z",
+                        "kind": "mock",
+                        "mock_id": "mock-921b2793"
+                      }
+                    ],
+                    "stories": [],
+                    "debriefs": []
+                  },
+                  "mockId": "mock-921b2793",
+                  "currentQ": "Tell me about yourself and why this role."
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "lastWork": {
+                      "at": "2026-10-16T01:14:19.538Z",
+                      "ask": "Run a mock interview for a junior analyst.",
+                      "kind": "prep",
+                      "intent": "prep_mock_start",
+                      "company": null
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T01:14:21.047Z",
+                    "ask": "In my statistics project I checked a missing-value rule and repaired the import.",
+                    "kind": "prep",
+                    "intent": "prep_mock_followup",
+                    "company": null
+                  }
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is base salary?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:23.401Z",
+    "input": {
+      "message": "We recovered 90 records, saving three hours.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "prep_mock_next",
+          "contained": false,
+          "result_status": "running"
+        },
+        "reply": "Tell me about a hard problem you solved and how you approached it.\nRubric on that answer: structure 1 of 5, evidence 2 of 5, specificity 1 of 5. Order the next one as situation, task, action, result. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "H09-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "probe",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 1,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about yourself and why this role."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:21.047Z",
+                "ask": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "kind": "prep",
+                "intent": "prep_mock_followup",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "8c8a01ed-e7c4-4eca-90bf-7d1b6a40060b",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "8f37bda4-6ce4-4b56-a009-0eade19cc598",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "question",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 2,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "answer": "We recovered 90 records, saving three hours.",
+                        "scores": {
+                          "total": 4,
+                          "evidence": 2,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
+                          "Evidence: add a number (users, %, time saved) and how you know it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about a hard problem you solved and how you approached it."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:23.071Z",
+                "ask": "We recovered 90 records, saving three hours.",
+                "kind": "prep",
+                "intent": "prep_mock_next",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "8c8a01ed-e7c4-4eca-90bf-7d1b6a40060b",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "8f37bda4-6ce4-4b56-a009-0eade19cc598",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "9960a096-9368-4ee3-9574-ee56c5c18732",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We recovered 90 records, saving three hours.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:23.221588+00:00"
+        },
+        {
+          "id": "cd64e575-133d-4652-9371-20a7aa542392",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Tell me about a hard problem you solved and how you approached it.\nRubric on that answer: structure 1 of 5, evidence 2 of 5, specificity 1 of 5. Order the next one as situation, task, action, result. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_next",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-4"
+          },
+          "created_at": "2026-10-16T01:14:23.221588+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-4",
+          "p_hash": "eabf738274d8f74bb27abac18a39f9149a01bd7e07abe1dbbd42a3dac4533798"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-4",
+          "p_hash": "eabf738274d8f74bb27abac18a39f9149a01bd7e07abe1dbbd42a3dac4533798",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerRouterPrep": {
+                  "role": null,
+                  "phase": "question",
+                  "store": {
+                    "sent": [],
+                    "mocks": [
+                      {
+                        "idx": 2,
+                        "status": "in_progress",
+                        "answers": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                            "scores": {
+                              "total": 2,
+                              "evidence": 0,
+                              "structure": 1,
+                              "specificity": 1
+                            },
+                            "feedback": [
+                              "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                              "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                              "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                            ]
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "answer": "We recovered 90 records, saving three hours.",
+                            "scores": {
+                              "structure": 1,
+                              "evidence": 2,
+                              "specificity": 1,
+                              "total": 4
+                            },
+                            "feedback": [
+                              "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                              "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
+                              "Evidence: add a number (users, %, time saved) and how you know it."
+                            ]
+                          }
+                        ],
+                        "company": null,
+                        "mock_id": "mock-921b2793",
+                        "questions": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a hard problem you solved and how you approached it.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a failure and what you changed afterward.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Why this company, specifically?",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          }
+                        ],
+                        "started_at": "2026-10-16T01:14:19.587Z"
+                      }
+                    ],
+                    "packs": [],
+                    "drills": [
+                      {
+                        "at": "2026-10-16T01:14:19.587Z",
+                        "kind": "mock",
+                        "mock_id": "mock-921b2793"
+                      }
+                    ],
+                    "stories": [],
+                    "debriefs": []
+                  },
+                  "mockId": "mock-921b2793",
+                  "currentQ": "Tell me about a hard problem you solved and how you approached it."
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "lastWork": {
+                      "at": "2026-10-16T01:14:19.538Z",
+                      "ask": "Run a mock interview for a junior analyst.",
+                      "kind": "prep",
+                      "intent": "prep_mock_start",
+                      "company": null
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "kind": "prep",
+                    "intent": "prep_mock_next",
+                    "ask": "We recovered 90 records, saving three hours.",
+                    "company": null,
+                    "at": "2026-10-16T01:14:23.071Z"
+                  }
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "We recovered 90 records, saving three hours.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Tell me about a hard problem you solved and how you approached it.\nRubric on that answer: structure 1 of 5, evidence 2 of 5, specificity 1 of 5. Order the next one as situation, task, action, result. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "prep_mock_next",
+              "result_status": "running",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-16T01:14:24.822Z",
+    "input": {
+      "message": "Rewrite my project answer from the evidence I supplied.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": null,
+          "contained": true,
+          "result_status": null
+        },
+        "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+        "action": null,
+        "turn_key": "H09-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": [
+        "career containment: {\"kind\":\"career_containment_failure\",\"version\":1,\"timestamp\":\"2026-10-16T01:14:24.086Z\",\"session_id\":\"00000000-0000-4000-8000-000000000109\",\"case_id\":\"live-turn\",\"boundary\":\"null_result\",\"error_class\":null,\"fallback_kind\":\"unmatched\",\"fallback_delivered\":true}"
+      ]
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": false
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "question",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 2,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "answer": "We recovered 90 records, saving three hours.",
+                        "scores": {
+                          "total": 4,
+                          "evidence": 2,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
+                          "Evidence: add a number (users, %, time saved) and how you know it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about a hard problem you solved and how you approached it."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:23.071Z",
+                "ask": "We recovered 90 records, saving three hours.",
+                "kind": "prep",
+                "intent": "prep_mock_next",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "8c8a01ed-e7c4-4eca-90bf-7d1b6a40060b",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "8f37bda4-6ce4-4b56-a009-0eade19cc598",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "9960a096-9368-4ee3-9574-ee56c5c18732",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We recovered 90 records, saving three hours.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:23.221588+00:00"
+        },
+        {
+          "id": "cd64e575-133d-4652-9371-20a7aa542392",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Tell me about a hard problem you solved and how you approached it.\nRubric on that answer: structure 1 of 5, evidence 2 of 5, specificity 1 of 5. Order the next one as situation, task, action, result. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_next",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-4"
+          },
+          "created_at": "2026-10-16T01:14:23.221588+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerRouterPrep": {
+              "role": null,
+              "phase": "question",
+              "store": {
+                "sent": [],
+                "mocks": [
+                  {
+                    "idx": 2,
+                    "status": "in_progress",
+                    "answers": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                        "scores": {
+                          "total": 2,
+                          "evidence": 0,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                        ]
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "answer": "We recovered 90 records, saving three hours.",
+                        "scores": {
+                          "total": 4,
+                          "evidence": 2,
+                          "structure": 1,
+                          "specificity": 1
+                        },
+                        "feedback": [
+                          "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                          "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
+                          "Evidence: add a number (users, %, time saved) and how you know it."
+                        ]
+                      }
+                    ],
+                    "company": null,
+                    "mock_id": "mock-921b2793",
+                    "questions": [
+                      {
+                        "q": "Tell me about yourself and why this role.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a time you worked with a team under a deadline.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a hard problem you solved and how you approached it.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Tell me about a failure and what you changed afterward.",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      },
+                      {
+                        "q": "Why this company, specifically?",
+                        "round": "behavioral",
+                        "source": {
+                          "type": "generic_behavioral_bank",
+                          "company_id": null
+                        },
+                        "matched_story": null
+                      }
+                    ],
+                    "started_at": "2026-10-16T01:14:19.587Z"
+                  }
+                ],
+                "packs": [],
+                "drills": [
+                  {
+                    "at": "2026-10-16T01:14:19.587Z",
+                    "kind": "mock",
+                    "mock_id": "mock-921b2793"
+                  }
+                ],
+                "stories": [],
+                "debriefs": []
+              },
+              "mockId": "mock-921b2793",
+              "currentQ": "Tell me about a hard problem you solved and how you approached it."
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "lastWork": {
+                  "at": "2026-10-16T01:14:19.538Z",
+                  "ask": "Run a mock interview for a junior analyst.",
+                  "kind": "prep",
+                  "intent": "prep_mock_start",
+                  "company": null
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T01:14:23.071Z",
+                "ask": "We recovered 90 records, saving three hours.",
+                "kind": "prep",
+                "intent": "prep_mock_next",
+                "company": null
+              }
+            }
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "25e2d533-e020-477b-b163-3be92c3f16c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your mock starts now — one question at a time, scored feedback at the end.\nGrounded in your own profile record and public interview-pattern data, as of October 2026. Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end. Tell me about yourself and why this role.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_start",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "353dfc24-1385-43bc-b149-68e1b7e6a75c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:19.812663+00:00"
+        },
+        {
+          "id": "4f15b218-934b-4c14-8d72-041d6d1b81ab",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Follow-up on that: you mentioned the project — what exactly did you do yourself, and what number or result proves it helped?\nRubric on that answer: structure 1 of 5, evidence 0 of 5, specificity 1 of 5. Add one number and how you know it.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_followup",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "edaea0ef-37b2-41c1-b110-54d3f5d99557",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:21.181886+00:00"
+        },
+        {
+          "id": "8c8a01ed-e7c4-4eca-90bf-7d1b6a40060b",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "8f37bda4-6ce4-4b56-a009-0eade19cc598",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-16T01:14:22.277407+00:00"
+        },
+        {
+          "id": "9960a096-9368-4ee3-9574-ee56c5c18732",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We recovered 90 records, saving three hours.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:23.221588+00:00"
+        },
+        {
+          "id": "cd64e575-133d-4652-9371-20a7aa542392",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Tell me about a hard problem you solved and how you approached it.\nRubric on that answer: structure 1 of 5, evidence 2 of 5, specificity 1 of 5. Order the next one as situation, task, action, result. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "prep_mock_next",
+            "contained": false,
+            "result_status": "running",
+            "career_turn_key": "H09-4"
+          },
+          "created_at": "2026-10-16T01:14:23.221588+00:00"
+        },
+        {
+          "id": "2b99c4ba-f92f-46bf-b87e-5591a8a8ba4d",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+          "meta": {
+            "career": true,
+            "intent": null,
+            "contained": true,
+            "result_status": null,
+            "career_turn_key": "H09-5"
+          },
+          "created_at": "2026-10-16T01:14:24.299978+00:00"
+        },
+        {
+          "id": "b88e3225-9855-4b6a-b056-5bd3c0cb717b",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my project answer from the evidence I supplied.",
+          "meta": null,
+          "created_at": "2026-10-16T01:14:24.299978+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-5",
+          "p_hash": "c4bfb74b7a9f298f149e0bf7bebf6d0c1e08e83cf6f9da044e3f803e18b711fc"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-5",
+          "p_hash": "c4bfb74b7a9f298f149e0bf7bebf6d0c1e08e83cf6f9da044e3f803e18b711fc",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerRouterPrep": {
+                  "role": null,
+                  "phase": "question",
+                  "store": {
+                    "sent": [],
+                    "mocks": [
+                      {
+                        "idx": 2,
+                        "status": "in_progress",
+                        "answers": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                            "scores": {
+                              "total": 2,
+                              "evidence": 0,
+                              "structure": 1,
+                              "specificity": 1
+                            },
+                            "feedback": [
+                              "Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.",
+                              "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                              "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it."
+                            ]
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "answer": "We recovered 90 records, saving three hours.",
+                            "scores": {
+                              "total": 4,
+                              "evidence": 2,
+                              "structure": 1,
+                              "specificity": 1
+                            },
+                            "feedback": [
+                              "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.",
+                              "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
+                              "Evidence: add a number (users, %, time saved) and how you know it."
+                            ]
+                          }
+                        ],
+                        "company": null,
+                        "mock_id": "mock-921b2793",
+                        "questions": [
+                          {
+                            "q": "Tell me about yourself and why this role.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a time you worked with a team under a deadline.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a hard problem you solved and how you approached it.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Tell me about a failure and what you changed afterward.",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          },
+                          {
+                            "q": "Why this company, specifically?",
+                            "round": "behavioral",
+                            "source": {
+                              "type": "generic_behavioral_bank",
+                              "company_id": null
+                            },
+                            "matched_story": null
+                          }
+                        ],
+                        "started_at": "2026-10-16T01:14:19.587Z"
+                      }
+                    ],
+                    "packs": [],
+                    "drills": [
+                      {
+                        "at": "2026-10-16T01:14:19.587Z",
+                        "kind": "mock",
+                        "mock_id": "mock-921b2793"
+                      }
+                    ],
+                    "stories": [],
+                    "debriefs": []
+                  },
+                  "mockId": "mock-921b2793",
+                  "currentQ": "Tell me about a hard problem you solved and how you approached it."
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "lastWork": {
+                      "at": "2026-10-16T01:14:19.538Z",
+                      "ask": "Run a mock interview for a junior analyst.",
+                      "kind": "prep",
+                      "intent": "prep_mock_start",
+                      "company": null
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T01:14:23.071Z",
+                    "ask": "We recovered 90 records, saving three hours.",
+                    "kind": "prep",
+                    "intent": "prep_mock_next",
+                    "company": null
+                  }
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Rewrite my project answer from the evidence I supplied.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": null,
+              "result_status": null,
+              "contained": true
+            }
+          }
+        }
+      }
+    ]
+  }
+]

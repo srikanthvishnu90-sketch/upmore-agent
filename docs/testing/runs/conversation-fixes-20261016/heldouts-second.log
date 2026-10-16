@@ -1,0 +1,67 @@
+✔ H01: Canonical correction survives another task and reload (107.724214ms)
+✔ H02: Repeated multiword location corrections (9.692456ms)
+✔ H03: Selective withdrawal is scoped and never claims account deletion (11.395928ms)
+✔ H04: Unsupported deletion field is refused precisely (3.568372ms)
+✔ H05: Quoted and hypothetical accomplishments never become user evidence (3.502971ms)
+✔ H06: Schedule and financial constraints survive mentoring detour (3.479954ms)
+✔ H07: Hard role constraints and a hypothetical move (6.819273ms)
+✔ H08: Answer-specific interview coaching with a fresh project (4.757148ms)
+✔ H09: Coaching facts survive fresh realm and a detour (2.243555ms)
+✔ H10: Resume bullet uses source quotes and no invented seniority (3.488296ms)
+✔ H11: Request date persists through detour and draft revision (30.461008ms)
+✔ H12: Missing deadline is asked for rather than invented (7.027183ms)
+✖ H13: Two tasks survive explanatory interruption (10.868417ms)
+✔ H14: Capabilities are factual rather than a dossier for a word (1.511629ms)
+✖ H15: Correction updates active plan without silently changing approvals (3.627565ms)
+✔ H16: Negated claims and unsupported facts remain unknown (1.769837ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 14
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 302.351165
+
+✖ failing tests:
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H13: Two tasks survive explanatory interruption (10.868417ms)
+  AssertionError [ERR_ASSERTION]: Now take the interview part. -> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:202)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'career_fallback',
+    expected: 'career_fallback',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H15: Correction updates active plan without silently changing approvals (3.627565ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /review|approval/i. Input:
+  
+  "From this conversation's user-reported record: target city: Tampa; target_firm: Fieldstone; geography: Tampa. Experience or constraints not stated remain unknown. What should we work on next?"
+  
+      at has (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:11:55)
+      at Object.H15 (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:28:74)
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:287)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "From this conversation's user-reported record: target city: Tampa; target_firm: Fieldstone; geography: Tampa. Experience or constraints not stated remain unknown. What should we work on next?",
+    expected: /review|approval/i,
+    operator: 'match',
+    diff: 'simple'
+  }

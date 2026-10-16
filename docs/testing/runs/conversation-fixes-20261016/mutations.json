@@ -1,0 +1,97 @@
+{
+  "baseline": "15/15 contracts pass",
+  "caught": 15,
+  "total": 15,
+  "results": [
+    {
+      "id": "D01",
+      "defect": "plan review invalidation omitted",
+      "caught": true,
+      "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "id": "D02",
+      "defect": "mirror geography retained",
+      "caught": true,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'Old City'\n-   'New City'\n  ]\n"
+    },
+    {
+      "id": "D03",
+      "defect": "withdrawal leaves active facts",
+      "caught": true,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(!c.statedFacts.facts.some(f=>f.kind==='geography'))\n"
+    },
+    {
+      "id": "D04",
+      "defect": "unsupported erasure falsely succeeds",
+      "caught": true,
+      "error": "The input was expected to not match the regular expression /I (?:have )?deleted|successfully erased/i. Input:\n\n'Selective erasure of those saved records or backups is not supported here. I have deleted them and cannot report that they are gone. The existing full-profile deletion control has its own stated scope; which record are you trying to stop using?'\n"
+    },
+    {
+      "id": "D05",
+      "defect": "hypothetical speech act lost",
+      "caught": true,
+      "error": "Cannot read properties of null (reading 'intent')"
+    },
+    {
+      "id": "D06",
+      "defect": "third-party speech act lost",
+      "caught": true,
+      "error": "Cannot read properties of null (reading 'intent')"
+    },
+    {
+      "id": "D07",
+      "defect": "resume invents leadership",
+      "caught": true,
+      "error": "The input was expected to not match the regular expression /Led a team|earned \\$|revenue increased/i. Input:\n\n'Led a team: a class SQL survey project.\\n' +\n  '\\n' +\n  'Source: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added.'\n"
+    },
+    {
+      "id": "D08",
+      "defect": "answer drops supplied outcome evidence",
+      "caught": true,
+      "error": "The input did not match the regular expression /70/. Input:\n\n'Your interview answer, using only the facts you supplied:\\n' +\n  '\\n' +\n  'In my class project I repaired a CSV import.\\n' +\n  '\\n' +\n  'Tell me what to change; no message or application was sent.'\n"
+    },
+    {
+      "id": "D09",
+      "defect": "two interview questions at once",
+      "caught": true,
+      "error": "Expected values to be strictly equal:\n\n2 !== 1\n"
+    },
+    {
+      "id": "D10",
+      "defect": "feedback ignores actual answer",
+      "caught": true,
+      "error": "The input did not match the regular expression /delimiter/. Input:\n\n'You described: a generic project\\n' +\n  'The single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\\n' +\n  'What evidence can you add from the actual project?'\n"
+    },
+    {
+      "id": "D11",
+      "defect": "draft summarizer drops body",
+      "caught": true,
+      "error": "The input did not match the regular expression /Second sentence requests/. Input:\n\n'Draft for your review; nothing has been sent.\\n' +\n  '\\n' +\n  'Subject: Synthetic request\\n' +\n  '\\n' +\n  'First sentence\\n' +\n  '\\n' +\n  'Tell me what to change; no message or application was sent.'\n"
+    },
+    {
+      "id": "D12",
+      "defect": "unsupported send claims success",
+      "caught": true,
+      "error": "The input was expected to not match the regular expression /I sent|successfully submitted/. Input:\n\n'I sent an email; browser, upload and application were executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?'\n"
+    },
+    {
+      "id": "D13",
+      "defect": "unknown remote geography allowed",
+      "caught": true,
+      "error": "Expected values to be strictly equal:\n\ntrue !== false\n"
+    },
+    {
+      "id": "D14",
+      "defect": "chosen extension date dropped",
+      "caught": true,
+      "error": "The input did not match the regular expression /next Friday/. Input:\n\n'Draft for Synthetic Firm, $60,000 base; nothing has been sent.\\n' +\n  '\\n' +\n  'Subject: Request for a short extension — role\\n' +\n  '\\n' +\n  'Hi [Recruiter name],\\n' +\n  '\\n' +\n  \"Thank you for the offer — I'm very excited about Synthetic Firm and I'm taking it seriously. So I can give it the careful review it deserves, would it be possible to extend my decision deadline by 7 days, to [new date]?\\n\" +\n  '\\n' +\n  \"I don't expect to need longer than that, and I'll keep you posted either way.\\n\" +\n  '\\n' +\n  'Thank you for understanding,\\n' +\n  '[Your name]\\n' +\n  '\\n' +\n  'Tell me what to change; no message or application was sent.'\n"
+    },
+    {
+      "id": "D15",
+      "defect": "conversation work lost on reload",
+      "caught": true,
+      "error": "Cannot read properties of undefined (reading 'facts')"
+    }
+  ]
+}

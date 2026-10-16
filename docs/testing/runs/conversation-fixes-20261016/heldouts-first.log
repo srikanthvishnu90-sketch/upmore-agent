@@ -1,0 +1,212 @@
+✔ H01: Canonical correction survives another task and reload (109.699636ms)
+✖ H02: Repeated multiword location corrections (38.36412ms)
+✔ H03: Selective withdrawal is scoped and never claims account deletion (9.47044ms)
+✔ H04: Unsupported deletion field is refused precisely (3.559231ms)
+✖ H05: Quoted and hypothetical accomplishments never become user evidence (8.992761ms)
+✔ H06: Schedule and financial constraints survive mentoring detour (4.025881ms)
+✖ H07: Hard role constraints and a hypothetical move (8.173501ms)
+✔ H08: Answer-specific interview coaching with a fresh project (5.466562ms)
+✔ H09: Coaching facts survive fresh realm and a detour (2.537519ms)
+✖ H10: Resume bullet uses source quotes and no invented seniority (4.430504ms)
+✔ H11: Request date persists through detour and draft revision (13.34673ms)
+✖ H12: Missing deadline is asked for rather than invented (5.187086ms)
+✖ H13: Two tasks survive explanatory interruption (3.992319ms)
+✖ H14: Capabilities are factual rather than a dossier for a word (2.385756ms)
+✖ H15: Correction updates active plan without silently changing approvals (6.486619ms)
+✖ H16: Negated claims and unsupported facts remain unknown (2.780567ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 7
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 307.867672
+
+✖ failing tests:
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H02: Repeated multiword location corrections (38.36412ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H05: Quoted and hypothetical accomplishments never become user evidence (8.992761ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H07: Hard role constraints and a hypothetical move (8.173501ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H10: Resume bullet uses source quotes and no invented seniority (4.430504ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H12: Missing deadline is asked for rather than invented (5.187086ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H13: Two tasks survive explanatory interruption (3.992319ms)
+  AssertionError [ERR_ASSERTION]: Now take the interview part. -> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:202)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'career_fallback',
+    expected: 'career_fallback',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H14: Capabilities are factual rather than a dossier for a word (2.385756ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H15: Correction updates active plan without silently changing approvals (6.486619ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-conversation-heldouts.test.cjs:31:27
+✖ H16: Negated claims and unsupported facts remain unknown (2.780567ms)
+  AssertionError [ERR_ASSERTION]: no contained crash
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-heldouts.test.cjs:31:111)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

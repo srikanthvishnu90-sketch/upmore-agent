@@ -1,0 +1,1574 @@
+[
+  {
+    "caseId": "H14",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000114",
+    "at": "2026-10-16T01:30:54.657Z",
+    "input": {
+      "message": "What can you complete at no cost in this chat?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H14-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_capability",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+        "action": null,
+        "turn_key": "H14-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000114",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000114",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-1",
+          "p_hash": "7c7499f88d88d09645d48ae997f3259d3e084a024769b60a8a955cfbb959ddd7"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-1",
+          "p_hash": "7c7499f88d88d09645d48ae997f3259d3e084a024769b60a8a955cfbb959ddd7",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What can you complete at no cost in this chat?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000114",
+            "reply": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H14-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_capability",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H14",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000114",
+    "at": "2026-10-16T01:30:55.345Z",
+    "input": {
+      "message": "Has a public website actually been opened?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H14-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_execution_status",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+        "action": null,
+        "turn_key": "H14-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000114",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "187b651a-3d74-4df7-9f4b-cec83b8db939",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-2"
+          },
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "8a0bf796-d918-40ce-8cfc-55690f6053b1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "Has a public website actually been opened?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000114",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-2",
+          "p_hash": "4cb52b8e960035bf5e6f3336f3c22107fe17fc5306df6de6c0689d7bd837b6b0"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-2",
+          "p_hash": "4cb52b8e960035bf5e6f3336f3c22107fe17fc5306df6de6c0689d7bd837b6b0",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Has a public website actually been opened?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000114",
+            "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H14-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_execution_status",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H14",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000114",
+    "at": "2026-10-16T01:30:56.165Z",
+    "input": {
+      "message": "What should I paste for you to review an employer role?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H14-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_capability",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+        "action": null,
+        "turn_key": "H14-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000114",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "187b651a-3d74-4df7-9f4b-cec83b8db939",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-2"
+          },
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "8a0bf796-d918-40ce-8cfc-55690f6053b1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "Has a public website actually been opened?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "187b651a-3d74-4df7-9f4b-cec83b8db939",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-2"
+          },
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "8a0bf796-d918-40ce-8cfc-55690f6053b1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "Has a public website actually been opened?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "9a4bc1b5-359e-41da-9333-1b4cbe5c8fd0",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What should I paste for you to review an employer role?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:56.062147+00:00"
+        },
+        {
+          "id": "bbf838a1-21a3-4774-8355-2bbea88f2602",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-3"
+          },
+          "created_at": "2026-10-16T01:30:56.062147+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000114",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-3",
+          "p_hash": "bf67d0ba6f54b29a1be598b323c6645bff3e1b214f836ad2f151fa68a2c1cd6a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-3",
+          "p_hash": "bf67d0ba6f54b29a1be598b323c6645bff3e1b214f836ad2f151fa68a2c1cd6a",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What should I paste for you to review an employer role?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000114",
+            "reply": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H14-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_capability",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H14",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000114",
+    "at": "2026-10-16T01:30:56.859Z",
+    "input": {
+      "message": "Can you prove that an email was sent?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H14-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_execution_status",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+        "action": null,
+        "turn_key": "H14-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000114",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "187b651a-3d74-4df7-9f4b-cec83b8db939",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-2"
+          },
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "8a0bf796-d918-40ce-8cfc-55690f6053b1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "Has a public website actually been opened?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "9a4bc1b5-359e-41da-9333-1b4cbe5c8fd0",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What should I paste for you to review an employer role?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:56.062147+00:00"
+        },
+        {
+          "id": "bbf838a1-21a3-4774-8355-2bbea88f2602",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-3"
+          },
+          "created_at": "2026-10-16T01:30:56.062147+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "31dd1a19-20b9-4729-b2c6-2a7717a77ed1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-1"
+          },
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "35f1ade5-a157-44d8-89f6-69faa1a14835",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What can you complete at no cost in this chat?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:54.546777+00:00"
+        },
+        {
+          "id": "187b651a-3d74-4df7-9f4b-cec83b8db939",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-2"
+          },
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "8a0bf796-d918-40ce-8cfc-55690f6053b1",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "Has a public website actually been opened?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:55.208839+00:00"
+        },
+        {
+          "id": "9a4bc1b5-359e-41da-9333-1b4cbe5c8fd0",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "What should I paste for you to review an employer role?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:56.062147+00:00"
+        },
+        {
+          "id": "bbf838a1-21a3-4774-8355-2bbea88f2602",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "I can review pasted postings, discuss your profile, coach an answer and draft text at no cost here. Public browser execution and external sends are not connected, so current openings are unverified unless you supply a source. Paste the posting, its URL, location and requirements; I will distinguish that supplied source from a live check.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_capability",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-3"
+          },
+          "created_at": "2026-10-16T01:30:56.062147+00:00"
+        },
+        {
+          "id": "7401614f-79d6-4429-b76e-552a9dad222f",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H14-4"
+          },
+          "created_at": "2026-10-16T01:30:56.714914+00:00"
+        },
+        {
+          "id": "f5288fd0-5c3c-47d6-bb1b-ce71f3ccaf4b",
+          "thread_id": "00000000-0000-4000-8000-000000000114",
+          "role": "user",
+          "content": "Can you prove that an email was sent?",
+          "meta": null,
+          "created_at": "2026-10-16T01:30:56.714914+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000114",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-4",
+          "p_hash": "585d0720f8c0799788a2ccf5068b3391b3b465e5b2944dfee5edba77aa8e7eb7"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000114",
+          "p_key": "H14-4",
+          "p_hash": "585d0720f8c0799788a2ccf5068b3391b3b465e5b2944dfee5edba77aa8e7eb7",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Can you prove that an email was sent?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000114",
+            "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H14-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_execution_status",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

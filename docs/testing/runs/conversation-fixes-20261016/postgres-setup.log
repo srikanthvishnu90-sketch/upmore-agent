@@ -1,0 +1,24 @@
+c14dd18517c1c7c27c144e80d910064a1d4626fee44a24b9ff01ff4855a751a0
+Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -v ON_ERROR_STOP=1
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at run (/workspace/upmore-conversation-fix/scripts/career/conversation-recovery/setup.cjs:6:25)
+    at /workspace/upmore-conversation-fix/scripts/career/conversation-recovery/setup.cjs:9:247 {
+  status: 2,
+  signal: null,
+  output: [
+    null,
+    '',
+    'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory\n' +
+      '\tIs the server running locally and accepting connections on that socket?\n'
+  ],
+  pid: 77180,
+  stdout: '',
+  stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory\n' +
+    '\tIs the server running locally and accepting connections on that socket?\n'
+}

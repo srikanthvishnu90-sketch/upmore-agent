@@ -1,0 +1,17 @@
+/workspace/upmore-conversation-fix/supabase/functions/_shared/career_host.js:243
+export { CareerHost };
+^^^^^^
+
+SyntaxError: Unexpected token 'export'
+    at new Script (node:vm:117:7)
+    at createScript (node:vm:269:10)
+    at Object.runInNewContext (node:vm:310:10)
+    at load (/workspace/upmore-conversation-fix/evals/conversation-fixes/mutations.cjs:9:61)
+    at Object.<anonymous> (/workspace/upmore-conversation-fix/evals/conversation-fixes/mutations.cjs:10:36)
+    at Module._compile (node:internal/modules/cjs/loader:1872:14)
+    at Object..js (node:internal/modules/cjs/loader:2003:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+
+Node.js v24.19.0

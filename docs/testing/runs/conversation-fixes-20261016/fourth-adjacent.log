@@ -1,0 +1,61 @@
+✖ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (93.683657ms)
+✔ negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1 (7.019512ms)
+✔ career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step (24.911186ms)
+✔ fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city (17.713457ms)
+✔ fact chain survives the shallow-copy harness (Lane C semantics) (9.61658ms)
+✔ pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record (3.397324ms)
+✔ pause chain (shallow-copy harness): the lifted pause survives to the send turn (2.379985ms)
+✔ multi-intent: parts are answered/named, and a novel continuation delivers part two (14.013089ms)
+✔ adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state (8.177927ms)
+✔ set mapping: a healthcare-consulting ask never proposes the bulge-bracket set (4.801045ms)
+✔ set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set (2.53457ms)
+✔ track events: plain-words reports are claimed and routed to the tracker ingest (14.180314ms)
+✔ track events adversarial: a question or a friend's event writes nothing to the user's tracker (3.337973ms)
+✔ host creates and a networking ask is answered by the career path (58.253346ms)
+✔ apply ask with an empty live pool fabricates no roles (28.114943ms)
+✔ tracking ask gets a career answer, never the finance product (4.982004ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (2.905737ms)
+✔ a finance ask is NOT served as the finance product (36.518938ms)
+✔ garbage input never throws and still returns a reply (18.744639ms)
+✔ NEGO-001 parse offer A: every field from the letter (3.458615ms)
+✔ NEGO-001 parse offer B: signing bonus is NOT an annual bonus; options unvalued (1.805567ms)
+✔ NEGO-001 store: stored values are the parsed values; deadline row created (0.528076ms)
+✔ NEGO-002 benchmark: only CIR figures, each with source+date; anecdotal labeled (1.412256ms)
+✔ NEGO-002 benchmark honesty: CIR with no published figure yields NO number (0.548795ms)
+✔ NEGO-005 total comp A: math + assumptions shown (13.960155ms)
+✔ NEGO-005/197 equity honesty: unpriced options are unvalued, never $0-worth, delta null (0.814146ms)
+✔ BUG-003 regression: weekly/monthly intern figures never enter annual benchmarks (1.780541ms)
+✔ NEGO-003 counter: strategy cites the sourced figure; scripts word-for-word; card gates send (0.860086ms)
+✔ NEGO-004 roleplay: recruiter pushes back; feedback after close (0.902031ms)
+✔ NEGO-006 extension: new date = expiry + days; tracking row drafted_not_sent (0.387404ms)
+✔ decline: warm checks pass, card-gated (0.390905ms)
+✔ deadline collision: both expire same day -> explicit sequence (1.494543ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 31
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 339.27327
+
+✖ failing tests:
+
+test at tests/career-conversation-depth.test.cjs:78:1
+✖ negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap (93.683657ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Meridian/. Input:
+  
+  "From this conversation's user-reported record: no personal facts have been supplied. Experience or constraints not stated remain unknown. What should we work on next?"
+  
+      at TestContext.<anonymous> (/workspace/upmore-conversation-fix/tests/career-conversation-depth.test.cjs:97:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "From this conversation's user-reported record: no personal facts have been supplied. Experience or constraints not stated remain unknown. What should we work on next?",
+    expected: /Meridian/,
+    operator: 'match',
+    diff: 'simple'
+  }

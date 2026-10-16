@@ -1,0 +1,23 @@
+✔ D01: conversation mechanism (3.416466ms)
+✔ D02: conversation mechanism (1.402675ms)
+✔ D03: conversation mechanism (1.695461ms)
+✔ D04: conversation mechanism (0.849775ms)
+✔ D05: conversation mechanism (1.06319ms)
+✔ D06: conversation mechanism (0.518271ms)
+✔ D07: conversation mechanism (62.255604ms)
+✔ D08: conversation mechanism (84.908136ms)
+✔ D09: conversation mechanism (0.741649ms)
+✔ D10: conversation mechanism (0.629884ms)
+✔ D11: conversation mechanism (0.23291ms)
+✔ D12: conversation mechanism (0.559384ms)
+✔ D13: conversation mechanism (0.596483ms)
+✔ D14: conversation mechanism (21.540699ms)
+✔ D15: conversation mechanism (0.771699ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 552.132193

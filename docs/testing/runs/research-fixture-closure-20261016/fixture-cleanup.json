@@ -1,0 +1,8 @@
+{
+  "container": "upmore-career-integration-pg-recovery",
+  "network": "none",
+  "containerRemoved": true,
+  "wireListenerClosed": true,
+  "wireConnections": 5,
+  "captures": "dumps/logs saved before removal"
+}

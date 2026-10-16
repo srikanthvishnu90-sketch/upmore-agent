@@ -52827,6 +52827,288 @@
    "limitations": [
     "Bundle freshness, helper syntax and whitespace only."
    ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-corrected-source-before",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "da9e9245bcb355ee2994464743dd265ff032dfab",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fixture-corrected-source-before/test.log",
+   "log_sha256": "0e6ddfe173c4bb1566500da02ffa883daa408ab4a260fccda6061ab69facc365",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-corrected-pg-before",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "da9e9245bcb355ee2994464743dd265ff032dfab",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fixture-corrected-pg-before/test.log",
+   "log_sha256": "1f403c3d43ebc0326e2549fa6c93f062a9c436bdc4a5b33581cba61f4d5f1897",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:receipt-independent-before",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "da9e9245bcb355ee2994464743dd265ff032dfab",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/receipt-independent-before/test.log",
+   "log_sha256": "3074b0edca6dfd5c847ae6d450c24bf95000a0ba4bee4d49a9a47e987d9fa24b",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-closure-author-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-author-source/test.log",
+   "log_sha256": "9ee8483b34764aa3dabd86eb95a51d626acd1763e69b097e0af44efe5a9e069c",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-closure-author-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-author-postgres/test.log",
+   "log_sha256": "ddee86a2a1a7e1ad2c431e11cb50799ad91e7a9923ed5a6815502c4126e62f54",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-closure-independent-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-independent-source/test.log",
+   "log_sha256": "c4cc608bfc1e0ffaec6bdd6ffc7bc4df3c374de1893d321259bb05a7ad3229b2",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-closure-independent-postgres",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-independent-postgres/test.log",
+   "log_sha256": "851d76cf0bea5b035b051d93c5ab94fedf423b7d496ff2192ce573078afbdd62",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:task-authority-wire-restored",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-task-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "da9e9245bcb355ee2994464743dd265ff032dfab",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-fixture-closure-20261016/task-authority-wire-restored.log",
+   "log_sha256": "910d83413c3be049cc61d0e210ab7330abd4ed6f73d8334820f796497a0466e4",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:task-authority-wire-v2",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-task-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-fixture-closure-20261016/task-authority-wire-v2.log",
+   "log_sha256": "5cba57742c2c180f2546d6763a661760a716b97deaa40b29d771318633463886",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:fixture-independent-regressions",
+   "command": [
+    "node",
+    "--test",
+    "tests/research-fixture-contract.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-fixture-closure-20261016/fixture-independent-regressions.log",
+   "log_sha256": "66c4a0a0d70afb87636ccdd0a1a2c8bda59a83fe0b9dc97fec61b2e515886341",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
+  },
+  {
+   "id": "research-fixture-closure-20261016:regressions",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-bundle-reachability.test.cjs",
+    "tests/independent-worker-atomic-interplay.test.cjs",
+    "tests/career-durability.test.cjs",
+    "tests/career-portal-submit-path.test.cjs",
+    "tests/career-portal-apply.test.cjs",
+    "tests/career-apply-completion.test.cjs",
+    "tests/career-apply3.test.cjs",
+    "tests/career-owned-worker.test.cjs",
+    "tests/career-bundle.test.cjs",
+    "tests/router-bundle.test.cjs",
+    "tests/career-staged-size.test.cjs",
+    "tests/career-http-host.test.cjs",
+    "tests/career-guidance-entry.test.cjs",
+    "tests/career-alert-intents.test.cjs",
+    "tests/career-alerts-host-wiring.test.cjs",
+    "tests/career-alert-text-flow.test.cjs",
+    "tests/career-portal-caps.test.cjs",
+    "tests/career-portal-payload-binding.test.cjs",
+    "tests/career-unknown-outcome-resolver.test.cjs",
+    "tests/career-conversation-heldouts.test.cjs",
+    "tests/career-conversation-mechanisms.test.cjs",
+    "tests/career-tailor-fact-id-boundary.test.cjs",
+    "tests/career-clock-source-guard.test.cjs",
+    "tests/career-router-wedge.test.cjs"
+   ],
+   "observed_at": "2026-10-16T02:58:35.681803+00:00",
+   "commit": "1b41322988df51f9704aabb593c95e79517f847a",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-fixture-closure-20261016/regressions.log",
+   "log_sha256": "1d5c56cd0926d7b77e714bffdc55b3f912d9af6ac6543282972868319f94b038",
+   "screenshots": [],
+   "limitations": [
+    "No live browser, production or model-response-quality evidence.",
+    "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
+   ]
   }
  ],
  "limitations": [

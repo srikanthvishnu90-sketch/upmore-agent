@@ -1,0 +1,11 @@
+{
+  "firstAttemptResult": "15/21 authority tests passed, 6 infra failures; independent probe run had 2 infra failures plus the real receipt mismatch",
+  "firstAttemptClose": "PID-based Bash reader cleanup and Docker child SIGTERM",
+  "databaseRecoveryEvents": [
+    "2026-10-16 02:45:44.845 UTC [1] LOG:  server process (PID 2615) was terminated by signal 15: Terminated",
+    "2026-10-16 02:46:32.786 UTC [1] LOG:  server process (PID 4406) was terminated by signal 15: Terminated"
+  ],
+  "replacement": "Perl IO::Select, EOF/shutdown only; no PID-based cleanup or child kill",
+  "secondAttempt": "21/21 authority checks PASS including both original SQL lock races",
+  "limits": "Disposable local fixture only; no production mutation or browser security change"
+}

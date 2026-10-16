@@ -1,0 +1,39 @@
+{
+  "decoder": "Pillow",
+  "image": "SYNTHETIC protocol fixture only",
+  "size": [
+    2,
+    2
+  ],
+  "mode": "RGBA",
+  "pixels": [
+    [
+      20,
+      40,
+      60,
+      255
+    ],
+    [
+      80,
+      100,
+      120,
+      255
+    ],
+    [
+      140,
+      160,
+      180,
+      255
+    ],
+    [
+      200,
+      220,
+      240,
+      255
+    ]
+  ],
+  "sha256": "4e430d493483625dbd69d52c04b14cebde9983e1e96e5f78cecf9e40d3dca5f4",
+  "bytes": 84,
+  "valid": true,
+  "oldTenByteFixture": "invalid image: signature without IHDR/IDAT/IEND"
+}

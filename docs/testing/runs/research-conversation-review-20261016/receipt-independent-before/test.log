@@ -1,0 +1,97 @@
+(node:329884) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:329884) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (3137.258649ms)
+✔ I03-I26 conversation corrections survive research and source text never becomes career evidence (9039.507765ms)
+✔ I05 authenticated owner and thread isolation protect research observations (4495.374872ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (2015.014709ms)
+✔ I08 STOP across owned threads revokes a reserved but unconsumed read (3712.291954ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (3308.036322ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (2847.041122ms)
+✔ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (6647.427369ms)
+✔ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (6126.199854ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (3179.922241ms)
+✖ I20 a failed research effect is not repeated by pending work or status polling (2178.826154ms)
+✖ I21 research authority refuses all application operations at the real SQL gate (590.751628ms)
+✔ I22 central-result save recovery uses existing capture and never reads twice (4592.954021ms)
+✔ I17 supplementary: rehashing a forged artifact cannot rewrite the immutable request or effect receipt (5835.542173ms)
+✔ I22 supplementary: committed finish with lost acknowledgement and failed readback recovers the identical receipt (4745.846495ms)
+✖ I22 fixture-closure: worker return, replay, get and chat status equal the published immutable receipt (2598.773868ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 13
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 65259.200684
+
+✖ failing tests:
+
+test at tests/research-conversation-independent-postgres.test.cjs:18:1
+✖ I20 a failed research effect is not repeated by pending work or status polling (2178.826154ms)
+  Error: TASK_AUTHORITY_UNAVAILABLE
+      at fail (/workspace/upmore-research-review/workers/career-browser/store.cjs:6:54)
+      at rpc (/workspace/upmore-research-review/workers/career-browser/authority.cjs:11:23)
+      at Object.pending (/workspace/upmore-research-review/workers/career-browser/authority.cjs:53:24)
+      at Object.runPending (/workspace/upmore-research-review/workers/career-browser/service.cjs:331:37)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:18:254)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'TASK_AUTHORITY_UNAVAILABLE'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:19:1
+✖ I21 research authority refuses all application operations at the real SQL gate (590.751628ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_research_receipt_independent_before -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is not yet accepting connections
+  DETAIL:  Consistent recovery state has not been yet reached.
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at Object.seed (/workspace/upmore-research-review/tests/helpers/research-review.cjs:23:22)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:5:40)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is not yet accepting connections\nDETAIL:  Consistent recovery state has not been yet reached.\n' ],
+    pid: 339922,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is not yet accepting connections\nDETAIL:  Consistent recovery state has not been yet reached.\n'
+  }
+
+test at tests/research-conversation-independent-postgres.test.cjs:24:1
+✖ I22 fixture-closure: worker return, replay, get and chat status equal the published immutable receipt (2598.773868ms)
+  AssertionError [ERR_ASSERTION]: worker return differs from central receipt
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      asks: [],
+      authority: {
+        accountVersion: 1,
+        intentId: '3bb0328cbfe62e3ff81500477f74fc3235f76dd1e4c7353cb351dc05f39703fb',
+  ...
+      review: null,
+  +   revision: 8,
+  -   revision: 6,
+      status: 'evidence_ready',
+      userId: '00000000-0000-4000-8000-000000000001',
+      version: 'career_task/v1'
+    }
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs:24:310)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { version: 'career_task/v1', kind: 'public_research/v1', id: 'e3954ee6b44c4da577842282596d0591', userId: '00000000-0000-4000-8000-000000000001', status: 'evidence_ready', phase: 'check', revision: 8, review: null, result: { kind: 'public_research_result', status: 'evidence_ready', artifact: [Object], artifactSha256: 'bbdf2b98cb4160196bf2c10a76388a11ace63a95821f5c4a2e09cc0728b5a99e', artifactEncoding: 'sorted-json/v1', browserOutcome: 'observed', sends: 0, submissions: 0 }, asks: [], blocker: null, budget: { limitActions: 120, spentActions: 1, reservedActions: 0, spendCents: 0 }, authority: { intentId: '3bb0328cbfe62e3ff81500477f74fc3235f76dd1e4c7353cb351dc05f39703fb', accountVersion: 1, privacyEpoch: 0 }, capabilities: { browser: 'PUBLIC_READ_ONLY', employer_submission: 'NOT_WIRED' } },
+    expected: { id: 'e3954ee6b44c4da577842282596d0591', asks: [], kind: 'public_research/v1', phase: 'check', budget: { spendCents: 0, limitActions: 120, spentActions: 1, reservedActions: 0 }, result: { kind: 'public_research_result', sends: 0, status: 'evidence_ready', artifact: [Object], submissions: 0, artifactSha256: 'bbdf2b98cb4160196bf2c10a76388a11ace63a95821f5c4a2e09cc0728b5a99e', browserOutcome: 'observed', artifactEncoding: 'sorted-json/v1' }, review: null, status: 'evidence_ready', userId: '00000000-0000-4000-8000-000000000001', blocker: null, version: 'career_task/v1', revision: 6, authority: { intentId: '3bb0328cbfe62e3ff81500477f74fc3235f76dd1e4c7353cb351dc05f39703fb', privacyEpoch: 0, accountVersion: 1 }, capabilities: { browser: 'PUBLIC_READ_ONLY', employer_submission: 'NOT_WIRED' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

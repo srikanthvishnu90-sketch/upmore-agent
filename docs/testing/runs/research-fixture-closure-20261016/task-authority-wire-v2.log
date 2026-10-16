@@ -1,0 +1,32 @@
+✔ task intent, turn pair, snapshot and structured receipt commit and replay together (1076.644035ms)
+✔ late task binding rejection rolls back the already executed base turn (1141.172905ms)
+✔ missing version/action/identity cannot pass SQL null semantics (1736.86743ms)
+✔ event tombstone rejects the same event under a fresh turn key, even after erase (1473.801398ms)
+✔ committed STOP revokes queued claims and pending dispatch (1068.735831ms)
+✔ committed erase revokes queued claims and pending dispatch (1070.990238ms)
+✔ another owner cannot claim, settle or read task evidence (1076.947644ms)
+✔ STOP between reserve and physical execution rejects consume; no effect is admitted (1318.138713ms)
+✔ erase after claim rejects the next effect and removes private central copies (1186.465376ms)
+✔ an admitted uncertain effect permanently blocks new DOM work under a new intent (2081.951667ms)
+✔ effect receipts reconcile lost acknowledgements and reject altered replay (1286.611474ms)
+✔ task result retains exact structured evidence and reconciles lost finish ack (1035.210694ms)
+✔ missing authority and async authority transports fail closed (141.611598ms)
+✔ concurrent STOP transaction wins the shared owner lock before a waiting claim (1076.873361ms)
+(node:349364) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:349364) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ concurrent erase transaction wins the shared owner lock before a waiting claim (906.154364ms)
+✔ client roles have neither private table nor task RPC access; all functions are invoker (674.534063ms)
+✔ real worker queued task opens no MOCK board after committed STOP (1047.787612ms)
+✔ real worker queued task opens no MOCK board after committed erase (1090.83686ms)
+✔ running worker rechecks committed STOP before the next MOCK browser command (2330.511769ms)
+✔ running worker rechecks committed erase before the next MOCK browser command (2132.533919ms)
+✔ actual staged chat -> SQL outbox -> separate worker -> structured evidence; no phantom submit (14616.419125ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39738.09353

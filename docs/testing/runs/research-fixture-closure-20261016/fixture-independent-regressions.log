@@ -1,0 +1,14 @@
+✔ author producer emits a usable synthetic image and current correlated timestamps (16.02591ms)
+✔ producer contract independently rejects header-only-image (2.482557ms)
+✔ producer contract independently rejects missing-mime (1.95235ms)
+✔ producer contract independently rejects stale-capture (2.099657ms)
+✔ producer contract independently rejects future-capture (2.518404ms)
+✔ producer contract independently rejects missing-navigation-time (2.044143ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.893128

@@ -1,0 +1,16 @@
+{
+  "connections": [
+    {
+      "inet_server_addr": "127.0.0.1",
+      "inet_client_addr": "127.0.0.1"
+    },
+    {
+      "inet_server_addr": "127.0.0.1",
+      "inet_client_addr": "127.0.0.1"
+    },
+    {
+      "inet_server_addr": "127.0.0.1",
+      "inet_client_addr": "127.0.0.1"
+    }
+  ]
+}

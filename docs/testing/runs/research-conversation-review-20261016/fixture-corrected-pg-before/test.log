@@ -1,0 +1,51 @@
+(node:329400) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:329400) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ research intent commits without posting/profile/artifact and replays one turn pair (699.767484ms)
+✔ late research response rejection rolls back messages, account, state and intent (1147.97874ms)
+✔ research grant only admits the typed public read effect and enforces ownership (1647.871393ms)
+✔ research rejects applicant data or changed immutable question in SQL (2390.983821ms)
+✖ actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status (6045.977273ms)
+✔ failed actual chat commit makes no task intent, browser command or successful queued reply (1464.481632ms)
+✔ actual committed STOP before dispatch cancels research without any MOCK read (2067.284354ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15593.622683
+
+✖ failing tests:
+
+test at tests/career-public-research-postgres.test.cjs:27:1
+✖ actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status (6045.977273ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      asks: [],
+      authority: {
+        accountVersion: 1,
+        intentId: '4e9914ecfcb8e1785da67bf87d5e8d100b95976fea0f5949b66b0939e33bc74e',
+  ...
+      review: null,
+  +   revision: 6,
+  -   revision: 8,
+      status: 'evidence_ready',
+      userId: '00000000-0000-4000-8000-000000000001',
+      version: 'career_task/v1'
+    }
+  
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs:36:167)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'bf1bfc6e96150f22f73edd80220c9b29', asks: [], kind: 'public_research/v1', phase: 'check', budget: { spendCents: 0, limitActions: 120, spentActions: 1, reservedActions: 0 }, result: { kind: 'public_research_result', sends: 0, status: 'evidence_ready', artifact: [Object], submissions: 0, artifactSha256: 'b5b772d31d9807a6c1fcc049be375265e834fb590f42fde5642f230439247acf', browserOutcome: 'observed', artifactEncoding: 'sorted-json/v1' }, review: null, status: 'evidence_ready', userId: '00000000-0000-4000-8000-000000000001', blocker: null, version: 'career_task/v1', revision: 6, authority: { intentId: '4e9914ecfcb8e1785da67bf87d5e8d100b95976fea0f5949b66b0939e33bc74e', privacyEpoch: 0, accountVersion: 1 }, capabilities: { browser: 'PUBLIC_READ_ONLY', employer_submission: 'NOT_WIRED' } },
+    expected: { version: 'career_task/v1', kind: 'public_research/v1', id: 'bf1bfc6e96150f22f73edd80220c9b29', userId: '00000000-0000-4000-8000-000000000001', status: 'evidence_ready', phase: 'check', revision: 8, review: null, result: { kind: 'public_research_result', status: 'evidence_ready', artifact: [Object], artifactSha256: 'b5b772d31d9807a6c1fcc049be375265e834fb590f42fde5642f230439247acf', artifactEncoding: 'sorted-json/v1', browserOutcome: 'observed', sends: 0, submissions: 0 }, asks: [], blocker: null, budget: { limitActions: 120, spentActions: 1, reservedActions: 0, spendCents: 0 }, authority: { intentId: '4e9914ecfcb8e1785da67bf87d5e8d100b95976fea0f5949b66b0939e33bc74e', accountVersion: 1, privacyEpoch: 0 }, capabilities: { browser: 'PUBLIC_READ_ONLY', employer_submission: 'NOT_WIRED' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

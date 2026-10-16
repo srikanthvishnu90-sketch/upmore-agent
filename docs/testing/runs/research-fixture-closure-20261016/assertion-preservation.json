@@ -1,0 +1,14 @@
+{
+  "career-public-research.test.cjs": {
+    "originalSha256": "da6198fb35d1ee1a42e6bc57a0acde24abe5aa2a7e72dff7d58f50edaf3aa194",
+    "correctedSha256": "4fb1c7afea0880dc21bddc467821024308ea1cbd560f520ec1a54c806a76fc75",
+    "assertionLinesUnchanged": true,
+    "assertionLines": 23
+  },
+  "career-public-research-postgres.test.cjs": {
+    "originalSha256": "67ca0fc6fe5bba12c9be4b682da537ffc81c6f5ae2d6b312732165e3176f16e2",
+    "correctedSha256": "79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94",
+    "assertionLinesUnchanged": true,
+    "assertionLines": 15
+  }
+}

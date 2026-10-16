@@ -1,0 +1,25 @@
+{
+  "source": "1b41322988df51f9704aabb593c95e79517f847a",
+  "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-task-authority-postgres.test.cjs"
+  ],
+  "environment": {
+    "NODE_PATH": "/tmp/upmore-research-wire-deps/node_modules",
+    "CAREER_TEST_CONTAINER": "upmore-career-integration-pg-recovery",
+    "CAREER_TEST_DATABASE": "career_test_fixture_closure_authority",
+    "CAREER_TEST_PORT": 43053
+  },
+  "pgVersion": "8.13.3",
+  "wireTransport": "loopback-only TCP via docker exec Perl IO::Select; network-none fixture",
+  "testSourceSha256": "b9133701082a0d3f782a3b500f8036f3e99b47453eb694d7d0358c51417556b8",
+  "result": "PASS",
+  "tests": 21,
+  "passed": 21,
+  "failed": 0,
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0
+}

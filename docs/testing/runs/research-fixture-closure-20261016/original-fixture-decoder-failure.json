@@ -1,0 +1,6 @@
+{
+  "decoder": "Pillow",
+  "originalTenByteFixtureRejected": true,
+  "exception": "UnidentifiedImageError",
+  "message": "cannot identify image file <_io.BytesIO object at 0x7f81612ae2a0>"
+}

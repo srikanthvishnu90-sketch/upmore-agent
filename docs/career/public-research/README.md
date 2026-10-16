@@ -1,6 +1,6 @@
 # Public read-only research route — source contribution
 
-**Independent composition review:** `codex/research-conversation-review-20261016` composes this source with conversation fixes, reproduces six evidence/recovery/network gaps and hardens the research-only path. See [current independent report](../../testing/research-conversation-review-20261016.md). The verification below remains historical at its named source. The unchanged positive screenshot fixtures are rejected by the stricter validation; this composition is not an all-green or live-verified release.
+**Independent composition review:** `codex/research-conversation-review-20261016` composes this source with conversation fixes and fixes six evidence/recovery/network defects. [Fixture-closure follow-up](../../testing/research-fixture-closure-20261016.md) now closes both author fixture failures without changing assertion bodies, fixes the exposed exact-receipt mismatch, and executes both SQL lock races. [Earlier review](../../testing/research-conversation-review-20261016.md) and its red logs remain historical at their named source. All 15 live outcomes and model quality remain unverified; module-130 privacy repair remains separately blocking.
 
 Base: combined release `f67db048599db308f2691a7be7feada841143da5`.
 Branch: `codex/public-research-browser-20261016`. Muse owns merge/deploy.

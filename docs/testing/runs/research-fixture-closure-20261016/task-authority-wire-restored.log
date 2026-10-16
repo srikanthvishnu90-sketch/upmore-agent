@@ -1,0 +1,170 @@
+✔ task intent, turn pair, snapshot and structured receipt commit and replay together (1028.257509ms)
+✔ late task binding rejection rolls back the already executed base turn (811.827356ms)
+✔ missing version/action/identity cannot pass SQL null semantics (1141.361195ms)
+✔ event tombstone rejects the same event under a fresh turn key, even after erase (1481.712108ms)
+✔ committed STOP revokes queued claims and pending dispatch (1441.416438ms)
+✔ committed erase revokes queued claims and pending dispatch (1180.448911ms)
+✔ another owner cannot claim, settle or read task evidence (1528.515357ms)
+✔ STOP between reserve and physical execution rejects consume; no effect is admitted (1583.813215ms)
+✔ erase after claim rejects the next effect and removes private central copies (1677.903981ms)
+✔ an admitted uncertain effect permanently blocks new DOM work under a new intent (2418.334825ms)
+✔ effect receipts reconcile lost acknowledgements and reject altered replay (1153.887824ms)
+✔ task result retains exact structured evidence and reconciles lost finish ack (1517.786125ms)
+✔ missing authority and async authority transports fail closed (236.67651ms)
+✔ concurrent STOP transaction wins the shared owner lock before a waiting claim (1243.754405ms)
+✔ concurrent erase transaction wins the shared owner lock before a waiting claim (1095.028091ms)
+✖ client roles have neither private table nor task RPC access; all functions are invoker (267.205256ms)
+✖ real worker queued task opens no MOCK board after committed STOP (131.495906ms)
+✖ real worker queued task opens no MOCK board after committed erase (185.072288ms)
+✖ running worker rechecks committed STOP before the next MOCK browser command (198.665631ms)
+✖ running worker rechecks committed erase before the next MOCK browser command (341.520647ms)
+✖ actual staged chat -> SQL outbox -> separate worker -> structured evidence; no phantom submit (131.900659ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 15
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20978.550926
+
+✖ failing tests:
+
+test at tests/career-task-authority-postgres.test.cjs:43:1
+✖ client roles have neither private table nor task RPC access; all functions are invoker (267.205256ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_fixture_closure_authority -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:20:20)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18)
+      at Test.runHook (node:internal/test_runner/test:1269:20) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n' ],
+    pid: 347626,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n'
+  }
+
+test at tests/career-task-authority-postgres.test.cjs:44:86
+✖ real worker queued task opens no MOCK board after committed STOP (131.495906ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_fixture_closure_authority -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:20:20)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18)
+      at Test.runHook (node:internal/test_runner/test:1269:20) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n' ],
+    pid: 347659,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n'
+  }
+
+test at tests/career-task-authority-postgres.test.cjs:44:86
+✖ real worker queued task opens no MOCK board after committed erase (185.072288ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_fixture_closure_authority -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:20:20)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18)
+      at Test.runHook (node:internal/test_runner/test:1269:20) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n' ],
+    pid: 347687,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n'
+  }
+
+test at tests/career-task-authority-postgres.test.cjs:45:86
+✖ running worker rechecks committed STOP before the next MOCK browser command (198.665631ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_fixture_closure_authority -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:20:20)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18)
+      at Test.runHook (node:internal/test_runner/test:1269:20) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n' ],
+    pid: 347718,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n'
+  }
+
+test at tests/career-task-authority-postgres.test.cjs:45:86
+✖ running worker rechecks committed erase before the next MOCK browser command (341.520647ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_fixture_closure_authority -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:20:20)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18)
+      at Test.runHook (node:internal/test_runner/test:1269:20) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n' ],
+    pid: 347744,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is in recovery mode\n'
+  }
+
+test at tests/career-task-authority-postgres.test.cjs:55:1
+✖ actual staged chat -> SQL outbox -> separate worker -> structured evidence; no phantom submit (131.900659ms)
+  Error: Command failed: docker exec -i upmore-career-integration-pg-recovery psql -X -qAt -U postgres -d career_test_fixture_closure_authority -v ON_ERROR_STOP=1
+  psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is not yet accepting connections
+  DETAIL:  Consistent recovery state has not been yet reached.
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at Object.sql (/workspace/upmore-research-review/tests/helpers/career-task-sql.cjs:10:12)
+      at TestContext.<anonymous> (/workspace/upmore-research-review/tests/career-task-authority-postgres.test.cjs:20:20)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1382:25)
+      at TestHook.run (node:internal/test_runner/test:1726:18)
+      at Test.runHook (node:internal/test_runner/test:1269:20) {
+    status: 2,
+    signal: null,
+    output: [ null, '', 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is not yet accepting connections\nDETAIL:  Consistent recovery state has not been yet reached.\n' ],
+    pid: 347774,
+    stdout: '',
+    stderr: 'psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is not yet accepting connections\nDETAIL:  Consistent recovery state has not been yet reached.\n'
+  }

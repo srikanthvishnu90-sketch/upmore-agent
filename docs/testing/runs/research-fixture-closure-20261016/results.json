@@ -1,0 +1,298 @@
+{
+  "version": "research_fixture_closure/v1",
+  "at": "2026-10-16T02:58:35.681803+00:00",
+  "productSource": "1b41322988df51f9704aabb593c95e79517f847a",
+  "baseReview": "da9e9245bcb355ee2994464743dd265ff032dfab",
+  "branch": "codex/research-conversation-review-20261016",
+  "result": "PASS_SCOPED_FIXTURES_AND_LOCAL_SQL; NOT_LIVE_OR_RELEASE_READY",
+  "currentPassingTests": 319,
+  "originalAuthorAssertionsUnchanged": true,
+  "module130Changed": false,
+  "modelQuality": "NOT_EVALUATED",
+  "browserOutcomes": 0,
+  "paidCalls": 0,
+  "wirePrerequisite": "RESTORED; both original concurrency tests passed",
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "workers/career-browser/service.cjs": "d3331535105c7fada8741f51fe734ed89dd173c8dc0ab9a587f17cabda6db0cf",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d",
+    "workers/career-browser/research-png.cjs": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+  },
+  "additionalSourceHashes": {
+    "tests/fixtures/public-research-capture.cjs": "ef65319a9c1951547b85c8d4dabbe57701761036ab676924d80c222d98273093",
+    "tests/research-fixture-contract.test.cjs": "de2c436321c55e37e7a0b7a85071da49c184764107acc4570cb343bb34f747ba",
+    "scripts/career/research-review/local-pg-wire.cjs": "0b548d7bb7b3a23361c43af39677b2a948b0a14b9815e2e8e4eb160c8c35043a"
+  },
+  "runs": [
+    {
+      "id": "fixture-corrected-source-before",
+      "source": "da9e9245bcb355ee2994464743dd265ff032dfab",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/career-public-research.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fixture-corrected-source-before/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/fixture-corrected-source-before/test.log",
+      "logSha256": "0e6ddfe173c4bb1566500da02ffa883daa408ab4a260fccda6061ab69facc365",
+      "testSourceSha256": "4fb1c7afea0880dc21bddc467821024308ea1cbd560f520ec1a54c806a76fc75",
+      "transcriptSha256": null
+    },
+    {
+      "id": "fixture-corrected-pg-before",
+      "source": "da9e9245bcb355ee2994464743dd265ff032dfab",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs"
+      ],
+      "exitCode": 1,
+      "counts": {
+        "tests": 7,
+        "pass": 6,
+        "fail": 1,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fixture-corrected-pg-before/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/fixture-corrected-pg-before/test.log",
+      "logSha256": "1f403c3d43ebc0326e2549fa6c93f062a9c436bdc4a5b33581cba61f4d5f1897",
+      "testSourceSha256": "79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94",
+      "transcriptSha256": null
+    },
+    {
+      "id": "receipt-independent-before",
+      "source": "da9e9245bcb355ee2994464743dd265ff032dfab",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+      ],
+      "exitCode": 1,
+      "counts": {
+        "tests": 16,
+        "pass": 13,
+        "fail": 3,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/receipt-independent-before/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/receipt-independent-before/test.log",
+      "logSha256": "3074b0edca6dfd5c847ae6d450c24bf95000a0ba4bee4d49a9a47e987d9fa24b",
+      "testSourceSha256": "209b0c09300e8507607ffec5beb054b5a53b8f4ae87ae0092255c6b373a25870",
+      "transcriptSha256": "7b6ff9699482ae7e32c66037f37a3ab6136c546c79b7c993603d7fc3ba2e651c"
+    },
+    {
+      "id": "fixture-closure-author-source",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/career-public-research.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-author-source/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-author-source/test.log",
+      "logSha256": "9ee8483b34764aa3dabd86eb95a51d626acd1763e69b097e0af44efe5a9e069c",
+      "testSourceSha256": "4fb1c7afea0880dc21bddc467821024308ea1cbd560f520ec1a54c806a76fc75",
+      "transcriptSha256": null
+    },
+    {
+      "id": "fixture-closure-author-postgres",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/career-public-research-postgres.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-author-postgres/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-author-postgres/test.log",
+      "logSha256": "ddee86a2a1a7e1ad2c431e11cb50799ad91e7a9923ed5a6815502c4126e62f54",
+      "testSourceSha256": "79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94",
+      "transcriptSha256": null
+    },
+    {
+      "id": "fixture-closure-independent-source",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/research-conversation-independent-source.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-independent-source/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-independent-source/test.log",
+      "logSha256": "c4cc608bfc1e0ffaec6bdd6ffc7bc4df3c374de1893d321259bb05a7ad3229b2",
+      "testSourceSha256": "315ad740163c9fa8706c80b0387316325cd75924ff54153796da6624f5ca6888",
+      "transcriptSha256": null
+    },
+    {
+      "id": "fixture-closure-independent-postgres",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "/workspace/upmore-research-review/tests/research-conversation-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 17,
+        "pass": 17,
+        "fail": 0,
+        "skipped": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-independent-postgres/metadata.json",
+      "log": "docs/testing/runs/research-conversation-review-20261016/fixture-closure-independent-postgres/test.log",
+      "logSha256": "851d76cf0bea5b035b051d93c5ab94fedf423b7d496ff2192ce573078afbdd62",
+      "testSourceSha256": "ffa0faf0d04ee9fc40a2399d87f8408fe5d5614693dd80617d47feb1f2273047",
+      "transcriptSha256": "4989fff750a7fa898a09e7867cf9b6f6d54555a12cb888f3ccd9de19cf0062af"
+    },
+    {
+      "id": "task-authority-wire-restored",
+      "source": "da9e9245bcb355ee2994464743dd265ff032dfab",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "tests/career-task-authority-postgres.test.cjs"
+      ],
+      "exitCode": 1,
+      "counts": {
+        "tests": 21,
+        "pass": 15,
+        "fail": 6,
+        "skipped": 0
+      },
+      "log": "docs/testing/runs/research-fixture-closure-20261016/task-authority-wire-restored.log",
+      "logSha256": "910d83413c3be049cc61d0e210ab7330abd4ed6f73d8334820f796497a0466e4"
+    },
+    {
+      "id": "task-authority-wire-v2",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "tests/career-task-authority-postgres.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 21,
+        "pass": 21,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "docs/testing/runs/research-fixture-closure-20261016/task-authority-wire-v2.log",
+      "logSha256": "5cba57742c2c180f2546d6763a661760a716b97deaa40b29d771318633463886"
+    },
+    {
+      "id": "fixture-independent-regressions",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "node",
+        "--test",
+        "tests/research-fixture-contract.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 6,
+        "pass": 6,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "docs/testing/runs/research-fixture-closure-20261016/fixture-independent-regressions.log",
+      "logSha256": "66c4a0a0d70afb87636ccdd0a1a2c8bda59a83fe0b9dc97fec61b2e515886341"
+    },
+    {
+      "id": "regressions",
+      "source": "1b41322988df51f9704aabb593c95e79517f847a",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "tests/career-bundle-reachability.test.cjs",
+        "tests/independent-worker-atomic-interplay.test.cjs",
+        "tests/career-durability.test.cjs",
+        "tests/career-portal-submit-path.test.cjs",
+        "tests/career-portal-apply.test.cjs",
+        "tests/career-apply-completion.test.cjs",
+        "tests/career-apply3.test.cjs",
+        "tests/career-owned-worker.test.cjs",
+        "tests/career-bundle.test.cjs",
+        "tests/router-bundle.test.cjs",
+        "tests/career-staged-size.test.cjs",
+        "tests/career-http-host.test.cjs",
+        "tests/career-guidance-entry.test.cjs",
+        "tests/career-alert-intents.test.cjs",
+        "tests/career-alerts-host-wiring.test.cjs",
+        "tests/career-alert-text-flow.test.cjs",
+        "tests/career-portal-caps.test.cjs",
+        "tests/career-portal-payload-binding.test.cjs",
+        "tests/career-unknown-outcome-resolver.test.cjs",
+        "tests/career-conversation-heldouts.test.cjs",
+        "tests/career-conversation-mechanisms.test.cjs",
+        "tests/career-tailor-fact-id-boundary.test.cjs",
+        "tests/career-clock-source-guard.test.cjs",
+        "tests/career-router-wedge.test.cjs"
+      ],
+      "exitCode": 0,
+      "counts": {
+        "tests": 244,
+        "pass": 244,
+        "fail": 0,
+        "skipped": 0
+      },
+      "log": "docs/testing/runs/research-fixture-closure-20261016/regressions.log",
+      "logSha256": "1d5c56cd0926d7b77e714bffdc55b3f912d9af6ac6543282972868319f94b038"
+    }
+  ],
+  "privacyAvailability": "docs/testing/runs/research-fixture-closure-20261016/privacy-availability.json",
+  "originalFailures": [
+    "docs/testing/runs/research-conversation-review-20261016/author-after-source/test.log",
+    "docs/testing/runs/research-conversation-review-20261016/author-after-postgres/test.log"
+  ]
+}

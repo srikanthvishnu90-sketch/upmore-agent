@@ -182,7 +182,13 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       t.status = "unknown_outcome";
       t.attempt = { approvalRef: approval.approvalRef, payloadSha256: t.review.payloadSha256, destination: t.review.destination, resumeSha256: t.review.resumeSha256 };
       save(t, "execute", { action: "submit", actionState: "write_ahead_fence" });
-      const outcome = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: approval.approvalRef }, { posting: t.spec.posting, log: { records: [] }, now: new Date(now()).toISOString() });
+      // Combine fix (2026-10-15, composition defect): forward the approval's
+      // payloadSha256 — approve() above validated it against the stored
+      // review and the re-prepared review hash was checked equal, so this is
+      // exactly the doorstep's hash. Without it, 149's MI-116 gate correctly
+      // refuses the hashless approval (APPROVAL_PAYLOAD_MISMATCH) before the
+      // arming wire and no click ever happens.
+      const outcome = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: approval.approvalRef, payloadSha256: approval.payloadSha256 }, { posting: t.spec.posting, log: { records: [] }, now: new Date(now()).toISOString() });
       const proof = destinationProof(t);
       t.status = validProof(t, proof) ? "completed" : "unknown_outcome";
       t.result = { kind: "career_browser_result", taskId: t.id, status: t.status, approvalRef: approval.approvalRef,

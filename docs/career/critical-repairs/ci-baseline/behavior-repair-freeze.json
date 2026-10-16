@@ -1,0 +1,25 @@
+{
+  "frozenAt": "2026-10-16T23:29:05.239490+00:00",
+  "base": "f911db42c47584b027a13e973d97699441f3269c",
+  "runtime": "Node 22.23.3 exact CI pin",
+  "sha256": {
+    "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+    "packages/domain/151-career-alert-watch.js": "c8dd1b5594786729de332cb44b1709a19e91e08b8b3a2396f90c6313b9a6c817",
+    "tests/career-conversation-depth.test.cjs": "7d357d88cef6fa4fa182f885694367a113a71f30c2de82047d312fd2d908bec6",
+    "tests/career-next-step-routing.test.cjs": "ccbd881e7330321108f5adb9b790b39bc8221e011782f8818ef7b2cc5848c533",
+    "tests/career-state-write-adversarial.test.cjs": "1714b710839dc677d4bbb2aba54d71dd6b887091c869caa2c626e7fa4bd337d9",
+    "tests/career-alert-watch.test.cjs": "14d9a960a37157132072636df46be2ec987bde152565266756ab768d0c97b6f0",
+    "tests/career-gauntlet-r1.test.cjs": "63e9dfbf56bb1bde25a4405b5e5aa8d1ba58eaf14177f91165ca769177fad799"
+  },
+  "expectations": [
+    "Named first-person application writes one owned tracker row on Node22, including lowercase instruction prefix with capitalized company preserved.",
+    "Questions, quotations, hypotheticals and third-party reports never write tracker rows.",
+    "Subsequent rejection/interview/offer events move the same row, and next-step reads owned company and stage.",
+    "A never-settling board fetch or body terminates at the active deadline; Node22 test runner cannot cancel the awaited promise because its timer was unreferenced.",
+    "Role-bound legacy mock preserves actual role, rubric follow-ups, contradiction checking and retries; do not waive C31 based solely on its opening regex.",
+    "Voice path remains honestly unavailable; existing negotiation and guidance ownership are preserved."
+  ],
+  "evidenceTier": "SOURCE_REVIEW_AND_MOCK_CONTRACT",
+  "actualModelQuality": "NOT_RUN",
+  "paidCalls": 0
+}

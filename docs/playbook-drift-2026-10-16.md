@@ -213,3 +213,13 @@ historical evidence was unavailable. CI now has a separate required
 `--require-complete` job. Missing originals remain NOT_RUN and block that job
 and release. No historical receipts were regenerated. The current shared
 journey schema is a tested prototype, not integrated production authority.
+
+## Shared gateway body reads were outside the bounded lifecycle
+
+The previous gateway passed an abort deadline to fetch but then awaited an
+unbounded body read, checking decoded character count only after completion.
+Frozen staged-gateway tests show seven failures. One deadline now spans headers
+and streamed response bytes, supports parent cancellation, and cancels bodies
+after the 200,000-byte cap, including error responses. Eight new checks, 92
+career gateway/flexible checks and 18 native Deno gateway/error/usage checks pass.
+This repairs transport bounds, not production semantic-verifier availability.

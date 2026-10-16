@@ -1,0 +1,61 @@
+TAP version 13
+# (node:320078) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:320078) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: deadline bounds a transport that ignores the abort signal before headers
+ok 1 - deadline bounds a transport that ignores the abort signal before headers
+  ---
+  duration_ms: 198.296978
+  type: 'test'
+  ...
+# Subtest: deadline bounds and cancels a stalled 200 response body
+ok 2 - deadline bounds and cancels a stalled 200 response body
+  ---
+  duration_ms: 137.285658
+  type: 'test'
+  ...
+# Subtest: deadline bounds and cancels a stalled 503 response body
+ok 3 - deadline bounds and cancels a stalled 503 response body
+  ---
+  duration_ms: 135.168865
+  type: 'test'
+  ...
+# Subtest: an already aborted parent prevents dispatch
+ok 4 - an already aborted parent prevents dispatch
+  ---
+  duration_ms: 108.524283
+  type: 'test'
+  ...
+# Subtest: parent abort cancels a body read after headers
+ok 5 - parent abort cancels a body read after headers
+  ---
+  duration_ms: 117.730093
+  type: 'test'
+  ...
+# Subtest: response size is measured in UTF-8 bytes before parsing
+ok 6 - response size is measured in UTF-8 bytes before parsing
+  ---
+  duration_ms: 109.233518
+  type: 'test'
+  ...
+# Subtest: over-limit stream is cancelled without draining the remaining response
+ok 7 - over-limit stream is cancelled without draining the remaining response
+  ---
+  duration_ms: 106.728061
+  type: 'test'
+  ...
+# Subtest: bounded successful raw usage retains exact normal gateway translation
+ok 8 - bounded successful raw usage retains exact normal gateway translation
+  ---
+  duration_ms: 112.206349
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1080.264233

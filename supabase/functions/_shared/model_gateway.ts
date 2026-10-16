@@ -132,25 +132,53 @@ export function adminHealthSink(admin: any): HealthSink {
   return async (e) => { try { await admin.from("agent_provider_events").insert(e); } catch (_) { /* health logging never breaks a reply */ } };
 }
 
-export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink; requireUsageReceipt?: boolean }
+export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; signal?: AbortSignal; meter?: TurnMeter; health?: HealthSink; requireUsageReceipt?: boolean }
 // The one call. Returns an Anthropic-shaped message; throws ModelUnavailableError (provider status, type and message,
 // never the key) when the provider refuses, fails or is not configured.
 export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions = {}): Promise<any> {
   const role = o.role || "chat", request = o.request || fetch, started = Date.now();
   const report = async (ok: boolean, status: number | null, type: string | null, detail: string | null) => { if (o.health) await o.health({ provider: cfg.provider, model: cfg.model, role, ok, status, error_type: type, detail, latency_ms: Date.now() - started }); };
   if (!cfg.apiKey) { const e = new ModelUnavailableError(0, "not_configured", `${providerName(cfg)} API key is not configured`); meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e; }
-  let res: Response;
+  const controller=new AbortController();let expired=false;
+  const stopped=()=>new ModelUnavailableError(0,expired?'timeout':'aborted',`${providerName(cfg)} request ${expired?'timed out':'was aborted'}`);
+  const parentAbort=()=>controller.abort();
+  o.signal?.addEventListener('abort',parentAbort,{once:true});
+  if(o.signal?.aborted)controller.abort();
+  const timeout=Number.isFinite(o.timeoutMs)?Math.max(0,o.timeoutMs!):30000;
+  const timer=setTimeout(()=>{expired=true;controller.abort();},timeout);
+  // Expired admission must not dispatch and only discover its deadline later.
+  if(timeout===0){expired=true;controller.abort();}
+  // The race also bounds injected/failed transports that ignore AbortSignal.
+  // The same deadline remains active through headers, streamed bytes and parse.
+  let rejectStop:(e:Error)=>void=()=>{};
+  const stop=new Promise<never>((_,reject)=>{rejectStop=reject;});
+  const onStop=()=>rejectStop(stopped());
+  controller.signal.addEventListener('abort',onStop,{once:true});
+  const guard=<T>(p:Promise<T>):Promise<T>=>Promise.race([p,stop]);
   try {
-    res = cfg.provider === "openai"
-      ? await request(OPENAI_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify(toOpenAI(payload, cfg)), signal: AbortSignal.timeout(o.timeoutMs || 30000) })
-      : await request(ANTHROPIC_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }, body: JSON.stringify(Object.assign({}, payload, { model: cfg.model })), signal: AbortSignal.timeout(o.timeoutMs || 30000) });
-  } catch (err) {
-    const e = new ModelUnavailableError(0, err && (err as any).name === "TimeoutError" ? "timeout" : "network", `${providerName(cfg)}: ${err instanceof Error ? err.message : String(err)}`);
-    meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e;
-  }
-  if (!res.ok) { const e = await providerError(res); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e; }
-  const raw = await res.text();
-  if (raw.length > 200000) { const e = new ModelUnavailableError(502, "too_large", `${providerName(cfg)} response is too large`); meterAdd(o.meter, cfg, null, true); await report(false, 502, e.type, e.detail); throw e; }
+    if(controller.signal.aborted)throw stopped();
+    const pending=cfg.provider === "openai"
+      ? request(OPENAI_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify(toOpenAI(payload, cfg)), signal: controller.signal })
+      : request(ANTHROPIC_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }, body: JSON.stringify(Object.assign({}, payload, { model: cfg.model })), signal: controller.signal });
+    const res:Response=await guard<Response>(Promise.resolve(pending).then(r=>{if(controller.signal.aborted){void r.body?.cancel().catch(()=>{});throw stopped();}return r;}));
+    let raw='';
+    if(res.body){
+      const reader=res.body.getReader(),chunks:Uint8Array[]=[];let length=0;
+      const cancel=()=>{void reader.cancel().catch(()=>{});};
+      controller.signal.addEventListener('abort',cancel,{once:true});
+      try{
+        if(controller.signal.aborted)throw stopped();
+        while(true){
+          const part=await guard(reader.read());if(controller.signal.aborted)throw stopped();if(part.done)break;
+          length+=part.value.byteLength;
+          if(length>200000){cancel();throw new ModelUnavailableError(502,'too_large',`${providerName(cfg)} response is too large`);}
+          chunks.push(part.value);
+        }
+        const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+        raw=new TextDecoder().decode(bytes);
+      }finally{controller.signal.removeEventListener('abort',cancel);try{reader.releaseLock();}catch(_){/* pending abort cancellation releases the read */}}
+    }
+    if (!res.ok) throw await providerError({status:res.status,text:async()=>raw} as Response);
   let out: any;
   try {
     const body = JSON.parse(raw);
@@ -164,9 +192,14 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
     }
     out = cfg.provider === "openai" ? fromOpenAI(body) : body;
   }
-  catch (err) { const e = err instanceof ModelUnavailableError ? err : new ModelUnavailableError(502, "bad_response", `${providerName(cfg)} returned unreadable JSON`); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e; }
+  catch (err) { throw err instanceof ModelUnavailableError ? err : new ModelUnavailableError(502, "bad_response", `${providerName(cfg)} returned unreadable JSON`); }
+  if(controller.signal.aborted)throw stopped();
   meterAdd(o.meter, cfg, out.usage); await report(true, res.status, null, null);
   return out;
+  }catch(err){
+    const e=controller.signal.aborted?stopped():err instanceof ModelUnavailableError?err:new ModelUnavailableError(0,'network',`${providerName(cfg)}: ${err instanceof Error?err.message:String(err)}`);
+    meterAdd(o.meter,cfg,null,true);await report(false,e.status||null,e.type,e.detail);throw e;
+  }finally{clearTimeout(timer);o.signal?.removeEventListener('abort',parentAbort);controller.signal.removeEventListener('abort',onStop);}
 }
 
 // What a person reads when the provider is down: the same sentence everywhere, never planner wording, never silence.

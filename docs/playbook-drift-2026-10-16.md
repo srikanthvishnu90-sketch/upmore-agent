@@ -74,3 +74,5 @@ No new persistence infrastructure or production migration is part of this fix.
 
 
 Independent privacy composition: preserve both dated drift histories. Owner repair is published at 382b6e37 and merged here without a module-130 conflict; combined privacy/conversation/research verification remains pending.
+
+Joint-probe fixture refinement: J01 uses colliding names plus default profile/fact IDs; J02 now explicitly uses the default profile ID with no name/email so an erased fresh profile reuses the exact old cache key on the negative-control baseline. Expected outcomes stay unchanged; preserve the first combined joint run and add baseline/combined runs of this stronger erasure fixture. No product implementation changed.

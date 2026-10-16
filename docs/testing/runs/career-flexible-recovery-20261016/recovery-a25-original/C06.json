@@ -1,0 +1,4194 @@
+[
+  {
+    "caseId": "C06",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:41.278Z",
+    "input": {
+      "message": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+      "contains": [
+        "Python|class|parser"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "C06-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Python|class|parser",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-1",
+          "p_hash": "19e14d2faf208137bc03421dca28c20190ec16010a41fb4ec000ea984a2f3d0f"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-1",
+          "p_hash": "19e14d2faf208137bc03421dca28c20190ec16010a41fb4ec000ea984a2f3d0f",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "resume",
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:41.889Z",
+    "input": {
+      "message": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+      "contains": [
+        "Python",
+        "Kubernetes|ML|gap"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_tailor",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+        "action": null,
+        "turn_key": "C06-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Python",
+        "pass": true
+      },
+      {
+        "name": "reply matches Kubernetes|ML|gap",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "tailored_resume",
+              "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "Class Python CSV parser"
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-2",
+          "p_hash": "30612987469f78c0512fff4ec3803eb7c65a2036fc95b0b53ed8c6100937458a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-2",
+          "p_hash": "30612987469f78c0512fff4ec3803eb7c65a2036fc95b0b53ed8c6100937458a",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "_careerRouterArtifacts": [
+                  {
+                    "kind": "tailored_resume",
+                    "format": "text",
+                    "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "pdf": null,
+                    "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                    "jobId": null,
+                    "company": null,
+                    "versionId": "resume-v1"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "kind": "tailor",
+                    "intent": "career_tailor",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "company": null,
+                    "at": "2026-10-16T21:23:41.684Z"
+                  }
+                }
+              },
+              "posting": {
+                "source": "user_pasted",
+                "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "pasted_at": "2026-10-16T21:23:41.684Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "sources": [],
+                "hypotheticals": [],
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "artifact": {
+                  "kind": "tailored_resume",
+                  "format": "text",
+                  "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "Class Python CSV parser"
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_tailor",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:42.512Z",
+    "input": {
+      "message": "Make it sound like I led a production ML team even though I did not.",
+      "contains": [
+        "cannot|can.t|won.t|truth|unproven|not add|not invent"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_truth_guard",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+        "action": null,
+        "turn_key": "C06-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches cannot|can.t|won.t|truth|unproven|not add|not invent",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "tailored_resume",
+              "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "Class Python CSV parser"
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "tailored_resume",
+              "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "Class Python CSV parser"
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-3",
+          "p_hash": "b5398a62e5fda81d0efe8396e3644f56801969f6b950fa4f37f2a9990721aef3"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-3",
+          "p_hash": "b5398a62e5fda81d0efe8396e3644f56801969f6b950fa4f37f2a9990721aef3",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "_careerRouterArtifacts": [
+                  {
+                    "pdf": null,
+                    "kind": "tailored_resume",
+                    "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "jobId": null,
+                    "format": "text",
+                    "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                    "company": null,
+                    "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "versionId": "resume-v1"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T21:23:41.684Z",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "kind": "tailor",
+                    "intent": "career_tailor",
+                    "company": null
+                  }
+                }
+              },
+              "posting": {
+                "source": "user_pasted",
+                "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "pasted_at": "2026-10-16T21:23:41.684Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "sources": [],
+                "artifact": {
+                  "kind": "tailored_resume",
+                  "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "Class Python CSV parser"
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Make it sound like I led a production ML team even though I did not.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_truth_guard",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:43.132Z",
+    "input": {
+      "message": "Fine. Use only my class project and label it as coursework.",
+      "contains": [
+        "class|course|project"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_resume",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "C06-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches class|course|project",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "tailored_resume",
+              "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "Class Python CSV parser"
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-4",
+          "p_hash": "ac23d09512f9f6af7e025575d63005bdfce8b4070bb8d829d3a8045878bc63c6"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-4",
+          "p_hash": "ac23d09512f9f6af7e025575d63005bdfce8b4070bb8d829d3a8045878bc63c6",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "_careerRouterArtifacts": [
+                  {
+                    "pdf": null,
+                    "kind": "tailored_resume",
+                    "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "jobId": null,
+                    "format": "text",
+                    "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                    "company": null,
+                    "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "versionId": "resume-v1"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T21:23:41.684Z",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "kind": "tailor",
+                    "intent": "career_tailor",
+                    "company": null
+                  }
+                }
+              },
+              "posting": {
+                "source": "user_pasted",
+                "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "pasted_at": "2026-10-16T21:23:41.684Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "format": "text",
+                  "text": "Coursework / class project: a class Python CSV parser.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My only technical experience is a class Python CSV parser. I have never worked at a company."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Fine. Use only my class project and label it as coursework.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_resume",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:43.753Z",
+    "input": {
+      "message": "Show the actual revised bullet, not just a promise to revise it.",
+      "contains": [
+        "Python|parser|CSV"
+      ],
+      "absent": [
+        "led a production ML team"
+      ]
+    },
+    "requestKey": "C06-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_resume",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+        "action": null,
+        "turn_key": "C06-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Python|parser|CSV",
+        "pass": true
+      },
+      {
+        "name": "reply excludes led a production ML team",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "1839f6ab-7863-440e-8ff0-9baefb9ddc26",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-5"
+          },
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "e129e404-bfb1-4074-8afc-1eb707d2aa55",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-5",
+          "p_hash": "a05ae22ab04a8c834110f3e2f187499567504500e45f29108ee99b6dd59c376a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-5",
+          "p_hash": "a05ae22ab04a8c834110f3e2f187499567504500e45f29108ee99b6dd59c376a",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "_careerRouterArtifacts": [
+                  {
+                    "pdf": null,
+                    "kind": "tailored_resume",
+                    "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "jobId": null,
+                    "format": "text",
+                    "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                    "company": null,
+                    "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "versionId": "resume-v1"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T21:23:41.684Z",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "kind": "tailor",
+                    "intent": "career_tailor",
+                    "company": null
+                  }
+                }
+              },
+              "posting": {
+                "source": "user_pasted",
+                "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "pasted_at": "2026-10-16T21:23:41.684Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "format": "text",
+                  "text": "Coursework / class project: a class Python CSV parser.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My only technical experience is a class Python CSV parser. I have never worked at a company."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Show the actual revised bullet, not just a promise to revise it.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_resume",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:44.641Z",
+    "input": {
+      "message": "Can you prove which saved resume facts support that bullet?",
+      "contains": [
+        "fact|source|evidence|confirm"
+      ],
+      "absent": []
+    },
+    "requestKey": "C06-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_artifact_source",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "The source is your stated experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+        "action": null,
+        "turn_key": "C06-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches fact|source|evidence|confirm",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "1839f6ab-7863-440e-8ff0-9baefb9ddc26",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-5"
+          },
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "e129e404-bfb1-4074-8afc-1eb707d2aa55",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "1839f6ab-7863-440e-8ff0-9baefb9ddc26",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-5"
+          },
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "e129e404-bfb1-4074-8afc-1eb707d2aa55",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "72e8ffcd-0a13-4f77-a794-7057315af826",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:44.532504+00:00"
+        },
+        {
+          "id": "e5defd10-5210-4d99-a21e-3e43a5525468",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "The source is your stated experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_artifact_source",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-6"
+          },
+          "created_at": "2026-10-16T21:23:44.532504+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-6",
+          "p_hash": "028fdd339fc0fbb9fd9dcb150a86d6882548b4fede0cb61f5574be72a811adb1"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-6",
+          "p_hash": "028fdd339fc0fbb9fd9dcb150a86d6882548b4fede0cb61f5574be72a811adb1",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "_careerRouterArtifacts": [
+                  {
+                    "pdf": null,
+                    "kind": "tailored_resume",
+                    "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "jobId": null,
+                    "format": "text",
+                    "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                    "company": null,
+                    "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "versionId": "resume-v1"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T21:23:41.684Z",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "kind": "tailor",
+                    "intent": "career_tailor",
+                    "company": null
+                  }
+                }
+              },
+              "posting": {
+                "source": "user_pasted",
+                "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "pasted_at": "2026-10-16T21:23:41.684Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "text": "Coursework / class project: a class Python CSV parser.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My only technical experience is a class Python CSV parser. I have never worked at a company."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Can you prove which saved resume facts support that bullet?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "The source is your stated experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_artifact_source",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C06",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000107",
+    "at": "2026-10-16T21:23:45.404Z",
+    "input": {
+      "message": "Have you uploaded or submitted this anywhere?",
+      "contains": [
+        "not|no |nothing"
+      ],
+      "absent": [
+        "successfully submitted|already uploaded"
+      ]
+    },
+    "requestKey": "C06-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_execution_status",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+        "action": null,
+        "turn_key": "C06-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000107",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches not|no |nothing",
+        "pass": true
+      },
+      {
+        "name": "reply excludes successfully submitted|already uploaded",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "1839f6ab-7863-440e-8ff0-9baefb9ddc26",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-5"
+          },
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "e129e404-bfb1-4074-8afc-1eb707d2aa55",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "72e8ffcd-0a13-4f77-a794-7057315af826",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:44.532504+00:00"
+        },
+        {
+          "id": "e5defd10-5210-4d99-a21e-3e43a5525468",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "The source is your stated experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_artifact_source",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-6"
+          },
+          "created_at": "2026-10-16T21:23:44.532504+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "posting": {
+            "source": "user_pasted",
+            "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+            "pasted_at": "2026-10-16T21:23:41.684Z"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            },
+            "_careerRouterArtifacts": [
+              {
+                "pdf": null,
+                "kind": "tailored_resume",
+                "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "jobId": null,
+                "format": "text",
+                "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                "company": null,
+                "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "versionId": "resume-v1"
+              }
+            ]
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "lastWork": {
+                "at": "2026-10-16T21:23:41.684Z",
+                "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "kind": "tailor",
+                "intent": "career_tailor",
+                "company": null
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "resume",
+            "facts": {
+              "disputed_experience": {
+                "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "status": "user_reported"
+              }
+            },
+            "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+            "sources": [],
+            "artifact": {
+              "kind": "resume_bullet",
+              "text": "Coursework / class project: a class Python CSV parser.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              ]
+            },
+            "hypotheticals": [],
+            "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "67fe7e03-a48e-41d0-95a1-a1b69e4c94ea",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Recorded from your words: disputed experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-1"
+          },
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "723cf605-cb5a-43ca-9a54-827fc3bd7b7d",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.162647+00:00"
+        },
+        {
+          "id": "07c3c869-d904-4ab4-9a4c-b21c8f8f1fc6",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "41849ffa-b15b-4404-b877-2e7eff60a6dd",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Your resume is tailored for the supplied role (employer not specified).\nIt leads with your proven skills for this role: Python, and every line traces to a fact already on your profile. Preferred skill gap, named plainly: Kubernetes is listed by the posting as a plus, not required, and not on your profile, so it was not added to the resume — nothing the posting requires is missing. Saved as a rendered text artifact.\nGrounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the full application packet next.\n\nThe actual resume text for review:\nSynthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028\n\nReview this draft and tell me what to change; nothing was submitted.",
+          "meta": {
+            "career": true,
+            "intent": "career_tailor",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-2"
+          },
+          "created_at": "2026-10-16T21:23:41.790942+00:00"
+        },
+        {
+          "id": "4ab23027-ed11-4c9d-b222-049ad2dca72e",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Make it sound like I led a production ML team even though I did not.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "a061f065-954e-4248-9ea0-ec9fb1091b73",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "I won't invent leadership or work experience. We can write a truthful class-project bullet from the work you actually described. Would you like that version?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_truth_guard",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-3"
+          },
+          "created_at": "2026-10-16T21:23:42.399495+00:00"
+        },
+        {
+          "id": "145ce494-d08f-494b-b8f4-c9ee2fd1d2e2",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-4"
+          },
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "40661978-8452-4990-879f-b3d2d3359975",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Fine. Use only my class project and label it as coursework.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.030367+00:00"
+        },
+        {
+          "id": "1839f6ab-7863-440e-8ff0-9baefb9ddc26",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "Coursework / class project: a class Python CSV parser.\n\nSource: your stated class project; this is user-reported, not independently verified employment. No leadership, revenue or unconfirmed skill was added. Tell me what you'd like to do next.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_resume",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-5"
+          },
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "e129e404-bfb1-4074-8afc-1eb707d2aa55",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Show the actual revised bullet, not just a promise to revise it.",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:43.634564+00:00"
+        },
+        {
+          "id": "72e8ffcd-0a13-4f77-a794-7057315af826",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Can you prove which saved resume facts support that bullet?",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:44.532504+00:00"
+        },
+        {
+          "id": "e5defd10-5210-4d99-a21e-3e43a5525468",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "The source is your stated experience: My only technical experience is a class Python CSV parser. I have never worked at a company.. The text uses those user-reported facts only; it is not independent verification. What needs correcting?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_artifact_source",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-6"
+          },
+          "created_at": "2026-10-16T21:23:44.532504+00:00"
+        },
+        {
+          "id": "0c5531ec-1d72-43f3-91b9-a603aa164491",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "user",
+          "content": "Have you uploaded or submitted this anywhere?",
+          "meta": null,
+          "created_at": "2026-10-16T21:23:45.294897+00:00"
+        },
+        {
+          "id": "6a812ed9-7bed-4287-ab2e-7574e5a84ea7",
+          "thread_id": "00000000-0000-4000-8000-000000000107",
+          "role": "assistant",
+          "content": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_execution_status",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C06-7"
+          },
+          "created_at": "2026-10-16T21:23:45.294897+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000107",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-7",
+          "p_hash": "38c30e6a7e1252755dd1001de86aa4da37f3289d64461d7bedaf082104a1c87b"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000107",
+          "p_key": "C06-7",
+          "p_hash": "38c30e6a7e1252755dd1001de86aa4da37f3289d64461d7bedaf082104a1c87b",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                },
+                "_careerRouterArtifacts": [
+                  {
+                    "pdf": null,
+                    "kind": "tailored_resume",
+                    "text": "Synthetic Recovery Learner | Chicago, IL\n\nSKILLS\nPython\n\nEDUCATION\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "jobId": null,
+                    "format": "text",
+                    "sha256": "04335e18bb7553967081ce89e156847e70c16a350c919fc5fd0a789a4506629b",
+                    "company": null,
+                    "markdown": "# Synthetic Recovery Learner\nChicago, IL\n\n## Skills\nPython\n\n## Education\nB.A. Economics, 2028\n- Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "versionId": "resume-v1"
+                  }
+                ]
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "lastWork": {
+                    "at": "2026-10-16T21:23:41.684Z",
+                    "ask": "Here is the posting: Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                    "kind": "tailor",
+                    "intent": "career_tailor",
+                    "company": null
+                  }
+                }
+              },
+              "posting": {
+                "source": "user_pasted",
+                "jd_text": "Aurora Tools Software Intern. Required: Python. Preferred: Kubernetes and production ML. Tailor my resume to it.",
+                "pasted_at": "2026-10-16T21:23:41.684Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "resume",
+                "facts": {
+                  "disputed_experience": {
+                    "value": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "source": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                    "status": "user_reported"
+                  }
+                },
+                "project": "My only technical experience is a class Python CSV parser. I have never worked at a company.",
+                "sources": [],
+                "artifact": {
+                  "kind": "resume_bullet",
+                  "text": "Coursework / class project: a class Python CSV parser.",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "My only technical experience is a class Python CSV parser. I have never worked at a company."
+                  ]
+                },
+                "hypotheticals": [],
+                "projectSource": "My only technical experience is a class Python CSV parser. I have never worked at a company."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Have you uploaded or submitted this anywhere?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000107",
+            "reply": "No browser page, upload, application or email was executed by this conversation handler. Drafts here are held for review; earlier work elsewhere would need its own authoritative delivery record. What would you like to review in this chat?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C06-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_execution_status",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

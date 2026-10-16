@@ -1,0 +1,102 @@
+{
+  "version": "career_flexible_final_source_recovery/v1",
+  "at": "2026-10-16T21:26:13.832907+00:00",
+  "testedImplementation": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+  "reverifiedCompatibilityCases": 379,
+  "reverifiedConversationChecks": 969,
+  "reverifiedConversationTurns": 165,
+  "previouslyPassedNewCasesOnSameExactSha": 66,
+  "all445CasesNowRecordedOnExactFinalSource": true,
+  "intentionalDefectsPreviouslyKilledOnSameSha": 15,
+  "paidCalls": 0,
+  "actualProviderRequests": 0,
+  "actualModelQuality": "NOT_RUN",
+  "actualSemanticVerifierQuality": "NOT_RUN",
+  "browserOutcomes": 0,
+  "originalSharedBudgetRemaining": "UNKNOWN_UNRECONCILED",
+  "releaseGate": "NOT_READY",
+  "legacyC37": "Inherited failure; not rerun during this recovery task.",
+  "libraryInitialUpload": "Failed before preparation: hosted apps tools/list request failed: network; no upload IDs created.",
+  "githubPublication": "PAUSED; no remote commit or branch/ref created; no retry or credential change.",
+  "runs": [
+    {
+      "id": "recovery-a25-postgres",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-postgres/metadata.json",
+      "metadataSha256": "b537f00c90e1065e703c6ef18be9af8a920f749ff8e17ef48d8187a04f5c43f7"
+    },
+    {
+      "id": "recovery-a25-source",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "tests": 71,
+        "pass": 71,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-source/metadata.json",
+      "metadataSha256": "84b2413251f6479ebda3ccbde867ad61776380b5a53117b382ff9403572247c6"
+    },
+    {
+      "id": "recovery-a25-research-pg",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "tests": 17,
+        "pass": 17,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-pg/metadata.json",
+      "metadataSha256": "246e1cfb546bf0138d734b6503665e5850698b6dd257c978041209cd5f06cabf"
+    },
+    {
+      "id": "recovery-a25-research-source",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-source/metadata.json",
+      "metadataSha256": "6dafbfa0f7817cf2f46bef2d08dd90efe6d006851da23c8211d095ff6f8fe605"
+    },
+    {
+      "id": "recovery-a25-heldouts",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "checks": 426,
+        "passed": 426,
+        "failed": 0,
+        "turns": 82
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/metadata.json",
+      "metadataSha256": "57ee22d92c846b7f69270bb08f47c87261a8bde3518cc2cb7c476ec4c0863525"
+    },
+    {
+      "id": "recovery-a25-original",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "checks": 543,
+        "passed": 543,
+        "failed": 0,
+        "turns": 83
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/metadata.json",
+      "metadataSha256": "415d2aabf34c8cf2b969999095f42a445728e56d9071c2fbebb3823400e140d8"
+    },
+    {
+      "id": "recovery-a25-scoped",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "counts": {
+        "tests": 250,
+        "pass": 250,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-scoped.json",
+      "metadataSha256": "319eccfc0bfd673e8d4ba24620338c55a140efc507ed8f6aa398f9dd5dfbbc91"
+    }
+  ]
+}

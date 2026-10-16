@@ -1,0 +1,6 @@
+{
+  "reason": "Initial scoped wrapper finished but could not save output because the evidence directory was absent. No pass is claimed for that uncaptured run.",
+  "priorFailure": "FileNotFoundError writing recovery-a25-scoped.log",
+  "repair": "Create the evidence directory before running and stream stdout directly to the log.",
+  "repeatScope": "Only the zero-cost scoped batch; no paid/core generation tests repeated."
+}

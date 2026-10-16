@@ -1,0 +1,28 @@
+(node:2007) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2007) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (2421.881327ms)
+✔ I03-I26 conversation corrections survive research and source text never becomes career evidence (4640.862342ms)
+✔ I05 authenticated owner and thread isolation protect research observations (3295.567192ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (2172.628121ms)
+✔ I08 STOP across owned threads revokes a reserved but unconsumed read (2882.845557ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (2462.368849ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (2170.592929ms)
+✔ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (5244.569098ms)
+✔ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (4820.733459ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (2233.082625ms)
+✔ I20 a failed research effect is not repeated by pending work or status polling (3603.049249ms)
+✔ I21 research authority refuses all application operations at the real SQL gate (2276.521388ms)
+✔ I22 central-result save recovery uses existing capture and never reads twice (3206.125171ms)
+✔ I17 supplementary: rehashing a forged artifact cannot rewrite the immutable request or effect receipt (3786.952186ms)
+✔ I22 supplementary: committed finish with lost acknowledgement and failed readback recovers the identical receipt (3187.83776ms)
+✔ I22 fixture-closure: worker return, replay, get and chat status equal the published immutable receipt (2361.585892ms)
+✔ I09 fixture-closure: erase clears confirmed publication copies before worker readback (2258.03704ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 53176.534191

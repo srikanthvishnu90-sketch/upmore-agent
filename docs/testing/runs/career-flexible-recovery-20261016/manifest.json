@@ -1,0 +1,293 @@
+{
+  "version": "recovery-evidence/v1",
+  "files": {
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-postgres-command.log": {
+      "bytes": 4052,
+      "sha256": "9f8fcaf3fcaf1bee9d5141f8c585e61b2db7d04f648a7e7015e153a99d6940d6"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/final-source-results.json": {
+      "bytes": 3841,
+      "sha256": "8a7e28c17c9da679ae8403043c34fe3d54261ed81006cce12681d768d310d181"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-source-command.log": {
+      "bytes": 1266,
+      "sha256": "11959bb568288819a7574959d96d5eea65a29a0f180194ce98b852e8d3889e31"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original-command.log": {
+      "bytes": 3856,
+      "sha256": "60fe775827c87cc04fa11a828b7c35beac5310a1c5f82cd40492fd9ad6c56795"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-capture-setup-failure.json": {
+      "bytes": 426,
+      "sha256": "6702304a52cdb48b19c8099a685bf6187ed4bedefb8653d9d567f13c25e65ca9"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-handoff.md": {
+      "bytes": 16279,
+      "sha256": "990cab1273a5674aec0faefe1475c7e05c6ab5ff7d3d77511089f623627b5890"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-scoped.log": {
+      "bytes": 24785,
+      "sha256": "ef92ff10d9d3ed3e261be55f619f3ce7397d8f6c9c1fb8bf04208a21d1936bec"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-scoped.json": {
+      "bytes": 1388,
+      "sha256": "319eccfc0bfd673e8d4ba24620338c55a140efc507ed8f6aa398f9dd5dfbbc91"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts-command.log": {
+      "bytes": 4702,
+      "sha256": "a286e7591f65760bf448956886b3db26a8e2df9edad65fab39a243eea11c602e"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-pg-command.log": {
+      "bytes": 2220,
+      "sha256": "381022081eaeb84cb7afe2787ff43e7e0330103ad1489f29ff2c317ff752ca34"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-source-command.log": {
+      "bytes": 7536,
+      "sha256": "9da0abec8003ec4617c915a9d3247c351693eb645eb606f2c92639b7ad3d71b4"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-source/test.log": {
+      "bytes": 7536,
+      "sha256": "9da0abec8003ec4617c915a9d3247c351693eb645eb606f2c92639b7ad3d71b4"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-source/transcripts.jsonl": {
+      "bytes": 109086,
+      "sha256": "0e47d8e08b17d38879da25edf1fcb5c8dfc4e62c21a37607b42b84cf6a0c65c4"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-source/metadata.json": {
+      "bytes": 4093,
+      "sha256": "84b2413251f6479ebda3ccbde867ad61776380b5a53117b382ff9403572247c6"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-postgres/test.log": {
+      "bytes": 4052,
+      "sha256": "9f8fcaf3fcaf1bee9d5141f8c585e61b2db7d04f648a7e7015e153a99d6940d6"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-postgres/transcripts.jsonl": {
+      "bytes": 15461,
+      "sha256": "36e20334d02a9b0985a9c0570126f8e78e7625cc9d38373ef602ff7c4d08ba60"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-postgres/final-local-database.sql.gz": {
+      "bytes": 14595,
+      "sha256": "28aa9de46e19ac599c08565308910b069feceaeffd9cc45644d210326739606e"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-postgres/metadata.json": {
+      "bytes": 4207,
+      "sha256": "b537f00c90e1065e703c6ef18be9af8a920f749ff8e17ef48d8187a04f5c43f7"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-source/test.log": {
+      "bytes": 1266,
+      "sha256": "11959bb568288819a7574959d96d5eea65a29a0f180194ce98b852e8d3889e31"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-source/metadata.json": {
+      "bytes": 2399,
+      "sha256": "6dafbfa0f7817cf2f46bef2d08dd90efe6d006851da23c8211d095ff6f8fe605"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-pg/test.log": {
+      "bytes": 2220,
+      "sha256": "381022081eaeb84cb7afe2787ff43e7e0330103ad1489f29ff2c317ff752ca34"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-pg/transcripts.jsonl": {
+      "bytes": 216163,
+      "sha256": "931e6da89d444bd80bc2ff8f2c94b78abf5fcc7bddafe8d8c4b660a9e9e6ea31"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-pg/final-local-database.sql.gz": {
+      "bytes": 11217,
+      "sha256": "441d28e9a1c4fd9b6403c885e613c7e0b4e555d2682f7cc9a16ba35ece73163d"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-research-pg/metadata.json": {
+      "bytes": 2549,
+      "sha256": "246e1cfb546bf0138d734b6503665e5850698b6dd257c978041209cd5f06cabf"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H14-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H11-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H08-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H09-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H13-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H02.json": {
+      "bytes": 132621,
+      "sha256": "63a688cbc6514aee94d36d33d28b85102888e4cc3ca3ae40a8aefcce3ab1b0c1"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H01-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H06.json": {
+      "bytes": 129903,
+      "sha256": "bbb85bdaf6407f8ee792d539efbeea1fff98460e4cbf877cb629269653961e65"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H07.json": {
+      "bytes": 148750,
+      "sha256": "8db6afe44d04ff2f75fa72f61e49902381bc8a8f8843ae3740d419cc85e64f1d"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H12.json": {
+      "bytes": 61106,
+      "sha256": "8d9b9e6e5c8681a8db252b4cbb12150eafcd0e156b373ce78c4a1166186dca8e"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H13.json": {
+      "bytes": 130940,
+      "sha256": "fb90c895cdc220ff5e6917f89d31d78671affa87c143ad502e99625bd4317114"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H11.json": {
+      "bytes": 143110,
+      "sha256": "467f6ac3a11c92e1f365e0ca80290c5c8731692e9e7618bd98e5300c96d43c11"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H16.json": {
+      "bytes": 42618,
+      "sha256": "cbb1148fdcf4a9c7c4f8edc11b9868639cbc76ec1c6314437ce4dac3252556cd"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H08.json": {
+      "bytes": 139387,
+      "sha256": "11001fe438856fcd2c17c6504417f8bfc49c336f7406227626591dbf6bb60ef3"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H02-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H14.json": {
+      "bytes": 55341,
+      "sha256": "45a2392cf3bf586cfdf89b85fc0cc3ec5ea85ea34ca5520f8342ddf48d73695e"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H09.json": {
+      "bytes": 87645,
+      "sha256": "d3ce5b0432b8a99c2f5ce6f652e8d51501559a935ed8d53f3f85b9bc465d9448"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H12-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H15.json": {
+      "bytes": 134125,
+      "sha256": "e80da05c843b2bb15a4faf277ae17554c136157a35f43c4a9e884d909d0bb132"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/transcripts.jsonl": {
+      "bytes": 1181356,
+      "sha256": "81ad8329f66e965eb1cad18317a63a5d52e36ad0227544693c73ed65cb567bc9"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H05-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H06-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H04-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H07-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H10-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H15-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H03-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H10.json": {
+      "bytes": 110501,
+      "sha256": "e01165c1af91c32c92421f6955bca0af411d0eb88413fd664c1df387197ba841"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H01.json": {
+      "bytes": 188332,
+      "sha256": "f659d90e4c5063a60179439ac2f0f7bad23a192d9770cf6e2f3484608d9d018a"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/metadata.json": {
+      "bytes": 3924,
+      "sha256": "57ee22d92c846b7f69270bb08f47c87261a8bde3518cc2cb7c476ec4c0863525"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H05.json": {
+      "bytes": 93040,
+      "sha256": "c0125f1af9c35bdb4ddc77344f18c2284cfc1c5b2d6db13881649dc26885968d"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H04.json": {
+      "bytes": 90206,
+      "sha256": "6e1df16430d3678055aee71d83b43df62deb6b4337b766fd9559e33af878cccc"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H03.json": {
+      "bytes": 279743,
+      "sha256": "45534d1952e9144cdd13d343f656c8ecd96ad69b53630e9fcd5b2261f95477b1"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-heldouts/H16-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C02.json": {
+      "bytes": 295313,
+      "sha256": "90e066223d9a4672b57134d6a551076fb9ae0a21be6c82faa8d5096c714a6fcf"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C12.json": {
+      "bytes": 177322,
+      "sha256": "26fd3705a06ac5b209efe7591fc33284bebd38595aca37b42e3320d966b602e1"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C01.json": {
+      "bytes": 131860,
+      "sha256": "cf4f4f31b05865b1754648a9399e7758a9389e166d0d2941819eb20225bc7775"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C06.json": {
+      "bytes": 175961,
+      "sha256": "1a8f21bba9df19bbbdcd30b683d918b07af18489c7bbc5ce911d99e99fd3048b"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C09.json": {
+      "bytes": 192567,
+      "sha256": "8d3285255156177330c3c8f00b51e07d25e69f1275c56913776df3b25748bc18"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C08.json": {
+      "bytes": 150674,
+      "sha256": "9265300017b0062dba1b2bd94c53cc62532af80ba543fe807afde3b61a1dfb16"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C07.json": {
+      "bytes": 157776,
+      "sha256": "fff2d7d3a28ae84fa671334e7cfb7ffdcbc268507234de7ec6c4db80ee15f8d3"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/transcripts.jsonl": {
+      "bytes": 1344347,
+      "sha256": "9b212bd8c95f396cb3314687a147d6c100efc86ff6397b3f7bba65002f74ba0e"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C10.json": {
+      "bytes": 125600,
+      "sha256": "efd274e107f713a94c18e965bef24906e9d38a789a4029f6a520edf5bf3cb2d5"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C03.json": {
+      "bytes": 160332,
+      "sha256": "c0eabb4a69a091770dd3c3c7cdf1270364e941e4a4d4d31e74552c3443caf367"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C05.json": {
+      "bytes": 279505,
+      "sha256": "935c9f65866e21512b0a4f3ab5c6fa19e642992756fcc91b6fbfb7d91522bf37"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/metadata.json": {
+      "bytes": 3202,
+      "sha256": "415d2aabf34c8cf2b969999095f42a445728e56d9071c2fbebb3823400e140d8"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C04.json": {
+      "bytes": 213976,
+      "sha256": "453c3b6e840b7fdcb79eb85522d29a61d8a8aca8867291c27365cf11a6bfa00b"
+    },
+    "docs/testing/runs/career-flexible-recovery-20261016/recovery-a25-original/C11.json": {
+      "bytes": 136222,
+      "sha256": "01a78b45dfff4a76a95b8b27145e8f7279ebf97e87b703371f7ce983efe0f10d"
+    }
+  }
+}

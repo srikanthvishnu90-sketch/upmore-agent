@@ -87,3 +87,108 @@ export function createCareerBoardFor(provider) {
     return board;
   };
 }
+
+// ---------------------------------------------------------------------------
+// J9 (LOOP ACCEPTANCE — the worker board provider, Crew B 2026-10-15):
+// the real provider behind createCareerBoardFor. It talks to the owned
+// browser worker's board service (workers/career-browser/
+// board-service.cjs), which vends LIVE module-150 board sessions inside
+// the worker process — per-user, expiring, verdict-gated at creation.
+//
+// The drive stack this serves (155 -> 149 -> the board contract) is
+// synchronous end to end, so the provider takes an injected SYNCHRONOUS
+// transport: transport({method, path, headers, body}) -> {status,
+// body}. Node composition roots inject workers/career-browser/
+// board-transport.cjs (a worker_threads HTTP pump); tests inject an
+// in-process call into the service core — the double sits at the wire,
+// never at the board. A runtime with no synchronous channel (the Deno
+// Edge runtime today) injects nothing, and this factory returns null:
+// not a provider, the bridge resolves null, the drive stops named
+// BOARD_NOT_WIRED — an honest stop, never a WIRED claim for a path
+// that cannot vend. workerUrl + secret (env UPMORE_CAREER_WORKER_URL /
+// UPMORE_CAREER_WORKER_SECRET) + userId (the composition root's
+// authenticated user — the provider is constructed per request, bound
+// to that user) are likewise all required; any gap resolves null.
+//
+// boardFor(posting) creates the worker session synchronously. Any
+// failure throws a CODED error (WORKER_UNREACHABLE, the service's own
+// refusal code such as FAMILY_NOT_DRIVEABLE, WORKER_AUTH_REFUSED),
+// which createCareerBoardFor already converts to null for the loop;
+// the codes stay exact at this boundary for evidence and logs. The
+// returned board declares kind "browser" / browserDriver true /
+// sandbox false and the session's real atsFamily / host / accountName
+// from the service's create response — 149's attested-board checks run
+// against the worker's truth. Board-method failures rethrow with the
+// worker board's own .code; a terminal failure (session expired,
+// forbidden, gone, transport down) is cached on the board and
+// rethrown on later calls WITHOUT touching the wire — nothing is
+// retried blind at any layer.
+export function createWorkerBoardProvider(opts) {
+  const o = opts || {};
+  const workerUrl = typeof o.workerUrl === "string" && o.workerUrl ? o.workerUrl : null;
+  const secret = typeof o.secret === "string" && o.secret ? o.secret : null;
+  const userId = typeof o.userId === "string" && o.userId ? o.userId : null;
+  const transport = typeof o.transport === "function" ? o.transport : null;
+  if (!workerUrl || !secret || !userId || !transport) return null;
+  const headers = { "content-type": "application/json", "x-upmore-board-secret": secret };
+  const codedError = (code, message) => Object.assign(new Error(message || code), { code });
+  function callService(path, body) {
+    let res;
+    try { res = transport({ method: "POST", path, headers, body }); }
+    catch (e) {
+      if (e && e.code) throw codedError(e.code, e.message || e.code);
+      throw codedError("WORKER_UNREACHABLE", `the career worker board service could not be reached (${(e && e.message) || "transport failed"})`);
+    }
+    if (!res || typeof res.status !== "number") throw codedError("WORKER_UNREACHABLE", "the career worker board service answered with no readable status");
+    return res;
+  }
+  function boardFor(posting) {
+    const url = posting && typeof posting.url === "string" ? posting.url : null;
+    if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
+    const res = callService("/board-sessions", { userId, url });
+    if (res.status !== 201) {
+      const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
+      const code = raw === "unauthorized" ? "WORKER_AUTH_REFUSED" : raw;
+      throw codedError(code, `the career worker refused a board session (${raw})${res.body && res.body.reason ? `: ${res.body.reason}` : ""}`);
+    }
+    const created = res.body || {};
+    const sessionId = typeof created.sessionId === "string" && created.sessionId ? created.sessionId : null;
+    if (!sessionId) throw codedError("WORKER_PROTOCOL", "the career worker answered session creation without a session id");
+    let terminal = null; // {code, message} — once dead, the board stays dead
+    let closedBoard = false;
+    function call(method, args) {
+      if (closedBoard) throw codedError("BOARD_CLOSED", "this worker board session is closed");
+      if (terminal) throw codedError(terminal.code, terminal.message);
+      let r;
+      try { r = callService(`/board-sessions/${sessionId}/call`, { userId, method, args: args || [] }); }
+      catch (e) { terminal = { code: e.code || "WORKER_UNREACHABLE", message: e.message || e.code }; throw e; }
+      if (r.status === 410) { terminal = { code: "SESSION_EXPIRED", message: "the worker board session expired before this step — the application stops here; a fresh session must be prepared, and a stale session is never driven" }; throw codedError(terminal.code, terminal.message); }
+      if (r.status === 403) { terminal = { code: "WORKER_SESSION_FORBIDDEN", message: "the worker refused this session for this user — board sessions are per-user and are never addressed across owners" }; throw codedError(terminal.code, terminal.message); }
+      if (r.status === 404) { terminal = { code: "WORKER_SESSION_GONE", message: "the worker no longer holds this board session — it stops here rather than being silently recreated" }; throw codedError(terminal.code, terminal.message); }
+      if (r.status !== 200 || !r.body) throw codedError("WORKER_PROTOCOL", `the career worker answered a board call with status ${r.status}`);
+      if (r.body.ok === false) throw codedError(r.body.code || "BOARD_ERROR", r.body.message || "the worker board refused the call");
+      return r.body.result;
+    }
+    return {
+      kind: "browser", browserDriver: true, sandbox: false,
+      atsFamily: created.atsFamily || null,
+      host: created.host || "",
+      accountName: created.accountName || null,
+      workerSessionId: sessionId,
+      open() { return call("open", []); },
+      form() { return call("form", []); },
+      fill(fieldId, value) { return call("fill", [fieldId, value]); },
+      answers() { return call("answers", []); },
+      atReview() { return call("atReview", []); },
+      armForSubmit(ctx) { return call("armForSubmit", [ctx || {}]); },
+      submit() { return call("submit", []); },
+      submissionState() { return call("submissionState", []); },
+      close() {
+        if (closedBoard) return;
+        closedBoard = true;
+        try { transport({ method: "POST", path: `/board-sessions/${sessionId}/close`, headers, body: { userId } }); } catch (_) { /* closing is best-effort; the service reaps by TTL regardless */ }
+      },
+    };
+  }
+  return { transport: "career_worker_board", boardFor };
+}

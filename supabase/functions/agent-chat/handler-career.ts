@@ -31,7 +31,7 @@ import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../_shared/router_core.career.js";
-import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor } from "../_shared/career_task_bridge.js";
+import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 
@@ -160,19 +160,30 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // dispatch the gauntlet grades (tests/career-http-host.test.cjs).
     // Per-thread career state rides agent_flow_state.state under the
     // "career" key, mirroring the flow router's own use of that table.
-    // J8 (LOOP ACCEPTANCE tier-1 join): module 155's drive stage takes
-    // its board adapter from ctx.batchDeps.boardFor, which the host now
+    // J8 + J9 (LOOP ACCEPTANCE): module 155's drive stage takes its
+    // board adapter from ctx.batchDeps.boardFor, which the host
     // supplies from this composition root. Resolution lives in
-    // career_task_bridge (createCareerBoardFor): a provider supplies
-    // board sessions and every failure mode resolves to null, the
-    // named BOARD_NOT_WIRED stop — never a faked board. The owned
-    // browser worker supplies sessions inside its own process (150's
-    // factory, executed from committed career_task_intent/v1 intents);
-    // this Edge runtime installs no in-process provider, so the bridge
-    // resolves null today: the seam is wired end to end, the stop
-    // stays honest, and installing a provider is a change to this one
-    // call site alone.
-    const boardFor = createCareerBoardFor(null);
+    // career_task_bridge: createCareerBoardFor validates a provider's
+    // boards against module 149's contract and converts every failure
+    // mode to null — the named BOARD_NOT_WIRED stop; no board is ever
+    // faked.
+    // J9 installs the real provider at this call site:
+    // createWorkerBoardProvider, bound to THIS request's authenticated
+    // user, gated on the worker's env (UPMORE_CAREER_WORKER_URL +
+    // UPMORE_CAREER_WORKER_SECRET). Behind it, the owned browser
+    // worker's board service (workers/career-browser/board-service.cjs)
+    // vends live module-150 board sessions. The provider needs a
+    // SYNCHRONOUS transport — the drive stack (155/149/150) is
+    // synchronous end to end — and this Edge runtime has none today
+    // (Node composition roots inject workers/career-browser/
+    // board-transport.cjs), so the factory resolves null here with or
+    // without env present: the seam stays wired, the stop stays
+    // honest, and no WIRED claim is made for a path that cannot vend.
+    // A synchronous transport for this runtime is the one remaining
+    // piece, and it lands at this call site alone.
+    const workerUrl = Deno.env.get("UPMORE_CAREER_WORKER_URL") ?? "";
+    const workerSecret = Deno.env.get("UPMORE_CAREER_WORKER_SECRET") ?? "";
+    const boardFor = createCareerBoardFor(createWorkerBoardProvider({ workerUrl, secret: workerSecret, userId: user.id }));
     const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor });
     let careerTask;
     try { careerTask = normalizeCareerTaskRequest(body.career_task); }

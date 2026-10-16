@@ -329,14 +329,42 @@ test("chat path: the three owner message shapes all reach the batch intent", () 
 // career_task_bridge (createCareerBoardFor) and the host attaches it to
 // every turn ctx as ctx.batchDeps.boardFor. These cases compose the
 // host EXACTLY that way — the tests never put boardFor into ctx
-// themselves — with the bridge's test double standing in for the owned
-// browser worker's session supply. They run as a fresh user (J8USER)
-// and sit BEFORE the pause case on purpose: a global pause mirrors
-// across an account's threads by design, so any turn composed after
-// that case would be held — ordering, not isolation, is the honest
-// arrangement.
+// themselves. J9 (same day) replaced the bridge's session-supply double
+// with the REAL worker board provider + board service: the only
+// doubles left are at the transport boundary (an in-process call into
+// the service core — the wire, nothing behind it) and at the service's
+// board-factory seam (149's sandbox board; Chromium cannot start
+// sandboxed in this executor, the owned-worker doc's recorded limit).
+// They run as a fresh user (J8USER) and sit BEFORE the pause case on
+// purpose: a global pause mirrors across an account's threads by
+// design, so any turn composed after that case would be held —
+// ordering, not isolation, is the honest arrangement.
 // ---------------------------------------------------------------------------
 const Bridge = require(path.join(root, "supabase/functions/_shared/career_task_bridge.js"));
+const { createBoardService } = require(path.join(root, "workers/career-browser/board-service.cjs"));
+const BOARD_SECRET = "loop-test-board-secret";
+// The service's factory seam: 149's sandbox board keyed by the URL's
+// board — testco7 carries the extra uncovered question, testco11
+// stages the captcha (the J8 double keyed the same variants by id).
+function loopSandboxFactory(opts) {
+  const url = (opts && opts.url) || "";
+  let base;
+  if (/testco11/.test(url)) base = Portal.createSandboxBoard({ captchaAt: "open" });
+  else base = Portal.createSandboxBoard({});
+  const fam = /lever\.co/.test(url) ? "lever" : /ashbyhq\.com/.test(url) ? "ashby" : "greenhouse";
+  const board = Object.assign({}, base, { atsFamily: fam });
+  if (/testco7/.test(url)) {
+    const origForm = board.form;
+    board.form = () => { const f = origForm(); f.fields = f.fields.concat([{ field_id: "start_date", label: "Earliest start date", kind: "screening", question_key: "start_date", required: true }]); return f; };
+  }
+  return board;
+}
+function loopBoardService(extra = {}) {
+  return createBoardService(Object.assign({ secret: BOARD_SECRET, familyVerdicts: { greenhouse: true, lever: true, ashby: true }, boardFactory: loopSandboxFactory }, extra));
+}
+function loopProvider(service, userId, transport) {
+  return Bridge.createWorkerBoardProvider({ workerUrl: "http://127.0.0.1/board-service", secret: BOARD_SECRET, userId, transport: transport || ((req) => service.handle(req)) });
+}
 const J8USER = "user-j8-join";
 function hostShapedLikeHandler(boardForFn) {
   return CareerHost.createCareerHost({
@@ -380,8 +408,9 @@ test("join: composed as the handler composes it with no provider, the loop stops
   assert.equal(log.records.filter((r) => r.status === "submitted").length, 0, "nothing was faked into a submission");
 });
 
-test("join: with the bridge's test double wired through the host, the same message submits 13", () => {
-  const boardForFn = Bridge.createCareerBoardFor({ transport: "owned_browser_worker", boardFor });
+test("join: with the worker board provider wired through the host (J9 — real service behind the transport), the same message submits 13", () => {
+  const service = loopBoardService();
+  const boardForFn = Bridge.createCareerBoardFor(loopProvider(service, J8USER));
   assert.equal(typeof boardForFn, "function");
   const host = hostShapedLikeHandler(boardForFn);
   const log = { records: [] };
@@ -408,7 +437,8 @@ test("join: with the bridge's test double wired through the host, the same messa
 });
 
 test("join: a wired bridge whose worker is down stops every drive named BOARD_NOT_WIRED — nothing faked, nothing submitted", () => {
-  const downBoardFor = Bridge.createCareerBoardFor({ transport: "owned_browser_worker", boardFor() { throw new Error("worker unreachable"); } });
+  const downProvider = Bridge.createWorkerBoardProvider({ workerUrl: "http://127.0.0.1/board-service", secret: BOARD_SECRET, userId: J8USER, transport() { throw new Error("worker unreachable"); } });
+  const downBoardFor = Bridge.createCareerBoardFor(downProvider);
   const host = hostShapedLikeHandler(downBoardFor);
   const log = { records: [] };
   const ctx = host.createTurnCtx({ userId: J8USER, threadId: "thread-j8-down", now: NOW, snapshot: null, profile: MASTER, postings: MARKET, batchDeps: { log, attestations: ATTEST } });
@@ -420,6 +450,58 @@ test("join: a wired bridge whose worker is down stops every drive named BOARD_NO
   assert.equal(run.summary.stops.length, 15);
   assert.ok(run.summary.stops.every((x) => x.code === "BOARD_NOT_WIRED"), "the worker being down degrades to the same named stop, per application");
   assert.equal(log.records.filter((r) => r.status === "submitted").length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// J9 trajectories: the provider's failure modes inside a real batch
+// (Batch-level, own services — order-independent of the pause case).
+// ---------------------------------------------------------------------------
+test("loop (J9): the worker dying mid-execution keeps the completed submission and stops the rest named — nothing is retried", () => {
+  const service = loopBoardService();
+  const control = { down: false, submits: 0 };
+  const transport = (req) => {
+    if (control.down) throw Object.assign(new Error("worker process gone"), { code: "WORKER_UNREACHABLE" });
+    const res = service.handle(req);
+    if (req.path.endsWith("/call") && req.body && req.body.method === "submit" && res.body && res.body.ok) { control.submits += 1; control.down = true; }
+    return res;
+  };
+  const boardForFn = Bridge.createCareerBoardFor(loopProvider(service, USER, transport));
+  const log = { records: [] };
+  const { deps } = makeDeps(log, { boardFor: boardForFn });
+  const run = newRun();
+  Batch.prepareRun(run, deps);
+  assert.equal(run.summary.doorstep, 13, "the batch prepared fully while the worker was up");
+  assert.equal(Batch.approveRun(run, { approvedByUser: true }).ok, true);
+  const ex = Batch.executeRun(run, deps);
+  assert.equal(ex.ok, true);
+  assert.equal(run.summary.submitted, 1, "the one submission that completed before the worker died stands");
+  assert.equal(control.submits, 1, "exactly one submit ever crossed the wire — nothing was retried blind");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 1);
+  const execStops = run.summary.stops.filter((x) => x.code === "EXECUTION_ERROR");
+  assert.equal(execStops.length, 12, "every other doorstep application stopped at execution");
+  assert.ok(execStops.every((x) => /worker/i.test(x.reason)), "each stop names the dead worker as its reason");
+});
+
+test("loop (J9): sessions expiring between approval and execution stop every application named — no stale-session submit", () => {
+  let clock = NOW;
+  const registry = [];
+  const service = loopBoardService({ now: () => clock, sessionTtlMs: 60000, boardFactory: (opts) => { const b = loopSandboxFactory(opts); registry.push(b); return b; } });
+  const boardForFn = Bridge.createCareerBoardFor(loopProvider(service, USER));
+  const log = { records: [] };
+  const { deps } = makeDeps(log, { boardFor: boardForFn });
+  const run = newRun();
+  Batch.prepareRun(run, deps);
+  assert.equal(run.summary.doorstep, 13);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true }).ok, true);
+  clock += 61000; // every prepared session is now past its idle TTL
+  const ex = Batch.executeRun(run, deps);
+  assert.equal(ex.ok, true);
+  assert.equal(run.summary.submitted, 0, "nothing submitted through a stale session");
+  const execStops = run.summary.stops.filter((x) => x.code === "EXECUTION_ERROR");
+  assert.equal(execStops.length, 13, "every doorstep application stopped at execution");
+  assert.ok(execStops.every((x) => /expired/.test(x.reason)), "each stop names the session expiry as its reason");
+  assert.equal(registry.reduce((n, b) => n + b.calls.submit, 0), 0, "no submit ever reached a worker board");
+  assert.ok(service.counters().refused.expired >= 1, "the service recorded the expiries it served");
 });
 
 test("chat path: under the global pause the batch does NOT run (the pause gate keeps priority over the seam)", () => {

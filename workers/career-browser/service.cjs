@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const Portal = require("../../packages/domain/149-career-portal-apply.js");
 const Browser = require("../../packages/domain/150-career-portal-browser.js");
 const { hash, fail, clone } = require("./store.cjs");
+const {validResearchPNG}=require('./research-png.cjs');
 const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
 const bindingHash = value => hash(canonical(value));
 
@@ -33,6 +34,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const current = authority.current(t.userId);
     if (!current.exists || current.epoch !== t.privacyEpoch) {
       t.spec = null; t.review = null; t.result = null; t.asks = []; t.authority = null;
+      if(t.kind==='public_research/v1'){t.publicationTask=null;t.publicationPending=false;}
       if (t.attempt) t.attempt = { fenced: true, receiptKey: hash([t.id, "submit"]), unknown: true };
       t.status = t.attempt ? "unknown_outcome" : "cancelled"; t.blocker = "PRIVACY_EPOCH_REVOKED";
       save(t, "check"); throw fail("PRIVACY_EPOCH_REVOKED");
@@ -43,7 +45,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     }
     return current;
   }
-  function effect(t, operation, fn) {
+  function effect(t, operation, fn, digest=hash) {
     checkAuthority(t);
     const sequence = t.effectSequence = (t.effectSequence || 0) + 1;
     save(t, "execute", { action: operation, effectSequence: sequence });
@@ -52,7 +54,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const before = hash([t.id, t.authority.intentId, sequence, operation]);
     try {
       const out = fn();
-      authority.settle(t.authority, ticket, "completed", before, hash(out === undefined ? null : out));
+      authority.settle(t.authority, ticket, "completed", before, digest(out === undefined ? null : out));
       return out;
     } catch (e) {
       try { authority.settle(t.authority, ticket, "uncertain", before, null); } catch (_) {}
@@ -129,17 +131,22 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       if(t.kind!=='public_research/v1')throw fail('TASK_KIND_MISMATCH');
       try {
         checkAuthority(t);
+        if(t.publicationPending){return finish(t);}
         if(t.result || t.status!=='queued')return publicTask(t);
         if(!publicOrigins.has(new URL(t.spec.url).origin))throw fail('RESEARCH_ORIGIN_NOT_REGISTERED');
         t.status='reading';save(t,'execute');
         board=researchBoardFactory({taskId:t.id,intentId:t.authority.intentId,commandTimeoutMs:timeoutMs,deadlineMs:now()+timeoutMs});
         t.budget.reservedActions++;save(t,'execute',{action:'read_public_page',actionState:'reserved'});
-        let capture;try { capture=effect(t,'read_public_page',()=>board.readPage(t.spec.url)); }
+        const readStartedAt=now();
+        let capture;try { capture=effect(t,'read_public_page',()=>board.readPage(t.spec.url),bindingHash); }
         finally {t.budget.reservedActions--;t.budget.spentActions++;save(t,'check',{action:'read_public_page',actionState:'settled'});}
+        checkAuthority(t);
         if(capture?.then || capture?.version!=='public_research_capture/v1' || capture.provenance!=='owned_chromium_dom' || capture.taskId!==t.id || capture.intentId!==t.authority.intentId || capture.url!==t.spec.url || capture.untrusted!==true || !/^[a-f0-9]{64}$/.test(capture.sourceSha256||'') || !capture.sessionId || !Array.isArray(capture.navigation) || !capture.navigation.some(e=>e.status==='read'&&e.url===t.spec.url&&e.method==='GET'&&e.httpStatus===200&&e.sourceSha256===capture.sourceSha256) || !capture.screenshot?.base64)throw fail('RESEARCH_EVIDENCE_INVALID');
         const png=Buffer.from(capture.screenshot.base64,'base64');
-        if(png.length!==capture.screenshot.bytes || hash(png)!==capture.screenshot.sha256 || png.length>500000 || png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')throw fail('RESEARCH_EVIDENCE_INVALID');
+        if(capture.screenshot.mimeType!=='image/png' || png.toString('base64')!==capture.screenshot.base64 || png.length!==capture.screenshot.bytes || hash(png)!==capture.screenshot.sha256 || !validResearchPNG(png))throw fail('RESEARCH_EVIDENCE_INVALID');
         if(typeof capture.text!=='string' || capture.text.length>24000 || typeof capture.capturedAt!=='string' || !Number.isFinite(Date.parse(capture.capturedAt)))throw fail('RESEARCH_EVIDENCE_INVALID');
+        const captured=Date.parse(capture.capturedAt),completed=now();
+        if(captured<readStartedAt-30000||captured>completed+30000||!capture.navigation.some(e=>e.status==='read'&&e.url===t.spec.url&&e.method==='GET'&&e.httpStatus===200&&e.sourceSha256===capture.sourceSha256&&Number.isFinite(Date.parse(e.at))&&Date.parse(e.at)>=readStartedAt-30000&&Date.parse(e.at)<=captured+30000))throw fail('RESEARCH_EVIDENCE_INVALID');
         const artifact={version:'public_research_artifact/v1',taskId:t.id,intentId:t.authority.intentId,question:t.spec.question,provenance:{threadId:t.authority.binding.thread_id,turnKey:t.authority.binding.turn_key,requestHash:t.authority.binding.request_hash},source:{url:capture.url,title:capture.title,capturedAt:capture.capturedAt,sourceSha256:capture.sourceSha256},capture,trust:'untrusted_source_data',objectiveStatus:'requires_review',claim:'Source capture only. The research question is not marked answered or verified.'};
         t.status=capture.blocked?'blocked':capture.text.trim()?'evidence_ready':'insufficient_evidence';t.blocker=capture.blocked||null;
         t.result={kind:'public_research_result',status:t.status,artifact,artifactSha256:bindingHash(artifact),artifactEncoding:"sorted-json/v1",browserOutcome:'observed',sends:0,submissions:0};save(t,'check');
@@ -147,6 +154,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
         t.status=/REVOKED/.test(e.code||'')?'cancelled':'blocked';t.blocker=e.code||'RESEARCH_RUNTIME_UNAVAILABLE';
         t.result=null;save(t,'check');
       } finally {try{board?.close();}catch(_){}}
+      if(t.authority){t.publicationTask=publicTask(t);t.publicationPending=true;save(t,'check');}
       return finish(t);
     });
   }
@@ -256,12 +264,15 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   function finish(t) {
     if (!t.authority) return publicTask(t);
     try {
-      if (authority.finish(t.authority, publicTask(t)).state !== "completed") {
+      if (authority.finish(t.authority, t.kind==='public_research/v1'&&t.publicationTask?t.publicationTask:publicTask(t)).state !== "completed") {
         checkAuthority(t);
         throw fail("TASK_RESULT_UNCONFIRMED");
       }
+      if(t.kind==='public_research/v1'&&t.publicationPending){t.publicationPending=false;t.blocker=t.publicationTask?.blocker||null;t.publicationTask=null;save(t,'check');}
     } catch (e) {
-      try { checkAuthority(t); } catch (_) {}
+      let current=true;try { checkAuthority(t); } catch (_) {current=false;}
+      if(t.kind==='public_research/v1'&&current){t.publicationPending=true;t.blocker='TASK_RESULT_UNCONFIRMED';save(t,'check');return publicTask(t);}
+      if(t.kind==='public_research/v1')t.publicationPending=false;
       t.status = t.attempt ? "unknown_outcome" : "cancelled";
       t.blocker = e.code || "TASK_RESULT_UNCONFIRMED"; save(t, "check");
     }
@@ -326,7 +337,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
           else if(b.action==="reconcile") results.push(reconcile(intent.userId,b.task_id,{intentId:intent.intentId}));
         } catch(e) { results.push({intentId:intent.intentId,status:"blocked",blocker:e.code||"TASK_AUTHORITY_UNAVAILABLE"}); }
       }
-      for(const id of store.list()) {const t=store.get(id);if(t.status==="queued")results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
+      for(const id of store.list()) {const t=store.get(id);if(t.status==="queued"||(t.kind==='public_research/v1'&&t.publicationPending))results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
       return results;
     } };
 }

@@ -1,8 +1,10 @@
-# Public read-only research browser: missing route and minimum contract
+# Public read-only research browser: historical minimum contract
+
+**2026-10-16 composition review note:** This document records the gap at the commit below. Research branch `c574352c` subsequently added an explicit source-only route and worker; isolated review `codex/research-conversation-review-20261016` composes it with conversation fixes and independently checks its invariants. The proposal still needs owner-reviewed migration scaffolding and deployment; all 15 live outcomes remain NOT_RUN. See `docs/testing/research-conversation-review-20261016.md` for the current result.
 
 At `f67db048599db308f2691a7be7feada841143da5`, the career entry has no public read-only research-browser route. Its `portal_browser` capability is `NOT_WIRED`; the owned worker admits operator-registered loopback application portals. It is not a general web research service. This source review does not add an adapter, broaden the allowlist or run Chromium. The prior normal-sandbox launch failed before opening a page because the installed SUID helper is not root-owned. The 15 public tasks remain **NOT_RUN**, with no causal backend/browser/artifact completion evidence. Original tasks and launch evidence remain in review `0519b0ffd33a67c06e00fda047321231cdd8667c`.
 
-## Proposed minimum interface (unimplemented)
+## Proposed minimum interface (unimplemented at f67db048)
 
 An authenticated explicit user request may create a `career_public_research/v1` intent containing an owned task ID, current account version/privacy epoch, immutable request digest, explicit public-source URL and bounded read-only goal. Identity comes from the existing verified user context. Client-supplied identity, permissions, browser endpoints, cached snapshots and page text never grant authority. Commit the intent with the user's turn through the existing transactional task-intent boundary before any worker dispatch. Preserve STOP, erasure, account-version fencing, replay conflicts and uncertain-effect rules already merged by Muse.
 

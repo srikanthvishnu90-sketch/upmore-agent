@@ -7,7 +7,7 @@ export function publicResearchURL(value) {
   // cannot become research destinations. The helper additionally pins DNS.
   if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}$/.test(u.hostname) || /(?:^|\.)(?:localhost|local|internal|test|invalid|example|onion)$/.test(u.hostname)) return fail();
   let path; try { path = decodeURIComponent(u.pathname); } catch (_) { return fail(); }
-  if (/[\\\x00-\x1f]/.test(path) || /\/(?:apply|login|logout|signin|signup|sign-in|sign-up|auth|oauth|account|checkout|cart|payment|purchase|submit|unsubscribe)(?:\/|\.|$)/i.test(path)) return fail();
+  if (/%[a-f0-9]{2}/i.test(path) || /[\\\x00-\x1f]/.test(path) || /\/(?:apply|login|logout|signin|signup|sign-in|sign-up|auth|oauth|account|checkout|cart|payment|purchase|submit|unsubscribe)(?:\/|\.|$)/i.test(path)) return fail();
   for (const [key, val] of u.searchParams) if (!['q','query','search','page','offset','team','location','department'].includes(key) || val.length > 200 || /[\x00-\x1f]/.test(val)) return fail();
   return u.href;
 }

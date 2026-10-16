@@ -27,3 +27,9 @@ that write and returns `read_only: true`; it creates no turn pair, receipt or
 memory update. Existing application status and account authority are unchanged.
 Real PostgreSQL entry tests verify repeated early observations keep the intent
 claimable, while an actual STOP still revokes it.
+
+## Independent research/conversation composition
+
+The historical minimum-contract document described the missing public route at f67db048. The separate c574352c route now exists in this isolated composition; annotate the historical scope rather than rewrite prior evidence. Original author fixtures treated a ten-byte PNG signature plus two zero bytes, without chunks/pixels, as a successful screenshot and used a fixed capture time. Independent frozen probes reproduced acceptance of malformed/stale captures, encoded restricted paths, unchecked persisted evidence and stranded central publication. Research-only validation now rejects those representations, binds status to immutable SQL intent/effect readback, and retries an immutable publication payload without a second read. Original tests and failed logs remain unchanged; affected positive fixtures must be triaged as invalid, never exempted in production. PNG structure reference: https://www.w3.org/TR/png-3/ (chunks, CRC, scanline framing). Browser and model quality remain unverified.
+
+Two independent harness expectations were over-specific: runPending may return a cancelled observation after STOP while doing no read, and research reports an unconfirmed finish in its returned task instead of throwing. Corrected those assertions to test the frozen revocation/recovery outcomes. Preserve the initial logs and rerun the original source before attributing remaining failures to product code.

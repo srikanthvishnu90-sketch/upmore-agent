@@ -40,6 +40,16 @@ begin
  return saved;
 end $$;
 
+-- Readback includes immutable intent/effect bindings outside the mutable task
+-- artifact. Edge validates these before quoting any captured source. Existing
+-- application callers still receive their identical task field.
+create or replace function public.career_task_result_v1(p_user uuid,p_task text default null,p_intent text default null) returns jsonb language sql security invoker set search_path=public,pg_temp as $$
+ select coalesce((select jsonb_build_object('task',i.result,'researchProof',case when i.binding->>'action'='research' and i.result is not null then jsonb_build_object(
+  'userId',i.user_id,'taskId',i.task_id,'intentId',i.intent_id,'binding',i.binding,
+  'read',(select jsonb_build_object('state',e.state,'afterSha256',e.after_sha256,'admittedAt',e.created_at) from career_task_effects_v1 e where e.user_id=i.user_id and e.intent_id=i.intent_id and e.task_id=i.task_id and e.operation='read_public_page' order by e.created_at desc limit 1)) else null end)
+  from career_task_intents_v1 i join career_watch_kv a on a.user_id=i.user_id and a.key='career:account' where i.user_id=p_user and (i.task_id=p_task or i.intent_id=p_intent) and i.privacy_epoch=coalesce((a.value->>'epoch')::bigint,0) order by i.updated_at desc limit 1),' {"task":null}'::jsonb);
+$$;
+
 create or replace function public.career_task_begin_effect_v1(p_user uuid,p_intent text,p_lease uuid,p_task text,p_operation text,p_effect_key text,p_bindings jsonb) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
 declare i career_task_intents_v1;a jsonb;e career_task_effects_v1;
 begin

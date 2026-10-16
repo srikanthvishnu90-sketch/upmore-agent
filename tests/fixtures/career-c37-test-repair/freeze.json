@@ -1,0 +1,18 @@
+{
+  "frozenAt": "2026-10-16T21:38:48.046706+00:00",
+  "base": "06b0999f287c99b71187eb5eeccc171b4e3b378a",
+  "expected": [
+    "Stop intent returns queue_halt/completed without binding the outer handler filename.",
+    "Zero-send and mixed pending/sent/in-flight fixtures report actual counts, set/persist global pause and halt, and create no new irreversible receipt.",
+    "Late and newer status/delivery events cannot revive halted work; duplicate event IDs are deduplicated.",
+    "Disabling persistence, halted-event refusal, event dedupe, or truthful sent counts must fail the repaired guard."
+  ],
+  "baselineSha256": {
+    "original-c37-guards.log": "0a2953569343ec3726ddd72773fcf528147293ca8e477199484064991e9ff73e",
+    "minimal-reproduction.log": "cf5c34d113c60c61dc7e06e2287433e8fad847bb10fcdb50a41cdab75615efca",
+    "source-history.txt": "1dbcb25c3404a54d294e07155119f4ec0a74c2efa77199ed0f52ee6cd70136c7",
+    "C37-inspection.md": "860c570a45abf3fe7e62611317876a4b4a5d119cca385c18856dd9594449ffce",
+    "minimal-reproduction.json": "e00ea8c8c06af5ad9579afe521fe88a57a8b22785eebab8dc93d12c1f06475bc",
+    "reproduce.cjs": "5c322938278e99f2dfc8c13683e12ca8cd277f3631f0ba2eea2a9a5a4602a0b1"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "source": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+  "cases": [
+    {
+      "case": "r2a-original-fixture",
+      "handler": "142-career-router.handleChat",
+      "checksPassed": 7,
+      "legacyAssertions": {
+        "handler141": false,
+        "haltedCount3": true,
+        "literalNothingWasSent": false
+      }
+    },
+    {
+      "case": "r3-original-fixture",
+      "handler": "142-career-router.handleChat",
+      "checksPassed": 7,
+      "legacyAssertions": {
+        "handler141": false,
+        "haltedCount3": true,
+        "literalNothingWasSent": false
+      }
+    },
+    {
+      "case": "mixed-sent-inflight-pending",
+      "handler": "142-career-router.handleChat",
+      "checksPassed": 7,
+      "legacyAssertions": {
+        "handler141": false,
+        "haltedCount3": false,
+        "literalNothingWasSent": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "source": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+  "message": "stop everything. don't contact anyone",
+  "sourceFilesChanged": false,
+  "externalCalls": 0,
+  "results": [
+    {
+      "case": "r2a-original-fixture",
+      "handler": "142-career-router.handleChat",
+      "expectedPending": 3,
+      "previouslySent": 0,
+      "previouslyInFlight": 0,
+      "result": {
+        "intent": "queue_halt",
+        "resultStatus": "completed",
+        "halted_count": 3,
+        "sent_count": 0,
+        "in_flight_count": 0,
+        "already_stopped_count": 0,
+        "queue_total": 3,
+        "counts_verified": true
+      },
+      "reply": "Stopped everything: the global pause is set, and 3 pending outreach items are halted — the halt is saved so it survives a restart. Counts: 0 already out, 0 in flight and unconfirmed, 3 halted — 3 in total, so every item is accounted for. Nothing went out from this queue at all, and nothing irreversible exists — no contact will be made from this queue. Tell me if you'd like the item-by-item list.",
+      "delivered": "Stopped everything: the global pause is set, and 3 pending outreach items are halted — the halt is saved so it survives a restart. Counts: 0 already out, 0 in flight and unconfirmed, 3 halted — 3 in total, so every item is accounted for. Nothing went out from this queue at all, and nothing irreversible exists — no contact will be made from this queue.\nTell me if you'd like the item-by-item list.",
+      "legacyAssertions": {
+        "handler141": false,
+        "haltedCount3": true,
+        "literalNothingWasSent": false
+      },
+      "checks": {
+        "typedQueueHalt": true,
+        "countsMatchReadback": true,
+        "globalPausePersisted": true,
+        "haltPersisted": true,
+        "noLateRevival": true,
+        "sameTypedResultAsDirect141": true,
+        "sameReplyAsDirect141": true
+      }
+    },
+    {
+      "case": "r3-original-fixture",
+      "handler": "142-career-router.handleChat",
+      "expectedPending": 3,
+      "previouslySent": 0,
+      "previouslyInFlight": 0,
+      "result": {
+        "intent": "queue_halt",
+        "resultStatus": "completed",
+        "halted_count": 3,
+        "sent_count": 0,
+        "in_flight_count": 0,
+        "already_stopped_count": 0,
+        "queue_total": 3,
+        "counts_verified": true
+      },
+      "reply": "Stopped everything: the global pause is set, and 3 pending outreach items are halted — the halt is saved so it survives a restart. Counts: 0 already out, 0 in flight and unconfirmed, 3 halted — 3 in total, so every item is accounted for. Nothing went out from this queue at all, and nothing irreversible exists — no contact will be made from this queue. Tell me if you'd like the item-by-item list.",
+      "delivered": "Stopped everything: the global pause is set, and 3 pending outreach items are halted — the halt is saved so it survives a restart. Counts: 0 already out, 0 in flight and unconfirmed, 3 halted — 3 in total, so every item is accounted for. Nothing went out from this queue at all, and nothing irreversible exists — no contact will be made from this queue.\nTell me if you'd like the item-by-item list.",
+      "legacyAssertions": {
+        "handler141": false,
+        "haltedCount3": true,
+        "literalNothingWasSent": false
+      },
+      "checks": {
+        "typedQueueHalt": true,
+        "countsMatchReadback": true,
+        "globalPausePersisted": true,
+        "haltPersisted": true,
+        "noLateRevival": true,
+        "sameTypedResultAsDirect141": true,
+        "sameReplyAsDirect141": true
+      }
+    },
+    {
+      "case": "mixed-sent-inflight-pending",
+      "handler": "142-career-router.handleChat",
+      "expectedPending": 1,
+      "previouslySent": 1,
+      "previouslyInFlight": 1,
+      "result": {
+        "intent": "queue_halt",
+        "resultStatus": "completed",
+        "halted_count": 1,
+        "sent_count": 1,
+        "in_flight_count": 1,
+        "already_stopped_count": 0,
+        "queue_total": 3,
+        "counts_verified": true
+      },
+      "reply": "Stopped everything: the global pause is set, and 1 pending outreach item is halted — the halt is saved so it survives a restart. Counts: 1 already out, 1 in flight and unconfirmed, 1 halted — 3 in total, so every item is accounted for. 1 item had already gone out before this halt — those can't be undone, and I have left them marked as delivered. Nothing else will go out from this queue. Tell me if you'd like the item-by-item list.",
+      "delivered": "Stopped everything: the global pause is set, and 1 pending outreach item is halted — the halt is saved so it survives a restart. Counts: 1 already out, 1 in flight and unconfirmed, 1 halted — 3 in total, so every item is accounted for. 1 item had already gone out before this halt — those can't be undone, and I have left them marked as delivered.\nNothing else will go out from this queue. Tell me if you'd like the item-by-item list.",
+      "legacyAssertions": {
+        "handler141": false,
+        "haltedCount3": false,
+        "literalNothingWasSent": false
+      },
+      "checks": {
+        "typedQueueHalt": true,
+        "countsMatchReadback": true,
+        "globalPausePersisted": true,
+        "haltPersisted": true,
+        "noLateRevival": true,
+        "sameTypedResultAsDirect141": true,
+        "sameReplyAsDirect141": true
+      }
+    }
+  ]
+}

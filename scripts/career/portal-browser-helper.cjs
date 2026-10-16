@@ -34,6 +34,7 @@ function resolvePlaywright() {
 const pw = resolvePlaywright();
 if (!pw) { fs.writeFileSync(path.join(dir, "fatal.json"), JSON.stringify({ code: "PLAYWRIGHT_UNRESOLVABLE", message: "playwright not resolvable in helper (set UPMORE_PLAYWRIGHT_PATH)" })); process.exit(3); }
 
+const helperInstanceId = crypto.randomUUID();
 const boards = new Map(); // boardId -> { context, page, url }
 let browser = null;
 let lastActivity = Date.now();
@@ -503,7 +504,7 @@ async function execute(boardId, cmd) {
       const links=dom.links.filter(link=>{try{return new URL(publicResearchURL(link.url)).origin===board.scope.origin;}catch(_){return false;}});
       const screenshot = await board.page.screenshot({ type: 'png', fullPage: false });
       if (screenshot.length > 500000) throw Object.assign(new Error('research screenshot exceeded bounded evidence budget'), { code: 'RESEARCH_EVIDENCE_TOO_LARGE' });
-      return { version: 'public_research_capture/v1', provenance: 'owned_chromium_dom', taskId: cmd.scope.taskId, intentId: cmd.scope.intentId, sessionId: boardId,
+      return { version: 'public_research_capture/v1', provenance: 'owned_chromium_dom', taskId: cmd.scope.taskId, intentId: cmd.scope.intentId, sessionId: `${helperInstanceId}:${boardId}`,
         url: board.page.url(), capturedAt: new Date().toISOString(), untrusted: true, sourceSha256: board.sourceSha256,
         blocked: dom.gate ? 'PUBLIC_GATE_REQUIRES_HANDOFF' : dom.dynamic ? 'PUBLIC_SOURCE_REQUIRES_JAVASCRIPT' : null, title: dom.title, text: dom.text, headings: dom.headings, links,
         navigation: board.requests, screenshot: { mimeType: 'image/png', bytes: screenshot.length, sha256: crypto.createHash('sha256').update(screenshot).digest('hex'), base64: screenshot.toString('base64') } };

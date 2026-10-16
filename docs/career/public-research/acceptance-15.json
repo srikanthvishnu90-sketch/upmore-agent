@@ -1,0 +1,519 @@
+{
+  "version": "upmore_public_research_acceptance/v1",
+  "base_release": "f67db048599db308f2691a7be7feada841143da5",
+  "source_manifest_commit": "0519b0ffd33a67c06e00fda047321231cdd8667c",
+  "source_manifest_sha256": "2734e0edfcaec93f792bcfe5a3138c37bb971eeb951265013e523ed0ecc2a96c",
+  "scope": "15 real public research objectives. MOCK preflight and source capture alone never count as accepted research outcomes.",
+  "status": "NOT_RUN",
+  "live_outcomes": 0,
+  "browser_status": "NOT_RUN: unchanged normal Chromium sandbox blocker",
+  "required_research_origins": [
+    "https://careers.datadoghq.com",
+    "https://careers.microsoft.com",
+    "https://docs.python.org",
+    "https://handbook.gitlab.com",
+    "https://job-boards.greenhouse.io",
+    "https://jobs.apple.com",
+    "https://jobs.ashbyhq.com",
+    "https://jobs.lever.co",
+    "https://stripe.com",
+    "https://www.amazon.jobs",
+    "https://www.atlassian.com",
+    "https://www.cloudflare.com",
+    "https://www.google.com",
+    "https://www.janestreet.com",
+    "https://www.mckinsey.com"
+  ],
+  "steps": [
+    "Test ordinary conversation and durable controls before any browser acceptance run.",
+    "Muse reviews/merges the source branch and generates/applies the forward migration through the supported CLI; no deployment occurs from this contribution.",
+    "Use existing authorized Upmore identity and own thread; send the exact conversation_command with a unique turn_key including the case ID. Retain reviewed source SHA and immutable manifest SHA.",
+    "Read back committed queued intent before running the existing owned worker with the explicitly approved origins. Keep its normal sandbox, TLS checks and fresh unauthenticated research context.",
+    "After the worker finishes, ask Research status <intent_id>. Retain task/intent/turn correlation, session and navigation records, source/body/screenshot hashes, timestamp and persisted artifact readback.",
+    "Inspect source links and request an explicit additional public read if a detail page is required; each follow-up gets its own correlated intent. No automatic link click, gate consent, login, form fill or application.",
+    "A reviewer must verify each claimed answer against captured source. evidence_ready only proves a capture; objectiveStatus requires_review is never an accepted answer. Missing facts stay unknown.",
+    "Mark a case ACCEPTED only when its concrete objective is satisfied by genuine public source evidence and user-facing answer. Gated, dynamic/JS-only, redirected, unavailable or incomplete cases remain BLOCKED/INSUFFICIENT_EVIDENCE. Never replace them with fixtures."
+  ],
+  "tasks": [
+    {
+      "id": "B01",
+      "title": "Greenhouse role reading",
+      "url": "https://job-boards.greenhouse.io/anthropic",
+      "question": "Extract an actually open entry-level role, or report no matching role; preserve title, location and canonical link.",
+      "conversation_command": "Research https://job-boards.greenhouse.io/anthropic \u2014 Extract an actually open entry-level role, or report no matching role; preserve title, location and canonical link.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B01",
+        "url": "https://job-boards.greenhouse.io/anthropic",
+        "question": "Extract an actually open entry-level role, or report no matching role; preserve title, location and canonical link."
+      },
+      "expected_public_outcome": "Extract an actually open entry-level role, or report no matching role; preserve title, location and canonical link.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B02",
+      "title": "Lever role reading",
+      "url": "https://jobs.lever.co/cohere",
+      "question": "Read one current technical role, including seniority and location; do not open an application.",
+      "conversation_command": "Research https://jobs.lever.co/cohere \u2014 Read one current technical role, including seniority and location; do not open an application.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B02",
+        "url": "https://jobs.lever.co/cohere",
+        "question": "Read one current technical role, including seniority and location; do not open an application."
+      },
+      "expected_public_outcome": "Read one current technical role, including seniority and location; do not open an application.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B03",
+      "title": "Ashby role reading",
+      "url": "https://jobs.ashbyhq.com/notion",
+      "question": "Extract one current role and explicit remote/onsite policy; unknown stays unknown.",
+      "conversation_command": "Research https://jobs.ashbyhq.com/notion \u2014 Extract one current role and explicit remote/onsite policy; unknown stays unknown.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B03",
+        "url": "https://jobs.ashbyhq.com/notion",
+        "question": "Extract one current role and explicit remote/onsite policy; unknown stays unknown."
+      },
+      "expected_public_outcome": "Extract one current role and explicit remote/onsite policy; unknown stays unknown.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B04",
+      "title": "Stripe role constraint review",
+      "url": "https://stripe.com/jobs/search",
+      "question": "Find an internship or entry-level listing and preserve stated eligibility; do not infer authorization.",
+      "conversation_command": "Research https://stripe.com/jobs/search \u2014 Find an internship or entry-level listing and preserve stated eligibility; do not infer authorization.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B04",
+        "url": "https://stripe.com/jobs/search",
+        "question": "Find an internship or entry-level listing and preserve stated eligibility; do not infer authorization."
+      },
+      "expected_public_outcome": "Find an internship or entry-level listing and preserve stated eligibility; do not infer authorization.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B05",
+      "title": "Cloudflare role constraint review",
+      "url": "https://www.cloudflare.com/careers/jobs/",
+      "question": "Find a data or technical role; extract stated location and seniority exclusions.",
+      "conversation_command": "Research https://www.cloudflare.com/careers/jobs/ \u2014 Find a data or technical role; extract stated location and seniority exclusions.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B05",
+        "url": "https://www.cloudflare.com/careers/jobs/",
+        "question": "Find a data or technical role; extract stated location and seniority exclusions."
+      },
+      "expected_public_outcome": "Find a data or technical role; extract stated location and seniority exclusions.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B06",
+      "title": "Microsoft role source",
+      "url": "https://careers.microsoft.com/",
+      "question": "Extract one public graduate/intern posting and exact employment type, or report blocked search.",
+      "conversation_command": "Research https://careers.microsoft.com/ \u2014 Extract one public graduate/intern posting and exact employment type, or report blocked search.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B06",
+        "url": "https://careers.microsoft.com/",
+        "question": "Extract one public graduate/intern posting and exact employment type, or report blocked search."
+      },
+      "expected_public_outcome": "Extract one public graduate/intern posting and exact employment type, or report blocked search.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B07",
+      "title": "Google role source",
+      "url": "https://www.google.com/about/careers/applications/jobs/results/",
+      "question": "Read a public student role and stated graduation/degree requirements.",
+      "conversation_command": "Research https://www.google.com/about/careers/applications/jobs/results/ \u2014 Read a public student role and stated graduation/degree requirements.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B07",
+        "url": "https://www.google.com/about/careers/applications/jobs/results/",
+        "question": "Read a public student role and stated graduation/degree requirements."
+      },
+      "expected_public_outcome": "Read a public student role and stated graduation/degree requirements.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B08",
+      "title": "Amazon role source",
+      "url": "https://www.amazon.jobs/en/teams/internships-for-students",
+      "question": "Read the student-program page and extract actual eligibility versus generic marketing.",
+      "conversation_command": "Research https://www.amazon.jobs/en/teams/internships-for-students \u2014 Read the student-program page and extract actual eligibility versus generic marketing.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B08",
+        "url": "https://www.amazon.jobs/en/teams/internships-for-students",
+        "question": "Read the student-program page and extract actual eligibility versus generic marketing."
+      },
+      "expected_public_outcome": "Read the student-program page and extract actual eligibility versus generic marketing.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B09",
+      "title": "Apple role source",
+      "url": "https://jobs.apple.com/en-us/search?team=internships-STDNT-INTRN",
+      "question": "Identify a public intern listing and preserve location and posted requirements.",
+      "conversation_command": "Research https://jobs.apple.com/en-us/search?team=internships-STDNT-INTRN \u2014 Identify a public intern listing and preserve location and posted requirements.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B09",
+        "url": "https://jobs.apple.com/en-us/search?team=internships-STDNT-INTRN",
+        "question": "Identify a public intern listing and preserve location and posted requirements."
+      },
+      "expected_public_outcome": "Identify a public intern listing and preserve location and posted requirements.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B10",
+      "title": "Datadog early career source",
+      "url": "https://careers.datadoghq.com/early-careers/",
+      "question": "Extract the actual early-career program paths and any explicitly stated application window.",
+      "conversation_command": "Research https://careers.datadoghq.com/early-careers/ \u2014 Extract the actual early-career program paths and any explicitly stated application window.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B10",
+        "url": "https://careers.datadoghq.com/early-careers/",
+        "question": "Extract the actual early-career program paths and any explicitly stated application window."
+      },
+      "expected_public_outcome": "Extract the actual early-career program paths and any explicitly stated application window.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B11",
+      "title": "Jane Street interview preparation",
+      "url": "https://www.janestreet.com/join-jane-street/interviewing/",
+      "question": "Read official interview guidance and produce a cited preparation checklist without invented questions.",
+      "conversation_command": "Research https://www.janestreet.com/join-jane-street/interviewing/ \u2014 Read official interview guidance and produce a cited preparation checklist without invented questions.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B11",
+        "url": "https://www.janestreet.com/join-jane-street/interviewing/",
+        "question": "Read official interview guidance and produce a cited preparation checklist without invented questions."
+      },
+      "expected_public_outcome": "Read official interview guidance and produce a cited preparation checklist without invented questions.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B12",
+      "title": "McKinsey interview preparation",
+      "url": "https://www.mckinsey.com/careers/interviewing",
+      "question": "Separate official personal experience and case preparation from speculation.",
+      "conversation_command": "Research https://www.mckinsey.com/careers/interviewing \u2014 Separate official personal experience and case preparation from speculation.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B12",
+        "url": "https://www.mckinsey.com/careers/interviewing",
+        "question": "Separate official personal experience and case preparation from speculation."
+      },
+      "expected_public_outcome": "Separate official personal experience and case preparation from speculation.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B13",
+      "title": "Atlassian interview preparation",
+      "url": "https://www.atlassian.com/company/careers/resources/interviewing",
+      "question": "Extract official interview stages or report unavailable; create a sourced prep card.",
+      "conversation_command": "Research https://www.atlassian.com/company/careers/resources/interviewing \u2014 Extract official interview stages or report unavailable; create a sourced prep card.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B13",
+        "url": "https://www.atlassian.com/company/careers/resources/interviewing",
+        "question": "Extract official interview stages or report unavailable; create a sourced prep card."
+      },
+      "expected_public_outcome": "Extract official interview stages or report unavailable; create a sourced prep card.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B14",
+      "title": "GitLab remote work research",
+      "url": "https://handbook.gitlab.com/handbook/company/culture/all-remote/",
+      "question": "Read official remote-work guidance and map two sourced practices to learner constraints.",
+      "conversation_command": "Research https://handbook.gitlab.com/handbook/company/culture/all-remote/ \u2014 Read official remote-work guidance and map two sourced practices to learner constraints.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B14",
+        "url": "https://handbook.gitlab.com/handbook/company/culture/all-remote/",
+        "question": "Read official remote-work guidance and map two sourced practices to learner constraints."
+      },
+      "expected_public_outcome": "Read official remote-work guidance and map two sourced practices to learner constraints.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    },
+    {
+      "id": "B15",
+      "title": "Python project learning source",
+      "url": "https://docs.python.org/3/library/csv.html",
+      "question": "Read official CSV delimiter and dialect guidance; create an answer-specific interview coaching card.",
+      "conversation_command": "Research https://docs.python.org/3/library/csv.html \u2014 Read official CSV delimiter and dialect guidance; create an answer-specific interview coaching card.",
+      "typed_request": {
+        "action": "research",
+        "eventId": "public-research-B15",
+        "url": "https://docs.python.org/3/library/csv.html",
+        "question": "Read official CSV delimiter and dialect guidance; create an answer-specific interview coaching card."
+      },
+      "expected_public_outcome": "Read official CSV delimiter and dialect guidance; create an answer-specific interview coaching card.",
+      "evidence_required": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone",
+        "Artifact canonical sorted-json SHA verified after backend readback; source text marked untrusted",
+        "Explicit reviewer answer with source citations; no completed answer inferred from screenshot or evidence_ready"
+      ],
+      "status": "NOT_RUN",
+      "observed_outcome": null,
+      "answer": null,
+      "artifact": null,
+      "blockers": [
+        "Normal sandbox Chromium unavailable in selected executor; not retried",
+        "Review branch and SQL proposal await Muse integration; no production write authorized"
+      ]
+    }
+  ]
+}

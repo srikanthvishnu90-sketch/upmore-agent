@@ -18,6 +18,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
+const { publicGet } = require('../../workers/career-browser/research-network.cjs');
+const { publicResearchURL } = require('../../supabase/functions/_shared/career_research_policy.js');
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
@@ -60,12 +62,12 @@ function navAllowed(url) {
   if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
   return NAV_SUFFIXES.some((d) => host === d || host.endsWith("." + d));
 }
-async function getBoard(boardId) {
+async function getBoard(boardId, research = false) {
   if (!boards.has(boardId)) {
     const b = await getBrowser();
-    const context = await b.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block" });
+    const context = await b.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block", ...(research ? { javaScriptEnabled: false, acceptDownloads: false } : {}) });
     const page = await context.newPage();
-    const entry = { context, page, url: null, blockedNav: null, submitInProgress: false, scope: null, mutationSent: false };
+    const entry = { context, page, research, requests: [], url: null, blockedNav: null, submitInProgress: false, scope: null, mutationSent: false };
     boards.set(boardId, entry);
     // Redirect hops never pass through page.route (a 302 target is part
     // of the initial request chain in Chromium/Playwright), but they DO
@@ -74,7 +76,7 @@ async function getBoard(boardId) {
     // module 150's post-load final-URL gate makes the typed refusal.
     page.on("request", (req) => {
       try {
-        if (req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
+        if (!entry.research && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
           entry.blockedNav = entry.blockedNav || req.url();
         }
       } catch (e) { /* frame may be gone; the final-URL gate still decides */ }
@@ -82,6 +84,18 @@ async function getBoard(boardId) {
     await context.route("**/*", async (route) => {
       try {
         const req = route.request();
+        if (entry.research) {
+          if (!req.isNavigationRequest() || req.frame() !== page.mainFrame()) { await route.abort('blockedbyclient'); return; }
+          const event = { url: req.url(), method: req.method(), at: new Date().toISOString(), status: 'refused' }; entry.requests.push(event);
+          try {
+            if (entry.requests.length > 12 || req.method() !== 'GET' || !req.isNavigationRequest() || req.frame() !== page.mainFrame() || req.url() !== entry.scope.url) throw Object.assign(new Error('research request refused'), { code: 'RESEARCH_REQUEST_REFUSED' });
+            const response = await publicGet(req.url(), { origin: entry.scope.origin });
+            entry.sourceSha256 = crypto.createHash('sha256').update(response.body).digest('hex');
+            event.status = 'read'; event.httpStatus = response.status; event.sourceSha256 = entry.sourceSha256;
+            await route.fulfill({ status: response.status, headers: response.headers, body: response.body });
+          } catch (e) { event.code = e.code || 'RESEARCH_NETWORK_FAILED'; entry.blockedNav = event.code; await route.abort('blockedbyclient'); }
+          return;
+        }
         if (req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {
           entry.blockedNav = req.url();
           await route.abort("blockedbyclient");
@@ -463,9 +477,37 @@ async function cmdSubmitCapture(board, cmd) {
 async function execute(boardId, cmd) {
   validateAction(cmd);
   if (cmd.type === "shutdown") { setTimeout(() => process.exit(0), 50); return { ok: true }; }
-  const board = await getBoard(boardId);
+  if (cmd.type === 'close') {
+    const existing = boards.get(boardId);
+    if (existing) { await existing.context.close().catch(() => {}); boards.delete(boardId); }
+    return { ok: true };
+  }
+  const board = await getBoard(boardId, cmd.type === 'read_public_page');
+  if (board.research && !['read_public_page','close'].includes(cmd.type)) throw Object.assign(new Error('research exposes no mutation command'), { code: 'RESEARCH_ACTION_REFUSED' });
   if (["fill", "readback", "verify_payload", "review", "submit_and_capture"].includes(cmd.type)) assertObservation(cmd, board.observation, board.scope, board.page.url());
   switch (cmd.type) {
+    case 'read_public_page': {
+      if (!board.research || board.url) throw Object.assign(new Error('one explicit URL per research board'), { code: 'RESEARCH_ACTION_REFUSED' });
+      publicResearchURL(cmd.url); board.url = cmd.url; board.scope = { ...cmd.scope, url: cmd.url };
+      try { await board.page.goto(cmd.url, { waitUntil: 'domcontentloaded', timeout: 15000 }); }
+      catch (e) { throw Object.assign(new Error('public source could not be read'), { code: board.blockedNav || 'RESEARCH_NAVIGATION_BLOCKED' }); }
+      if (board.blockedNav || board.page.url() !== cmd.url) throw Object.assign(new Error('public source navigation changed'), { code: board.blockedNav || 'RESEARCH_REDIRECT_REFUSED' });
+      const dom = await board.page.evaluate(() => {
+        const visible = el => !!(el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+        const gate = document.querySelector('input[type=password],iframe[src*="captcha"],.g-recaptcha,[data-sitekey],[aria-modal=true]');
+        const text = (document.body?.innerText || '').slice(0, 24000);
+        return { title: document.title.slice(0,300), text, dynamic: /enable javascript|javascript is required/i.test(text), gate: !!gate || /verify (?:you are|you're) human|access denied|sign in to continue|subscribe to (?:continue|read)/i.test(text),
+          headings: Array.from(document.querySelectorAll('h1,h2,h3')).filter(visible).slice(0,40).map(e=>e.innerText.slice(0,250)),
+          links: Array.from(document.querySelectorAll('a[href]')).filter(visible).slice(0,100).map(e=>({text:e.innerText.slice(0,200),url:e.href})) };
+      });
+      const links=dom.links.filter(link=>{try{return new URL(publicResearchURL(link.url)).origin===board.scope.origin;}catch(_){return false;}});
+      const screenshot = await board.page.screenshot({ type: 'png', fullPage: false });
+      if (screenshot.length > 500000) throw Object.assign(new Error('research screenshot exceeded bounded evidence budget'), { code: 'RESEARCH_EVIDENCE_TOO_LARGE' });
+      return { version: 'public_research_capture/v1', provenance: 'owned_chromium_dom', taskId: cmd.scope.taskId, intentId: cmd.scope.intentId, sessionId: boardId,
+        url: board.page.url(), capturedAt: new Date().toISOString(), untrusted: true, sourceSha256: board.sourceSha256,
+        blocked: dom.gate ? 'PUBLIC_GATE_REQUIRES_HANDOFF' : dom.dynamic ? 'PUBLIC_SOURCE_REQUIRES_JAVASCRIPT' : null, title: dom.title, text: dom.text, headings: dom.headings, links,
+        navigation: board.requests, screenshot: { mimeType: 'image/png', bytes: screenshot.length, sha256: crypto.createHash('sha256').update(screenshot).digest('hex'), base64: screenshot.toString('base64') } };
+    }
     case "open": return await cmdOpen(board, cmd);
     case "discover": return await cmdDiscover(board);
     case "fill": return await cmdFill(board, cmd);

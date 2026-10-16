@@ -1,3 +1,4 @@
+import { researchCommand } from "../_shared/career_research_policy.js";
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
 // Owner decision 2026-10-15: "Prune the shelved finance half from the
@@ -162,7 +163,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // "career" key, mirroring the flow router's own use of that table.
     const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
     let careerTask;
-    try { careerTask = normalizeCareerTaskRequest(body.career_task); }
+    try { careerTask = normalizeCareerTaskRequest(body.career_task ?? researchCommand(message, turnKey)); }
     catch (_) { return json(cors, { error: "invalid_career_task", action: null, turn_key: turnKey }, 400); }
     const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask);
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

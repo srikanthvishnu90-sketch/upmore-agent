@@ -163,8 +163,13 @@ const CareerRecommendations = (() => {
   }
   function intentFor(text) {
     const t = str(text).toLowerCase();
-    if (/\b(apply|submit|send|email|watch|watches|watching|alerts?|pause|stop|delete)\b/.test(t)) return null;
-    if (/\b(resume|résumé|cv|background|profile)\b/.test(t) && /\b(roles?|jobs?|fit|recommend|recommendations?|suit|paths?)\b/.test(t)) return "resume_roles";
+    // Combine repair (2026-10-15): tailor/packet asks belong to the tailor and
+    // discovery branches (the SC-111 + named-target contracts in 142) — the
+    // read-only exclusion mirrors the existing apply/email/watch exclusions,
+    // and a bare resume x role co-occurrence no longer claims resume_roles
+    // without a recommendation signal (fit/recommend/suit/qualified/match).
+    if (/\b(apply|submit|send|email|watch|watches|watching|alerts?|pause|stop|delete|tailor|tailored|packet)\b/.test(t)) return null;
+    if (/\b(resume|résumé|cv|background|profile)\b/.test(t) && /\b(fit|recommend|recommendations?|suit|suited|qualified|match)\b/.test(t)) return "resume_roles";
     if (/\b(skill gaps?|missing skills?)\b/.test(t)) return "skill_gaps";
     if (/\b(current|fresh|live|today|right now)\b/.test(t) && /\b(openings?|jobs?|roles?|hiring)\b/.test(t)) return "current_openings";
     if (/\b(what|which)\b[^?]*\b(roles?|jobs?|careers?)\b[^?]*\b(fit|suit|recommend|qualified)\b|\brecommend\b[^?]*\b(roles?|jobs?|careers?)\b/.test(t)) return "resume_roles";

@@ -326,8 +326,8 @@ test("R2A guard: C37 persists the halt, reports truthful counts and rejects late
     assert.equal(result.sent_count + result.in_flight_count + result.halted_count + result.already_stopped_count, result.queue_total);
     assert.equal(result.queue_total, items.length);
     const after = JSON.parse(fs.readFileSync(statePath, "utf8"));
-    assert.equal(after.global_pause.set, true, "global pause survives file readback");
-    assert.equal(after.outreach_queue.global_pause.set, true);
+    assert.equal(after.global_pause?.set, true, "global pause survives file readback");
+    assert.equal(after.outreach_queue.global_pause?.set, true);
     assert.equal(after.outreach_queue.halted, true, "the halt is persisted, not only returned in the reply");
     assert.deepEqual(after.outreach_queue.items.map((i) => i.status), items.map((i) => ["pending", "queued"].includes(i.status) ? "halted" : i.status));
     assert.equal(sinkCount(sinkDir), 0, "stopping creates no irreversible submission receipt");

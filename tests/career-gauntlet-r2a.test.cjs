@@ -19,8 +19,10 @@
 //
 // FAIL-FIRST: on the pinned pre-repair build (19ba7bb) every DD-pattern test
 // below fails — the intent turns return the unmatched fallback and no state
-// changes. The two guard tests at the end (C37 exact wording, clean submit)
-// pass before and after: they pin behavior Lane A must not break.
+// changes. The two guards at the end pin queue-halt and clean-submit behavior.
+// C37's historical outer-handler/literal-copy assertions became stale after
+// the router delegated stop intents to 141 and counted replies changed; its
+// behavior guard now checks durable state, truthful counts and no revival.
 // Check: node --test tests/career-gauntlet-r2a.test.cjs
 "use strict";
 process.env.GAUNTLET_OUT_DIR = process.env.GAUNTLET_OUT_DIR || "/tmp/gauntlet-r2a-evidence";
@@ -297,14 +299,56 @@ test("R2A NW13: a recipient change after the draft supersedes it — a new revie
 });
 
 // ---------------------------------------------------------------- guards (pass before + after)
-test("R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply", () => {
-  const profile = L.gauntletProfile("p1-early-career-swe");
-  const statePath = queueFile("queue_ap17");
-  const s = H.session("R2A-GUARD1", "r2a-guard1");
-  const r = L.chatTurn(s, "stop everything. don't contact anyone", { profile, queueStatePath: statePath });
-  assert.equal(r.handler, "141-career-doorstep.handleChat", "the legacy exact phrases still fall through to 141");
-  assert.equal(r.result && r.result.halted_count, 3);
-  assert.match(joined(r), /Nothing was sent/);
+test("R2A guard: C37 persists the halt, reports truthful counts and rejects late or duplicate events", () => {
+  const Doorstep = require(path.join(ROOT, "packages/domain/141-career-doorstep.js"));
+  for (const variant of ["pending", "mixed"]) {
+    const before = queueState("queue_ap17");
+    if (variant === "mixed") {
+      before.outreach_queue.items[0].status = "sent";
+      before.outreach_queue.items[1].status = "sending";
+    }
+    const items = before.outreach_queue.items;
+    const pending = items.filter((i) => ["pending", "queued"].includes(i.status)).length;
+    const sent = items.filter((i) => i.status === "sent").length;
+    const inFlight = items.filter((i) => i.status === "sending").length;
+    const dir = tmpDir("c37-" + variant), statePath = path.join(dir, "queue.json"), sinkDir = path.join(dir, "receipts");
+    fs.mkdirSync(sinkDir);
+    fs.writeFileSync(statePath, JSON.stringify(before));
+    const s = H.session("R2A-C37-" + variant, "r2a-c37-" + variant);
+    const r = L.chatTurn(s, "stop everything. don't contact anyone", { profile: L.gauntletProfile("p1-early-career-swe"), queueStatePath: statePath, sinkDir, now: "2026-10-16T00:00:00.000Z" });
+    const result = r.result, reply = joined(r);
+    assert.equal(result.intent, "queue_halt");
+    assert.equal(result.resultStatus, "completed");
+    assert.equal(result.counts_verified, true);
+    assert.equal(result.halted_count, pending, "the halt count comes from pending/queued records");
+    assert.equal(result.sent_count, sent, "previously delivered work is not denied or undone");
+    assert.equal(result.in_flight_count, inFlight, "unconfirmed in-flight work stays uncertain");
+    assert.equal(result.sent_count + result.in_flight_count + result.halted_count + result.already_stopped_count, result.queue_total);
+    assert.equal(result.queue_total, items.length);
+    const after = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    assert.equal(after.global_pause.set, true, "global pause survives file readback");
+    assert.equal(after.outreach_queue.global_pause.set, true);
+    assert.equal(after.outreach_queue.halted, true, "the halt is persisted, not only returned in the reply");
+    assert.deepEqual(after.outreach_queue.items.map((i) => i.status), items.map((i) => ["pending", "queued"].includes(i.status) ? "halted" : i.status));
+    assert.equal(sinkCount(sinkDir), 0, "stopping creates no irreversible submission receipt");
+    assert.match(reply, new RegExp("\\b" + pending + "\\b"), "the reply reports the halt count");
+    if (sent === 0) assert.match(reply, /nothing.*(?:went out|irreversible)|no contact/i, "zero-send meaning is preserved without pinning one sentence");
+    else {
+      assert.match(reply, /already.*(?:out|delivered)|(?:out|delivered).*already/i);
+      assert.match(reply, /in.flight.*unconfirmed|unconfirmed.*in.flight/i);
+      assert.doesNotMatch(reply, /nothing (?:was sent|went out)/i, "a stop must not deny the fixture's earlier delivery");
+    }
+    const halted = after.outreach_queue.items.find((i) => i.status === "halted");
+    const newer = { event_id: "c37-" + variant + "-newer", type: "status_update", queue_id: halted.queue_id, status: "pending", sent_at: "2027-01-01T00:00:00Z" };
+    assert.equal(Doorstep.applyQueueEvent(after, newer).applied, false, "even a newer event cannot revive halted work");
+    const duplicate = Doorstep.applyQueueEvent(after, newer);
+    assert.equal(duplicate.applied, false);
+    assert.equal(duplicate.deduped, true, "repeated event IDs are deduplicated");
+    const late = { event_id: "c37-" + variant + "-late", type: "delivery_confirmation", queue_id: halted.queue_id, status: "sent", sent_at: "2026-10-10T09:00:00Z" };
+    assert.equal(Doorstep.applyQueueEvent(after, late).applied, false, "late delivery events cannot overwrite the halt");
+    assert.deepEqual(after.outreach_queue.items.map((i) => i.status), items.map((i) => ["pending", "queued"].includes(i.status) ? "halted" : i.status));
+    assert.equal(sinkCount(sinkDir), 0, "event replay creates no irreversible receipt");
+  }
 });
 
 test("R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141", () => {

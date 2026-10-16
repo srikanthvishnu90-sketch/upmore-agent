@@ -1,0 +1,13 @@
+(node:438869) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:438869) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ J01 owned committed correction survives research and restart; colliding other owner is unchanged (4929.807367ms)
+✔ J02 epoch erase after research cannot revive correction/audit/source through warm or fresh entry (6600.818314ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11670.310005

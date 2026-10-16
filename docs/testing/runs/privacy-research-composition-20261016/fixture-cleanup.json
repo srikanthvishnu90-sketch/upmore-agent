@@ -1,0 +1,8 @@
+{
+  "container": "upmore-career-integration-pg-recovery",
+  "networkMode": "none",
+  "wireListenerClosed": true,
+  "databaseDumpsRetained": true,
+  "containerRemoval": "immediately after this capture",
+  "unexpectedDatabaseBackendSignalFailures": 0
+}

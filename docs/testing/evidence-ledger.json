@@ -53723,6 +53723,611 @@
     "Release baseline with only the new synthetic suite/helper copied in; no repaired source or bundles.",
     "Local staged handler, synthetic transport or real local PostgreSQL; no production/browser/model calls."
    ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-c37",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "--test-name-pattern=C37",
+    "/workspace/upmore-privacy-baseline/tests/career-gauntlet-r2a.test.cjs",
+    "/workspace/upmore-privacy-baseline/tests/career-gauntlet-r3.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-c37/test.log",
+   "log_sha256": "fb9730f42596f9a57d293d1171aa92429952547e36d5b3e8dc2548d20f62acf0",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-joint-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/privacy-research-composition.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-joint-pg/test.log",
+   "log_sha256": "0c3a833eb5c7189b88ba29a68866f193c38a0ff095f9575de32f05105bc60818",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-privacy-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-baseline/tests/correction-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-privacy-pg/test.log",
+   "log_sha256": "931bd5d4289d708e17d4c0d5771fb5a92a25fc56b09ccb867186ca34bb1fd302",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-privacy-pg-recorded",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-baseline/tests/correction-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-privacy-pg-recorded/test.log",
+   "log_sha256": "4539cc135f829ef4866a533b47a053d0c39bd38fe4124f3a0c3a6ccd5f5afb96",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-privacy-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-privacy-source/test.log",
+   "log_sha256": "17ec2cbbd7d0e8a7fd4c71ab14b5a8325eb8c38b070db49b00c5eea10c110185",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-privacy-source-recorded",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-privacy-source-recorded/test.log",
+   "log_sha256": "bd7b831860fefe8d7c18dcfe2864d23c4b60fb78232492ac5a95f27e30ebce17",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-authority-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/career-task-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-authority-pg/test.log",
+   "log_sha256": "8eaa401c82da7554350f9f0f80d118d0befbd99c060a2268ddb21feb78195a0b",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-c37",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "--test-name-pattern=C37",
+    "/workspace/upmore-privacy-composition/tests/career-gauntlet-r2a.test.cjs",
+    "/workspace/upmore-privacy-composition/tests/career-gauntlet-r3.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-c37/test.log",
+   "log_sha256": "d9a2e2534fa0b379397b4b457569bc2aaf43e4420ee2915efd380fb1791a74a4",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-joint-final-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/privacy-research-composition.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "7fa8d2f31d4bc4e0d1539685f94e55ce144928ce",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-joint-final-pg/test.log",
+   "log_sha256": "d2335cda94f731a07a7afdcd729ec9b672de679d399913862f815ccd1aaff93b",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-joint-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/privacy-research-composition.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-joint-pg/test.log",
+   "log_sha256": "89a016f2582883fcf6d87c28b1cce78bdcbf5bf3744109a07f7c3bbb0d30d604",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-persistence-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/career-persistence-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-persistence-pg/test.log",
+   "log_sha256": "9513132a2e45dd2e598feb3c40df66fa9f0c84dcfb46d2feb1578b0a03b25bac",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-privacy-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/correction-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-privacy-pg/test.log",
+   "log_sha256": "35c7fd85231288a975638732e754480db26557b8d37d663f2f8a3a52691042f5",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-privacy-pg-recorded",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/correction-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "8c5128942a6fb7d502cac79a7cdd658e4faa7234",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-privacy-pg-recorded/test.log",
+   "log_sha256": "ca22cfe748ed0cfafc086431d3cd962d3e5571ff0c91a343bf2ebb14ae7f6d05",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-privacy-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/correction-authority-privacy.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-privacy-source/test.log",
+   "log_sha256": "23fa86109eb910cdd862ea3800749c239d8a8b73d48772f9b75c988e574e3411",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-privacy-source-recorded",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/correction-authority-privacy.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "8c5128942a6fb7d502cac79a7cdd658e4faa7234",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-privacy-source-recorded/test.log",
+   "log_sha256": "bff9bf99de732f5e1633a4beebb5df4ce0b424fe16bc4f9ca8b1951c22b6ef07",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:privacy-composed-research-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/research-conversation-independent-source.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/privacy-composed-research-source/test.log",
+   "log_sha256": "e19f8f299cd72b980a3911a295d95c166a486614567deedfb0bfa5992a202f12",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:privacy-composed-research-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/research-conversation-independent-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/privacy-composed-research-pg/test.log",
+   "log_sha256": "72e059b8b630b5cc24430be741095a194d6166338fb25a1aad4342ddc8bb6176",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:privacy-composed-author-source",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/career-public-research.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/privacy-composed-author-source/test.log",
+   "log_sha256": "20799fdc41d9768638d6dffc017fed43ca12a495b1aa1e89505260714b4d9590",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:privacy-composed-author-pg",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/career-public-research-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/research-conversation-review-20261016/privacy-composed-author-pg/test.log",
+   "log_sha256": "2d0239af1b8948feb9256e963f30f089db9bba430fbeb9f10de4911306015817",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:baseline-gauntlet",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-gauntlet-r2a.test.cjs",
+    "tests/career-gauntlet-r3.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/baseline-gauntlet.log",
+   "log_sha256": "a0647b84e7f53363cb24e15fd7e3f4d9e607c610f22a348bb57fcf5a4f97e093",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-gauntlet",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-gauntlet-r2a.test.cjs",
+    "tests/career-gauntlet-r3.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "8c5128942a6fb7d502cac79a7cdd658e4faa7234",
+   "result": "FAIL",
+   "exit_code": 1,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-gauntlet.log",
+   "log_sha256": "8a82bda9781a2095cdf7823e30400229e9d546ceef833469d53db5dfe6a61ba2",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:combined-regressions",
+   "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-bundle-reachability.test.cjs",
+    "tests/independent-worker-atomic-interplay.test.cjs",
+    "tests/career-durability.test.cjs",
+    "tests/career-portal-submit-path.test.cjs",
+    "tests/career-portal-apply.test.cjs",
+    "tests/career-apply-completion.test.cjs",
+    "tests/career-apply3.test.cjs",
+    "tests/career-owned-worker.test.cjs",
+    "tests/career-bundle.test.cjs",
+    "tests/router-bundle.test.cjs",
+    "tests/career-staged-size.test.cjs",
+    "tests/career-http-host.test.cjs",
+    "tests/career-guidance-entry.test.cjs",
+    "tests/career-alert-intents.test.cjs",
+    "tests/career-alerts-host-wiring.test.cjs",
+    "tests/career-alert-text-flow.test.cjs",
+    "tests/career-portal-caps.test.cjs",
+    "tests/career-portal-payload-binding.test.cjs",
+    "tests/career-unknown-outcome-resolver.test.cjs",
+    "tests/career-conversation-heldouts.test.cjs",
+    "tests/career-conversation-mechanisms.test.cjs",
+    "tests/career-tailor-fact-id-boundary.test.cjs",
+    "tests/career-clock-source-guard.test.cjs",
+    "tests/career-router-wedge.test.cjs",
+    "tests/research-fixture-contract.test.cjs"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/combined-regressions.log",
+   "log_sha256": "7d1021df203b07e742e3408e1c0194d811fed4e14bfef16ed917bd9054354228",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:privacy-composition-original",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "scripts/career/conversation-recovery/run.cjs",
+    "/workspace/upmore-privacy-composition",
+    "privacy-composition-original",
+    "original"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/conversation-recovery-20261016/privacy-composition-original/metadata.json",
+   "log_sha256": "b688eeee80c3bb43c68a95d8216e98810a5478aa20f2d3a38512a4c3d1e9efc7",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
+  },
+  {
+   "id": "privacy-research-composition-20261016:privacy-composition-heldouts",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "scripts/career/conversation-recovery/run.cjs",
+    "/workspace/upmore-privacy-composition",
+    "privacy-composition-heldouts",
+    "heldouts"
+   ],
+   "observed_at": "2026-10-16T03:29:37.542411+00:00",
+   "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": null,
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/conversation-recovery-20261016/privacy-composition-heldouts/metadata.json",
+   "log_sha256": "9d55903f79b7947e7b52a0aea2c8795863c57a0a02e7a85e534b7c274df74269",
+   "screenshots": [],
+   "limitations": [
+    "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
+    "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
+   ]
   }
  ],
  "limitations": [

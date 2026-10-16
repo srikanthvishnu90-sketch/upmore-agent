@@ -1,0 +1,42 @@
+{
+  "label": "baseline-joint-pg",
+  "group": "joint-pg",
+  "target": "/workspace/upmore-privacy-baseline",
+  "commit": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+  "started": "2026-10-16T03:23:13.703Z",
+  "frozenAt": "2026-10-16T03:13:48.204327+00:00",
+  "freezeSha256": "bbc7225c8f22088de411fc590ccd4083895d6023c1852106f1ce6a7ef8e7f4e7",
+  "sourceFiles": {
+    "packages/domain/130-career-onboarding.js": "cc364db97226c5e0680ed558b02fba9e9bb770a75475557ff8703c7951d43c3f",
+    "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+    "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+    "supabase/functions/_shared/router_core.career.js": "b28473fd3642d231a10b44486a7a7ba380bab21b4269c0fea2c8f2d0e9c9aa2d",
+    "supabase/functions/_shared/router_core.js": "f06e7110a1bb90e9c2bb1270044e8939ca13a81203ee6c52ba3afc311c0ebe35",
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "workers/career-browser/service.cjs": "d3331535105c7fada8741f51fe734ed89dd173c8dc0ab9a587f17cabda6db0cf",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6"
+  },
+  "entryRecorderSha256": "57a14a20e14bd4973122eec75c40868a1c4be9d7ae1f5e7071a7c88fe0c9a90b",
+  "testSourceSha256": {
+    "privacy-research-composition.test.cjs": "78683dc5fcbf9faf8a91d5a4eafcadf785392760f13b3a69ec0108a72e5a05a2"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/privacy-research-composition.test.cjs"
+  ],
+  "database": "career_test_privacy_baseline_joint_pg",
+  "verification": "ACTUAL_STAGED_ENTRY_REAL_LOCAL_POSTGRES_SYNTHETIC_AUTH_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "finished": "2026-10-16T03:23:24.987Z",
+  "exitCode": 1,
+  "logSha256": "0c3a833eb5c7189b88ba29a68866f193c38a0ff095f9575de32f05105bc60818",
+  "transcriptSha256": "b091a8cc54033f0d62c12f5faa1f4d9b2977f3ce5e35a297b8418e6939a80ca6"
+}

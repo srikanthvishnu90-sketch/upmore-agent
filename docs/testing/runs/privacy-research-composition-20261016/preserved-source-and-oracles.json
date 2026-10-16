@@ -1,0 +1,24 @@
+{
+  "ownerPrivacyModuleMatchesPublished": true,
+  "productSourceTested": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+  "latestHarnessConfirmation": "7fa8d2f31d4bc4e0d1539685f94e55ce144928ce",
+  "productBytesUnchangedSinceInitialCombinedRuns": true,
+  "hashes": {
+    "tests/correction-authority-privacy.test.cjs": "82ed6a18bf680b5d7b39ebd46780b77624132131bb94daf50adb1eb75f55b50b",
+    "tests/correction-authority-postgres.test.cjs": "86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4",
+    "tests/helpers/correction-privacy-fixture.cjs": "c9879c2dd2f5eac730c41603aa0eda3e473adea5f5e557a401c9ad67822a169b",
+    "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+    "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+    "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+    "workers/career-browser/service.cjs": "d3331535105c7fada8741f51fe734ed89dd173c8dc0ab9a587f17cabda6db0cf",
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "tests/career-public-research.test.cjs": "4fb1c7afea0880dc21bddc467821024308ea1cbd560f520ec1a54c806a76fc75",
+    "tests/career-public-research-postgres.test.cjs": "79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94",
+    "tests/fixtures/conversation-recovery/frozen-browser-tasks.json": "2734e0edfcaec93f792bcfe5a3138c37bb971eeb951265013e523ed0ecc2a96c",
+    "tests/fixtures/conversation-recovery/frozen-cases.json": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+    "tests/fixtures/conversation-fixes/heldouts.json": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521"
+  }
+}

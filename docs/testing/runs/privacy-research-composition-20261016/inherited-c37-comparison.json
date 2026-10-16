@@ -1,0 +1,26 @@
+{
+  "baseline": {
+    "failedTests": [
+      "R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply"
+    ],
+    "actualExpected": [
+      [
+        "142-career-router.handleChat",
+        "141-career-doorstep.handleChat"
+      ]
+    ]
+  },
+  "combined": {
+    "failedTests": [
+      "R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply"
+    ],
+    "actualExpected": [
+      [
+        "142-career-router.handleChat",
+        "141-career-doorstep.handleChat"
+      ]
+    ]
+  },
+  "identicalFailureSignatures": true,
+  "resolution": "Unchanged inherited C37 routing bug; not fixed or counted as a pass."
+}

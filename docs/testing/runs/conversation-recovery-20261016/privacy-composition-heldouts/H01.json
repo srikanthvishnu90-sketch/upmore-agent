@@ -1,0 +1,5162 @@
+[
+  {
+    "caseId": "H01",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T03:18:01.071Z",
+    "input": {
+      "message": "I want to network into Larch Robotics in Boston.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H01-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "outreach_clarification",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+        "action": null,
+        "turn_key": "H01-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Boston",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Boston",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "geography",
+                    "value": "Boston",
+                    "evidence": "in Boston"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:00.662Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "geography",
+                "value": "Boston",
+                "evidence": "in Boston"
+              },
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:00.662Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-1",
+          "p_hash": "0254c2912c20921e345feccdfb92f6ae6597ce9919749aae8829236cc4e5d1a5"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-1",
+          "p_hash": "0254c2912c20921e345feccdfb92f6ae6597ce9919749aae8829236cc4e5d1a5",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "kind": "geography",
+                          "value": "Boston",
+                          "evidence": "in Boston",
+                          "at": "2026-10-16T03:18:00.662Z"
+                        },
+                        {
+                          "kind": "target_firm",
+                          "value": "Larch Robotics",
+                          "evidence": "network into Larch Robotics",
+                          "at": "2026-10-16T03:18:00.662Z"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T03:18:00.662Z"
+                    },
+                    "plan": {
+                      "kind": "campaign_plan",
+                      "scheduled": 0,
+                      "days": 0,
+                      "deferred": [],
+                      "lastAsk": "I want to network into Larch Robotics in Boston.",
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "firms_named": true,
+                      "firm_set": null,
+                      "firms_source": "named",
+                      "role_family": null,
+                      "purpose": null,
+                      "target": {
+                        "industry": null,
+                        "firm_set": null,
+                        "firms": [
+                          "Larch Robotics"
+                        ],
+                        "firms_named": true,
+                        "firms_source": "named",
+                        "role_family": null,
+                        "seniority_band": null,
+                        "geography": "Boston",
+                        "school_filter": null,
+                        "background_filters": {},
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "count": 40,
+                        "vague": false,
+                        "proposed_default": null,
+                        "count_source": "default",
+                        "role_phrase": null
+                      },
+                      "at": "2026-10-16T03:18:00.662Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "geography",
+                        "value": "Boston",
+                        "evidence": "in Boston",
+                        "at": "2026-10-16T03:18:00.662Z"
+                      },
+                      {
+                        "kind": "target_firm",
+                        "value": "Larch Robotics",
+                        "evidence": "network into Larch Robotics",
+                        "at": "2026-10-16T03:18:00.662Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T03:18:00.662Z"
+                  },
+                  "plan": {
+                    "kind": "campaign_plan",
+                    "scheduled": 0,
+                    "days": 0,
+                    "deferred": [],
+                    "lastAsk": "I want to network into Larch Robotics in Boston.",
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "firms_named": true,
+                    "firm_set": null,
+                    "firms_source": "named",
+                    "role_family": null,
+                    "purpose": null,
+                    "target": {
+                      "industry": null,
+                      "firm_set": null,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "firms_named": true,
+                      "firms_source": "named",
+                      "role_family": null,
+                      "seniority_band": null,
+                      "geography": "Boston",
+                      "school_filter": null,
+                      "background_filters": {},
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "count": 40,
+                      "vague": false,
+                      "proposed_default": null,
+                      "count_source": "default",
+                      "role_phrase": null
+                    },
+                    "at": "2026-10-16T03:18:00.662Z"
+                  }
+                }
+              },
+              "plan": {
+                "kind": "campaign_plan",
+                "scheduled": 0,
+                "days": 0,
+                "deferred": [],
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "firms_named": true,
+                "firm_set": null,
+                "firms_source": "named",
+                "role_family": null,
+                "purpose": null,
+                "target": {
+                  "industry": null,
+                  "firm_set": null,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "firms_named": true,
+                  "firms_source": "named",
+                  "role_family": null,
+                  "seniority_band": null,
+                  "geography": "Boston",
+                  "school_filter": null,
+                  "background_filters": {},
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "count": 40,
+                  "vague": false,
+                  "proposed_default": null,
+                  "count_source": "default",
+                  "role_phrase": null
+                },
+                "at": "2026-10-16T03:18:00.662Z"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "geography",
+                    "value": "Boston",
+                    "evidence": "in Boston",
+                    "at": "2026-10-16T03:18:00.662Z"
+                  },
+                  {
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics",
+                    "at": "2026-10-16T03:18:00.662Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:00.662Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I want to network into Larch Robotics in Boston.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H01-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "outreach_clarification",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H01",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T03:18:02.007Z",
+    "input": {
+      "message": "I'm a sophomore studying mathematics.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H01-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+        "action": null,
+        "turn_key": "H01-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Boston",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Boston",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "geography",
+                    "value": "Boston",
+                    "evidence": "in Boston"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:00.662Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "geography",
+                "value": "Boston",
+                "evidence": "in Boston"
+              },
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:00.662Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Boston",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Boston",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "geography",
+                    "value": "Boston",
+                    "evidence": "in Boston"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "geography",
+                "value": "Boston",
+                "evidence": "in Boston"
+              },
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-2",
+          "p_hash": "fce1338a5b8335d1b0e91b05ad989271a449a4e6d592b04d16c873c73dfb028e"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-2",
+          "p_hash": "fce1338a5b8335d1b0e91b05ad989271a449a4e6d592b04d16c873c73dfb028e",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Larch Robotics"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Boston",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Larch Robotics in Boston.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "geography",
+                          "value": "Boston",
+                          "evidence": "in Boston"
+                        },
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "target_firm",
+                          "value": "Larch Robotics",
+                          "evidence": "network into Larch Robotics"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T03:18:00.662Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "Boston",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Larch Robotics in Boston.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": null,
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T03:18:00.662Z",
+                        "kind": "geography",
+                        "value": "Boston",
+                        "evidence": "in Boston"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:00.662Z",
+                        "kind": "target_firm",
+                        "value": "Larch Robotics",
+                        "evidence": "network into Larch Robotics"
+                      },
+                      {
+                        "kind": "year",
+                        "value": "sophomore",
+                        "evidence": "I'm a sophomore",
+                        "at": "2026-10-16T03:18:01.635Z"
+                      },
+                      {
+                        "kind": "majors",
+                        "value": "mathematics",
+                        "evidence": "studying mathematics",
+                        "at": "2026-10-16T03:18:01.635Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T03:18:01.635Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "facts": {
+                      "background": {
+                        "value": "I'm a sophomore studying mathematics.",
+                        "source": "I'm a sophomore studying mathematics.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": [],
+                    "mode": null
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Boston",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "geography",
+                    "value": "Boston",
+                    "evidence": "in Boston"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore",
+                    "at": "2026-10-16T03:18:01.635Z"
+                  },
+                  {
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics",
+                    "at": "2026-10-16T03:18:01.635Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I'm a sophomore studying mathematics.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H01-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H01",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T03:18:03.361Z",
+    "input": {
+      "message": "Actually, my preferred location is Raleigh.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H01-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_preference_corrected",
+          "contained": false
+        },
+        "reply": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+        "action": null,
+        "turn_key": "H01-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Boston",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Boston",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "geography",
+                    "value": "Boston",
+                    "evidence": "in Boston"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "geography",
+                "value": "Boston",
+                "evidence": "in Boston"
+              },
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Raleigh",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Raleigh",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Raleigh"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:03.001Z",
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "Actually, my preferred location is Raleigh."
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "Actually, my preferred location is Raleigh.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              },
+              {
+                "at": "2026-10-16T03:18:03.001Z",
+                "kind": "geography",
+                "value": "Raleigh",
+                "evidence": "Actually, my preferred location is Raleigh."
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              },
+              "target_city": {
+                "value": "Raleigh",
+                "source": "Actually, my preferred location is Raleigh.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "7e7c5009-3b92-4e79-9c47-3345e5202ece",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Actually, my preferred location is Raleigh.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "cf90f7ab-2174-467d-b86c-431bc32b6c88",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H01-3"
+          },
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "Raleigh"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-3",
+          "p_hash": "44142d339d68bf72ff6e1ae8b292029826ed384136696f25a57fe4a96a8648a1"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-3",
+          "p_hash": "44142d339d68bf72ff6e1ae8b292029826ed384136696f25a57fe4a96a8648a1",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Raleigh"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Larch Robotics"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Boston",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Larch Robotics in Boston.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "geography",
+                          "value": "Boston",
+                          "evidence": "in Boston"
+                        },
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "target_firm",
+                          "value": "Larch Robotics",
+                          "evidence": "network into Larch Robotics"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T03:18:00.662Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "Raleigh",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Larch Robotics in Boston.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": null,
+                    "firms_source": "named",
+                    "geography": "Raleigh",
+                    "needsReview": true
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T03:18:00.662Z",
+                        "kind": "target_firm",
+                        "value": "Larch Robotics",
+                        "evidence": "network into Larch Robotics"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:01.635Z",
+                        "kind": "year",
+                        "value": "sophomore",
+                        "evidence": "I'm a sophomore"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:01.635Z",
+                        "kind": "majors",
+                        "value": "mathematics",
+                        "evidence": "studying mathematics"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Raleigh",
+                        "evidence": "Actually, my preferred location is Raleigh.",
+                        "at": "2026-10-16T03:18:03.001Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T03:18:01.635Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "background": {
+                        "value": "I'm a sophomore studying mathematics.",
+                        "source": "I'm a sophomore studying mathematics.",
+                        "status": "user_reported"
+                      },
+                      "target_city": {
+                        "value": "Raleigh",
+                        "source": "Actually, my preferred location is Raleigh.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": null,
+                "firms_source": "named",
+                "geography": "Raleigh",
+                "needsReview": true
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "Actually, my preferred location is Raleigh.",
+                    "at": "2026-10-16T03:18:03.001Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "Actually, my preferred location is Raleigh.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {
+            "preferred_locations": [
+              "Raleigh"
+            ]
+          },
+          "p_input": "Actually, my preferred location is Raleigh.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H01-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_preference_corrected",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H01",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T03:18:04.444Z",
+    "input": {
+      "message": "What is the difference between base pay and a bonus?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H01-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_explanation",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+        "action": null,
+        "turn_key": "H01-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Raleigh",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Raleigh",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Raleigh"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:03.001Z",
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "Actually, my preferred location is Raleigh."
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "Actually, my preferred location is Raleigh.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              },
+              {
+                "at": "2026-10-16T03:18:03.001Z",
+                "kind": "geography",
+                "value": "Raleigh",
+                "evidence": "Actually, my preferred location is Raleigh."
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              },
+              "target_city": {
+                "value": "Raleigh",
+                "source": "Actually, my preferred location is Raleigh.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "7e7c5009-3b92-4e79-9c47-3345e5202ece",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Actually, my preferred location is Raleigh.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "cf90f7ab-2174-467d-b86c-431bc32b6c88",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H01-3"
+          },
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "Raleigh"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Raleigh",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Raleigh",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Raleigh"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:04.040Z",
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              },
+              {
+                "at": "2026-10-16T03:18:04.040Z",
+                "kind": "geography",
+                "value": "Raleigh",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              },
+              "target_city": {
+                "value": "Raleigh",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "7e7c5009-3b92-4e79-9c47-3345e5202ece",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Actually, my preferred location is Raleigh.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "cf90f7ab-2174-467d-b86c-431bc32b6c88",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H01-3"
+          },
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "6c44dbc9-b94f-4342-8090-e94797c25ee9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-4"
+          },
+          "created_at": "2026-10-16T03:18:04.256991+00:00"
+        },
+        {
+          "id": "b27ac399-bcd8-4651-a641-939dcfc7b8d8",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "What is the difference between base pay and a bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:04.256991+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4,
+        "preferred_locations": [
+          "Raleigh"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-4",
+          "p_hash": "70205e90cc5d402421c9706ce38810837949dd746a87a0ca7e8e46a112afe42a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-4",
+          "p_hash": "70205e90cc5d402421c9706ce38810837949dd746a87a0ca7e8e46a112afe42a",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Raleigh"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Larch Robotics"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Boston",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Larch Robotics in Boston.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "geography",
+                          "value": "Boston",
+                          "evidence": "in Boston"
+                        },
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "target_firm",
+                          "value": "Larch Robotics",
+                          "evidence": "network into Larch Robotics"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T03:18:00.662Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "Raleigh",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Larch Robotics in Boston.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "Raleigh",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": null,
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T03:18:00.662Z",
+                        "kind": "target_firm",
+                        "value": "Larch Robotics",
+                        "evidence": "network into Larch Robotics"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:01.635Z",
+                        "kind": "year",
+                        "value": "sophomore",
+                        "evidence": "I'm a sophomore"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:01.635Z",
+                        "kind": "majors",
+                        "value": "mathematics",
+                        "evidence": "studying mathematics"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Raleigh",
+                        "evidence": "saved account preference",
+                        "at": "2026-10-16T03:18:04.040Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T03:18:01.635Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "background": {
+                        "value": "I'm a sophomore studying mathematics.",
+                        "source": "I'm a sophomore studying mathematics.",
+                        "status": "user_reported"
+                      },
+                      "target_city": {
+                        "value": "Raleigh",
+                        "source": "saved account preference",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "saved account preference",
+                    "at": "2026-10-16T03:18:04.040Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is the difference between base pay and a bonus?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H01-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_explanation",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H01",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T03:18:05.642Z",
+    "input": {
+      "message": "Recap the firm and city I am targeting.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H01-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: background: I'm a sophomore studying mathematics.; target city: Raleigh; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "H01-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Raleigh",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Raleigh",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Raleigh"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:04.040Z",
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              },
+              {
+                "at": "2026-10-16T03:18:04.040Z",
+                "kind": "geography",
+                "value": "Raleigh",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              },
+              "target_city": {
+                "value": "Raleigh",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "7e7c5009-3b92-4e79-9c47-3345e5202ece",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Actually, my preferred location is Raleigh.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "cf90f7ab-2174-467d-b86c-431bc32b6c88",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H01-3"
+          },
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "6c44dbc9-b94f-4342-8090-e94797c25ee9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-4"
+          },
+          "created_at": "2026-10-16T03:18:04.256991+00:00"
+        },
+        {
+          "id": "b27ac399-bcd8-4651-a641-939dcfc7b8d8",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "What is the difference between base pay and a bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:04.256991+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4,
+        "preferred_locations": [
+          "Raleigh"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T03:18:00.662Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Larch Robotics"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Larch Robotics"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": null,
+              "geography": "Raleigh",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": null,
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Larch Robotics in Boston.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Raleigh",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": null,
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Raleigh"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T03:18:00.662Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": null,
+                    "geography": "Boston",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": null,
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Larch Robotics in Boston.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": null,
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "geography",
+                      "value": "Boston",
+                      "evidence": "in Boston"
+                    },
+                    {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "kind": "target_firm",
+                      "value": "Larch Robotics",
+                      "evidence": "network into Larch Robotics"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T03:18:00.662Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:05.235Z",
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T03:18:00.662Z",
+                "kind": "target_firm",
+                "value": "Larch Robotics",
+                "evidence": "network into Larch Robotics"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "year",
+                "value": "sophomore",
+                "evidence": "I'm a sophomore"
+              },
+              {
+                "at": "2026-10-16T03:18:01.635Z",
+                "kind": "majors",
+                "value": "mathematics",
+                "evidence": "studying mathematics"
+              },
+              {
+                "at": "2026-10-16T03:18:05.235Z",
+                "kind": "geography",
+                "value": "Raleigh",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T03:18:01.635Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "background": {
+                "value": "I'm a sophomore studying mathematics.",
+                "source": "I'm a sophomore studying mathematics.",
+                "status": "user_reported"
+              },
+              "target_city": {
+                "value": "Raleigh",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "6739ec74-8d67-4204-904c-02d3762e4729",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I want to network into Larch Robotics in Boston.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "c581cda8-d541-4b74-87d2-7f505cafa4d4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Building the list now: people at Larch Robotics in Boston — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Larch Robotics in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H01-1"
+          },
+          "created_at": "2026-10-16T03:18:00.908016+00:00"
+        },
+        {
+          "id": "69fff733-d2d4-410e-9701-a83f8f3d5feb",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm a sophomore studying mathematics.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "dce9043f-7e6f-4e65-ba02-fc47b1810d79",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: background: I'm a sophomore studying mathematics.; target city: Boston; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. These are user-reported constraints, not independently verified credentials. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-2"
+          },
+          "created_at": "2026-10-16T03:18:01.833835+00:00"
+        },
+        {
+          "id": "7e7c5009-3b92-4e79-9c47-3345e5202ece",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Actually, my preferred location is Raleigh.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "cf90f7ab-2174-467d-b86c-431bc32b6c88",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "I saved your preferred location as Raleigh. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H01-3"
+          },
+          "created_at": "2026-10-16T03:18:03.179382+00:00"
+        },
+        {
+          "id": "6c44dbc9-b94f-4342-8090-e94797c25ee9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-4"
+          },
+          "created_at": "2026-10-16T03:18:04.256991+00:00"
+        },
+        {
+          "id": "b27ac399-bcd8-4651-a641-939dcfc7b8d8",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "What is the difference between base pay and a bonus?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:04.256991+00:00"
+        },
+        {
+          "id": "942dd46e-4f0c-45af-97cf-1cf48ff9ccfc",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: background: I'm a sophomore studying mathematics.; target city: Raleigh; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H01-5"
+          },
+          "created_at": "2026-10-16T03:18:05.441439+00:00"
+        },
+        {
+          "id": "ae9d0b7d-debe-4f8b-b96c-fa7cd4d01566",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Recap the firm and city I am targeting.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:05.441439+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5,
+        "preferred_locations": [
+          "Raleigh"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-5",
+          "p_hash": "6ad362221e5b23c142f71d1e241d619b0c6f2da8334d65b8d74d16d0a6ce546c"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "H01-5",
+          "p_hash": "6ad362221e5b23c142f71d1e241d619b0c6f2da8334d65b8d74d16d0a6ce546c",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Raleigh"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T03:18:00.662Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Larch Robotics"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": null,
+                        "geography": "Boston",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": null,
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Larch Robotics in Boston.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": null,
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "geography",
+                          "value": "Boston",
+                          "evidence": "in Boston"
+                        },
+                        {
+                          "at": "2026-10-16T03:18:00.662Z",
+                          "kind": "target_firm",
+                          "value": "Larch Robotics",
+                          "evidence": "network into Larch Robotics"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T03:18:00.662Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Larch Robotics"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Larch Robotics"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": null,
+                      "geography": "Raleigh",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": null,
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Larch Robotics in Boston.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "Raleigh",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": null,
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T03:18:00.662Z",
+                        "kind": "target_firm",
+                        "value": "Larch Robotics",
+                        "evidence": "network into Larch Robotics"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:01.635Z",
+                        "kind": "year",
+                        "value": "sophomore",
+                        "evidence": "I'm a sophomore"
+                      },
+                      {
+                        "at": "2026-10-16T03:18:01.635Z",
+                        "kind": "majors",
+                        "value": "mathematics",
+                        "evidence": "studying mathematics"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Raleigh",
+                        "evidence": "saved account preference",
+                        "at": "2026-10-16T03:18:05.235Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T03:18:01.635Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "background": {
+                        "value": "I'm a sophomore studying mathematics.",
+                        "source": "I'm a sophomore studying mathematics.",
+                        "status": "user_reported"
+                      },
+                      "target_city": {
+                        "value": "Raleigh",
+                        "source": "saved account preference",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T03:18:00.662Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Larch Robotics"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Larch Robotics"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": null,
+                  "geography": "Raleigh",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": null,
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Larch Robotics in Boston.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Raleigh",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": null,
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T03:18:00.662Z",
+                    "kind": "target_firm",
+                    "value": "Larch Robotics",
+                    "evidence": "network into Larch Robotics"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "year",
+                    "value": "sophomore",
+                    "evidence": "I'm a sophomore"
+                  },
+                  {
+                    "at": "2026-10-16T03:18:01.635Z",
+                    "kind": "majors",
+                    "value": "mathematics",
+                    "evidence": "studying mathematics"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Raleigh",
+                    "evidence": "saved account preference",
+                    "at": "2026-10-16T03:18:05.235Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T03:18:01.635Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "background": {
+                    "value": "I'm a sophomore studying mathematics.",
+                    "source": "I'm a sophomore studying mathematics.",
+                    "status": "user_reported"
+                  },
+                  "target_city": {
+                    "value": "Raleigh",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Recap the firm and city I am targeting.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "From this conversation's user-reported record: background: I'm a sophomore studying mathematics.; target city: Raleigh; target firm: Larch Robotics; school year: sophomore; field of study: mathematics. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H01-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

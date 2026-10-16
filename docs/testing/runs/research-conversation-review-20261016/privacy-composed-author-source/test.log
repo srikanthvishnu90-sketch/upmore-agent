@@ -1,0 +1,20 @@
+✔ explicit conversation command and typed research request normalize identically without a profile (6.646726ms)
+✔ research host gate enforces account controls without invoking onboarding or career actions (5.497167ms)
+✔ public URL gate rejects private hosts, unsafe protocols, credentials, actions and query credentials (1.527683ms)
+✔ DNS gate rejects mixed public/private and special addresses (7.915709ms)
+✔ public GET pins the validated address, sends no identity headers and refuses redirects before a second request (5.883054ms)
+✔ research preflight returns correlated untrusted evidence, never marks the question answered and replays without another read (15.328464ms)
+✔ unsupported sandbox is a blocker with no fabricated artifact or success (6.309721ms)
+✔ capture with wrong task correlation or screenshot hash is rejected (10.674667ms)
+✔ STOP prevents queued research without reading or resolving equipment (3.111207ms)
+✔ erase prevents queued research without reading or resolving equipment (2.427262ms)
+✔ research origin registration and typed helper schema do not expose arbitrary browser tools (1.652554ms)
+✔ 15 public acceptance cases have supported chat commands and preserve zero live-outcome claims (2.241131ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 219.722585

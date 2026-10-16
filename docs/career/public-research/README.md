@@ -1,6 +1,6 @@
 # Public read-only research route — source contribution
 
-**Independent composition review:** `codex/research-conversation-review-20261016` composes this source with conversation fixes and fixes six evidence/recovery/network defects. [Fixture-closure follow-up](../../testing/research-fixture-closure-20261016.md) now closes both author fixture failures without changing assertion bodies, fixes the exposed exact-receipt mismatch, and executes both SQL lock races. [Earlier review](../../testing/research-conversation-review-20261016.md) and its red logs remain historical at their named source. All 15 live outcomes and model quality remain unverified; module-130 privacy repair remains separately blocking.
+**Independent composition review:** conversation/research fixes and corrected author fixtures remain in `codex/research-conversation-review-20261016`. The separate [privacy composition review](../../testing/privacy-research-composition-20261016.md) combines owner repair 382b6e37 with that reviewed product and passes the frozen combined-source privacy, persistence, conversation and research checks. It preserves the unchanged C37 routing failure. All 15 live browser outcomes and model quality remain unverified; the [runtime/budget checklist](../../testing/model-browser-readiness-20261016.md) records the remaining prerequisites. Muse owns merge/deploy.
 
 Base: combined release `f67db048599db308f2691a7be7feada841143da5`.
 Branch: `codex/public-research-browser-20261016`. Muse owns merge/deploy.

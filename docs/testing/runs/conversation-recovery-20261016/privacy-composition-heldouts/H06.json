@@ -1,0 +1,3621 @@
+[
+  {
+    "caseId": "H06",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:30.211Z",
+    "input": {
+      "message": "I'm discouraged and not ready for an application plan.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H06-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_support",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+        "action": null,
+        "turn_key": "H06-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {},
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-1",
+          "p_hash": "87b5198c9bea0e913e427b6d20ca937bd4aa697a7d8c2d2dd0c9b9e3912b3bc6"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-1",
+          "p_hash": "87b5198c9bea0e913e427b6d20ca937bd4aa697a7d8c2d2dd0c9b9e3912b3bc6",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "reflection"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I'm discouraged and not ready for an application plan.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_support",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H06",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:31.106Z",
+    "input": {
+      "message": "I have 15 minutes per weekday and need paid work.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H06-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+        "action": null,
+        "turn_key": "H06-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {},
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-2",
+          "p_hash": "c0823e2c821a756a4ecedf77b80c76c1f2ac887a54a9f121d714949106eff65d"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-2",
+          "p_hash": "c0823e2c821a756a4ecedf77b80c76c1f2ac887a54a9f121d714949106eff65d",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "availability": {
+                    "value": "15 minutes per weekday",
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "paid": {
+                    "value": true,
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I have 15 minutes per weekday and need paid work.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H06",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:32.106Z",
+    "input": {
+      "message": "I enjoy finding data patterns more than frontend design.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H06-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+        "action": null,
+        "turn_key": "H06-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-3",
+          "p_hash": "5b78424f7de9582012b88a1a3ed976b79965060aa8e461a5a126c17965fcb813"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-3",
+          "p_hash": "5b78424f7de9582012b88a1a3ed976b79965060aa8e461a5a126c17965fcb813",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "15 minutes per weekday",
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "finding data patterns more than frontend design",
+                    "source": "I enjoy finding data patterns more than frontend design.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I enjoy finding data patterns more than frontend design.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H06",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:33.708Z",
+    "input": {
+      "message": "Ask one question at a time.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H06-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_reflection",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+        "action": null,
+        "turn_key": "H06-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-4",
+          "p_hash": "01de1a00835ead6e44d2712e082e3874506ca99115221619276b6dc0d7d96edc"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-4",
+          "p_hash": "01de1a00835ead6e44d2712e082e3874506ca99115221619276b6dc0d7d96edc",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "finding data patterns more than frontend design",
+                    "source": "I enjoy finding data patterns more than frontend design.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "15 minutes per weekday",
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Ask one question at a time.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_reflection",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H06",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:35.559Z",
+    "input": {
+      "message": "What does a data analyst do?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H06-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_explanation",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+        "action": null,
+        "turn_key": "H06-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "6d53767f-c094-4a60-93bd-f7058f01897c",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-5"
+          },
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "84fb5b80-7d7f-4418-8522-912468ff78f9",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What does a data analyst do?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-5",
+          "p_hash": "7bcc469641b87f9abbe98e15fb3c3c7d6e0a02297123810afd1433f486f980c2"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-5",
+          "p_hash": "7bcc469641b87f9abbe98e15fb3c3c7d6e0a02297123810afd1433f486f980c2",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "finding data patterns more than frontend design",
+                    "source": "I enjoy finding data patterns more than frontend design.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "15 minutes per weekday",
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What does a data analyst do?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_explanation",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H06",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:37.186Z",
+    "input": {
+      "message": "What is one small step I can take with my time limit?",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H06-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_next_step",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Within 15 minutes per weekday: review one real paid data analyst posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+        "action": null,
+        "turn_key": "H06-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "6d53767f-c094-4a60-93bd-f7058f01897c",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-5"
+          },
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "84fb5b80-7d7f-4418-8522-912468ff78f9",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What does a data analyst do?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "6d53767f-c094-4a60-93bd-f7058f01897c",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-5"
+          },
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "84fb5b80-7d7f-4418-8522-912468ff78f9",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What does a data analyst do?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "ca0d0383-b952-4d96-9f74-4406a7a73dd6",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What is one small step I can take with my time limit?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:36.917429+00:00"
+        },
+        {
+          "id": "f795ce23-68d7-45b7-9171-3c428d60a45a",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Within 15 minutes per weekday: review one real paid data analyst posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-6"
+          },
+          "created_at": "2026-10-16T03:18:36.917429+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-6",
+          "p_hash": "f0dae20f9179513f78a39000a18354a66af873a0c9e132de0d9dab786625dfb1"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-6",
+          "p_hash": "f0dae20f9179513f78a39000a18354a66af873a0c9e132de0d9dab786625dfb1",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "finding data patterns more than frontend design",
+                    "source": "I enjoy finding data patterns more than frontend design.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "15 minutes per weekday",
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is one small step I can take with my time limit?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "Within 15 minutes per weekday: review one real paid data analyst posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_next_step",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H06",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000106",
+    "at": "2026-10-16T03:18:38.571Z",
+    "input": {
+      "message": "Recap my constraints.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H06-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: paid work required; interest: finding data patterns more than frontend design; availability: 15 minutes per weekday. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "H06-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000106",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "6d53767f-c094-4a60-93bd-f7058f01897c",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-5"
+          },
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "84fb5b80-7d7f-4418-8522-912468ff78f9",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What does a data analyst do?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "ca0d0383-b952-4d96-9f74-4406a7a73dd6",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What is one small step I can take with my time limit?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:36.917429+00:00"
+        },
+        {
+          "id": "f795ce23-68d7-45b7-9171-3c428d60a45a",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Within 15 minutes per weekday: review one real paid data analyst posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-6"
+          },
+          "created_at": "2026-10-16T03:18:36.917429+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "finding data patterns more than frontend design",
+                "source": "I enjoy finding data patterns more than frontend design.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "15 minutes per weekday",
+                "source": "I have 15 minutes per weekday and need paid work.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "2050d466-e3cc-4d26-b0da-39ca0ca3530e",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-1"
+          },
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "70a053b6-4049-4479-967b-0ebbc126c824",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I'm discouraged and not ready for an application plan.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.052334+00:00"
+        },
+        {
+          "id": "6cf26a24-cb25-497a-82e7-3ca86090c969",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 15 minutes per weekday; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-2"
+          },
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "f200a14a-1940-499d-adf7-af5dadd7a837",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I have 15 minutes per weekday and need paid work.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:30.951226+00:00"
+        },
+        {
+          "id": "2d394a36-3385-4ca6-befd-38bd5a3cd8ed",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Recorded from your words: paid work required; availability: 15 minutes per weekday; interest: finding data patterns more than frontend design. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-3"
+          },
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "b731303b-b4db-491e-b93f-07e3afee3ed0",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "I enjoy finding data patterns more than frontend design.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:31.934095+00:00"
+        },
+        {
+          "id": "192a1bb1-3a43-4017-a1c9-fb7b829a4540",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Ask one question at a time.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "bfa310be-539a-439e-9b56-42db64561884",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-4"
+          },
+          "created_at": "2026-10-16T03:18:33.144798+00:00"
+        },
+        {
+          "id": "6d53767f-c094-4a60-93bd-f7058f01897c",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "A data analyst checks data quality, investigates a question, explains patterns and communicates the limits of the evidence. The exact mix depends on the role; a title alone cannot prove the day-to-day work. Which part would you like to try?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-5"
+          },
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "84fb5b80-7d7f-4418-8522-912468ff78f9",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What does a data analyst do?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:35.230528+00:00"
+        },
+        {
+          "id": "ca0d0383-b952-4d96-9f74-4406a7a73dd6",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "What is one small step I can take with my time limit?",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:36.917429+00:00"
+        },
+        {
+          "id": "f795ce23-68d7-45b7-9171-3c428d60a45a",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "Within 15 minutes per weekday: review one real paid data analyst posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-6"
+          },
+          "created_at": "2026-10-16T03:18:36.917429+00:00"
+        },
+        {
+          "id": "90a2dde2-735b-4d5d-99b0-4c57023507a8",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid work required; interest: finding data patterns more than frontend design; availability: 15 minutes per weekday. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H06-7"
+          },
+          "created_at": "2026-10-16T03:18:38.343821+00:00"
+        },
+        {
+          "id": "eb9f64fd-58fe-41ff-afc6-97ace7c4fffc",
+          "thread_id": "00000000-0000-4000-8000-000000000106",
+          "role": "user",
+          "content": "Recap my constraints.",
+          "meta": null,
+          "created_at": "2026-10-16T03:18:38.343821+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000106",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-7",
+          "p_hash": "6aa182eb5b982a00c56bb5ed5ccecf51469691bd661f67c3e4c25f1190fcde1d"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000106",
+          "p_key": "H06-7",
+          "p_hash": "6aa182eb5b982a00c56bb5ed5ccecf51469691bd661f67c3e4c25f1190fcde1d",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "finding data patterns more than frontend design",
+                    "source": "I enjoy finding data patterns more than frontend design.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "15 minutes per weekday",
+                    "source": "I have 15 minutes per weekday and need paid work.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Recap my constraints.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000106",
+            "reply": "From this conversation's user-reported record: paid work required; interest: finding data patterns more than frontend design; availability: 15 minutes per weekday. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H06-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+(node:387637) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:387637) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ I01-I02-I06 actual text and typed routes create only owned immutable research intents (3838.166436ms)
+✔ I03-I26 conversation corrections survive research and source text never becomes career evidence (7334.880147ms)
+✔ I05 authenticated owner and thread isolation protect research observations (5076.265658ms)
+✔ I07 STOP and full erase win over a typed research action in the same turn (2675.012767ms)
+✔ I08 STOP across owned threads revokes a reserved but unconsumed read (3391.530477ms)
+✔ I09 erasure clears active research bindings and leaves another account untouched (3012.922855ms)
+✔ I09 erase during an already admitted read cannot publish or revive captured evidence (2971.634606ms)
+✔ I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted (10038.56428ms)
+✔ I17 tampered persisted artifact hashes and correlations are refused by actual chat status (6217.311804ms)
+✔ I19 immutable same-key and same-event replay conflicts preserve task counts and version (2607.096414ms)
+✔ I20 a failed research effect is not repeated by pending work or status polling (4687.259911ms)
+✔ I21 research authority refuses all application operations at the real SQL gate (2982.036186ms)
+✔ I22 central-result save recovery uses existing capture and never reads twice (4339.233212ms)
+✔ I17 supplementary: rehashing a forged artifact cannot rewrite the immutable request or effect receipt (4571.284047ms)
+✔ I22 supplementary: committed finish with lost acknowledgement and failed readback recovers the identical receipt (4209.00756ms)
+✔ I22 fixture-closure: worker return, replay, get and chat status equal the published immutable receipt (3805.074675ms)
+✔ I09 fixture-closure: erase clears confirmed publication copies before worker readback (3154.7377ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 75111.081038

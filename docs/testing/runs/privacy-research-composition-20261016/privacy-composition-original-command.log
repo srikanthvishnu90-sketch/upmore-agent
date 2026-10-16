@@ -1,0 +1,118 @@
+(node:385262) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:385262) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+C01 46 checks passed; 0 failed
+C02 48 checks passed; 0 failed
+C03 46 checks passed; 0 failed
+C04 46 checks passed; 0 failed
+C05 46 checks passed; 0 failed
+C06 45 checks passed; 0 failed
+C07 47 checks passed; 0 failed
+C08 47 checks passed; 0 failed
+C09 47 checks passed; 0 failed
+C10 43 checks passed; 0 failed
+C11 45 checks passed; 0 failed
+C12 37 checks passed; 0 failed
+{
+  "label": "privacy-composition-original",
+  "target": "/workspace/upmore-privacy-composition",
+  "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+  "started": "2026-10-16T03:17:57.860Z",
+  "frozenAt": "2026-10-16T00:45:39.972859+00:00",
+  "expectationSha256": "c2a7b53320b6f60c4a4f09b69524d1ca5c1ace67866af3d2e0eeb8bc147ac74c",
+  "suite": "original",
+  "sourceFiles": {
+    "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+    "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+    "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/router_core.career.js": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044"
+  },
+  "execution": "actual staged index -> handler-career.ts -> generated career bundle -> real PostgreSQL 16; synthetic identity and unlimited local rate limiter; no provider; no browser",
+  "profile": "SYNTHETIC",
+  "database": "career_test_recovery_privacy_composition_original",
+  "container": "upmore-career-integration-pg-recovery",
+  "checks": 543,
+  "passed": 543,
+  "failed": 0,
+  "turns": 83,
+  "networkAttempts": 0,
+  "cases": [
+    {
+      "id": "C01",
+      "topic": "Human conversation and pacing",
+      "passed": 46,
+      "failed": 0
+    },
+    {
+      "id": "C02",
+      "topic": "Corrections used after intervening turns",
+      "passed": 48,
+      "failed": 0
+    },
+    {
+      "id": "C03",
+      "topic": "Hypothetical, quoted and actual facts",
+      "passed": 46,
+      "failed": 0
+    },
+    {
+      "id": "C04",
+      "topic": "Fresh process and fresh thread",
+      "passed": 46,
+      "failed": 0
+    },
+    {
+      "id": "C05",
+      "topic": "Selective forgetting with honest scope",
+      "passed": 46,
+      "failed": 0
+    },
+    {
+      "id": "C06",
+      "topic": "Resume truthfulness and artifact delivery",
+      "passed": 45,
+      "failed": 0
+    },
+    {
+      "id": "C07",
+      "topic": "Role, seniority and schedule constraints",
+      "passed": 47,
+      "failed": 0
+    },
+    {
+      "id": "C08",
+      "topic": "Interview coaching with answer-specific feedback",
+      "passed": 47,
+      "failed": 0
+    },
+    {
+      "id": "C09",
+      "topic": "Negotiation, interruption and actual draft",
+      "passed": 47,
+      "failed": 0
+    },
+    {
+      "id": "C10",
+      "topic": "Honest unavailable execution and uncertain failures",
+      "passed": 43,
+      "failed": 0
+    },
+    {
+      "id": "C11",
+      "topic": "Interruptions and multi-intent continuation",
+      "passed": 45,
+      "failed": 0
+    },
+    {
+      "id": "C12",
+      "topic": "Durable save failure, same-key retry and conflict",
+      "passed": 37,
+      "failed": 0
+    }
+  ],
+  "finished": "2026-10-16T03:19:22.708Z",
+  "verdict": "CHECKS_PASS_REQUIRES_HUMAN_REVIEW",
+  "browserOutcomes": 0,
+  "modelResponseQuality": "NOT_EVALUATED: actual career entry contains no model and network is denied"
+}

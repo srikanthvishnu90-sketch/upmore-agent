@@ -1,0 +1,2 @@
+{"container":"upmore-career-integration-pg-recovery","host":"127.0.0.1","port":46747,"network":"none","pid":375116,"transport":"docker exec Perl IO::Select loopback TCP stdio","at":"2026-10-16T03:16:59.120Z"}
+{"closed":true,"connections":16}

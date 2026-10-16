@@ -1,0 +1,15 @@
+{
+  "source": "8c5128942a6fb7d502cac79a7cdd658e4faa7234",
+  "target": "/workspace/upmore-privacy-composition",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-gauntlet-r2a.test.cjs",
+    "tests/career-gauntlet-r3.test.cjs"
+  ],
+  "exitCode": 1,
+  "logSha256": "8a82bda9781a2095cdf7823e30400229e9d546ceef833469d53db5dfe6a61ba2",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED"
+}

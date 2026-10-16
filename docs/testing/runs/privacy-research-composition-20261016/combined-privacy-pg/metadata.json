@@ -1,0 +1,41 @@
+{
+  "label": "combined-privacy-pg",
+  "group": "privacy-pg",
+  "target": "/workspace/upmore-privacy-composition",
+  "commit": "e236a129cf9ed979b4faaf3e826964e1f64fdf72",
+  "started": "2026-10-16T03:17:30.587Z",
+  "frozenAt": "2026-10-16T03:13:48.204327+00:00",
+  "freezeSha256": "bbc7225c8f22088de411fc590ccd4083895d6023c1852106f1ce6a7ef8e7f4e7",
+  "sourceFiles": {
+    "packages/domain/130-career-onboarding.js": "665be50fcaa0addc091e26d8a541f5cf380b09ed2903b20d1b91d1c1d129a379",
+    "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+    "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+    "supabase/functions/_shared/router_core.career.js": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044",
+    "supabase/functions/_shared/router_core.js": "fd87f88ecac44e67b71b508ee4327c5efb13eac6d722508e4b4f81c75a1e228d",
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "workers/career-browser/service.cjs": "d3331535105c7fada8741f51fe734ed89dd173c8dc0ab9a587f17cabda6db0cf",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6"
+  },
+  "testSourceSha256": {
+    "correction-authority-postgres.test.cjs": "86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-privacy-composition/tests/correction-authority-postgres.test.cjs"
+  ],
+  "database": "career_test_privacy_combined_privacy_pg",
+  "verification": "ACTUAL_STAGED_ENTRY_REAL_LOCAL_POSTGRES_SYNTHETIC_AUTH_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "finished": "2026-10-16T03:17:36.919Z",
+  "exitCode": 0,
+  "logSha256": "35c7fd85231288a975638732e754480db26557b8d37d663f2f8a3a52691042f5",
+  "transcriptSha256": null
+}

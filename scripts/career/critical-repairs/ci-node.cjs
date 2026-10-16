@@ -35,7 +35,9 @@ async function main(){try{
  if(!argv.includes('--source-only')){
   if(spawnSync('docker',['inspect',container],{stdio:'ignore'}).status===0)throw Error('Refusing existing fixture container');
   docker(['run','--detach','--name',container,'--network','none','--label','upmore.ci-fixture='+token,'-e','POSTGRES_HOST_AUTH_METHOD=trust',image]);created=true;
-  let up=false;for(let i=0;i<100;i++){if(spawnSync('docker',['exec',container,'pg_isready','-U','postgres'],{stdio:'ignore'}).status===0){up=true;break;}await new Promise(r=>setTimeout(r,100));}if(!up)throw Error('Owned fixture failed readiness');
+  // Bootstrap briefly exposes a socket-only server which is then stopped.
+  // Waiting for loopback TCP proves readiness of the final owned server.
+  let up=false;for(let i=0;i<100;i++){if(spawnSync('docker',['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],{stdio:'ignore'}).status===0){up=true;break;}await new Promise(r=>setTimeout(r,100));}if(!up)throw Error('Owned fixture failed readiness');
   if(docker(['inspect','--format','{{.HostConfig.NetworkMode}}',container])!=='none')throw Error('Fixture network mode mismatch');
   docker(['exec',container,'psql','-X','-qAt','-U','postgres','-v','ON_ERROR_STOP=1','-c','create role anon nologin;create role authenticated nologin;create role service_role nologin;']);
   wire=spawn(process.execPath,[path.join(root,'scripts/career/research-review/local-pg-wire.cjs'),container,ready],{stdio:['ignore',fs.openSync(path.join(out,'wire.log'),'w'),fs.openSync(path.join(out,'wire-errors.log'),'w')]});

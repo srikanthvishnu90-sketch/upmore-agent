@@ -117,3 +117,15 @@ not retried or bypassed. No Browserbase, browser download, proxy/TLS override,
 security-setting change, paid call, application, email, account, purchase, merge
 or deployment was performed. Native Deno is unavailable; staged tests execute
 the real local ESM import graph with only remote service transport injected.
+
+## Recorded verification
+
+At source commit `d5374e68a1e28a090a07f9e05bd62a4954c8b739`, 228 scoped
+tests pass: 18 staged/frozen/durability, 152 domain/worker/bundle, 30 real
+PostgreSQL memory/alerts, 21 real PostgreSQL task authority and 7 real PostgreSQL
+research-entry contracts. The frozen four-test source hash is unchanged.
+The 58 SQL tests use real isolated PostgreSQL; browser/network fixtures remain
+explicitly MOCK preflight. Bundle freshness, helper syntax and whitespace checks
+pass. Exact commands, source/proposal/manifest digests, test names and log hashes
+are in `docs/testing/runs/career-public-research-20261016/results.json`.
+The isolated test container and wire listener were removed after verification.

@@ -1,0 +1,22 @@
+(node:528417) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:528417) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ SQL context read is owned, service-only, revision/version/epoch fenced and makes no writes (4742.62831ms)
+✔ SQL bounded recent dialogue ignores legacy rows and never reads another owner/thread (6967.330635ms)
+✔ SQL owner-wide correction barrier cuts older dialogue/drafts across owned threads; foreign barrier has no effect (3648.455315ms)
+✔ SQL privacy epoch excludes all old dialogue including future-version rows; stale context denied (1553.747858ms)
+✔ actual flexible entry commits verified advisory prose/draft with real cash and monthly receipts; replay is exact/free (10401.511708ms)
+✔ actual fresh entry revises a committed draft and reads recent dialogue without making generated text a fact (7601.67895ms)
+✔ actual correction and selective forgetting invalidate old generated drafts/dialogue in fresh context (16008.771468ms)
+✔ actual SQL assistant-insert failure rolls back generated metadata and messages but preserves charge; stable-key retry is not paid twice (11776.395667ms)
+✔ actual erase during semantic verification prevents stale delivery after an already-recorded inference charge (6248.074735ms)
+✔ actual missing verifier or campaign denies before inference; malformed receipt retains full bound (9164.590145ms)
+✔ actual legacy monthly cap denial refunds unsent global reservation and never verifies (6329.769997ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 84781.195426

@@ -1,0 +1,146 @@
+(node:548312) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:548312) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+H01 26 checks passed; 0 failed
+H02 21 checks passed; 0 failed
+H03 36 checks passed; 0 failed
+H04 16 checks passed; 0 failed
+H05 26 checks passed; 0 failed
+H06 36 checks passed; 0 failed
+H07 31 checks passed; 0 failed
+H08 36 checks passed; 0 failed
+H09 26 checks passed; 0 failed
+H10 31 checks passed; 0 failed
+H11 31 checks passed; 0 failed
+H12 16 checks passed; 0 failed
+H13 36 checks passed; 0 failed
+H14 21 checks passed; 0 failed
+H15 21 checks passed; 0 failed
+H16 16 checks passed; 0 failed
+{
+  "label": "flexible-heldouts",
+  "target": "/workspace/upmore-flexible-grounding",
+  "commit": "3543c00fa6a56e24d55f6eed1d5bad06bfdbc295",
+  "started": "2026-10-16T07:50:43.322Z",
+  "frozenAt": "2026-10-16T01:02:13.626677+00:00",
+  "expectationSha256": "8979114708bfa78d3778e4ddde4aa125feff48758b3069d4a8f051a701550521",
+  "suite": "heldouts",
+  "sourceFiles": {
+    "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+    "packages/domain/142-career-router.js": "5e4b69f5757c449e2d5684e75d25d3975518a01e64e22cdd35a232789006a949",
+    "packages/domain/128-career-negotiation.js": "0d5b82ed13c5d92510ae620c0158e1fa79d10ba4db64e4038aa640e95f1f0de5",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/router_core.career.js": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044"
+  },
+  "execution": "actual staged index -> handler-career.ts -> generated career bundle -> real PostgreSQL 16; synthetic identity and unlimited local rate limiter; no provider; no browser",
+  "profile": "SYNTHETIC",
+  "database": "career_test_recovery_flexible_heldouts",
+  "container": "upmore-career-integration-pg-recovery",
+  "checks": 426,
+  "passed": 426,
+  "failed": 0,
+  "turns": 82,
+  "networkAttempts": 0,
+  "cases": [
+    {
+      "id": "H01",
+      "topic": "Canonical correction survives another task and reload",
+      "passed": 26,
+      "failed": 0
+    },
+    {
+      "id": "H02",
+      "topic": "Repeated multiword location corrections",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "id": "H03",
+      "topic": "Selective withdrawal is scoped and never claims account deletion",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "id": "H04",
+      "topic": "Unsupported deletion field is refused precisely",
+      "passed": 16,
+      "failed": 0
+    },
+    {
+      "id": "H05",
+      "topic": "Quoted and hypothetical accomplishments never become user evidence",
+      "passed": 26,
+      "failed": 0
+    },
+    {
+      "id": "H06",
+      "topic": "Schedule and financial constraints survive mentoring detour",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "id": "H07",
+      "topic": "Hard role constraints and a hypothetical move",
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "id": "H08",
+      "topic": "Answer-specific interview coaching with a fresh project",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "id": "H09",
+      "topic": "Coaching facts survive fresh realm and a detour",
+      "passed": 26,
+      "failed": 0
+    },
+    {
+      "id": "H10",
+      "topic": "Resume bullet uses source quotes and no invented seniority",
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "id": "H11",
+      "topic": "Request date persists through detour and draft revision",
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "id": "H12",
+      "topic": "Missing deadline is asked for rather than invented",
+      "passed": 16,
+      "failed": 0
+    },
+    {
+      "id": "H13",
+      "topic": "Two tasks survive explanatory interruption",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "id": "H14",
+      "topic": "Capabilities are factual rather than a dossier for a word",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "id": "H15",
+      "topic": "Correction updates active plan without silently changing approvals",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "id": "H16",
+      "topic": "Negated claims and unsupported facts remain unknown",
+      "passed": 16,
+      "failed": 0
+    }
+  ],
+  "finished": "2026-10-16T07:53:29.662Z",
+  "verdict": "CHECKS_PASS_REQUIRES_HUMAN_REVIEW",
+  "browserOutcomes": 0,
+  "modelResponseQuality": "NOT_EVALUATED: optional career model is disabled and provider network is denied in this harness"
+}

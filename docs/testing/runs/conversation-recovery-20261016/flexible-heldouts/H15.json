@@ -1,0 +1,3718 @@
+[
+  {
+    "caseId": "H15",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000115",
+    "at": "2026-10-16T07:53:20.497Z",
+    "input": {
+      "message": "I want to network into Fieldstone in Austin.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H15-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "outreach_clarification",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+        "action": null,
+        "turn_key": "H15-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000115",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Austin",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Austin",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "geography",
+                "value": "Austin",
+                "evidence": "in Austin"
+              },
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000115",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-1",
+          "p_hash": "9c03748569b92486e60fa7bc22d848d9096f4fc19d7fddab708a8253e41cc9f1"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-1",
+          "p_hash": "9c03748569b92486e60fa7bc22d848d9096f4fc19d7fddab708a8253e41cc9f1",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin",
+                          "at": "2026-10-16T07:53:20.089Z"
+                        },
+                        {
+                          "kind": "target_firm",
+                          "value": "Fieldstone",
+                          "evidence": "network into Fieldstone",
+                          "at": "2026-10-16T07:53:20.089Z"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:20.089Z"
+                    },
+                    "plan": {
+                      "kind": "campaign_plan",
+                      "scheduled": 0,
+                      "days": 0,
+                      "deferred": [],
+                      "lastAsk": "I want to network into Fieldstone in Austin.",
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "firms_named": true,
+                      "firm_set": null,
+                      "firms_source": "named",
+                      "role_family": "investment_banking",
+                      "purpose": null,
+                      "target": {
+                        "industry": "investment_banking",
+                        "firm_set": null,
+                        "firms": [
+                          "Fieldstone"
+                        ],
+                        "firms_named": true,
+                        "firms_source": "named",
+                        "role_family": "investment_banking",
+                        "seniority_band": null,
+                        "geography": "Austin",
+                        "school_filter": null,
+                        "background_filters": {},
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "count": 40,
+                        "vague": false,
+                        "proposed_default": null,
+                        "count_source": "default",
+                        "role_phrase": null
+                      },
+                      "at": "2026-10-16T07:53:20.089Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "geography",
+                        "value": "Austin",
+                        "evidence": "in Austin",
+                        "at": "2026-10-16T07:53:20.089Z"
+                      },
+                      {
+                        "kind": "target_firm",
+                        "value": "Fieldstone",
+                        "evidence": "network into Fieldstone",
+                        "at": "2026-10-16T07:53:20.089Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:20.089Z"
+                  },
+                  "plan": {
+                    "kind": "campaign_plan",
+                    "scheduled": 0,
+                    "days": 0,
+                    "deferred": [],
+                    "lastAsk": "I want to network into Fieldstone in Austin.",
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "firms_named": true,
+                    "firm_set": null,
+                    "firms_source": "named",
+                    "role_family": "investment_banking",
+                    "purpose": null,
+                    "target": {
+                      "industry": "investment_banking",
+                      "firm_set": null,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "firms_named": true,
+                      "firms_source": "named",
+                      "role_family": "investment_banking",
+                      "seniority_band": null,
+                      "geography": "Austin",
+                      "school_filter": null,
+                      "background_filters": {},
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "count": 40,
+                      "vague": false,
+                      "proposed_default": null,
+                      "count_source": "default",
+                      "role_phrase": null
+                    },
+                    "at": "2026-10-16T07:53:20.089Z"
+                  }
+                }
+              },
+              "plan": {
+                "kind": "campaign_plan",
+                "scheduled": 0,
+                "days": 0,
+                "deferred": [],
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "firms_named": true,
+                "firm_set": null,
+                "firms_source": "named",
+                "role_family": "investment_banking",
+                "purpose": null,
+                "target": {
+                  "industry": "investment_banking",
+                  "firm_set": null,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "firms_named": true,
+                  "firms_source": "named",
+                  "role_family": "investment_banking",
+                  "seniority_band": null,
+                  "geography": "Austin",
+                  "school_filter": null,
+                  "background_filters": {},
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "count": 40,
+                  "vague": false,
+                  "proposed_default": null,
+                  "count_source": "default",
+                  "role_phrase": null
+                },
+                "at": "2026-10-16T07:53:20.089Z"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin",
+                    "at": "2026-10-16T07:53:20.089Z"
+                  },
+                  {
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone",
+                    "at": "2026-10-16T07:53:20.089Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I want to network into Fieldstone in Austin.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000115",
+            "reply": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H15-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "outreach_clarification",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H15",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000115",
+    "at": "2026-10-16T07:53:21.502Z",
+    "input": {
+      "message": "Actually, my preferred location is Tampa.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H15-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_preference_corrected",
+          "contained": false
+        },
+        "reply": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+        "action": null,
+        "turn_key": "H15-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000115",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Austin",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Austin",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "geography",
+                "value": "Austin",
+                "evidence": "in Austin"
+              },
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Tampa",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Tampa",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Tampa"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:21.073Z",
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "Actually, my preferred location is Tampa."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "Actually, my preferred location is Tampa.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              },
+              {
+                "at": "2026-10-16T07:53:21.073Z",
+                "kind": "geography",
+                "value": "Tampa",
+                "evidence": "Actually, my preferred location is Tampa."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Tampa",
+                "source": "Actually, my preferred location is Tampa.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "c7367261-0eaa-42a7-abd6-09ceb2141d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "Actually, my preferred location is Tampa.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "ff6b3643-23b4-40c4-a3b7-16a68b736e57",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H15-2"
+          },
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Tampa"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000115",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-2",
+          "p_hash": "d0ae272777f774da5217e637b74bd57c7df2f1fa2c2b41c3e850145a48c89b28"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-2",
+          "p_hash": "d0ae272777f774da5217e637b74bd57c7df2f1fa2c2b41c3e850145a48c89b28",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Tampa"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Fieldstone"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Austin",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Fieldstone in Austin.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T07:53:20.089Z",
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin"
+                        },
+                        {
+                          "at": "2026-10-16T07:53:20.089Z",
+                          "kind": "target_firm",
+                          "value": "Fieldstone",
+                          "evidence": "network into Fieldstone"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:20.089Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Tampa",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Fieldstone in Austin.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named",
+                    "geography": "Tampa",
+                    "needsReview": true
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T07:53:20.089Z",
+                        "kind": "target_firm",
+                        "value": "Fieldstone",
+                        "evidence": "network into Fieldstone"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Tampa",
+                        "evidence": "Actually, my preferred location is Tampa.",
+                        "at": "2026-10-16T07:53:21.073Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:20.089Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "facts": {
+                      "target_city": {
+                        "value": "Tampa",
+                        "source": "Actually, my preferred location is Tampa.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": [],
+                    "mode": null
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named",
+                "geography": "Tampa",
+                "needsReview": true
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "Actually, my preferred location is Tampa.",
+                    "at": "2026-10-16T07:53:21.073Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "Actually, my preferred location is Tampa.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {
+            "preferred_locations": [
+              "Tampa"
+            ]
+          },
+          "p_input": "Actually, my preferred location is Tampa.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000115",
+            "reply": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H15-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_preference_corrected",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H15",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000115",
+    "at": "2026-10-16T07:53:22.624Z",
+    "input": {
+      "message": "What changed in the current plan and what still needs separate review?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H15-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "H15-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000115",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Tampa",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Tampa",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Tampa"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:21.073Z",
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "Actually, my preferred location is Tampa."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "Actually, my preferred location is Tampa.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              },
+              {
+                "at": "2026-10-16T07:53:21.073Z",
+                "kind": "geography",
+                "value": "Tampa",
+                "evidence": "Actually, my preferred location is Tampa."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Tampa",
+                "source": "Actually, my preferred location is Tampa.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "c7367261-0eaa-42a7-abd6-09ceb2141d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "Actually, my preferred location is Tampa.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "ff6b3643-23b4-40c4-a3b7-16a68b736e57",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H15-2"
+          },
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Tampa"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Tampa",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Tampa",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Tampa"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:22.210Z",
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              },
+              {
+                "at": "2026-10-16T07:53:22.210Z",
+                "kind": "geography",
+                "value": "Tampa",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Tampa",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "c7367261-0eaa-42a7-abd6-09ceb2141d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "Actually, my preferred location is Tampa.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "ff6b3643-23b4-40c4-a3b7-16a68b736e57",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H15-2"
+          },
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "034048ed-2354-45ad-aaff-67e2dfab5d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "What changed in the current plan and what still needs separate review?",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:22.422698+00:00"
+        },
+        {
+          "id": "af21c08d-161f-4eef-841e-cc86bb1dedcb",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H15-3"
+          },
+          "created_at": "2026-10-16T07:53:22.422698+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "Tampa"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000115",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-3",
+          "p_hash": "ad21aab0ca4c9950bc26eb98475db524e34ee716d052764dcccb354e7614d14c"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-3",
+          "p_hash": "ad21aab0ca4c9950bc26eb98475db524e34ee716d052764dcccb354e7614d14c",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Tampa"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Fieldstone"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Austin",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Fieldstone in Austin.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T07:53:20.089Z",
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin"
+                        },
+                        {
+                          "at": "2026-10-16T07:53:20.089Z",
+                          "kind": "target_firm",
+                          "value": "Fieldstone",
+                          "evidence": "network into Fieldstone"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:20.089Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Tampa",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Fieldstone in Austin.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "Tampa",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T07:53:20.089Z",
+                        "kind": "target_firm",
+                        "value": "Fieldstone",
+                        "evidence": "network into Fieldstone"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Tampa",
+                        "evidence": "saved account preference",
+                        "at": "2026-10-16T07:53:22.210Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:20.089Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "target_city": {
+                        "value": "Tampa",
+                        "source": "saved account preference",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "saved account preference",
+                    "at": "2026-10-16T07:53:22.210Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What changed in the current plan and what still needs separate review?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000115",
+            "reply": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H15-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H15",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000115",
+    "at": "2026-10-16T07:53:23.644Z",
+    "input": {
+      "message": "Recap the city after reloading this thread.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H15-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "H15-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000115",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Tampa",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Tampa",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Tampa"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:22.210Z",
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              },
+              {
+                "at": "2026-10-16T07:53:22.210Z",
+                "kind": "geography",
+                "value": "Tampa",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Tampa",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "c7367261-0eaa-42a7-abd6-09ceb2141d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "Actually, my preferred location is Tampa.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "ff6b3643-23b4-40c4-a3b7-16a68b736e57",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H15-2"
+          },
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "034048ed-2354-45ad-aaff-67e2dfab5d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "What changed in the current plan and what still needs separate review?",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:22.422698+00:00"
+        },
+        {
+          "id": "af21c08d-161f-4eef-841e-cc86bb1dedcb",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H15-3"
+          },
+          "created_at": "2026-10-16T07:53:22.422698+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "Tampa"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:20.089Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Fieldstone"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Fieldstone"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Tampa",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Fieldstone in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Tampa",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Tampa"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:20.089Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Fieldstone in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "kind": "target_firm",
+                      "value": "Fieldstone",
+                      "evidence": "network into Fieldstone"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:20.089Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:23.378Z",
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:20.089Z",
+                "kind": "target_firm",
+                "value": "Fieldstone",
+                "evidence": "network into Fieldstone"
+              },
+              {
+                "at": "2026-10-16T07:53:23.378Z",
+                "kind": "geography",
+                "value": "Tampa",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:20.089Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Tampa",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "48c8aa3c-72c7-458d-8798-82752ec1027e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Fieldstone in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Fieldstone in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H15-1"
+          },
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "59efb040-9c92-4c97-bb1d-417f02d93dd2",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "I want to network into Fieldstone in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:20.354814+00:00"
+        },
+        {
+          "id": "c7367261-0eaa-42a7-abd6-09ceb2141d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "Actually, my preferred location is Tampa.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "ff6b3643-23b4-40c4-a3b7-16a68b736e57",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "I saved your preferred location as Tampa. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "H15-2"
+          },
+          "created_at": "2026-10-16T07:53:21.28335+00:00"
+        },
+        {
+          "id": "034048ed-2354-45ad-aaff-67e2dfab5d81",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "What changed in the current plan and what still needs separate review?",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:22.422698+00:00"
+        },
+        {
+          "id": "af21c08d-161f-4eef-841e-cc86bb1dedcb",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H15-3"
+          },
+          "created_at": "2026-10-16T07:53:22.422698+00:00"
+        },
+        {
+          "id": "7469430b-eeab-49b9-a329-ce9ee6926b7e",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H15-4"
+          },
+          "created_at": "2026-10-16T07:53:23.510399+00:00"
+        },
+        {
+          "id": "d6ae0ba5-7225-420f-b999-1809d06feb09",
+          "thread_id": "00000000-0000-4000-8000-000000000115",
+          "role": "user",
+          "content": "Recap the city after reloading this thread.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:23.510399+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4,
+        "preferred_locations": [
+          "Tampa"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000115",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-4",
+          "p_hash": "0b4e00d2076d8851b843e79182a4f1aae7a629c0da8a28f4e7ebd3283c63a2e6"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000115",
+          "p_key": "H15-4",
+          "p_hash": "0b4e00d2076d8851b843e79182a4f1aae7a629c0da8a28f4e7ebd3283c63a2e6",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Tampa"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T07:53:20.089Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Fieldstone"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Austin",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Fieldstone in Austin.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T07:53:20.089Z",
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin"
+                        },
+                        {
+                          "at": "2026-10-16T07:53:20.089Z",
+                          "kind": "target_firm",
+                          "value": "Fieldstone",
+                          "evidence": "network into Fieldstone"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:20.089Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Fieldstone"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Fieldstone"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Tampa",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Fieldstone in Austin.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "Tampa",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T07:53:20.089Z",
+                        "kind": "target_firm",
+                        "value": "Fieldstone",
+                        "evidence": "network into Fieldstone"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Tampa",
+                        "evidence": "saved account preference",
+                        "at": "2026-10-16T07:53:23.378Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:20.089Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "target_city": {
+                        "value": "Tampa",
+                        "source": "saved account preference",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T07:53:20.089Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Fieldstone"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Fieldstone"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Tampa",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Fieldstone in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Tampa",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:20.089Z",
+                    "kind": "target_firm",
+                    "value": "Fieldstone",
+                    "evidence": "network into Fieldstone"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Tampa",
+                    "evidence": "saved account preference",
+                    "at": "2026-10-16T07:53:23.378Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:20.089Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Tampa",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Recap the city after reloading this thread.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000115",
+            "reply": "From this conversation's user-reported record: target city: Tampa; target firm: Fieldstone. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H15-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

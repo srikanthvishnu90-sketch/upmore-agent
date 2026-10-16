@@ -1,0 +1,23 @@
+[
+  {
+    "function": "career_model_context_barrier_v2",
+    "security_definer": false,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "function": "career_model_context_read_v2",
+    "security_definer": false,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "function": "career_model_replay_check_v2",
+    "security_definer": false,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  }
+]

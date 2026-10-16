@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-16T08:13:23.376757+00:00",
+  "container": "upmore-career-integration-pg-recovery",
+  "network": "none",
+  "ownedFixtureRemoved": true,
+  "activeQueriesBeforeCleanup": 0,
+  "allDatabaseDumpsRetained": true,
+  "productionMutation": false
+}

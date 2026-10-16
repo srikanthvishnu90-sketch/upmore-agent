@@ -6,11 +6,11 @@ import { researchCommand } from "../_shared/career_research_policy.js";
 // Owner decision 2026-10-15: "Prune the shelved finance half from the
 // bundle, re-measure, then deploy" / "yes, or even remove the finance
 // portion entirely." The deployed agent-chat artifact therefore contains
-// ZERO finance code: this handler's static import graph reaches only the
+// no financial routes or full domain bundle. The static import graph reaches the
 // career chain (120 access → 130 onboarding → 142 router → 141 doorstep,
 // inside 143 containment, through _shared/career_host.js) plus the small
 // shared leaves the career path uses (CORS, chat input, thread ownership,
-// identity redaction) and the career-only bundle
+// identity redaction, optional model gateway/grounding) and the career-only bundle
 // (_shared/router_core.career.js, built by
 // scripts/build-router-core.py --career-only).
 //

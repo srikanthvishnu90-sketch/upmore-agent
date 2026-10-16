@@ -1,0 +1,12 @@
+(node:581557) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:581557) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ T08 unstamped generation-disabled turns form a conservative barrier on re-enable (723.774365ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 877.667974

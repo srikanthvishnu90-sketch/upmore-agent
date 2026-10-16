@@ -1,0 +1,34 @@
+(node:584140) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:584140) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ T06 owned context and semantic receipt bind exact revision, epoch and immutable whole response (731.077899ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 893.371544
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:12:1
+✖ T06 owned context and semantic receipt bind exact revision, epoch and immutable whole response (731.077899ms)
+  AssertionError [ERR_ASSERTION]: {"status":200,"body":{"thread_id":"00000000-0000-4000-8000-0000000000b1","reply":"AI coaching is unavailable for this turn. Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?","action":null,"capabilities":{"portal_browser":{"status":"NOT_WIRED","reason":"The Node browser worker is not connected to this Edge handler."},"job_alert_delivery":{"status":"NOT_WIRED","reason":"No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."}},"turn_key":"flex-turn","reminders":[],"meta":{"career":true,"intent":"conversation_interview","result_status":"prepared","contained":false,"career_model":{"status":"semantic_or_contract_rejected","provider_calls":1},"career_dialogue":{"version":"career_dialogue/v2","epoch":0,"account_version":1,"revision":1,"barrier":false,"user_text":"Help me practice an interview answer."}}}}
+  + actual - expected
+  
+  + 'semantic_or_contract_rejected'
+  - 'generated'
+  
+      at generated (/tmp/upmore-grounded-mutations-1jqels/repo/tests/career-flexible-grounding.test.cjs:4:27)
+      at TestContext.<anonymous> (/tmp/upmore-grounded-mutations-1jqels/repo/tests/career-flexible-grounding.test.cjs:12:503)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'semantic_or_contract_rejected',
+    expected: 'generated',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

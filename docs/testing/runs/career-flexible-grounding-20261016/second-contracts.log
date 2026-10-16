@@ -1,0 +1,56 @@
+(node:527154) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:527154) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ T01 flexible prose, original questions and a factual draft exceed the selector without profile writes (468.620838ms)
+✔ T02 unavailable verifier refuses before generation or cash admission (655.58543ms)
+✔ T02 fail closed on semantic verifier throw (186.87481ms)
+✔ T02 fail closed on semantic verifier timeout (2184.668234ms)
+✔ T02 fail closed on semantic verifier missing (170.529809ms)
+✔ T02 fail closed on semantic verifier stale-context (162.426281ms)
+✔ T02 fail closed on semantic verifier stale-response (172.890164ms)
+✔ T02 fail closed on semantic verifier wrong-verifier (179.811692ms)
+✔ T02 fail closed on semantic verifier partial-coverage (169.075916ms)
+✔ T02 fail closed on semantic verifier unlisted (170.337217ms)
+✔ T02 fail closed on semantic verifier authority (170.048394ms)
+✔ T02 fail closed on semantic verifier claim-rejected (168.854123ms)
+✔ T02 fail closed on semantic verifier missing-claim (172.994688ms)
+✔ T02 fail closed on semantic verifier changed-evidence (161.85835ms)
+✔ T02 fail closed on semantic verifier duplicate-claim (162.930413ms)
+✔ T03 known IDs are insufficient: semantic rejection of a degree claim with a valid project ID (330.22225ms)
+✔ T04 unlisted assertions in advice and hypotheses require whole-response coverage (171.55293ms)
+✔ T05 reject model action authority before verification (211.662029ms)
+✔ T05 reject model memory_patch authority before verification (180.609573ms)
+✔ T05 reject model approval authority before verification (225.561304ms)
+✔ T05 reject model completion_receipt authority before verification (263.972318ms)
+✔ T05 reject model tools authority before verification (271.935625ms)
+✔ T05 tool calls and authority-unsafe prose never execute an effect (221.477771ms)
+✔ T06 owned context and semantic receipt bind exact revision, epoch and immutable whole response (541.850958ms)
+✔ T07 recent dialogue comes from committed owned receipts and remains noncanonical (254.192191ms)
+✔ T08 correction and withdrawal barriers cut prior dialogue/drafts in a fresh entry (461.300823ms)
+✔ T09 current sourced facts carry corrected/disputed status without reviving superseded text (170.591701ms)
+✔ T10 current draft revision, goals and pending asks are bounded advisory context; projection is read-only (474.071095ms)
+✔ T11 jd_text stays untrusted posting evidence and cannot support a personal qualification (223.801092ms)
+✔ T12 request JSON and headers cannot inject a semantic verifier into the default server handler (244.394959ms)
+✔ T13 shared budget denial and failed consume prevent both generation and semantic inference (765.729594ms)
+✔ T14 assistant/draft commit is atomic and replay or failed-save retry never infers twice (438.158853ms)
+✔ T15 held-out fixture remains frozen and is explicitly a scripted semantic oracle (0.963505ms)
+✔ T15 held-out H01 supported (295.789896ms)
+✔ T15 held-out H02 unsupported (273.675898ms)
+✔ T15 held-out H03 unsupported (245.485706ms)
+✔ T15 held-out H04 unsupported (181.82989ms)
+✔ T15 held-out H05 unsupported (451.545995ms)
+✔ T15 held-out H06 unsupported (229.39515ms)
+✔ T15 held-out H07 supported (213.130723ms)
+✔ T15 held-out H08 unsupported (244.74055ms)
+✔ T15 held-out H09 authority_unsafe (229.885681ms)
+✔ T15 held-out H10 supported (232.349271ms)
+✔ T15 held-out H11 unlisted_claim (316.591605ms)
+✔ T15 held-out H12 supported (240.871439ms)
+ℹ tests 45
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14201.391751

@@ -1,0 +1,31 @@
+(node:642701) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:642701) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ T09 corrected education source cannot coexist with stale graduation mirrors as active evidence (485.741015ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 618.071994
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:30:1
+✖ T09 corrected education source cannot coexist with stale graduation mirrors as active evidence (485.741015ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /2028/. Input:
+  
+  '[{"id":"F1","kind":"graduation_date","text":"2028","status":"active","source":{"kind":"user_report","ref":"profile.constraints.graduationDate","original_id":null},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"},{"id":"F2","kind":"project","text":"Organized spreadsheet rows for a class assignment.","status":"active","source":{"kind":"profile","ref":"profile.facts.SYN-BOUNDARY-PROJECT","original_id":"SYN-BOUNDARY-PROJECT"},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"},{"id":"F3","kind":"education_resolved_value","text":"2032","status":"corrected","source":{"kind":"resume-new.txt","ref":"profile.facts.CORRECTED-EDU.resolution","original_id":"CORRECTED-EDU"},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"},{"id":"F4","kind":"year","text":"2028","status":"active","source":{"kind":"user_report","ref":"statedFacts.year","original_id":null},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"}]'
+  
+      at TestContext.<anonymous> (/workspace/upmore-flexible-grounding/tests/career-flexible-grounding.test.cjs:30:534)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '[{"id":"F1","kind":"graduation_date","text":"2028","status":"active","source":{"kind":"user_report","ref":"profile.constraints.graduationDate","original_id":null},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"},{"id":"F2","kind":"project","text":"Organized spreadsheet rows for a class assignment.","status":"active","source":{"kind":"profile","ref":"profile.facts.SYN-BOUNDARY-PROJECT","original_id":"SYN-BOUNDARY-PROJECT"},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"},{"id":"F3","kind":"education_resolved_value","text":"2032","status":"corrected","source":{"kind":"resume-new.txt","ref":"profile.facts.CORRECTED-EDU.resolution","original_id":"CORRECTED-EDU"},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"},{"id":"F4","kind":"year","text":"2028","status":"active","source":{"kind":"user_report","ref":"statedFacts.year","original_id":null},"trust":"user_reported_not_independently_verified","owner":"00000000-0000-4000-8000-0000000000a1","thread":"00000000-0000-4000-8000-0000000000b1"}]',
+    expected: /2028/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }

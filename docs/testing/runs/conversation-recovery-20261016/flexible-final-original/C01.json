@@ -1,0 +1,3617 @@
+[
+  {
+    "caseId": "C01",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:23.286Z",
+    "input": {
+      "message": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+      "contains": [
+        "exhaust|tired|overwhelm|hard|hear|feel"
+      ],
+      "absent": []
+    },
+    "requestKey": "C01-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_support",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+        "action": null,
+        "turn_key": "C01-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches exhaust|tired|overwhelm|hard|hear|feel",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {},
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-1",
+          "p_hash": "a4e94b27ef15dbd750f2fc2e33e91bc8bc0f047a0778f03192ba35292ee014b1"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-1",
+          "p_hash": "a4e94b27ef15dbd750f2fc2e33e91bc8bc0f047a0778f03192ba35292ee014b1",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "reflection"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_support",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C01",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:25.719Z",
+    "input": {
+      "message": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+      "contains": [
+        "20|twenty"
+      ],
+      "absent": []
+    },
+    "requestKey": "C01-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_support",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+        "action": null,
+        "turn_key": "C01-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches 20|twenty",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {},
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-2",
+          "p_hash": "ac4ff0c2f6e4429dd6e95c66bffe105f62fcb01984a5a64ea0da348d387f6a4b"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-2",
+          "p_hash": "ac4ff0c2f6e4429dd6e95c66bffe105f62fcb01984a5a64ea0da348d387f6a4b",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "availability": {
+                    "value": "20 minutes a day",
+                    "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_support",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C01",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:28.381Z",
+    "input": {
+      "message": "Could you ask me one question at a time to understand what I actually want?",
+      "contains": [
+        "\\?"
+      ],
+      "absent": [],
+      "maxQuestions": 1
+    },
+    "requestKey": "C01-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_reflection",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+        "action": null,
+        "turn_key": "C01-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches \\?",
+        "pass": true
+      },
+      {
+        "name": "at most 1 question marks",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-3",
+          "p_hash": "02c28b3633e0c90a103a86742c6c24d4a921bc9aee93df8532642e1d2994c7c9"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-3",
+          "p_hash": "02c28b3633e0c90a103a86742c6c24d4a921bc9aee93df8532642e1d2994c7c9",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "availability": {
+                    "value": "20 minutes a day",
+                    "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Could you ask me one question at a time to understand what I actually want?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_reflection",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C01",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:30.581Z",
+    "input": {
+      "message": "I like debugging with a teammate more than competitive finance interviews.",
+      "contains": [
+        "debug|teammate"
+      ],
+      "absent": []
+    },
+    "requestKey": "C01-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+        "action": null,
+        "turn_key": "C01-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches debug|teammate",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-4",
+          "p_hash": "52d3fc8041543b7c5c6d55f79ec6ba3dd6f815750b43cfb15aff10bdc9b7fca2"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-4",
+          "p_hash": "52d3fc8041543b7c5c6d55f79ec6ba3dd6f815750b43cfb15aff10bdc9b7fca2",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "availability": {
+                    "value": "20 minutes a day",
+                    "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "debugging with a teammate more than competitive finance interviews",
+                    "source": "I like debugging with a teammate more than competitive finance interviews.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I like debugging with a teammate more than competitive finance interviews.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C01",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:33.064Z",
+    "input": {
+      "message": "I need a paid role because rent is due. Please keep that constraint.",
+      "contains": [
+        "paid|rent"
+      ],
+      "absent": []
+    },
+    "requestKey": "C01-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_facts",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+        "action": null,
+        "turn_key": "C01-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches paid|rent",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need a paid role because rent is due. Please keep that constraint.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "b626ed1b-4b23-4533-a0c5-af83008f1cd9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-5"
+          },
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "bfc3355d-9f1f-48f9-9a5f-f5c869021298",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I need a paid role because rent is due. Please keep that constraint.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-5",
+          "p_hash": "899aad08e6977dc8b8481ce9a3e297a4e808e8504686642f4eab88b1f3456efe"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-5",
+          "p_hash": "899aad08e6977dc8b8481ce9a3e297a4e808e8504686642f4eab88b1f3456efe",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "interest": {
+                    "value": "debugging with a teammate more than competitive finance interviews",
+                    "source": "I like debugging with a teammate more than competitive finance interviews.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "20 minutes a day",
+                    "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                    "status": "user_reported"
+                  },
+                  "paid": {
+                    "value": true,
+                    "source": "I need a paid role because rent is due. Please keep that constraint.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I need a paid role because rent is due. Please keep that constraint.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_facts",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C01",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:34.803Z",
+    "input": {
+      "message": "Give me just one achievable next step for tomorrow, using what I told you.",
+      "contains": [
+        "20|twenty|debug|paid"
+      ],
+      "absent": [],
+      "maxChars": 1800
+    },
+    "requestKey": "C01-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_next_step",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Within 20 minutes a day: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+        "action": null,
+        "turn_key": "C01-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches 20|twenty|debug|paid",
+        "pass": true
+      },
+      {
+        "name": "reply <= 1800 chars",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need a paid role because rent is due. Please keep that constraint.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "b626ed1b-4b23-4533-a0c5-af83008f1cd9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-5"
+          },
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "bfc3355d-9f1f-48f9-9a5f-f5c869021298",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I need a paid role because rent is due. Please keep that constraint.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need a paid role because rent is due. Please keep that constraint.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "b626ed1b-4b23-4533-a0c5-af83008f1cd9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-5"
+          },
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "bfc3355d-9f1f-48f9-9a5f-f5c869021298",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I need a paid role because rent is due. Please keep that constraint.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "29d7574a-45bc-4861-8b70-aa334bfe9aa2",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Give me just one achievable next step for tomorrow, using what I told you.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:34.586081+00:00"
+        },
+        {
+          "id": "d2a999fc-2490-40b4-a3fa-4c3656133ed2",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Within 20 minutes a day: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-6"
+          },
+          "created_at": "2026-10-16T07:59:34.586081+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-6",
+          "p_hash": "09579a4c91b4aa972ce63df1f895daaa28568ffa54a8c5d405a05628e0d5e2df"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-6",
+          "p_hash": "09579a4c91b4aa972ce63df1f895daaa28568ffa54a8c5d405a05628e0d5e2df",
+          "p_revision": 5,
+          "p_account_version": 5,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need a paid role because rent is due. Please keep that constraint.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "debugging with a teammate more than competitive finance interviews",
+                    "source": "I like debugging with a teammate more than competitive finance interviews.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "20 minutes a day",
+                    "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Give me just one achievable next step for tomorrow, using what I told you.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "Within 20 minutes a day: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_next_step",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C01",
+    "turn": 7,
+    "threadId": "00000000-0000-4000-8000-000000000101",
+    "at": "2026-10-16T07:59:35.884Z",
+    "input": {
+      "message": "Summarize my constraints without inventing a diagnosis or telling me to apply everywhere.",
+      "contains": [
+        "20|twenty",
+        "paid|rent"
+      ],
+      "absent": [
+        "diagnos|apply everywhere"
+      ]
+    },
+    "requestKey": "C01-7",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: paid work required; interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "C01-7",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000101",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches 20|twenty",
+        "pass": true
+      },
+      {
+        "name": "reply matches paid|rent",
+        "pass": true
+      },
+      {
+        "name": "reply excludes diagnos|apply everywhere",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need a paid role because rent is due. Please keep that constraint.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 6,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "b626ed1b-4b23-4533-a0c5-af83008f1cd9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-5"
+          },
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "bfc3355d-9f1f-48f9-9a5f-f5c869021298",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I need a paid role because rent is due. Please keep that constraint.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "29d7574a-45bc-4861-8b70-aa334bfe9aa2",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Give me just one achievable next step for tomorrow, using what I told you.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:34.586081+00:00"
+        },
+        {
+          "id": "d2a999fc-2490-40b4-a3fa-4c3656133ed2",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Within 20 minutes a day: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-6"
+          },
+          "created_at": "2026-10-16T07:59:34.586081+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 6
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "reflection",
+            "facts": {
+              "paid": {
+                "value": true,
+                "source": "I need a paid role because rent is due. Please keep that constraint.",
+                "status": "user_reported"
+              },
+              "interest": {
+                "value": "debugging with a teammate more than competitive finance interviews",
+                "source": "I like debugging with a teammate more than competitive finance interviews.",
+                "status": "user_reported"
+              },
+              "availability": {
+                "value": "20 minutes a day",
+                "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 7,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "945a76bf-5271-4b90-a1fa-2bc5deaca1ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I'm exhausted by this job search. Please talk it through with me; don't make an application plan yet.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "a836254f-bad8-4b56-a1c0-7d74b2b50515",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-1"
+          },
+          "created_at": "2026-10-16T07:59:22.22583+00:00"
+        },
+        {
+          "id": "48ef6f05-0716-4551-af32-cd914c6c7d9c",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "That sounds exhausting, especially when you feel behind other people. We can work within 20 minutes a day. We can talk it through without turning it into an application plan. What part of the search feels hardest right now?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_support",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-2"
+          },
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "f766258a-7042-4f79-8d5e-31a1cb22cf55",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:25.071702+00:00"
+        },
+        {
+          "id": "35bd05ab-6895-40fb-8faf-1ab8e8c214e4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Could you ask me one question at a time to understand what I actually want?",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "810f4a35-d49a-483a-8ca8-2577806ea136",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "We can take it one question at a time. Which kind of work leaves you interested enough to keep going, even when it is difficult?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_reflection",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-3"
+          },
+          "created_at": "2026-10-16T07:59:27.956646+00:00"
+        },
+        {
+          "id": "9f15fe3b-8ecc-4fea-8135-35ae7b55e0ce",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: availability: 20 minutes a day; interest: debugging with a teammate more than competitive finance interviews. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-4"
+          },
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "a892139a-cc73-4c21-aeed-54016bb651a4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I like debugging with a teammate more than competitive finance interviews.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:30.259765+00:00"
+        },
+        {
+          "id": "b626ed1b-4b23-4533-a0c5-af83008f1cd9",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Recorded from your words: interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day; paid work required. These are user-reported constraints, not independently verified credentials. We can keep this small and talk it through. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_facts",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-5"
+          },
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "bfc3355d-9f1f-48f9-9a5f-f5c869021298",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "I need a paid role because rent is due. Please keep that constraint.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:32.696244+00:00"
+        },
+        {
+          "id": "29d7574a-45bc-4861-8b70-aa334bfe9aa2",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Give me just one achievable next step for tomorrow, using what I told you.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:34.586081+00:00"
+        },
+        {
+          "id": "d2a999fc-2490-40b4-a3fa-4c3656133ed2",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "Within 20 minutes a day: review one real paid posting or class-project example. Write one sentence about why the work fits you; nothing needs to be submitted. Paste what you find and we can work on it together.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_next_step",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-6"
+          },
+          "created_at": "2026-10-16T07:59:34.586081+00:00"
+        },
+        {
+          "id": "3b7c0a99-2e8b-4e15-bd08-92ca2dcce2f4",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: paid work required; interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C01-7"
+          },
+          "created_at": "2026-10-16T07:59:35.704909+00:00"
+        },
+        {
+          "id": "d3633fa8-f22a-40dd-8694-b0256e189aec",
+          "thread_id": "00000000-0000-4000-8000-000000000101",
+          "role": "user",
+          "content": "Summarize my constraints without inventing a diagnosis or telling me to apply everywhere.",
+          "meta": null,
+          "created_at": "2026-10-16T07:59:35.704909+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 7
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-7",
+          "p_hash": "621c89e5f1e69b3822c4c2abd339271555528e0289d74a5575b06b29671c94a7"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000101",
+          "p_key": "C01-7",
+          "p_hash": "621c89e5f1e69b3822c4c2abd339271555528e0289d74a5575b06b29671c94a7",
+          "p_revision": 6,
+          "p_account_version": 6,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "reflection",
+                "facts": {
+                  "paid": {
+                    "value": true,
+                    "source": "I need a paid role because rent is due. Please keep that constraint.",
+                    "status": "user_reported"
+                  },
+                  "interest": {
+                    "value": "debugging with a teammate more than competitive finance interviews",
+                    "source": "I like debugging with a teammate more than competitive finance interviews.",
+                    "status": "user_reported"
+                  },
+                  "availability": {
+                    "value": "20 minutes a day",
+                    "source": "The worst part is feeling behind my classmates. I have 20 minutes a day, not two hours.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Summarize my constraints without inventing a diagnosis or telling me to apply everywhere.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000101",
+            "reply": "From this conversation's user-reported record: paid work required; interest: debugging with a teammate more than competitive finance interviews; availability: 20 minutes a day. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C01-7",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

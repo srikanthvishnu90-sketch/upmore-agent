@@ -1,0 +1,58 @@
+{
+  "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+  "checks": [
+    {
+      "id": "typescript-latest",
+      "command": [
+        "npx",
+        "--yes",
+        "--cache",
+        "/tmp/upmore-model-npm-cache",
+        "--package",
+        "typescript@5.9.3",
+        "tsc",
+        "--noEmit",
+        "--allowImportingTsExtensions",
+        "--target",
+        "es2022",
+        "--module",
+        "esnext",
+        "--moduleResolution",
+        "bundler",
+        "--lib",
+        "es2023,dom",
+        "supabase/functions/_shared/career_model_reply.ts"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "full-bundle",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "career-bundle",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--career-only",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "stage",
+      "command": [
+        "node",
+        "scripts/career/stage-career.cjs",
+        "/tmp/upmore-flexible-final-stage",
+        "--json"
+      ],
+      "exitCode": 0
+    }
+  ]
+}

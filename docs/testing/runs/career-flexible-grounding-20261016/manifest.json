@@ -1,0 +1,989 @@
+{
+  "schema": "career_flexible_grounding_evidence/v1",
+  "files": {
+    "docs/depth/CAREER-FLEXIBLE-GROUNDING.md": {
+      "bytes": 3441,
+      "sha256": "1ce7eb28087ea1ad65cc5c4c08557bccc2da59eb92185a1189aec7f7b6fe7826"
+    },
+    "docs/testing/career-flexible-grounding-20261016.md": {
+      "bytes": 13680,
+      "sha256": "d95c71df19e151a96e0cfc069d28a70b7cbbea639828fcb202d77341eb591576"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/career-bundle.log": {
+      "bytes": 23,
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/metadata.json": {
+      "bytes": 3765,
+      "sha256": "4bf78e220cf715cbe2c2d2bb3f8f92707e5337d1f29f86eab86ada8acc1e85c8"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/scripted-provider-verifier-events.jsonl": {
+      "bytes": 418648,
+      "sha256": "0767135dbcf71269685685d0f72295110c249eb380e329c9d7062b0b54d630f4"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/test.log": {
+      "bytes": 4581,
+      "sha256": "2d9bcb86e471e7997869d93391ad110b1247f8d9e8bf09e4841274abd0696e73"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/transcripts.jsonl": {
+      "bytes": 113834,
+      "sha256": "4e836362b05f2f47ee9aef8492672a2ca815d47d2361b4b4feb5d70fe6f20305"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts-command.log": {
+      "bytes": 4581,
+      "sha256": "2d9bcb86e471e7997869d93391ad110b1247f8d9e8bf09e4841274abd0696e73"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/final-local-database.sql.gz": {
+      "bytes": 15991,
+      "sha256": "82566f629a5e5e5e25015ba2108ae0c032a8589c2d6ca11f2d53fa08ea1c1435"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/metadata.json": {
+      "bytes": 3844,
+      "sha256": "32ffd56ef03bf7f8627a4e7ea12c79369bd72a43d3a506c0c33eb26465abfec6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/scripted-provider-verifier-events.jsonl": {
+      "bytes": 104835,
+      "sha256": "a969894e5fcbd6b945dc4fa25e5861eebb6821b881065657eab3b24c661bb40c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/test.log": {
+      "bytes": 2135,
+      "sha256": "e9fe64f1e1d600ee48a6185deed7d363d4be3364ae48d816641135db88a7a2b0"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/transcripts.jsonl": {
+      "bytes": 32312,
+      "sha256": "d488aa382ad51f1c86159e76613bc98174f8d7787d9836faebd29383070d8d6c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres-command.log": {
+      "bytes": 2135,
+      "sha256": "e9fe64f1e1d600ee48a6185deed7d363d4be3364ae48d816641135db88a7a2b0"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-contracts/metadata.json": {
+      "bytes": 3761,
+      "sha256": "766d562e42030d68c0555e1a2c3a1ca09ab530be89c8d6e732d36b3e39dc707c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-contracts/scripted-provider-verifier-events.jsonl": {
+      "bytes": 376258,
+      "sha256": "2b40c906e0e21a5b61136d69c445d6867c833bd9d76d5c43f6f7130a84983ab9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-contracts/test.log": {
+      "bytes": 4157,
+      "sha256": "73c7085999c710d742389afcf9b5b32aac665bb0111f006721d63a81e70bf1ed"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-contracts/transcripts.jsonl": {
+      "bytes": 95920,
+      "sha256": "964a4052c6cb4991f2055e5dea6746c1875961d787a19daa94e8060bc8f28b3d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-contracts-command.log": {
+      "bytes": 4157,
+      "sha256": "73c7085999c710d742389afcf9b5b32aac665bb0111f006721d63a81e70bf1ed"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-heldouts-command.log": {
+      "bytes": 4701,
+      "sha256": "381c6e32e0b024d182614d55342488e1e2201402885923999ae797320ed6d634"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-gauntlet.log": {
+      "bytes": 4471,
+      "sha256": "9345b0edb3885b46b089c3d9835f6699ff2d95e445c9a5b208e922646143d6a6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/final-local-database.sql.gz": {
+      "bytes": 14597,
+      "sha256": "7c0889911b9da413d6824f16cab25a986f5d10bab22779a5c9a9277c344cbab1"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/metadata.json": {
+      "bytes": 4207,
+      "sha256": "d8f4223a0a462b97f7e6f7f0e60c67d9e5e09de18fd8600999a6ee0477292c99"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/test.log": {
+      "bytes": 4062,
+      "sha256": "93df3d26f9c249cde64f5fd6751141dffbfcb6ad0b339611b1378941b1812d18"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/transcripts.jsonl": {
+      "bytes": 15317,
+      "sha256": "b0559383f857ac2ef02f3444b3a38ec8eae82b03c564d3074d3f16bc7f46ecc3"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres-command.log": {
+      "bytes": 4062,
+      "sha256": "93df3d26f9c249cde64f5fd6751141dffbfcb6ad0b339611b1378941b1812d18"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/metadata.json": {
+      "bytes": 4093,
+      "sha256": "b8e3ffbe4c97345ff3c00e2334ed82f60c9fc757a690a55b9a4f47b90ff98e95"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/test.log": {
+      "bytes": 7550,
+      "sha256": "60277c0d0599f0fbfe938025a789c01fa45ad7aadb1bc5f7f1e39be5042b79de"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/transcripts.jsonl": {
+      "bytes": 108123,
+      "sha256": "f6f0db7bdfbc218ff7f2c9f2bf6e241c98fdd419413ca2c0708d36b108ef07d8"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source-command.log": {
+      "bytes": 7550,
+      "sha256": "60277c0d0599f0fbfe938025a789c01fa45ad7aadb1bc5f7f1e39be5042b79de"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-original-command.log": {
+      "bytes": 3855,
+      "sha256": "39e8cba26f63c281198dec314b336685185d36e5633a9c4c1e9cb0c73009638c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-contracts/metadata.json": {
+      "bytes": 3770,
+      "sha256": "826aed2ee6c14c6060e4e0da460b7ba89d08c1f3e2a9ff216df2cbc5a3e938c7"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-contracts/scripted-provider-verifier-events.jsonl": {
+      "bytes": 410627,
+      "sha256": "04e02af22af701c97aa6955944da1dc739dc767ac720e2f188f19088c4d9a517"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-contracts/test.log": {
+      "bytes": 4474,
+      "sha256": "71945f440a2f67a60be4046bace41c6e555d75a071e45f177b315335038cc79d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-contracts/transcripts.jsonl": {
+      "bytes": 112070,
+      "sha256": "7b71c802dc418650ad6af9b0da1258cb528fc00724021de7e4eeeb15d21fe046"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-contracts-command.log": {
+      "bytes": 4474,
+      "sha256": "71945f440a2f67a60be4046bace41c6e555d75a071e45f177b315335038cc79d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-postgres/final-local-database.sql.gz": {
+      "bytes": 15980,
+      "sha256": "743030004cc13e50d3a6b0305fe928ea95db93bbe381ee3b5b3aa5a84852d51e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-postgres/metadata.json": {
+      "bytes": 3854,
+      "sha256": "533dc677372d5e2a57f5288ed4da7f23656e4993fe75af9c482e60bbf9f285ad"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-postgres/scripted-provider-verifier-events.jsonl": {
+      "bytes": 104835,
+      "sha256": "8e9848e05b7267c5d359eab656c9b2dd55b409b3d981d10d8970a64f66f0fe00"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-postgres/test.log": {
+      "bytes": 2142,
+      "sha256": "0423b50eb8bd82f8f897787cc77c512ed4f604f02953f7ac53396363514f873e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-postgres/transcripts.jsonl": {
+      "bytes": 32312,
+      "sha256": "ac1dda023e3642063a714058f2f66c62ae926a89466ddf36e4f0ef4208f749c8"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-repaired-postgres-command.log": {
+      "bytes": 2142,
+      "sha256": "0423b50eb8bd82f8f897787cc77c512ed4f604f02953f7ac53396363514f873e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-scoped-regressions.json": {
+      "bytes": 1289,
+      "sha256": "de10a360e7aa673bc9fef4f5f837504dc91eb7a3f0755af041aa14265023a542"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/final-scoped-regressions.log": {
+      "bytes": 24883,
+      "sha256": "a721e1d8e28009ad2ec62fc795992d23aff82f19afdf8ec1216799e12b35cbd5"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-contracts.log": {
+      "bytes": 5074,
+      "sha256": "560bfdd4968f50022754e4dc5140a2a74479cf8268434ea8f308d665feba7744"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-events.jsonl": {
+      "bytes": 344716,
+      "sha256": "1e549cdce30503a47fa267d6ca2222260f3575194134ac938a54f222453ad8ed"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-postgres/final-local-database.sql.gz": {
+      "bytes": 56405,
+      "sha256": "c7a225ccb7c002383e2fa887ea6152222a12507a0340df7c720630ae75c35e42"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-postgres/metadata.json": {
+      "bytes": 3836,
+      "sha256": "c8699f586d33fae75de710e00c8cf56d24fe01084875c79ae43107983e90bd93"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-postgres/scripted-provider-verifier-events.jsonl": {
+      "bytes": 76548,
+      "sha256": "4e886c9257ca81a8574989b5303ed5c67dbb6f23ec90b457202091e59cc79adc"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-postgres/test.log": {
+      "bytes": 1767,
+      "sha256": "220eb985a0b60985074553925ef0e4c3972fb9b10f8edcb3027acee2e608fe5c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-postgres/transcripts.jsonl": {
+      "bytes": 22279,
+      "sha256": "3f76f0e6acaa9ff567852c8165189d4cf97c9f4fd36b5c05bf5a0b9086108334"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/first-postgres-command.log": {
+      "bytes": 1767,
+      "sha256": "220eb985a0b60985074553925ef0e4c3972fb9b10f8edcb3027acee2e608fe5c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/fixture-cleanup.json": {
+      "bytes": 257,
+      "sha256": "776ec0557648900b2891970629827912f490ae5043fc026381a4ed910dc77475"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/full-bundle.log": {
+      "bytes": 23,
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/heldouts-command.log": {
+      "bytes": 4689,
+      "sha256": "333a5315d7ba44a0f2742b51a505e6fcf9434256a3a2e55075ba4d04158ca2ff"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-gauntlet.log": {
+      "bytes": 4466,
+      "sha256": "c95edd7ea7a7d6f2b92ec56f079ad96f5f33a4d9d67299ff6dccc076eed5fc62"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-postgres/final-local-database.sql.gz": {
+      "bytes": 14263,
+      "sha256": "ea460f7d6639f9a6cdd7378e66d307ff89fb158e828fbeaf92b2aa650a500271"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-postgres/metadata.json": {
+      "bytes": 4195,
+      "sha256": "ecd8733549f78d2b7ebe20ed107858c03f97dc58fd5a7b053087d437cbe815b1"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-postgres/test.log": {
+      "bytes": 4066,
+      "sha256": "6a54125563479d681db3999093f2e47a22e5da34e0dc64b83ad4a2943374a92e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-postgres/transcripts.jsonl": {
+      "bytes": 15317,
+      "sha256": "73e76321a3423ab28c1213e79f7cc102d134f08cf568220bfe3e40cfd56573e0"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-postgres-command.log": {
+      "bytes": 4066,
+      "sha256": "6a54125563479d681db3999093f2e47a22e5da34e0dc64b83ad4a2943374a92e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-source/metadata.json": {
+      "bytes": 4087,
+      "sha256": "b181de9d63f2b813c8b8714c4f79f9c61a004714d5552f24d7bc9bc5cb957421"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-source/test.log": {
+      "bytes": 7550,
+      "sha256": "11328ebec0c4ebd3aabb259779f1bd2b8e2c833544e09aac68695154543dd181"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-source/transcripts.jsonl": {
+      "bytes": 108123,
+      "sha256": "80ac401c10bccc900ec6ae9902dbe0e949ff8f5806ae980e067e88f3cdbc2067"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-source-command.log": {
+      "bytes": 7550,
+      "sha256": "11328ebec0c4ebd3aabb259779f1bd2b8e2c833544e09aac68695154543dd181"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/legacy-source-first.log": {
+      "bytes": 6392,
+      "sha256": "f7eca8457e242742582625bcbb46ad4a3e72eef8aa7a1637005279c7c3f381ef"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T01.log": {
+      "bytes": 1847,
+      "sha256": "2e533fc31a0f1b31d1485378a16a36bb964759e045d51f4c5d9af22c5fb9c02e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T02.log": {
+      "bytes": 1313,
+      "sha256": "112a3eea17b5640f21252e7fb18ae6ea05b0d70553b51f17d659d49112566a8c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T03.log": {
+      "bytes": 1304,
+      "sha256": "fc471d0f9d6a3d0865eacb6e773c88d3c4e814342715ade5cecd619c9659fbdb"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T04.log": {
+      "bytes": 1281,
+      "sha256": "95aa87e594ebee6207c151084668528b552295d497cb3fec56cf1fc8e7c1f98a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T05.log": {
+      "bytes": 1230,
+      "sha256": "575bc11b3a3a893aad77300d73cd4f39e66e5710ca8dd82ddecf3b859a35de34"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T06.log": {
+      "bytes": 2362,
+      "sha256": "02bdefe79b787ff999946cc8b7fae7d5d07bcb17dc0ee6f6937aef12e1419617"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T07.log": {
+      "bytes": 1179,
+      "sha256": "4018d68d0b9720f35964fb9ce8d052241fbb0f81eef349162a8cde4e923b78ad"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T08.log": {
+      "bytes": 1180,
+      "sha256": "495780efb480f648c8006ed09a1220a6f9687b65a5becc996f87ef5f85a8f640"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T09.log": {
+      "bytes": 1255,
+      "sha256": "a789a42406cf60645a3f88cd1ddd7e21469bb036dc604daed707fc3e80e775cc"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T10.log": {
+      "bytes": 1227,
+      "sha256": "03ef86704f1cebcc83f1ff5ec37114a1aaa6fd072bee4ba86071ee86f1ba8472"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T11.log": {
+      "bytes": 1241,
+      "sha256": "df91a4fa75f009730535364e7b2b0d2639b5ebf92aa9e873bc6bc9ff20c4ddac"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T12.log": {
+      "bytes": 1311,
+      "sha256": "d5b7366aca7d53ba412a387512e243a28be9a4c3205e185a9ea7d207ff6a9f62"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T13.log": {
+      "bytes": 1230,
+      "sha256": "78a48d8916e7afa9f40c56cc355797019a7c77c34966d7c5cc2f9465b89e22c6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T14.log": {
+      "bytes": 1200,
+      "sha256": "bf7a900a8cfded27641b3de4092f8029224cf9ce24f415442a2932fbeb4326f9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/T15.log": {
+      "bytes": 1328,
+      "sha256": "2638a7f666e9a2712d5ebd9caad5c06b884b08f93f653f0fe033dd8fce57fffd"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/results.json": {
+      "bytes": 3002,
+      "sha256": "418390b51b74f25336c38cda63650019ed779f7e615b594503688f5795141ca0"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified-command.log": {
+      "bytes": 165,
+      "sha256": "2694dba3472a039a19d32e5cfae38066d007049dbc3c8319306b0a1f4bac2947"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T01.log": {
+      "bytes": 1848,
+      "sha256": "3ec4da339e00009cfbd1ade13387c60975669398bb125c38e60dfe6c93b8aee7"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T02.log": {
+      "bytes": 1314,
+      "sha256": "229f203d59d935b70c0b86a9969689bf353559b54e66d55a344336d26299e7c7"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T03.log": {
+      "bytes": 1308,
+      "sha256": "60f0083b7a934c648acabe9e4a219ddf39f95544eff1706dba0a04073245604b"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T04.log": {
+      "bytes": 1281,
+      "sha256": "5625eb07e6b2a790b9ed42bea30c1dbf6de21100f0c53af244f81432ed84ff71"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T05.log": {
+      "bytes": 1230,
+      "sha256": "cc634cd40ea6e351eb5b78e7e028eadbf5ccf593e1c88f68846123748b04ab01"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T06.log": {
+      "bytes": 2362,
+      "sha256": "8fb78c56fc40ffe120539c46983c8bcade9109c15f14419df30174802a7526a2"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T07.log": {
+      "bytes": 1179,
+      "sha256": "23f5e395035fe5891b47259f49836519891219f0c836e78f2c3ecc62a27082f9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T08.log": {
+      "bytes": 1182,
+      "sha256": "123cd0d9a57eb75b2d6aae098678cd5839434e197981051c46026cdf6188bb1e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T09.log": {
+      "bytes": 1257,
+      "sha256": "910d446d0c27cf1911fbe56a5432a333c2064ba37d7798aead9b9db114ac21a9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T10.log": {
+      "bytes": 1230,
+      "sha256": "b8b247a8d7a5e7a64a4b9e6c95913337d6e0b2e9ac8f33e13563a7037ce54ad6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T11.log": {
+      "bytes": 1242,
+      "sha256": "d1b3e04c065c2c12c306e222f9f3da4400a6336a2f8fe605a8fb28a0ad67ff54"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T12.log": {
+      "bytes": 1312,
+      "sha256": "ee354f5fbc09b21722a82ef6dec285131f0a62e936e45f8a4ea4afca5ac43a3b"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T13.log": {
+      "bytes": 1233,
+      "sha256": "e391b7d047e83d07addd9f1bbd258fdbb5d754e90d7a681a529a2b02a61af2aa"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T14.log": {
+      "bytes": 1201,
+      "sha256": "c5522f54ca4b6f2fe962435b3a543d43db51e541b21c74be84f554e68f88a507"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/T15.log": {
+      "bytes": 1327,
+      "sha256": "52edff5830f14f325223bebfc5383babea44e30ac0cc87f5ee0dd7604edabdce"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final/results.json": {
+      "bytes": 3002,
+      "sha256": "cb63f3288c57b74f6a2efacfbd52c5e0969483a124674e8f8d6f4653d4e2ec8d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-final-command.log": {
+      "bytes": 165,
+      "sha256": "2694dba3472a039a19d32e5cfae38066d007049dbc3c8319306b0a1f4bac2947"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T01.log": {
+      "bytes": 1849,
+      "sha256": "7285ea8883ed7b6a87223b4bf171aa6558d6c45645e854bcc04be5a30aa31ee3"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T02.log": {
+      "bytes": 1316,
+      "sha256": "cf2e598b5a39599395708ef1266dbad3c0d512bd7b0fbb58f28815fc0a288845"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T03.log": {
+      "bytes": 1308,
+      "sha256": "738fff8d2669dbdee365785d99cab44920cb6d36e5cf6604a34417d6e5b0f17a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T04.log": {
+      "bytes": 1284,
+      "sha256": "034726c145803940b3746718e5a2a83b760649582796dc45d066c320fe2e3ebe"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T05.log": {
+      "bytes": 1232,
+      "sha256": "db17903af6b1d88875a65205282731f4bf9491f936c8524f5129ed219c985e2b"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T06.log": {
+      "bytes": 2359,
+      "sha256": "1ff7094541c16abdd93a08cd624125d8c00f80d14c39f1e5a8e034411a906376"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T07.log": {
+      "bytes": 1178,
+      "sha256": "f9bee012c7b4e0d09d0b97a3fcbbde9f5f3b9c930dff5b4504b881244550407a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T08.log": {
+      "bytes": 1181,
+      "sha256": "680ad09bfe91231f85507f7a81d7eb750a6e47643036dcb40fb7c477667d7983"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T09.log": {
+      "bytes": 1257,
+      "sha256": "89badbf26ee7d3fe71ae262a86d469da09e026b87c8fd586f73c7969b5015fda"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T10.log": {
+      "bytes": 1230,
+      "sha256": "d0db2a7a0e373962501801260a84aea36a618de5dd6b1cad53b3aa1735dc3fb2"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T11.log": {
+      "bytes": 1241,
+      "sha256": "bed6756c9ee936648631abde7195a0598b64ecb3ee3358db005dc42042b79c33"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T12.log": {
+      "bytes": 1312,
+      "sha256": "b5e1b0035eb459e26b6223c64ab194abb170ca5bc92a0f8853355c084a0607a2"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T13.log": {
+      "bytes": 1233,
+      "sha256": "fcb7115c4c3c49058b59c79424cb70d45e3fac2bc91a60fe8ef5bb720ab08ea9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T14.log": {
+      "bytes": 1202,
+      "sha256": "8bcc99354b49384d5ff57785f165c4b5bf52e23228bb1d27379180e1ffd8a33c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/T15.log": {
+      "bytes": 1329,
+      "sha256": "a831f3f506661487277327e8f7183fa01e90162d66d67248996710c334adb145"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first/results.json": {
+      "bytes": 3002,
+      "sha256": "7dd104e99e5dc20b797e82159e4cd8773c2626e1a002cd87c0e446c8e55d3ccc"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/mutations-first-command.log": {
+      "bytes": 165,
+      "sha256": "2694dba3472a039a19d32e5cfae38066d007049dbc3c8319306b0a1f4bac2947"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/native-context-acl.json": {
+      "bytes": 543,
+      "sha256": "6bcd6c5a4cbb02885a4d3b6710aa2eb79e7934162e9d115672559fd029d77ec0"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/original-command.log": {
+      "bytes": 3843,
+      "sha256": "e2e56e87e5c290fed1e88894b053eb691747538ee1ff9861ce67240073c24cc7"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/postgres-setup.log": {
+      "bytes": 120,
+      "sha256": "9b0ab539b07078db254c4d0cf923480e1518ccc97684c12a53a6a10d914f676a"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/preserved-source.json": {
+      "bytes": 1760,
+      "sha256": "ea2d461f62d69edc729ff88eef1ca8a915f801f782936d3c10e1913fb5e3cb5d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/publication-preflight.json": {
+      "bytes": 421,
+      "sha256": "ae9c0e0ce2814866f9ca490ac74a5736cc8c9baa26742c669c59f16051f84642"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/replay-before-fix.log": {
+      "bytes": 1209,
+      "sha256": "93bdff9f47876eca94edcf644b991745178998687881ab7b0a6673c9ea7dad59"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/research-pg-command.log": {
+      "bytes": 2232,
+      "sha256": "0142846e3a43b85d13c514b2f43fdad6d592b38ab84671e7bbc57ecc71dd9581"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/research-source-command.log": {
+      "bytes": 1269,
+      "sha256": "c4998c6b496c94e801fe40ef8e47a7d380b1127b3d5bf816c07081c585c11577"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/results.json": {
+      "bytes": 6419,
+      "sha256": "5ced5d6d69224fb08fe6713f031956d4fc5891435b00c9fb27d04a77478b9488"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/scoped-regressions.json": {
+      "bytes": 1289,
+      "sha256": "20f220e2571f3c2adb9eb3fd2b24ea5084484eb1e2fcf3af75482c63b1f4ccd6"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/scoped-regressions.log": {
+      "bytes": 24889,
+      "sha256": "2b29f6397269219bea63aa3c0a43b146b66f0e0df8345f6bee9d88fe4eb28dfa"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/second-contracts.log": {
+      "bytes": 3842,
+      "sha256": "521b06858004a49aae2a4eecb4249c25b0ff51111c2160140f04db8be8492163"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/second-events.jsonl": {
+      "bytes": 368443,
+      "sha256": "485404a06961a833a6053a619a070c0954314c9a608163c7a0ecc45f8a906cc9"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/stage-certified.json": {
+      "bytes": 947,
+      "sha256": "27b194aab0fb8e45c502066ab488268c148170984b631a36168544796a5a4748"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/stage-published.json": {
+      "bytes": 947,
+      "sha256": "033c31ae5d69407605878e57c39b574ec4846c7a16b58fb9e98fbedcf628101d"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/stage.log": {
+      "bytes": 947,
+      "sha256": "2af726fe099f9b59699fd72f12a036b6a9d7d22f9123f6dc1a4cdf5adb40de7e"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/stale-education-before-fix.log": {
+      "bytes": 3819,
+      "sha256": "3368d3f38d0d5e6ab9c6b175ca97170b84f11c61bbc7564c4617df4466466f1c"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/static-checks.json": {
+      "bytes": 1167,
+      "sha256": "f41aea2dfa0b5e2483aa5a4ee6dc18f4eb81166ceaca7b4486cc490368535312"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/typescript-certified.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/typescript-final.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/typescript-first.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/typescript-latest.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/unstamped-gap-after-fix.log": {
+      "bytes": 501,
+      "sha256": "01ddd4e0d9198efb98f446d53bb40c145d24f21cb8c3360c04f127586aedba9b"
+    },
+    "docs/testing/runs/career-flexible-grounding-20261016/unstamped-gap-before-fix.log": {
+      "bytes": 1179,
+      "sha256": "bb1bdf62bab1adcd7c633a392b7ca3f1abaa4ee71dc52a2a4e3fe921d341a7df"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H01-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H01.json": {
+      "bytes": 188338,
+      "sha256": "e22efce0950eeb19f66b2e0ad2f2faae3de9191e9e0f71c80f45216b06cdf06a"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H02-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H02.json": {
+      "bytes": 132621,
+      "sha256": "3d6d3e13d6fd3fda151ccbfe8c93e0758b1267992d689305f9bd854955d12e74"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H03-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H03.json": {
+      "bytes": 279733,
+      "sha256": "0303d9dcd269c63cb4c99c00c4a3f97398f56c9ec473cf4bcde04e779bb6387a"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H04-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H04.json": {
+      "bytes": 90206,
+      "sha256": "15c2cae41bece9ce8730f6796bcf5e855d8cdceafd7aba6ca50dc68b9722c64e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H05-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H05.json": {
+      "bytes": 93040,
+      "sha256": "1d29986643a19ebb3a1c57095cce91b0f898a95a9d1e65506cdb35e2a13f7493"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H06-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H06.json": {
+      "bytes": 129913,
+      "sha256": "3e48e9151ff30e5f29fef7729a03e33bc6eb88b0513fc92eb94f690030f4f3f3"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H07-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H07.json": {
+      "bytes": 148750,
+      "sha256": "10aa93db144ebeab71d180ef27262892fb9346e29d0e88b5b05ee82ee2f8692e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H08-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H08.json": {
+      "bytes": 139389,
+      "sha256": "7be509f5d9026fc1e20bcef304403f8ade330c760a5e5bcac85bc26c1fead5fc"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H09-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H09.json": {
+      "bytes": 87645,
+      "sha256": "7f7628325ed24409e1dc16a3978bbb9f4e14c00a5a4cef3da8b0ddd8639a3b2a"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H10-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H10.json": {
+      "bytes": 110515,
+      "sha256": "a471e3ab583182f163a400db70b0a495823a1e9001848d1eb17cc80237967ddf"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H11-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H11.json": {
+      "bytes": 143110,
+      "sha256": "25ef5d05139a4022a391e685d86dd326e957751b61db0f883f5d0a560a7489d7"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H12-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H12.json": {
+      "bytes": 61104,
+      "sha256": "322141b1ce97f35a71ecf42277b7d4718921051e12dbc1dc4ca4b4b3ec1950fd"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H13-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H13.json": {
+      "bytes": 130958,
+      "sha256": "2b61a2f3e960581c9f5c09183659f8c366e97742d5accc7d090eb092d5f23af3"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H14-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H14.json": {
+      "bytes": 55341,
+      "sha256": "fca6cd1799d1691da71e6874131492b19daf6b3bce62de115aa32b43ad7b551e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H15-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H15.json": {
+      "bytes": 134125,
+      "sha256": "a4c3d1c5071698f446d4e9eeee675c6af1a61e926b5012e2d6c9beeca542b95b"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H16-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/H16.json": {
+      "bytes": 42620,
+      "sha256": "eaa3ba3f15123868a7a7ca6da184a30b8253f955fb235fb03a2004118673ed62"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/metadata.json": {
+      "bytes": 3919,
+      "sha256": "8a7ce10e9ad81704d9ae3fb9cfbee1c32899b3372e80822537f1033338e1659e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/transcripts.jsonl": {
+      "bytes": 1181396,
+      "sha256": "32a18962daa2c8a4eb4378713379e4c1b4d9a8b0d8037839750aace7e2be09ed"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C01.json": {
+      "bytes": 131834,
+      "sha256": "bbd6e90915380694a0e11d49c45d72cb8d314016eac46a488a28e475cbfe91e9"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C02.json": {
+      "bytes": 295357,
+      "sha256": "67ae8af60e285f91da7ca5af077a3d15bfa9fca2a9a57572ebd5128d4ae3e5f8"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C03.json": {
+      "bytes": 160304,
+      "sha256": "83ee2c9827cf4e8cc3e380ead93a72291de5d7a4ab08198f62c8908f669bda4e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C04.json": {
+      "bytes": 213976,
+      "sha256": "4a787764c3a214497c942f03f6fb8188ab6a271bc9a06eb25efdd1585fe908e8"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C05.json": {
+      "bytes": 279545,
+      "sha256": "bb4e1aa6a1957db33a6218014ba7ab1d8e8f765edb36a7e3abc5b33fd195a971"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C06.json": {
+      "bytes": 175961,
+      "sha256": "855b2ff64cfe4fcec306203594fae1468281560ba1110283d1b5a531676e3d89"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C07.json": {
+      "bytes": 157748,
+      "sha256": "655a5a07445f7dd43f8de2588dd68eb03a99b74737b98c9fc4d2b66a76545c80"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C08.json": {
+      "bytes": 150674,
+      "sha256": "9344cb7317aa2c05a80ffea6d0fbcc2f5c695c84a32cff867ad2ab8a1b66771b"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C09.json": {
+      "bytes": 192593,
+      "sha256": "f2b11b795dd824835943e7036b6f2bb90512683457def75d399bbcd59b296441"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C10.json": {
+      "bytes": 125642,
+      "sha256": "231e8d124ef3c71e7909f2b67349a5447cb2e3f50549910758ec6a0a8d2eb134"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C11.json": {
+      "bytes": 136244,
+      "sha256": "b1738bfaeae5638c15d209079bc4be58c25e5fce5c4e484684ea10b9803d3685"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/C12.json": {
+      "bytes": 177286,
+      "sha256": "0f7a646eb94cd07578d53a869d1621ad3d6370e9b13c9f657854dcc91b676d04"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/metadata.json": {
+      "bytes": 3197,
+      "sha256": "df39461752372e2b8513be35a509b0eb83ddfb7b65fdcbdc4a0d6eb1b96db0e3"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/transcripts.jsonl": {
+      "bytes": 1344403,
+      "sha256": "c19bf973652a22ec64c9b2bb691b57620b9da575bbe7d7fc79de07cc08e9c664"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H01-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H01.json": {
+      "bytes": 188338,
+      "sha256": "b5210006d27e24ed4a4e035a3960e6c1adca716b5368dea2aec003a9b10c436e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H02-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H02.json": {
+      "bytes": 132621,
+      "sha256": "bfa84d3799c59566b448643cdde74028f2e1aa328c0b4b9bf5e1b6664eb5541c"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H03-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H03.json": {
+      "bytes": 279721,
+      "sha256": "73fadd99395523645c532c1e4df68f9f9020555cabf128a6128fd7f585c44028"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H04-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H04.json": {
+      "bytes": 90206,
+      "sha256": "cbcb77fb6b22c0887f6d54ada25bb2b8c6b8c4c2d342e4d871691ec697fc4800"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H05-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H05.json": {
+      "bytes": 93040,
+      "sha256": "5d9d5f4f523992205a920ee0ba829fb5651dd02f3cecb7c2e914d5230ffa9687"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H06-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H06.json": {
+      "bytes": 129903,
+      "sha256": "ea90347c6cc79a356ed3b7a714d09ad6ed7af40afc9fd4a4574914234c589bb9"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H07-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H07.json": {
+      "bytes": 148714,
+      "sha256": "f7264002baab903487a4f4e09ce865f71a333bc8417ca897b06671d2f7e7da86"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H08-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H08.json": {
+      "bytes": 139389,
+      "sha256": "4414fc2afc90c2b1b53519d21c69c38f89c257cbb1a332c0f7e8da5bced03efa"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H09-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H09.json": {
+      "bytes": 87645,
+      "sha256": "335e1aa7d45d7c1102eee128e3222bb268f9cfd256368f212f23761c9ca011df"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H10-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H10.json": {
+      "bytes": 110493,
+      "sha256": "c41a0e77ff58a536769726530744864fe3423511d93271654fd1fff1c5369ba5"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H11-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H11.json": {
+      "bytes": 143110,
+      "sha256": "12e173e84f8ffecf9f9f2e248d9a4c77a131696989fa5b529913990f92230ff7"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H12-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H12.json": {
+      "bytes": 61106,
+      "sha256": "e9551adfdde53604b074339e7324b2157625f19a0ee2ba28ed7ff3d864c21226"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H13-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H13.json": {
+      "bytes": 130940,
+      "sha256": "c92b416686699e98b6d5a063fecd27f5a31793e499b725ce321d53f762c1e722"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H14-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H14.json": {
+      "bytes": 55341,
+      "sha256": "36e5fbbde033f42379c96866ed948299c09fe550b99a99d3e9509b40eb346e63"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H15-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H15.json": {
+      "bytes": 134115,
+      "sha256": "b5c0d23b389ada8f016bf349c4d4f71e7da2d43755fe5d3b292145cab9d765bc"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H16-semantic.json": {
+      "bytes": 18,
+      "sha256": "333098718f2c8a77c008dadf617b04c251922d85d783c2dc98c8cc6a217e8867"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/H16.json": {
+      "bytes": 42620,
+      "sha256": "7e9750fdd243678ca0603d1bec748b253c1e2079a2946a26d1b43cada96c0695"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/metadata.json": {
+      "bytes": 3907,
+      "sha256": "8d4be2e65e3a08468322b744f23df4572a9b8ebbd5753dfc4df0b6df4f2dad06"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-heldouts/transcripts.jsonl": {
+      "bytes": 1181290,
+      "sha256": "82078648b40ff6eb3aeb0da4e4457176e75fafd4aa41289357db332a31832499"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C01.json": {
+      "bytes": 131834,
+      "sha256": "20311019e0f8da4a310f159a6fdde7ee6fa370dad37b525e9d4c24ca980f655b"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C02.json": {
+      "bytes": 295357,
+      "sha256": "d9387bab3548ebb999635ad55d92834103f62095feb728a357aeb13eefba4c52"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C03.json": {
+      "bytes": 160336,
+      "sha256": "c8ede4b0cf3ff88c63f27d3c1a05913d54cd9bab041874f01b9dd1c88d6ed929"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C04.json": {
+      "bytes": 213946,
+      "sha256": "7c469e1d5623cabc99557ed8a6b360bd5a3aeb1bc609077984c84e9637230b2e"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C05.json": {
+      "bytes": 279531,
+      "sha256": "7f17179193f51bb29faf9141021b431b2269e442b95904ed1e9f7104d9f55994"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C06.json": {
+      "bytes": 175935,
+      "sha256": "903420f06a90a3928333f27f22d1a2e06bba2e3e8b655d6a9b2037f29e7eb37c"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C07.json": {
+      "bytes": 157776,
+      "sha256": "986a514ce8adeb604a08b5b0ec202275bdd73120b63eb854bd3a8239c65ee261"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C08.json": {
+      "bytes": 150672,
+      "sha256": "3f739721a1325c3831c8a410497db5453ce35edb3e78a5627c64e7c79217d087"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C09.json": {
+      "bytes": 192557,
+      "sha256": "52e8781d79f17e265e812bde9661c601bd2f676386d7b094eddadf6f3800e9f9"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C10.json": {
+      "bytes": 125620,
+      "sha256": "491d771b079b5a17f3733ee0f9ad45bbcb9d47615a0aa7605fa4932f5078e2ca"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C11.json": {
+      "bytes": 136244,
+      "sha256": "77f6df484e41beb9fe53150d132043b07edc356ad85f387860caad5ec5db218a"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/C12.json": {
+      "bytes": 177322,
+      "sha256": "1c2d8867355de8a77a1d0c865d7f2dc5595673bb01451eb80684aa94032affbe"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/metadata.json": {
+      "bytes": 3185,
+      "sha256": "761601b57ed4f804ffab8a37cebbd23bfa9c1150d9d905d0f81e1e8759c6b664"
+    },
+    "docs/testing/runs/conversation-recovery-20261016/flexible-original/transcripts.jsonl": {
+      "bytes": 1344369,
+      "sha256": "512e00f02ce7145e187841ed124dfe6df1dd5cd59e0852bbcc6b8a499994509f"
+    },
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/final-local-database.sql.gz": {
+      "bytes": 11223,
+      "sha256": "ad6a108a7bdeb395bc1cafade86db45a0bb6cca2c0b960ae58bd105c76f617c4"
+    },
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/metadata.json": {
+      "bytes": 2523,
+      "sha256": "64959e226c736dc6849f448ec5bfc56a4809067cc01582c4c67c5dad79189d5f"
+    },
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/test.log": {
+      "bytes": 2232,
+      "sha256": "0142846e3a43b85d13c514b2f43fdad6d592b38ab84671e7bbc57ecc71dd9581"
+    },
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/transcripts.jsonl": {
+      "bytes": 216175,
+      "sha256": "c5b69a4cc547d24415c0d6008cafda04e31709c84c99cd64f22bf6d6624e9e04"
+    },
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-source/metadata.json": {
+      "bytes": 2377,
+      "sha256": "d47f671169be64670c1b3cab6b96079468d0be52443f47af125f54971bf6ea38"
+    },
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-source/test.log": {
+      "bytes": 1269,
+      "sha256": "c4998c6b496c94e801fe40ef8e47a7d380b1127b3d5bf816c07081c585c11577"
+    },
+    "tests/fixtures/career-flexible-grounding/freeze.json": {
+      "bytes": 2541,
+      "sha256": "8eb1554437eef66199e8cac8ae39a8a49ba38a4b4cc847c79dce9b652165c3ae"
+    },
+    "tests/fixtures/career-flexible-grounding/heldouts-freeze.json": {
+      "bytes": 228,
+      "sha256": "488d299104fa41a63ac8383da0062f073939a7e8ce8b2bd717baa52d8b51c68f"
+    },
+    "tests/fixtures/career-flexible-grounding/heldouts.json": {
+      "bytes": 1780,
+      "sha256": "20b0950098f2ac9a7d5cbebd5280b4659ce3c7c0ad42851a38fdb221b7253aea"
+    }
+  }
+}

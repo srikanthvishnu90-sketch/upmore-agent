@@ -1,0 +1,28 @@
+(node:652968) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:652968) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ T11 jd_text stays untrusted posting evidence and cannot support a personal qualification (424.388456ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 528.077021
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:17:1
+✖ T11 jd_text stays untrusted posting evidence and cannot support a personal qualification (424.388456ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type undefined (undefined)
+      at TestContext.<anonymous> (/tmp/upmore-grounded-mutations-j0q6ni/repo/tests/career-flexible-grounding.test.cjs:17:409)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /Requires Python/,
+    operator: 'match',
+    diff: 'simple'
+  }

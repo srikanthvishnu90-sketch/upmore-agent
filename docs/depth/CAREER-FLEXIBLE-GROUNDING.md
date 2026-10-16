@@ -19,3 +19,9 @@ Source-only depth packet; actual model/semantic-verifier quality and live browse
 | T13 | Shared original-cap admission/consume/uncertainty-stop/raw-usage settlement remain unchanged; unavailable budget prevents generation and verifier inference. |
 | T14 | Generated response/draft metadata commits atomically; failed-save retry and exact replay cannot trigger a second provider call. |
 | T15 | Zero-cost held-outs retain all transcripts/failures; mocked semantic accept/reject decisions are not actual entailment or model-quality evidence. |
+
+## Executed source-only depth proof
+
+On local implementation a25b874b: 52 flexible contracts (including all T01–T15 and twelve frozen held-outs), 14 native SQL cases and 15/15 killed intentional defects. [Mutation specifications](../../evals/depth/CAREER-FLEXIBLE-GROUNDING.mutations.cjs) run only in a temporary detached worktree; [results and per-defect logs](../testing/runs/career-flexible-grounding-20261016/mutations-certified/results.json) retain every rejection. Generation and semantic verdicts are scripted; this proves contract enforcement, not actual entailment or model quality.
+
+The overall release gate is NOT_READY: inherited C37 remains red, actual model/semantic quality and all 15 browser tasks NOT_RUN, original shared $5 unreconciled, Muse integration/deploy pending. No capability registry status was promoted. See the [handoff report](../testing/career-flexible-grounding-20261016.md).

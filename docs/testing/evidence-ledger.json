@@ -55613,6 +55613,517 @@
    "limitations": [
     "Author runtime unchanged; new independent frozen oracles. No real provider, allowance or production credentials."
    ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:certified-contracts",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 52,
+    "pass": 52,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/test.log",
+   "log_sha256": "2d9bcb86e471e7997869d93391ad110b1247f8d9e8bf09e4841274abd0696e73",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:certified-postgres",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 14,
+    "pass": 14,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/test.log",
+   "log_sha256": "e9fe64f1e1d600ee48a6185deed7d363d4be3364ae48d816641135db88a7a2b0",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:final-legacy-source",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 71,
+    "pass": 71,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/test.log",
+   "log_sha256": "60277c0d0599f0fbfe938025a789c01fa45ad7aadb1bc5f7f1e39be5042b79de",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:final-legacy-postgres",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 29,
+    "pass": 29,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/test.log",
+   "log_sha256": "93df3d26f9c249cde64f5fd6751141dffbfcb6ad0b339611b1378941b1812d18",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:flexible-research-source",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/research-conversation-review-20261016/flexible-research-source/test.log",
+   "log_sha256": "c4998c6b496c94e801fe40ef8e47a7d380b1127b3d5bf816c07081c585c11577",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:flexible-research-pg",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 17,
+    "pass": 17,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/test.log",
+   "log_sha256": "0142846e3a43b85d13c514b2f43fdad6d592b38ab84671e7bbc57ecc71dd9581",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:flexible-final-original",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 543,
+    "passed": 543,
+    "failed": 0,
+    "turns": 83
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/metadata.json",
+   "log_sha256": "df39461752372e2b8513be35a509b0eb83ddfb7b65fdcbdc4a0d6eb1b96db0e3",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:flexible-final-heldouts",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/metadata.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 426,
+    "passed": 426,
+    "failed": 0,
+    "turns": 82
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/metadata.json",
+   "log_sha256": "8a7ce10e9ad81704d9ae3fb9cfbee1c32899b3372e80822537f1033338e1659e",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:final-scoped-regressions",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/career-flexible-grounding-20261016/final-scoped-regressions.log"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 250,
+    "pass": 250,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/final-scoped-regressions.log",
+   "log_sha256": "a721e1d8e28009ad2ec62fc795992d23aff82f19afdf8ec1216799e12b35cbd5",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:final-legacy-gauntlet",
+   "command": [
+    "see-recorded-command",
+    "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-gauntlet.log"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "FAIL_RETAINED",
+   "exit_code": 1,
+   "reported_outcomes": {
+    "tests": 27,
+    "pass": 26,
+    "fail": 1
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-gauntlet.log",
+   "log_sha256": "9345b0edb3885b46b089c3d9835f6699ff2d95e445c9a5b208e922646143d6a6",
+   "screenshots": [],
+   "limitations": [
+    "Generation and semantic verdicts are scripted mocks, not actual model/entailment quality.",
+    "No paid calls; original shared $5 remains unresolved; all 15 genuine browser tasks NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:mutations",
+   "command": [
+    "node",
+    "scripts/career/flexible-grounding/mutations.cjs",
+    "mutations-certified"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/mutations-certified/results.json",
+   "log_sha256": "418390b51b74f25336c38cda63650019ed779f7e615b594503688f5795141ca0",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:native-acl",
+   "command": [
+    "native-local-pg-acl-inspection"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/native-context-acl.json",
+   "log_sha256": "6bcd6c5a4cbb02885a4d3b6710aa2eb79e7934162e9d115672559fd029d77ec0",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:typescript",
+   "command": [
+    "npx",
+    "--package",
+    "typescript@5.9.3",
+    "tsc",
+    "see-static-checks.json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/typescript-certified.log",
+   "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:bundle",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/full-bundle.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:career-bundle",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--career-only",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/career-bundle.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:staging",
+   "command": [
+    "node",
+    "scripts/career/stage-career.cjs",
+    "/tmp/upmore-flexible-publish-stage",
+    "--json"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/stage-published.json",
+   "log_sha256": "033c31ae5d69407605878e57c39b574ec4846c7a16b58fb9e98fbedcf628101d",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:protected-source",
+   "command": [
+    "git",
+    "diff",
+    "2471747f",
+    "--",
+    "protected-source-paths"
+   ],
+   "observed_at": "2026-10-16T08:11:44.155505+00:00",
+   "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_CONTRACT_OR_STATIC_CHECK",
+   "provider_mode": "none_or_scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/preserved-source.json",
+   "log_sha256": "ea2d461f62d69edc729ff88eef1ca8a915f801f782936d3c10e1913fb5e3cb5d",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality or deployed runtime claim."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:first-contracts",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-flexible-grounding.test.cjs"
+   ],
+   "observed_at": "2026-10-16T08:14:23.377026+00:00",
+   "commit": "75921808f3d98032d37c8cf6d51852f98b3dbe66",
+   "source_state": "INITIAL_UNCOMMITTED_IMPLEMENTATION_NO_EXACT_RUNTIME_HASH_CAPTURED",
+   "result": "FAIL_RETAINED",
+   "exit_code": 1,
+   "reported_outcomes": {
+    "tests": 45,
+    "pass": 43,
+    "fail": 2
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_SCRIPTED_PROVIDER_SEMANTIC_ORACLE",
+   "provider_mode": "scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/first-contracts.log",
+   "log_sha256": "560bfdd4968f50022754e4dc5140a2a74479cf8268434ea8f308d665feba7744",
+   "screenshots": [],
+   "limitations": [
+    "Retained negative evidence, not a model/semantic-quality result.",
+    "First run used an uncommitted implementation; exact initial runtime hash is not asserted."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:replay-before-fix",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-name-pattern=T08 correction/forget barrier revokes",
+    "tests/career-flexible-grounding.test.cjs"
+   ],
+   "observed_at": "2026-10-16T08:14:23.380709+00:00",
+   "commit": "3543c00fa6a56e24d55f6eed1d5bad06bfdbc295",
+   "source_state": "RECORDED_RUNTIME_CHECKPOINT_WITH_NEW_REGRESSION_INPUT",
+   "result": "FAIL_RETAINED",
+   "exit_code": 1,
+   "reported_outcomes": {
+    "tests": 1,
+    "pass": 0,
+    "fail": 1
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_SCRIPTED_PROVIDER_SEMANTIC_ORACLE",
+   "provider_mode": "scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/replay-before-fix.log",
+   "log_sha256": "93bdff9f47876eca94edcf644b991745178998687881ab7b0a6673c9ea7dad59",
+   "screenshots": [],
+   "limitations": [
+    "Retained negative evidence, not a model/semantic-quality result.",
+    "New regression input was committed with the subsequent repair."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:unstamped-gap-before-fix",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-name-pattern=T08 unstamped generation-disabled",
+    "tests/career-flexible-grounding.test.cjs"
+   ],
+   "observed_at": "2026-10-16T08:14:23.383895+00:00",
+   "commit": "d97842ebf0f6c5d50f55070b35b2c8dc5d0bf795",
+   "source_state": "RECORDED_RUNTIME_CHECKPOINT_WITH_NEW_REGRESSION_INPUT",
+   "result": "FAIL_RETAINED",
+   "exit_code": 1,
+   "reported_outcomes": {
+    "tests": 1,
+    "pass": 0,
+    "fail": 1
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_SCRIPTED_PROVIDER_SEMANTIC_ORACLE",
+   "provider_mode": "scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/unstamped-gap-before-fix.log",
+   "log_sha256": "bb1bdf62bab1adcd7c633a392b7ca3f1abaa4ee71dc52a2a4e3fe921d341a7df",
+   "screenshots": [],
+   "limitations": [
+    "Retained negative evidence, not a model/semantic-quality result.",
+    "New regression input was committed with the subsequent repair."
+   ]
+  },
+  {
+   "id": "career-flexible-grounding-20261016:stale-education-before-fix",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-name-pattern=T09 corrected education source cannot",
+    "tests/career-flexible-grounding.test.cjs"
+   ],
+   "observed_at": "2026-10-16T08:14:23.386629+00:00",
+   "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+   "source_state": "RECORDED_RUNTIME_CHECKPOINT_WITH_NEW_REGRESSION_INPUT",
+   "result": "FAIL_RETAINED",
+   "exit_code": 1,
+   "reported_outcomes": {
+    "tests": 1,
+    "pass": 0,
+    "fail": 1
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_SCRIPTED_PROVIDER_SEMANTIC_ORACLE",
+   "provider_mode": "scripted",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/stale-education-before-fix.log",
+   "log_sha256": "3368d3f38d0d5e6ab9c6b175ca97170b84f11c61bbc7564c4617df4466466f1c",
+   "screenshots": [],
+   "limitations": [
+    "Retained negative evidence, not a model/semantic-quality result.",
+    "New regression input was committed with the subsequent repair."
+   ]
   }
  ],
  "limitations": [

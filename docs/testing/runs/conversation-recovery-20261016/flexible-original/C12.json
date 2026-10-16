@@ -1,0 +1,4988 @@
+[
+  {
+    "caseId": "C12",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000113",
+    "at": "2026-10-16T07:53:11.936Z",
+    "input": {
+      "message": "I want to network into Quartz Studio in Austin.",
+      "contains": [
+        "Quartz Studio"
+      ],
+      "absent": []
+    },
+    "requestKey": "C12-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "outreach_clarification",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+        "action": null,
+        "turn_key": "C12-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000113",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Quartz Studio",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Austin",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Austin",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "geography",
+                "value": "Austin",
+                "evidence": "in Austin"
+              },
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000113",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "C12-1",
+          "p_hash": "e1605cc69bd485d8b66365ff23191151efacce66792949236850a7e2f29a9e2c"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "C12-1",
+          "p_hash": "e1605cc69bd485d8b66365ff23191151efacce66792949236850a7e2f29a9e2c",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "facts": {
+                      "facts": [
+                        {
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin",
+                          "at": "2026-10-16T07:53:11.365Z"
+                        },
+                        {
+                          "kind": "target_firm",
+                          "value": "Quartz Studio",
+                          "evidence": "network into Quartz Studio",
+                          "at": "2026-10-16T07:53:11.365Z"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:11.365Z"
+                    },
+                    "plan": {
+                      "kind": "campaign_plan",
+                      "scheduled": 0,
+                      "days": 0,
+                      "deferred": [],
+                      "lastAsk": "I want to network into Quartz Studio in Austin.",
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "firms_named": true,
+                      "firm_set": null,
+                      "firms_source": "named",
+                      "role_family": "investment_banking",
+                      "purpose": null,
+                      "target": {
+                        "industry": "investment_banking",
+                        "firm_set": null,
+                        "firms": [
+                          "Quartz Studio"
+                        ],
+                        "firms_named": true,
+                        "firms_source": "named",
+                        "role_family": "investment_banking",
+                        "seniority_band": null,
+                        "geography": "Austin",
+                        "school_filter": null,
+                        "background_filters": {},
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "count": 40,
+                        "vague": false,
+                        "proposed_default": null,
+                        "count_source": "default",
+                        "role_phrase": null
+                      },
+                      "at": "2026-10-16T07:53:11.365Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "facts": {
+                    "facts": [
+                      {
+                        "kind": "geography",
+                        "value": "Austin",
+                        "evidence": "in Austin",
+                        "at": "2026-10-16T07:53:11.365Z"
+                      },
+                      {
+                        "kind": "target_firm",
+                        "value": "Quartz Studio",
+                        "evidence": "network into Quartz Studio",
+                        "at": "2026-10-16T07:53:11.365Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:11.365Z"
+                  },
+                  "plan": {
+                    "kind": "campaign_plan",
+                    "scheduled": 0,
+                    "days": 0,
+                    "deferred": [],
+                    "lastAsk": "I want to network into Quartz Studio in Austin.",
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "firms_named": true,
+                    "firm_set": null,
+                    "firms_source": "named",
+                    "role_family": "investment_banking",
+                    "purpose": null,
+                    "target": {
+                      "industry": "investment_banking",
+                      "firm_set": null,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "firms_named": true,
+                      "firms_source": "named",
+                      "role_family": "investment_banking",
+                      "seniority_band": null,
+                      "geography": "Austin",
+                      "school_filter": null,
+                      "background_filters": {},
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "count": 40,
+                      "vague": false,
+                      "proposed_default": null,
+                      "count_source": "default",
+                      "role_phrase": null
+                    },
+                    "at": "2026-10-16T07:53:11.365Z"
+                  }
+                }
+              },
+              "plan": {
+                "kind": "campaign_plan",
+                "scheduled": 0,
+                "days": 0,
+                "deferred": [],
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "firms_named": true,
+                "firm_set": null,
+                "firms_source": "named",
+                "role_family": "investment_banking",
+                "purpose": null,
+                "target": {
+                  "industry": "investment_banking",
+                  "firm_set": null,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "firms_named": true,
+                  "firms_source": "named",
+                  "role_family": "investment_banking",
+                  "seniority_band": null,
+                  "geography": "Austin",
+                  "school_filter": null,
+                  "background_filters": {},
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "count": 40,
+                  "vague": false,
+                  "proposed_default": null,
+                  "count_source": "default",
+                  "role_phrase": null
+                },
+                "at": "2026-10-16T07:53:11.365Z"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin",
+                    "at": "2026-10-16T07:53:11.365Z"
+                  },
+                  {
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio",
+                    "at": "2026-10-16T07:53:11.365Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "I want to network into Quartz Studio in Austin.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000113",
+            "reply": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C12-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "outreach_clarification",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C12",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000113",
+    "at": "2026-10-16T07:53:14.240Z",
+    "input": {
+      "message": "Actually, my preferred location is Denver.",
+      "contains": [
+        "could not confirm|not.*saved|unavailable"
+      ],
+      "absent": [],
+      "failSave": true,
+      "status": 503,
+      "key": "save-fault"
+    },
+    "requestKey": "save-fault",
+    "result": {
+      "status": 503,
+      "body": {
+        "error": "storage_unavailable",
+        "reply": "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.",
+        "action": null,
+        "turn_key": "save-fault"
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 503",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "reply matches could not confirm|not.*saved|unavailable",
+        "pass": true
+      },
+      {
+        "name": "failed save has no new durable message rows",
+        "pass": true
+      },
+      {
+        "name": "failed save does not change snapshot",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Austin",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Austin",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "geography",
+                "value": "Austin",
+                "evidence": "in Austin"
+              },
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Austin",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Austin",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "geography",
+                "value": "Austin",
+                "evidence": "in Austin"
+              },
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000113",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "save-fault",
+          "p_hash": "e11510216e60ac779d106d25051b430860f4732bc12f5531735460e1f718f8a5"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "save-fault",
+          "p_hash": "e11510216e60ac779d106d25051b430860f4732bc12f5531735460e1f718f8a5",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Denver"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Quartz Studio"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Austin",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Quartz Studio in Austin.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T07:53:11.365Z",
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin"
+                        },
+                        {
+                          "at": "2026-10-16T07:53:11.365Z",
+                          "kind": "target_firm",
+                          "value": "Quartz Studio",
+                          "evidence": "network into Quartz Studio"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:11.365Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Denver",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Quartz Studio in Austin.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named",
+                    "geography": "Denver",
+                    "needsReview": true
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T07:53:11.365Z",
+                        "kind": "target_firm",
+                        "value": "Quartz Studio",
+                        "evidence": "network into Quartz Studio"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Denver",
+                        "evidence": "Actually, my preferred location is Denver.",
+                        "at": "2026-10-16T07:53:13.329Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:11.365Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "facts": {
+                      "target_city": {
+                        "value": "Denver",
+                        "source": "Actually, my preferred location is Denver.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": [],
+                    "mode": null
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named",
+                "geography": "Denver",
+                "needsReview": true
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver.",
+                    "at": "2026-10-16T07:53:13.329Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {
+            "preferred_locations": [
+              "Denver"
+            ]
+          },
+          "p_input": "Actually, my preferred location is Denver.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000113",
+            "reply": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "save-fault",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_preference_corrected",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C12",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000113",
+    "at": "2026-10-16T07:53:15.767Z",
+    "input": {
+      "message": "Actually, my preferred location is Denver.",
+      "contains": [
+        "Denver"
+      ],
+      "absent": [],
+      "key": "save-fault"
+    },
+    "requestKey": "save-fault",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_preference_corrected",
+          "contained": false
+        },
+        "reply": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+        "action": null,
+        "turn_key": "save-fault",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000113",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Denver",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Austin",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "scheduled": 0,
+            "firms_named": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Austin",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "geography",
+                    "value": "Austin",
+                    "evidence": "in Austin"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "geography",
+                "value": "Austin",
+                "evidence": "in Austin"
+              },
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:15.432Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:15.432Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "Actually, my preferred location is Denver."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "Actually, my preferred location is Denver.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000113",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "save-fault",
+          "p_hash": "e11510216e60ac779d106d25051b430860f4732bc12f5531735460e1f718f8a5"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "save-fault",
+          "p_hash": "e11510216e60ac779d106d25051b430860f4732bc12f5531735460e1f718f8a5",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Denver"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Quartz Studio"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Austin",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Quartz Studio in Austin.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T07:53:11.365Z",
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin"
+                        },
+                        {
+                          "at": "2026-10-16T07:53:11.365Z",
+                          "kind": "target_firm",
+                          "value": "Quartz Studio",
+                          "evidence": "network into Quartz Studio"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:11.365Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Denver",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Quartz Studio in Austin.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named",
+                    "geography": "Denver",
+                    "needsReview": true
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T07:53:11.365Z",
+                        "kind": "target_firm",
+                        "value": "Quartz Studio",
+                        "evidence": "network into Quartz Studio"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Denver",
+                        "evidence": "Actually, my preferred location is Denver.",
+                        "at": "2026-10-16T07:53:15.432Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:11.365Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "facts": {
+                      "target_city": {
+                        "value": "Denver",
+                        "source": "Actually, my preferred location is Denver.",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": [],
+                    "mode": null
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "scheduled": 0,
+                "firms_named": true,
+                "role_family": "investment_banking",
+                "firms_source": "named",
+                "geography": "Denver",
+                "needsReview": true
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver.",
+                    "at": "2026-10-16T07:53:15.432Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null
+              }
+            }
+          },
+          "p_patch": {
+            "preferred_locations": [
+              "Denver"
+            ]
+          },
+          "p_input": "Actually, my preferred location is Denver.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000113",
+            "reply": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "save-fault",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "career_preference_corrected",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C12",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000113",
+    "at": "2026-10-16T07:53:16.849Z",
+    "input": {
+      "message": "Actually, my preferred location is Denver.",
+      "contains": [
+        "Denver"
+      ],
+      "absent": [],
+      "key": "save-fault",
+      "sameAsPrevious": true
+    },
+    "requestKey": "save-fault",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "career_preference_corrected",
+          "contained": false
+        },
+        "reply": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+        "action": null,
+        "turn_key": "save-fault",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000113",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Denver",
+        "pass": true
+      },
+      {
+        "name": "exact idempotent response replay",
+        "pass": true
+      },
+      {
+        "name": "replay has no new message rows",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:15.432Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:15.432Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "Actually, my preferred location is Denver."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "Actually, my preferred location is Denver.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:15.432Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:15.432Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "Actually, my preferred location is Denver."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "Actually, my preferred location is Denver.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000113",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "save-fault",
+          "p_hash": "e11510216e60ac779d106d25051b430860f4732bc12f5531735460e1f718f8a5"
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C12",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000113",
+    "at": "2026-10-16T07:53:17.965Z",
+    "input": {
+      "message": "Actually, my preferred location is Seattle.",
+      "contains": [
+        "conflict|changed"
+      ],
+      "absent": [],
+      "status": 409,
+      "key": "save-fault"
+    },
+    "requestKey": "save-fault",
+    "result": {
+      "status": 409,
+      "body": {
+        "error": "turn_key_conflict",
+        "reply": "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started.",
+        "action": null,
+        "turn_key": "save-fault"
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 409",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "reply matches conflict|changed",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:15.432Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:15.432Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "Actually, my preferred location is Denver."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "Actually, my preferred location is Denver.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:15.432Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:15.432Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "Actually, my preferred location is Denver."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "Actually, my preferred location is Denver.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000113",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "save-fault",
+          "p_hash": "da92c1f705ee4d9f87ed355c760f3326b96de79165693800172cb866d0ef4a94"
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "C12",
+    "turn": 6,
+    "threadId": "00000000-0000-4000-8000-000000000113",
+    "at": "2026-10-16T07:53:19.333Z",
+    "input": {
+      "message": "Recap my target city after the failed save and the successful retry.",
+      "contains": [
+        "Denver"
+      ],
+      "absent": [
+        "in Seattle"
+      ]
+    },
+    "requestKey": "C12-6",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_recap",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "From this conversation's user-reported record: target city: Denver; target firm: Quartz Studio. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+        "action": null,
+        "turn_key": "C12-6",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000113",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      },
+      {
+        "name": "reply matches Denver",
+        "pass": true
+      },
+      {
+        "name": "reply excludes in Seattle",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:15.432Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "Actually, my preferred location is Denver."
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "Actually, my preferred location is Denver.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:15.432Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "Actually, my preferred location is Denver."
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "Actually, my preferred location is Denver.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "plan": {
+            "at": "2026-10-16T07:53:11.365Z",
+            "days": 0,
+            "kind": "campaign_plan",
+            "count": 40,
+            "firms": [
+              "Quartz Studio"
+            ],
+            "target": {
+              "count": 40,
+              "firms": [
+                "Quartz Studio"
+              ],
+              "vague": false,
+              "firm_set": null,
+              "industry": "investment_banking",
+              "geography": "Denver",
+              "exclusions": [
+                "geo:EU_UK"
+              ],
+              "firms_named": true,
+              "role_family": "investment_banking",
+              "role_phrase": null,
+              "count_source": "default",
+              "firms_source": "named",
+              "school_filter": null,
+              "seniority_band": null,
+              "proposed_default": null,
+              "background_filters": {}
+            },
+            "lastAsk": "I want to network into Quartz Studio in Austin.",
+            "purpose": null,
+            "deferred": [],
+            "firm_set": null,
+            "geography": "Denver",
+            "scheduled": 0,
+            "firms_named": true,
+            "needsReview": true,
+            "role_family": "investment_banking",
+            "firms_source": "named"
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Denver"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "plan": {
+                  "at": "2026-10-16T07:53:11.365Z",
+                  "days": 0,
+                  "kind": "campaign_plan",
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "target": {
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "vague": false,
+                    "firm_set": null,
+                    "industry": "investment_banking",
+                    "geography": "Austin",
+                    "exclusions": [
+                      "geo:EU_UK"
+                    ],
+                    "firms_named": true,
+                    "role_family": "investment_banking",
+                    "role_phrase": null,
+                    "count_source": "default",
+                    "firms_source": "named",
+                    "school_filter": null,
+                    "seniority_band": null,
+                    "proposed_default": null,
+                    "background_filters": {}
+                  },
+                  "lastAsk": "I want to network into Quartz Studio in Austin.",
+                  "purpose": null,
+                  "deferred": [],
+                  "firm_set": null,
+                  "scheduled": 0,
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "firms_source": "named"
+                },
+                "facts": {
+                  "facts": [
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "geography",
+                      "value": "Austin",
+                      "evidence": "in Austin"
+                    },
+                    {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "kind": "target_firm",
+                      "value": "Quartz Studio",
+                      "evidence": "network into Quartz Studio"
+                    }
+                  ],
+                  "updatedAt": "2026-10-16T07:53:11.365Z"
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "facts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "at": "2026-10-16T07:53:18.798Z",
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "saved account preference"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversation": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "statedFacts": {
+            "facts": [
+              {
+                "at": "2026-10-16T07:53:11.365Z",
+                "kind": "target_firm",
+                "value": "Quartz Studio",
+                "evidence": "network into Quartz Studio"
+              },
+              {
+                "at": "2026-10-16T07:53:18.798Z",
+                "kind": "geography",
+                "value": "Denver",
+                "evidence": "saved account preference"
+              }
+            ],
+            "updatedAt": "2026-10-16T07:53:11.365Z"
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {
+              "target_city": {
+                "value": "Denver",
+                "source": "saved account preference",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "755bc255-4495-4b6e-aa6b-190742a27e0f",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "I want to network into Quartz Studio in Austin.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "c6b2eccf-6c51-4d90-8cb0-300915c9c9cd",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "Building the list now: investment bankers at Quartz Studio in Austin — sized by what the sources yield, not by a number invented here.\nOne firm, so the per-firm cap shapes the waves: at most 15 first emails to Quartz Studio in any 30 days — the rest run in later monthly waves, planned that way from the start. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address. The found, trustworthy, and sendable counts come back here before a single draft exists, and drafting starts only when you approve the whole plan.",
+          "meta": {
+            "career": true,
+            "intent": "outreach_clarification",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "C12-1"
+          },
+          "created_at": "2026-10-16T07:53:11.554192+00:00"
+        },
+        {
+          "id": "2ab960fd-6ca1-4f1a-aeb6-39c97b260be4",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Actually, my preferred location is Denver.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "3a7d7e13-dfde-4430-b877-6a6c13c1f761",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "I saved your preferred location as Denver. Existing application approvals and watch locations were not silently rewritten; review those separately.",
+          "meta": {
+            "career": true,
+            "intent": "career_preference_corrected",
+            "contained": false,
+            "career_turn_key": "save-fault"
+          },
+          "created_at": "2026-10-16T07:53:15.559575+00:00"
+        },
+        {
+          "id": "372b51f5-f91e-4fed-8407-b30320a1fd4d",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "user",
+          "content": "Recap my target city after the failed save and the successful retry.",
+          "meta": null,
+          "created_at": "2026-10-16T07:53:19.139734+00:00"
+        },
+        {
+          "id": "bf6c0f39-f4f2-4777-9c1c-b87ad43df651",
+          "thread_id": "00000000-0000-4000-8000-000000000113",
+          "role": "assistant",
+          "content": "From this conversation's user-reported record: target city: Denver; target firm: Quartz Studio. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_recap",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "C12-6"
+          },
+          "created_at": "2026-10-16T07:53:19.139734+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3,
+        "preferred_locations": [
+          "Denver"
+        ]
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000113",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "C12-6",
+          "p_hash": "77e05b26922dc392d3c00473e8fd733a87a648b51cc3a46ff5fca285068c3e13"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000113",
+          "p_key": "C12-6",
+          "p_hash": "77e05b26922dc392d3c00473e8fd733a87a648b51cc3a46ff5fca285068c3e13",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Denver"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "plan": {
+                      "at": "2026-10-16T07:53:11.365Z",
+                      "days": 0,
+                      "kind": "campaign_plan",
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "target": {
+                        "count": 40,
+                        "firms": [
+                          "Quartz Studio"
+                        ],
+                        "vague": false,
+                        "firm_set": null,
+                        "industry": "investment_banking",
+                        "geography": "Austin",
+                        "exclusions": [
+                          "geo:EU_UK"
+                        ],
+                        "firms_named": true,
+                        "role_family": "investment_banking",
+                        "role_phrase": null,
+                        "count_source": "default",
+                        "firms_source": "named",
+                        "school_filter": null,
+                        "seniority_band": null,
+                        "proposed_default": null,
+                        "background_filters": {}
+                      },
+                      "lastAsk": "I want to network into Quartz Studio in Austin.",
+                      "purpose": null,
+                      "deferred": [],
+                      "firm_set": null,
+                      "scheduled": 0,
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "firms_source": "named"
+                    },
+                    "facts": {
+                      "facts": [
+                        {
+                          "at": "2026-10-16T07:53:11.365Z",
+                          "kind": "geography",
+                          "value": "Austin",
+                          "evidence": "in Austin"
+                        },
+                        {
+                          "at": "2026-10-16T07:53:11.365Z",
+                          "kind": "target_firm",
+                          "value": "Quartz Studio",
+                          "evidence": "network into Quartz Studio"
+                        }
+                      ],
+                      "updatedAt": "2026-10-16T07:53:11.365Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "plan": {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "days": 0,
+                    "kind": "campaign_plan",
+                    "count": 40,
+                    "firms": [
+                      "Quartz Studio"
+                    ],
+                    "target": {
+                      "count": 40,
+                      "firms": [
+                        "Quartz Studio"
+                      ],
+                      "vague": false,
+                      "firm_set": null,
+                      "industry": "investment_banking",
+                      "geography": "Denver",
+                      "exclusions": [
+                        "geo:EU_UK"
+                      ],
+                      "firms_named": true,
+                      "role_family": "investment_banking",
+                      "role_phrase": null,
+                      "count_source": "default",
+                      "firms_source": "named",
+                      "school_filter": null,
+                      "seniority_band": null,
+                      "proposed_default": null,
+                      "background_filters": {}
+                    },
+                    "lastAsk": "I want to network into Quartz Studio in Austin.",
+                    "purpose": null,
+                    "deferred": [],
+                    "firm_set": null,
+                    "geography": "Denver",
+                    "scheduled": 0,
+                    "firms_named": true,
+                    "needsReview": true,
+                    "role_family": "investment_banking",
+                    "firms_source": "named"
+                  },
+                  "facts": {
+                    "facts": [
+                      {
+                        "at": "2026-10-16T07:53:11.365Z",
+                        "kind": "target_firm",
+                        "value": "Quartz Studio",
+                        "evidence": "network into Quartz Studio"
+                      },
+                      {
+                        "kind": "geography",
+                        "value": "Denver",
+                        "evidence": "saved account preference",
+                        "at": "2026-10-16T07:53:18.798Z"
+                      }
+                    ],
+                    "updatedAt": "2026-10-16T07:53:11.365Z"
+                  },
+                  "conversation": {
+                    "v": 1,
+                    "mode": null,
+                    "facts": {
+                      "target_city": {
+                        "value": "Denver",
+                        "source": "saved account preference",
+                        "status": "user_reported"
+                      }
+                    },
+                    "sources": [],
+                    "hypotheticals": []
+                  }
+                }
+              },
+              "plan": {
+                "at": "2026-10-16T07:53:11.365Z",
+                "days": 0,
+                "kind": "campaign_plan",
+                "count": 40,
+                "firms": [
+                  "Quartz Studio"
+                ],
+                "target": {
+                  "count": 40,
+                  "firms": [
+                    "Quartz Studio"
+                  ],
+                  "vague": false,
+                  "firm_set": null,
+                  "industry": "investment_banking",
+                  "geography": "Denver",
+                  "exclusions": [
+                    "geo:EU_UK"
+                  ],
+                  "firms_named": true,
+                  "role_family": "investment_banking",
+                  "role_phrase": null,
+                  "count_source": "default",
+                  "firms_source": "named",
+                  "school_filter": null,
+                  "seniority_band": null,
+                  "proposed_default": null,
+                  "background_filters": {}
+                },
+                "lastAsk": "I want to network into Quartz Studio in Austin.",
+                "purpose": null,
+                "deferred": [],
+                "firm_set": null,
+                "geography": "Denver",
+                "scheduled": 0,
+                "firms_named": true,
+                "needsReview": true,
+                "role_family": "investment_banking",
+                "firms_source": "named"
+              },
+              "statedFacts": {
+                "facts": [
+                  {
+                    "at": "2026-10-16T07:53:11.365Z",
+                    "kind": "target_firm",
+                    "value": "Quartz Studio",
+                    "evidence": "network into Quartz Studio"
+                  },
+                  {
+                    "kind": "geography",
+                    "value": "Denver",
+                    "evidence": "saved account preference",
+                    "at": "2026-10-16T07:53:18.798Z"
+                  }
+                ],
+                "updatedAt": "2026-10-16T07:53:11.365Z"
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {
+                  "target_city": {
+                    "value": "Denver",
+                    "source": "saved account preference",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Recap my target city after the failed save and the successful retry.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000113",
+            "reply": "From this conversation's user-reported record: target city: Denver; target firm: Quartz Studio. Experience or constraints not stated remain unknown. Existing approvals and watches still require separate review after a correction. What should we work on next?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "C12-6",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_recap",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

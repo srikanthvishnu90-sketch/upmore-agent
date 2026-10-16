@@ -1,0 +1,162 @@
+{
+  "version": "career_flexible_grounding_review/v1",
+  "at": "2026-10-16T08:11:44.155505+00:00",
+  "base": "2471747fd36118922d9bbbb107b498f788ac7bef",
+  "testedImplementation": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+  "newFlexibleContracts": 52,
+  "newNativeSqlCases": 14,
+  "targetedCasesPassed": 445,
+  "conversationChecksPassed": 969,
+  "conversationTurns": 165,
+  "intentionalDefectsKilled": 15,
+  "actualModelQuality": "NOT_RUN",
+  "actualSemanticVerifierQuality": "NOT_RUN",
+  "paidCalls": 0,
+  "actualProviderRequests": 0,
+  "browserOutcomes": 0,
+  "originalSharedBudgetRemaining": "UNKNOWN_UNRECONCILED",
+  "releaseGate": "NOT_READY: real verifier/model/budget/browser prerequisites plus inherited C37 and Muse integration/deploy",
+  "legacyGauntlet": {
+    "pass": 26,
+    "fail": 1,
+    "sameInheritedC37": true
+  },
+  "compatibilityCheckpoint": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+  "compatibilityDifference": "Final implementation changes only v2 corrected-education evidence projection and its test; subsequent handler header edits are comment-only.",
+  "runs": [
+    {
+      "id": "certified-contracts",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/metadata.json",
+      "metadataSha256": "4bf78e220cf715cbe2c2d2bb3f8f92707e5337d1f29f86eab86ada8acc1e85c8",
+      "exitCode": 0,
+      "counts": {
+        "tests": 52,
+        "pass": 52,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/certified-contracts/test.log",
+      "logSha256": "2d9bcb86e471e7997869d93391ad110b1247f8d9e8bf09e4841274abd0696e73"
+    },
+    {
+      "id": "certified-postgres",
+      "commit": "a25b874ba4a065ecb9d722d9a6815c201311ff29",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/metadata.json",
+      "metadataSha256": "32ffd56ef03bf7f8627a4e7ea12c79369bd72a43d3a506c0c33eb26465abfec6",
+      "exitCode": 0,
+      "counts": {
+        "tests": 14,
+        "pass": 14,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/certified-postgres/test.log",
+      "logSha256": "e9fe64f1e1d600ee48a6185deed7d363d4be3364ae48d816641135db88a7a2b0"
+    },
+    {
+      "id": "final-legacy-source",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/metadata.json",
+      "metadataSha256": "b8e3ffbe4c97345ff3c00e2334ed82f60c9fc757a690a55b9a4f47b90ff98e95",
+      "exitCode": 0,
+      "counts": {
+        "tests": 71,
+        "pass": 71,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-source/test.log",
+      "logSha256": "60277c0d0599f0fbfe938025a789c01fa45ad7aadb1bc5f7f1e39be5042b79de"
+    },
+    {
+      "id": "final-legacy-postgres",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/metadata.json",
+      "metadataSha256": "d8f4223a0a462b97f7e6f7f0e60c67d9e5e09de18fd8600999a6ee0477292c99",
+      "exitCode": 0,
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-postgres/test.log",
+      "logSha256": "93df3d26f9c249cde64f5fd6751141dffbfcb6ad0b339611b1378941b1812d18"
+    },
+    {
+      "id": "flexible-research-source",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/flexible-research-source/metadata.json",
+      "metadataSha256": "d47f671169be64670c1b3cab6b96079468d0be52443f47af125f54971bf6ea38",
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/research-conversation-review-20261016/flexible-research-source/test.log",
+      "logSha256": "c4998c6b496c94e801fe40ef8e47a7d380b1127b3d5bf816c07081c585c11577"
+    },
+    {
+      "id": "flexible-research-pg",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/metadata.json",
+      "metadataSha256": "64959e226c736dc6849f448ec5bfc56a4809067cc01582c4c67c5dad79189d5f",
+      "exitCode": 0,
+      "counts": {
+        "tests": 17,
+        "pass": 17,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/research-conversation-review-20261016/flexible-research-pg/test.log",
+      "logSha256": "0142846e3a43b85d13c514b2f43fdad6d592b38ab84671e7bbc57ecc71dd9581"
+    },
+    {
+      "id": "flexible-final-original",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/flexible-final-original/metadata.json",
+      "metadataSha256": "df39461752372e2b8513be35a509b0eb83ddfb7b65fdcbdc4a0d6eb1b96db0e3",
+      "exitCode": 0,
+      "counts": {
+        "checks": 543,
+        "passed": 543,
+        "failed": 0,
+        "turns": 83
+      }
+    },
+    {
+      "id": "flexible-final-heldouts",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/flexible-final-heldouts/metadata.json",
+      "metadataSha256": "8a7ce10e9ad81704d9ae3fb9cfbee1c32899b3372e80822537f1033338e1659e",
+      "exitCode": 0,
+      "counts": {
+        "checks": 426,
+        "passed": 426,
+        "failed": 0,
+        "turns": 82
+      }
+    },
+    {
+      "id": "final-scoped-regressions",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/final-scoped-regressions.log",
+      "logSha256": "a721e1d8e28009ad2ec62fc795992d23aff82f19afdf8ec1216799e12b35cbd5",
+      "exitCode": 0,
+      "counts": {
+        "tests": 250,
+        "pass": 250,
+        "fail": 0
+      }
+    },
+    {
+      "id": "final-legacy-gauntlet",
+      "commit": "804c95ec2dfd960ef9ade76f244369c1cdd50b63",
+      "log": "docs/testing/runs/career-flexible-grounding-20261016/final-legacy-gauntlet.log",
+      "logSha256": "9345b0edb3885b46b089c3d9835f6699ff2d95e445c9a5b208e922646143d6a6",
+      "exitCode": 1,
+      "counts": {
+        "tests": 27,
+        "pass": 26,
+        "fail": 1
+      }
+    }
+  ]
+}

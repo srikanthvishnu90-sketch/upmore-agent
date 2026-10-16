@@ -1,0 +1,31 @@
+(node:585243) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:585243) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ T10 current draft revision, goals and pending asks are bounded advisory context; projection is read-only (1525.143128ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1868.164048
+
+✖ failing tests:
+
+test at tests/career-flexible-grounding.test.cjs:16:1
+✖ T10 current draft revision, goals and pending asks are bounded advisory context; projection is read-only (1525.143128ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (/tmp/upmore-grounded-mutations-1jqels/repo/tests/career-flexible-grounding.test.cjs:16:550)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

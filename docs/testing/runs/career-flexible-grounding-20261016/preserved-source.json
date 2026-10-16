@@ -1,0 +1,19 @@
+{
+  "base": "2471747fd36118922d9bbbb107b498f788ac7bef",
+  "unchangedSha256": {
+    "supabase/sql/proposals/career_model_budget_v1.sql": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+    "supabase/functions/_shared/model_gateway.ts": "c87746ead3d29bb91d8995bf27d61c8303a7fe997954901d7e57f73778edd47a",
+    "supabase/functions/_shared/model_calls.ts": "13c144f240f310f1c076dbbcd9ee83dcc8435a802b2c967e613fb0d8d40ef91d",
+    "packages/domain/130-career-onboarding.js": "665be50fcaa0addc091e26d8a541f5cf380b09ed2903b20d1b91d1c1d129a379",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/functions/_shared/router_core.js": "fd87f88ecac44e67b71b508ee4327c5efb13eac6d722508e4b4f81c75a1e228d",
+    "supabase/functions/_shared/router_core.career.js": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044",
+    "docs/career/public-research/acceptance-15.json": "78dd1e5b20fb13b2844285ee27d7206c21170da098f3f5c803ea15bb8e7740fa",
+    "tests/career-model-gateway.test.cjs": "510e633dcd895cbb4a414f4cef00a2c7332624e796efca1cc427fee8bde178c5",
+    "tests/model-gateway-independent.test.cjs": "6f7ef3619a4fa74c70a70543693e902884416c6475e8be3c524db2c645ebd068",
+    "tests/model-budget-independent-postgres.test.cjs": "a8f3e6fbb7c346e7c2736fd2c231bcc337fd203acd445145d7c5c9928bd273e4",
+    "tests/model-monthly-independent-postgres.test.cjs": "263b244c837ffb85e5ec15261f02c9476b94108a0604da086296c0c4e4eb02b0",
+    "tests/correction-authority-privacy.test.cjs": "82ed6a18bf680b5d7b39ebd46780b77624132131bb94daf50adb1eb75f55b50b"
+  }
+}

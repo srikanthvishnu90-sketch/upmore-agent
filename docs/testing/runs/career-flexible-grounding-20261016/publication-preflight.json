@@ -1,0 +1,8 @@
+{
+  "gitCliRead": "BLOCKED_INVALID_EXISTING_TOKEN",
+  "credentialsChanged": false,
+  "connectedGitHubAppBaseRead": "SUCCESS",
+  "existingIsolatedRemoteBranchFound": false,
+  "sharedReleaseObservedSha": "f67db048599db308f2691a7be7feada841143da5",
+  "plannedPublication": "Connected GitHub app Git objects; isolated branch only; verify exact local final tree and preserve original local test commit history in a bundle."
+}

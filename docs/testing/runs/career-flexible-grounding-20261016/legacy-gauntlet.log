@@ -1,0 +1,62 @@
+✔ R2A AP08: closure turn marks the role closed in the doorstep store and states nothing will be submitted; the later submit executes nothing (231.667382ms)
+✔ R2A AP08 variant: 'that role closed' in plain words is owned too (170.215052ms)
+✔ R2A AP18: cancel at the review screen records a cancelled state; a later approve executes nothing (46.098533ms)
+▶ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission
+  ✔ never mind — don't submit that application (14.218031ms)
+  ✔ hold off on this application, do not submit it (8.83294ms)
+  ✔ please cancel this application (24.372514ms)
+  ✔ stop, do not submit this (8.243247ms)
+✔ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission (56.826794ms)
+✔ R2A AP17: 'cancel the queued batch' halts and persists the whole queue through 141's halt export (3.973071ms)
+✔ R2A NW18: cancel mid-queue preserves the landed send and reports it as landed, not 'nothing was sent' (3.25742ms)
+✔ R2A queue variant: 'hold off on the outreach queue' halts an in-memory queue state (2.260547ms)
+✔ R2A AP20: a prior manual application disclosure is recorded, no duplicate is prepared or submitted, and a tracking next step is offered (9.004086ms)
+✔ R2A AP23: a sponsorship correction is written through 130's path, the prepared packet is flagged invalid, and the stale answer never submits (22.335343ms)
+✔ R2A sensitive peer: 'I no longer need sponsorship' corrects the fact the other way (2.723544ms)
+✔ R2A SH03: 'is my previous application packet still approved and valid?' is ANSWERED with the invalidation — no new packet is prepared (6.38963ms)
+✔ R2A validity: with nothing on record, the answer is an honest unknown — never a fresh packet, never a stale-valid claim (3.630053ms)
+✔ R2A NW17: a relayed opt-out is recorded through 124's suppression, only that person's follow-ups stop, and the status question is answered (5.603658ms)
+✔ R2A NW13: a recipient change after the draft supersedes it — a new review for the new recipient, zero sends (30.969457ms)
+✖ R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply (4.129638ms)
+✔ R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141 (5.122243ms)
+✔ C03: 'use the new one' via chat updates the profile with precedence + audit, rebuilds dependents, and post-restart recall answers 2014 (7.341246ms)
+✔ C17: chat fills the Greenhouse-like replica to REVIEW, not submitted, with step log + payload snapshot + sink-armed dry validation (67.484141ms)
+✔ C17 seam: a profile with no phone surfaces phone as an ask instead of guessing it (2.927848ms)
+✔ C18: chat fill of the Ashby-like replica STOPS on the unresolved sensitive hidden default (5.406228ms)
+✔ C20: doorstep -> approve-and-submit -> timeout reported unknown -> 'did it go through?' reconciles BEFORE any retry, exactly one receipt (4.938856ms)
+✔ C37: 'stop everything' via chat halts the queue, PERSISTS across restart, and duplicate/out-of-order events revive nothing (1.914531ms)
+✔ C15: packet prep via chat binds the BACKEND resume.pdf by content hash (133 called, not edited) (119.691798ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 26
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1900.220406
+
+✖ failing tests:
+
+test at tests/career-gauntlet-r2a.test.cjs:300:1
+✖ R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply (4.129638ms)
+  AssertionError [ERR_ASSERTION]: the legacy exact phrases still fall through to 141
+  + actual - expected
+  
+  + '142-career-router.handleChat'
+  - '141-career-doorstep.handleChat'
+       ^
+  
+      at TestContext.<anonymous> (/workspace/upmore-flexible-grounding/tests/career-gauntlet-r2a.test.cjs:305:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '142-career-router.handleChat',
+    expected: '141-career-doorstep.handleChat',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

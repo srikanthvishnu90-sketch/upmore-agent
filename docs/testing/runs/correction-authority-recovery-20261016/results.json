@@ -1,0 +1,178 @@
+{
+  "checked_at": "2026-10-16T23:17:53.931799+00:00",
+  "repair_commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+  "baseline_commit": "f67db048599db308f2691a7be7feada841143da5",
+  "node_version": "v24.19.0",
+  "synthetic_only": true,
+  "database": "127.0.0.1:55439/career_test_recovery",
+  "checks": [
+    {
+      "label": "staged-baseline",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "tests/correction-authority-privacy.test.cjs"
+      ],
+      "cwd": "/workspace/upmore-privacy-baseline",
+      "exit_code": 1,
+      "log": "staged-baseline.log",
+      "sha256": "4653d5528eb9bf97f74a03586c5e314dd676e3275b20e4c9de3adaad56b4fa78",
+      "counts": {
+        "tests": 10,
+        "pass": 1,
+        "fail": 9,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "staged-repair",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "tests/correction-authority-privacy.test.cjs"
+      ],
+      "cwd": "/workspace/upmore-privacy",
+      "exit_code": 0,
+      "log": "staged-repair.log",
+      "sha256": "5c8105bee5eb934ca414c9da79ef89283f7023ef552e6364451ca9b1421107d6",
+      "counts": {
+        "tests": 10,
+        "pass": 10,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "postgres-baseline",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/correction-authority-postgres.test.cjs"
+      ],
+      "cwd": "/workspace/upmore-privacy-baseline",
+      "exit_code": 1,
+      "log": "postgres-baseline.log",
+      "sha256": "ff5903f379122fbc357c1b51062033ccb1072371a1bc9fbc0ecff214ebb8b2cc",
+      "counts": {
+        "tests": 7,
+        "pass": 1,
+        "fail": 6,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "postgres-repair",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/correction-authority-postgres.test.cjs",
+        "tests/career-persistence-postgres.test.cjs"
+      ],
+      "cwd": "/workspace/upmore-privacy",
+      "exit_code": 0,
+      "log": "postgres-repair.log",
+      "sha256": "9d2b6b14cde0bb0c33ef37a7a85c4e5682e15861b10f12e7f9cecfeaa5670946",
+      "counts": {
+        "tests": 37,
+        "pass": 37,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "regressions-repair",
+      "command": [
+        "node",
+        "--test",
+        "tests/career-onboarding.test.cjs",
+        "tests/career-w11-ext.test.cjs",
+        "tests/career-gauntlet-r2.test.cjs",
+        "tests/career-gauntlet-r2a.test.cjs",
+        "tests/career-gauntlet-r2b.test.cjs",
+        "tests/career-gauntlet-r2-integration.test.cjs",
+        "tests/career-gauntlet-r3.test.cjs",
+        "tests/career-finisher-f.test.cjs",
+        "tests/career-http-host.test.cjs",
+        "tests/career-bundle-reachability.test.cjs",
+        "tests/router-bundle.test.cjs"
+      ],
+      "cwd": "/workspace/upmore-privacy",
+      "exit_code": 1,
+      "log": "regressions-repair.log",
+      "sha256": "6f8202f74bec39d8c702b8a08dc0f7404b33d05ef5dfbd473b68f6c222bb2096",
+      "counts": {
+        "tests": 91,
+        "pass": 89,
+        "fail": 2,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "bundle",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--check"
+      ],
+      "cwd": "/workspace/upmore-privacy",
+      "exit_code": 0,
+      "log": "bundle.log",
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    {
+      "label": "career-bundle",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--career-only",
+        "--check"
+      ],
+      "cwd": "/workspace/upmore-privacy",
+      "exit_code": 0,
+      "log": "career-bundle.log",
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6"
+    },
+    {
+      "label": "source-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "f67db048..HEAD",
+        "--",
+        "packages",
+        "scripts",
+        "supabase",
+        "tests"
+      ],
+      "cwd": "/workspace/upmore-privacy",
+      "exit_code": 0,
+      "log": "source-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+  ],
+  "files_sha256": {
+    "packages/domain/130-career-onboarding.js": "665be50fcaa0addc091e26d8a541f5cf380b09ed2903b20d1b91d1c1d129a379",
+    "supabase/functions/_shared/router_core.js": "85cf98faeeef258bb7171ff1daaad8f3640259825d4b68a4cc0bcc88cf0b96b1",
+    "supabase/functions/_shared/router_core.career.js": "44f08bb748b10a9ab5e2fed5f108e09dbc54aafe4da90ac8c4e18f114c6e79f4",
+    "tests/correction-authority-privacy.test.cjs": "82ed6a18bf680b5d7b39ebd46780b77624132131bb94daf50adb1eb75f55b50b",
+    "tests/correction-authority-postgres.test.cjs": "86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4",
+    "tests/helpers/correction-privacy-fixture.cjs": "c9879c2dd2f5eac730c41603aa0eda3e473adea5f5e557a401c9ad67822a169b"
+  },
+  "remote_refs_before_publication": {
+    "release/career-v223": "f67db048599db308f2691a7be7feada841143da5",
+    "codex/research-conversation-review-20261016": "c978b75e997b9ed07dc82dfd587e6a1e7b40d600",
+    "codex/correction-authority-privacy-20261016": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052"
+  },
+  "identical_baseline_and_repair_test_bytes": true
+}

@@ -137,3 +137,29 @@ Deno is unavailable in this executor, so Deno runtime checks are not claimed.
 Actual-model quality and the 15 live browser tasks are outside this repair.
 The two inherited stop-routing failures and broader integration/launch gates
 remain with Muse; the narrow privacy regression suites pass.
+
+## Executor recovery verification
+
+The recovered executor is responsive. Before any source edit, remote inspection
+found this repair already published at `382b6e37bd03c0d0dd11b03cbc3fe32ad5157052`.
+The repair was reused; no competing implementation or branch was created.
+The unrelated clean interview worktree and all other local work were preserved.
+
+Fresh verification at that exact commit reproduced the release baseline first,
+using byte-identical synthetic privacy suites in both worktrees. Results:
+staged baseline 1/10 versus repair 10/10; SQL privacy baseline 1/7 versus
+repair 7/7; existing SQL contracts 30/30; related regressions 89/91 with the same
+two inherited C37 failures. Both generated bundles and source whitespace checks
+pass. Raw historical TAP logs contain whitespace from assertion formatting;
+they are retained verbatim rather than rewritten to satisfy whitespace lint.
+
+Fresh logs, commands, exit codes, counts and SHA-256 hashes are in
+`docs/testing/runs/correction-authority-recovery-20261016/results.json`.
+SQL used a newly created disposable PostgreSQL 17 container bound only to
+`127.0.0.1:55439`, with a new `career_test_recovery` database. No production
+schema or data was accessed. This recovery adds evidence only; source and tests
+remain unchanged from the published repair.
+
+Immediately before publication, the remote shared release remained `f67db048`;
+the separate composition review had independently advanced to `c978b75e`.
+Neither ref was updated by this task. Muse retains merge and deployment ownership.

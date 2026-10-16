@@ -51431,6 +51431,262 @@
     "Release baseline with only the new synthetic suite/helper copied in; no repaired source or bundles.",
     "Local staged handler, synthetic transport or real local PostgreSQL; no production/browser/model calls."
    ]
+  },
+  {
+   "id": "correction-authority-recovery-20261016:staged-baseline",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/correction-authority-privacy.test.cjs"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "f67db048599db308f2691a7be7feada841143da5",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "FAIL",
+   "exit_code": 1,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/staged-baseline.log",
+   "log_sha256": "4653d5528eb9bf97f74a03586c5e314dd676e3275b20e4c9de3adaad56b4fa78",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ],
+   "reported_outcomes": {
+    "tests": 10,
+    "pass": 1,
+    "fail": 9,
+    "skipped": 0
+   },
+   "expected_failure": true
+  },
+  {
+   "id": "correction-authority-recovery-20261016:staged-repair",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/correction-authority-privacy.test.cjs"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "PASS",
+   "exit_code": 0,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/staged-repair.log",
+   "log_sha256": "5c8105bee5eb934ca414c9da79ef89283f7023ef552e6364451ca9b1421107d6",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ],
+   "reported_outcomes": {
+    "tests": 10,
+    "pass": 10,
+    "fail": 0,
+    "skipped": 0
+   }
+  },
+  {
+   "id": "correction-authority-recovery-20261016:postgres-baseline",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "tests/correction-authority-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "f67db048599db308f2691a7be7feada841143da5",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "FAIL",
+   "exit_code": 1,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/postgres-baseline.log",
+   "log_sha256": "ff5903f379122fbc357c1b51062033ccb1072371a1bc9fbc0ecff214ebb8b2cc",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ],
+   "reported_outcomes": {
+    "tests": 7,
+    "pass": 1,
+    "fail": 6,
+    "skipped": 0
+   },
+   "expected_failure": true
+  },
+  {
+   "id": "correction-authority-recovery-20261016:postgres-repair",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "tests/correction-authority-postgres.test.cjs",
+    "tests/career-persistence-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "PASS",
+   "exit_code": 0,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/postgres-repair.log",
+   "log_sha256": "9d2b6b14cde0bb0c33ef37a7a85c4e5682e15861b10f12e7f9cecfeaa5670946",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ],
+   "reported_outcomes": {
+    "tests": 37,
+    "pass": 37,
+    "fail": 0,
+    "skipped": 0
+   }
+  },
+  {
+   "id": "correction-authority-recovery-20261016:regressions-repair",
+   "command": [
+    "node",
+    "--test",
+    "tests/career-onboarding.test.cjs",
+    "tests/career-w11-ext.test.cjs",
+    "tests/career-gauntlet-r2.test.cjs",
+    "tests/career-gauntlet-r2a.test.cjs",
+    "tests/career-gauntlet-r2b.test.cjs",
+    "tests/career-gauntlet-r2-integration.test.cjs",
+    "tests/career-gauntlet-r3.test.cjs",
+    "tests/career-finisher-f.test.cjs",
+    "tests/career-http-host.test.cjs",
+    "tests/career-bundle-reachability.test.cjs",
+    "tests/router-bundle.test.cjs"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "FAIL",
+   "exit_code": 1,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/regressions-repair.log",
+   "log_sha256": "6f8202f74bec39d8c702b8a08dc0f7404b33d05ef5dfbd473b68f6c222bb2096",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ],
+   "reported_outcomes": {
+    "tests": 91,
+    "pass": 89,
+    "fail": 2,
+    "skipped": 0
+   }
+  },
+  {
+   "id": "correction-authority-recovery-20261016:bundle",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "PASS",
+   "exit_code": 0,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/bundle.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ]
+  },
+  {
+   "id": "correction-authority-recovery-20261016:career-bundle",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--career-only",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "PASS",
+   "exit_code": 0,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/career-bundle.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ]
+  },
+  {
+   "id": "correction-authority-recovery-20261016:source-whitespace",
+   "command": [
+    "git",
+    "diff",
+    "--check",
+    "f67db048..HEAD",
+    "--",
+    "packages",
+    "scripts",
+    "supabase",
+    "tests"
+   ],
+   "observed_at": "2026-10-16T23:17:53.931799+00:00",
+   "commit": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+   "environment": {
+    "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "node": "v24.19.0"
+   },
+   "result": "PASS",
+   "exit_code": 0,
+   "log": "docs/testing/runs/correction-authority-recovery-20261016/source-whitespace.log",
+   "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Local staged Node VM and disposable PostgreSQL only; no Deno, production, paid model or browser checks.",
+    "Historical raw TAP logs contain trailing whitespace; they are preserved unchanged. Source whitespace check is separate."
+   ]
   }
  ],
  "limitations": [

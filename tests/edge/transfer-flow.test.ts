@@ -97,6 +97,7 @@ Deno.test("windfall chain: the offer's yes stages the sweep's own card, and the 
   const p = plan(input as any, Date.UTC(2026, 9, 11, 14, 0, 0));
   const m = p.messages.find((x: any) => /windfall/.test(x.key));
   assert(m && m.offer, "the windfall finding carries its offer");
+  assert(m.offer.kind === "windfall_sweep", "the attached offer has the windfall discriminant");
   assertEquals(m.offer.from_name, "Everyday Checking"); assertEquals(m.offer.to_name, "High Yield Savings");
   assertEquals(m.offer.sweep_cents, 210000);
   const offer = Object.assign({}, m.offer, { thread_id: "thread-1", message_key: m.key });

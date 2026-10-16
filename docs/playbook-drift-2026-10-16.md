@@ -158,3 +158,21 @@ and build status now distinguish the completed local composition from unresolved
 model/verifier, allowance, normal-sandbox browser and Muse deployment gates.
 Source: `docs/testing/resume-flexible-composition-20261016.md` and linked exact
 combined-commit metadata; historical reports and raw evidence remain unchanged.
+
+## Full CI and staged-entry test prerequisites
+
+The selected 969 conversation checks and focused compatibility passes on
+123943e1 were not a whole-CI verdict. GitHub push run 38976248496 failed Node
+(4,137 pass, 168 fail, two cancelled, 46 skipped) and Deno (21 type errors);
+the database job passed and later steps were skipped. Plain root Node invocation
+omitted the VM flag and required isolated SQL/parser setup. The new CI runner
+keeps the full root selection, enables VM modules, provisions a fresh identified
+network-none local database per SQL file, and fails on setup errors. Test-only
+Deno narrowing adds positive existence/discriminant checks without removing
+assertions. Flexible mutation patches are normalized for the common guard/report
+with repository-file coverage explicitly distinct from domain coverage.
+
+CI baseline and repair evidence live under docs/career/critical-repairs/.
+Actual provider quality and browser outcomes remain NOT_RUN. Residual behavior,
+historical-fixture and owner-151 deadline failures remain visible; no full-CI
+pass is inferred from this change.

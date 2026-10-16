@@ -33,6 +33,7 @@ const deps = (offer: any, cleared: { n: number }) => ({
 Deno.test("windfall offer: plan() attaches the exact sweep the alert named", () => {
   const o = storedOffer();
   assertEquals(o.kind, "windfall_sweep");
+  assert(o.kind === "windfall_sweep", "the stored offer has the windfall discriminant");
   assertEquals(o.transaction_id, "chk-1:wf1");
   assertEquals(o.deposit_cents, 420000);
   assertEquals(o.sweep_cents, 210000); // no sweep rule reaches plan(): the stated 50% share

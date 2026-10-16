@@ -19,7 +19,8 @@ test("every planted defect in every depth packet still applies, each patch match
       defects++;
       const files = {};
       for (const p of m.patches) {
-        const file = path.join(DOMAIN, p.file);
+        assert.ok(typeof p.file === 'string' && !path.isAbsolute(p.file) && !p.file.split(/[\\/]/).some(x=>x==='..'||x==='.'), 'mutation paths remain within their declared source root');
+        const file = path.join(m.scope === 'repository' ? root : DOMAIN, p.file);
         if (!(p.file in files)) files[p.file] = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
         const src = files[p.file];
         const n = src === null ? -1 : src.split(p.find).length - 1;

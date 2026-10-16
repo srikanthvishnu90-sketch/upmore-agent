@@ -1,0 +1,7 @@
+{
+  "name": "upmore-critical-repairs-ci",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Test-only CI prerequisites; no production dependency graph",
+  "dependencies": { "pg": "8.13.3" }
+}

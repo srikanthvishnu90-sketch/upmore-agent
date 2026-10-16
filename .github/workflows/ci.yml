@@ -12,9 +12,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "22" }
+        with: { node-version: "22.23.3" }
+      - name: Parser and isolated SQL test prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes poppler-utils python3-venv
+          python3 -m venv "$RUNNER_TEMP/upmore-parser-venv"
+          "$RUNNER_TEMP/upmore-parser-venv/bin/pip" install python-docx==1.2.0
+          echo "$RUNNER_TEMP/upmore-parser-venv/bin" >> "$GITHUB_PATH"
+          npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/career/critical-repairs
       - name: Domain, registry, router, gauntlet grader, UI, secret scan
-        run: node --test tests/*.cjs
+        run: node scripts/career/critical-repairs/ci-node.cjs
       - name: Generated files are current
         run: |
           python3 scripts/build-router-core.py --check
@@ -40,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
-        with: { deno-version: v2.x }
+        with: { deno-version: v2.9.7 }
       - name: Edge function tests (typed, with no permissions, the way the evidence recorder runs them), including the live-failure replays
         run: deno test tests/edge/
       - name: Testing agent (10/10 bar; a single CRITICAL fails the run; the committed report must be current)

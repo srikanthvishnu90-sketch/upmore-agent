@@ -10,6 +10,13 @@ const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..", "..");
 const id = process.argv[2]; if (!id) { console.error("usage: node evals/depth/run.cjs <CAPABILITY-ID>"); process.exit(2); }
+// A staged-entry packet has its own disposable-worktree runner. Require a new
+// evidence label; never silently overwrite a previous run or treat it as domain-only.
+if (id === 'CAREER-FLEXIBLE-GROUNDING') {
+  if (!/^[-a-z0-9]+$/.test(process.argv[3] || '')) { console.error('new evidence label required'); process.exit(2); }
+  const r=spawnSync(process.execPath,[path.join(root,'scripts/career/flexible-grounding/mutations.cjs'),process.argv[3]],{cwd:root,stdio:'inherit'});
+  process.exit(r.status ?? 2);
+}
 const testFile = path.join(root, "tests", `depth-${id}.test.cjs`), mutFile = path.join(__dirname, `${id}.mutations.cjs`), docFile = path.join(root, "docs/depth", `${id}.md`);
 for (const f of [testFile, mutFile, docFile]) if (!fs.existsSync(f)) { console.error("missing " + path.relative(root, f)); process.exit(2); }
 const mutations = require(mutFile);

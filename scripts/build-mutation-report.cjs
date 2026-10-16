@@ -17,7 +17,7 @@ function build() {
   const modules = fs.readdirSync(domainDir).filter(f => /^\d{2,3}-.*\.js$/.test(f)).sort();
   const packets = fs.readdirSync(depthDir).filter(f => f.endsWith(".mutations.cjs")).map(f => f.replace(".mutations.cjs", "")).sort();
   const byModule = Object.fromEntries(modules.map(m => [m, []]));
-  const packetRows = [];
+  const packetRows = [], repositoryRows = [];
   for (const id of packets) {
     const muts = require(path.join(depthDir, `${id}.mutations.cjs`));
     const resFile = path.join(depthDir, "results", `${id}.json`);
@@ -31,6 +31,7 @@ function build() {
       if (r && r.status === "proven") proven++;
       else problems.push(`${id} ${m.id}: ${status}`);
       for (const p of m.patches) {
+        if (m.scope === 'repository') { repositoryRows.push({file:p.file,packet:id,id:m.id,test:m.test,status}); continue; }
         if (!byModule[p.file]) { problems.push(`${id} ${m.id}: patches ${p.file}, which is not a domain module`); continue; }
         byModule[p.file].push({ packet: id, id: m.id, sub: m.sub, defect: m.defect, test: m.test, status });
       }
@@ -66,6 +67,14 @@ function build() {
     "| Module | Defect | Planted bug | Caught by (tagged test) | Status |",
     "| --- | --- | --- | --- | --- |",
     ...covered.flatMap(m => byModule[m].map(d => `| ${m} | ${d.packet} ${d.id} | ${esc(d.defect)} | ${d.sub}: ${esc(d.test)} | ${d.status} |`)),
+    "",
+    "## Repository files with planted defects",
+    "",
+    "These packets exercise the staged production entry outside packages/domain. They are counted as defects above, never as domain-module coverage. Their canonical patches and recorded runner evidence remain required.",
+    "",
+    "| File | Defect | Tagged test | Status |",
+    "| --- | --- | --- | --- |",
+    ...repositoryRows.map(r=>`| ${r.file} | ${r.packet} ${r.id} | ${esc(r.test)} | ${r.status} |`),
     "",
     "## Gaps: modules no planted defect touches",
     "",

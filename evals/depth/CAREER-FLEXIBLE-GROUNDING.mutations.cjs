@@ -20,4 +20,4 @@ module.exports=[
  ['T13',a,"consumed.ok!==true||consumed.ticket!==ticket","consumed.ticket!==ticket",'^T13 shared budget'],
  ['T14',h,'const saved = await persistence.commit','const saved = {response}; if(false) await persistence.commit','^T14 assistant/draft'],
  ['T15',g,"quality:'not_established_by_contract_checks'","quality:'proven_model_quality'",'^T15 generated metadata'],
-].map(([id,file,from,to,pattern])=>({id,file,from,to,pattern}));
+].map(([id,file,from,to,pattern])=>({id,scope:'repository',file,from,to,pattern,sub:id.replace('T','S'),title:pattern.replace(/^\^T[0-9]+ /,''),test:pattern,defect:'Break '+pattern,patches:[{file,find:from,replace:to}]}));

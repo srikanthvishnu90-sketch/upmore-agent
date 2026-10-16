@@ -50,6 +50,7 @@ Deno.test("the warning names the exact preventive transfer and carries it as an 
   assert(/Reply YES and I'll put up that move\./.test(m.text), m.text);
   assert(m.offer, "the offer is attached");
   assertEquals(m.offer.kind, "preventive_transfer");
+  assert(m.offer.kind === "preventive_transfer", "the attached offer has the preventive-transfer discriminant");
   assertEquals(m.offer.amount_cents, 60000, "the smallest move that keeps checking above the $200 buffer at the -$400 low point");
   assertEquals(m.offer.from_account_id, "sav-1"); assertEquals(m.offer.to_account_id, "chk-1");
   assertEquals(m.offer.first_below_on, "2026-11-02"); assertEquals(m.offer.land_by, "2026-11-01");
@@ -81,6 +82,7 @@ Deno.test("when the total-cash alert itself fires, the same offer rides on it â€
   assert(/Moving \$300\.00 from High Yield Savings to Everyday Checking by Nov 1 keeps it above the line\./.test(m.text), m.text);
   assert(m.offer, "the offer is attached");
   assertEquals(m.offer.kind, "preventive_transfer");
+  assert(m.offer.kind === "preventive_transfer", "the attached offer has the preventive-transfer discriminant");
   assertEquals(m.offer.amount_cents, 30000, "savings covers $300 of the $600 needed; the offer names what can actually move");
 });
 

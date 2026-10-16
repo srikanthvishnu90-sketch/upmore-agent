@@ -33,6 +33,12 @@ const NOW = "2026-10-15T12:00:00Z";
 
 // The real bank when present (it lives outside the repo by the privacy
 // rule); a same-shaped mini bank keeps the suite portable elsewhere.
+// v224 combine privacy fix: the mini bank's values are SYNTHETIC
+// (same shapes and fact IDs, invented values) — as first landed it
+// mirrored the owner's real fact bank verbatim, including the
+// sensitive F-023/F-024 values, which the privacy rule keeps out of
+// this public repo. Assertions that depend on bank values read them
+// from the loaded bank instead of hardcoding either world's values.
 function loadBank() {
   const p = path.join(process.env.HOME || "", "workspace/your_files/real-apply/fact-bank.json");
   try { return { bank: JSON.parse(fs.readFileSync(p, "utf8")), real: true }; } catch (e) { /* fall through */ }
@@ -42,14 +48,14 @@ const MINI_BANK = {
   basics: { name: "Alex Testcase", location: "Chicago, IL", country: "United States" },
   defaults: { gpa: "3.9" },
   facts: [
-    { id: "F-001", kind: "education", status: "confirmed", title: "Pursuing Bachelors in Computer Science and Finance, DePaul University", org: "DePaul University - Driehaus College of Business", start: "2025", end: "2029" },
-    { id: "F-002", kind: "experience", status: "confirmed", name: "Founder, Sporv AI", start: "2025", end: "present" },
-    { id: "F-004", kind: "experience", status: "confirmed", name: "Founder, Agencyvault", start: "2023", end: "2025" },
+    { id: "F-001", kind: "education", status: "confirmed", title: "Pursuing Bachelors in Computer Science, State University", org: "State University - College of Arts and Sciences", start: "2025", end: "2029" },
+    { id: "F-002", kind: "experience", status: "confirmed", name: "Founder, Testcorp AI", start: "2025", end: "present" },
+    { id: "F-004", kind: "experience", status: "confirmed", name: "Founder, Testvault", start: "2023", end: "2025" },
     { id: "F-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes" },
     { id: "F-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No" },
     { id: "F-022", kind: "profile", status: "confirmed", name: "Country", value: "United States" },
-    { id: "F-023", kind: "profile", status: "confirmed", name: "Date of birth", value: "2007-05-11" },
-    { id: "F-024", kind: "profile", status: "confirmed", name: "Hometown", value: "Hawthorn Woods, Illinois" },
+    { id: "F-023", kind: "profile", status: "confirmed", name: "Date of birth", value: "2000-01-15" },
+    { id: "F-024", kind: "profile", status: "confirmed", name: "Hometown", value: "Chicago, Illinois" },
     { id: "F-030", kind: "skill", status: "confirmed", name: "React", value: "React" },
   ],
 };
@@ -79,10 +85,10 @@ test("derivation: every bank-answered kind resolves, each answer traced to its f
   assert.ok(d.answers.years_of_experience.value >= 3, "the experience span (2023 -> 2026) yields at least 3 completed years");
   assert.equal(d.profileFields.state_of_residence, "Illinois");
   assert.equal(d.profileFields.time_zone, "America/Chicago");
-  assert.equal(d.profileFields.date_of_birth, "2007-05-11");
+  assert.equal(d.profileFields.date_of_birth, BANK.facts.find((f) => f.id === "F-023").value, "the DOB profile field carries the bank's own F-023 value, whichever bank loaded");
   assert.equal(d.profileFields.country, "United States");
   assert.ok(d.profileFields.preferred_name && d.profileFields.preferred_name.length > 0, "preferred name derives from the bank's name");
-  assert.ok(d.profileFields.education && /DePaul/.test(d.profileFields.education.school), "the education block derives from the education fact");
+  assert.equal(d.profileFields.education && d.profileFields.education.school, BANK.facts.find((f) => f.id === "F-001").org, "the education block derives from the bank's education fact, whichever bank loaded");
   // the "completed" nuance: no completed-credential fact exists, so no key
   assert.equal(d.answers.education_level_completed, undefined, "an in-progress degree never answers a completed-education question");
 });
@@ -150,7 +156,7 @@ function stubBoard(defs) {
 function profileFromBank(b) {
   const d = Portal.deriveAnswers(b, NOW);
   return Object.assign({
-    name: "Vishnu Srikanth", email: "v@example.test", phone: "+1 000 555 0100", location: "Chicago, IL",
+    name: "Alex Testcase (TEST)", email: "v@example.test", phone: "+1 000 555 0100", location: "Chicago, IL",
     resume: { filename: "resume.pdf", sha256: "b".repeat(64) },
     answers: d.answers,
   }, d.profileFields);

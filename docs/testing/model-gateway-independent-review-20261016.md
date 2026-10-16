@@ -2,7 +2,10 @@
 
 Author contribution reviewed: `codex/career-model-gateway-20261016` at
 `f3a9d183a6c45ced9a195e70ad66bbb634c40037`. Repair review branch:
-`codex/model-gateway-boundary-review-20261016`. Muse retains merge, forward
+`codex/model-gateway-boundary-review-20261016`. Final tested repair source:
+`6d3c1b9f63d251763008f34a75c4526bcfa2baff`; final certification is in
+`docs/testing/runs/model-gateway-independent-20261016-final/results.json`.
+Muse retains merge, forward
 migration, original-budget reconciliation and deploy ownership.
 
 Executor: healthy shell, Node 24.19.0, disposable PostgreSQL 17 available through

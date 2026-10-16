@@ -1,0 +1,16 @@
+(node:22226) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22226) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ independent real monthly slot and usage receipt agree with global charge and exact owned replay (2800.881043ms)
+✔ independent real monthly limit denies provider and refunds the known-unsent global reservation (2333.782952ms)
+✔ independent invalid receipt retains monthly slot and full uncertain global reservation (2939.972926ms)
+✔ independent chat rollback keeps real monthly usage accounted and same-key retry free (3965.609036ms)
+✔ independent real monthly usage insertion failure cannot refund unknown cost or deliver generated success (3207.341898ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15483.554716

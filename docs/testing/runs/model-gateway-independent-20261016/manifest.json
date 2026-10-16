@@ -1,0 +1,189 @@
+{
+  "authorCommit": "f3a9d183a6c45ced9a195e70ad66bbb634c40037",
+  "frozenReproducerCommit": "e27c6a113baf4b73d1b479fb5d6be0ab991180e8",
+  "repairSourceCommit": "6d3c1b9f63d251763008f34a75c4526bcfa2baff",
+  "repairSourceDigest": "fbe48f53da62db8dcb75b0e18880ce060fd7f95ba516d9e19a1fce2b8167f5a1",
+  "baselineSourceDigestWithIndependentOracles": "0196a80a01c13ec7d9ede659c3d2cec40a5ba8271221273da00ece3d0f450a61",
+  "runtimeFileComparison": {
+    "supabase/functions/agent-chat/index-career.ts": {
+      "author": "49777b72ad5693e97ae242075d556aa484ab4719996e362d2a41f60e64e8fdcb",
+      "repair": "49777b72ad5693e97ae242075d556aa484ab4719996e362d2a41f60e64e8fdcb"
+    },
+    "supabase/functions/agent-chat/handler-career.ts": {
+      "author": "fd99635b1f1a30e040af29af7d6151b4d20ea4546eb870224e5936d78708633d",
+      "repair": "fd99635b1f1a30e040af29af7d6151b4d20ea4546eb870224e5936d78708633d"
+    },
+    "supabase/functions/_shared/career_model_reply.ts": {
+      "author": "9723becef7c5ec78514724d6746653f3aedfa2e4443be0273d8dfd4c72d3be85",
+      "repair": "de5dcbf94abc65e65c061db97caf1e4ac724881d6d0e9032852b293d48d47726"
+    },
+    "supabase/functions/_shared/model_gateway.ts": {
+      "author": "c87746ead3d29bb91d8995bf27d61c8303a7fe997954901d7e57f73778edd47a",
+      "repair": "c87746ead3d29bb91d8995bf27d61c8303a7fe997954901d7e57f73778edd47a"
+    },
+    "supabase/functions/_shared/model_calls.ts": {
+      "author": "13c144f240f310f1c076dbbcd9ee83dcc8435a802b2c967e613fb0d8d40ef91d",
+      "repair": "13c144f240f310f1c076dbbcd9ee83dcc8435a802b2c967e613fb0d8d40ef91d"
+    },
+    "supabase/functions/_shared/career_host.js": {
+      "author": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+      "repair": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e"
+    },
+    "supabase/functions/_shared/career_persistence.js": {
+      "author": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+      "repair": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec"
+    },
+    "supabase/functions/_shared/router_core.career.js": {
+      "author": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044",
+      "repair": "0f69d03da25e683455dc71244f55580958adcb04a4c7463f2a5ed843520aa044"
+    },
+    "supabase/functions/_shared/router_core.js": {
+      "author": "fd87f88ecac44e67b71b508ee4327c5efb13eac6d722508e4b4f81c75a1e228d",
+      "repair": "fd87f88ecac44e67b71b508ee4327c5efb13eac6d722508e4b4f81c75a1e228d"
+    },
+    "supabase/sql/proposals/career_model_budget_v1.sql": {
+      "author": "71431f336c7906725f0c2432e375d6ae566ae607190156999ab207be49491e8c",
+      "repair": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4"
+    },
+    "packages/domain/130-career-onboarding.js": {
+      "author": "665be50fcaa0addc091e26d8a541f5cf380b09ed2903b20d1b91d1c1d129a379",
+      "repair": "665be50fcaa0addc091e26d8a541f5cf380b09ed2903b20d1b91d1c1d129a379"
+    }
+  },
+  "productFilesChanged": [
+    "supabase/functions/_shared/career_model_reply.ts",
+    "supabase/sql/proposals/career_model_budget_v1.sql"
+  ],
+  "finalRecord": "docs/testing/runs/model-gateway-independent-20261016-final/results.json",
+  "independentBaseline": {
+    "source": {
+      "pass": 22,
+      "fail": 7
+    },
+    "postgres": {
+      "pass": 5,
+      "fail": 4
+    }
+  },
+  "final": {
+    "sourceContracts": 61,
+    "postgresContractsIncludingRealMonthlyRPCs": 29,
+    "scopedRegressionsAndPrivacy": 260,
+    "passingTargetedTotal": 350,
+    "legacyGauntlet": {
+      "pass": 26,
+      "fail": 1
+    }
+  },
+  "originalSharedBudgetRemaining": "UNKNOWN_UNRECONCILED",
+  "paidCalls": 0,
+  "realProviderCalls": 0,
+  "actualModelQuality": "NOT_RUN",
+  "liveBrowserTasks": "15/15 NOT_RUN",
+  "postgresVersion": "17.11",
+  "postgresImage": "postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+  "sourceOnlyNoProductionMigration": true,
+  "files": {
+    "docs/testing/runs/model-gateway-independent-20261016/author-source-baseline.log": {
+      "sha256": "24434c6cd1edb0a48f099e06bb0ff427733c46e98aa38a2186bac72398af8e52",
+      "bytes": 3530
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/baseline-local-database.sql.gz": {
+      "sha256": "f684fb0cdd0e2d6be3a22724d290458fe9d0767f0870564f297b67fa81aa9584",
+      "bytes": 11504
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/final-local-database.sql.gz": {
+      "sha256": "732ffa00c2b6225012c5241fce5a909d4686d2e5bb9c4ec21fb0a07bd3dba8f7",
+      "bytes": 13882
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/legacy-gauntlet-after.log": {
+      "sha256": "bdcd58d1524fa65232ef23c963305fe5b5287329275dc3316fbac462e68811fd",
+      "bytes": 4458
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/monthly-after.log": {
+      "sha256": "693ddf4c0a79c83847665b44a41fc73279fbcf476ab78bf53de02b6798359379",
+      "bytes": 969
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/postgres-after.log": {
+      "sha256": "e9515263443d10243c7197fd34f0afe6f2619c214035543bf777c718253293c8",
+      "bytes": 3201
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/postgres-baseline.log": {
+      "sha256": "225b6690b30353a6af9fa54fa433b80e822a2641f1f0435507391f1e3ea17ee6",
+      "bytes": 3264
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/postgres-final-oracles-baseline.log": {
+      "sha256": "8fd25882a49a6d8c1e45a6ae1a0f7f9648a3e30a93b128904fd8197cae61bde7",
+      "bytes": 4388
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/scoped-regressions-after.log": {
+      "sha256": "33f4d50b1be5c2098281d9969ebce1ef0145d0d5e3d535646beeb9b876265a85",
+      "bytes": 26001
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/source-after.log": {
+      "sha256": "729344e271b382060e56535989427166261353ebfb65b3b2ce61906d868d7acc",
+      "bytes": 6387
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/source-baseline.log": {
+      "sha256": "1fdf2b50b894df76d559dea273c2585550a7c7f3a6a55f00c5b90f6a7eb41cab",
+      "bytes": 8040
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/stage-baseline.json": {
+      "sha256": "46bb3ba3db5d068698a3b5ebf21c1996cf63e5b9030352287b2803d6b719bbac",
+      "bytes": 2456
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/stage-repair.json": {
+      "sha256": "27e952f580ddaf66c255bab306b7aea343556eeef330fed759c672dc21c8b972",
+      "bytes": 2456
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/staged-stop-baseline.log": {
+      "sha256": "db02d8064f037db75f775dbe88f6f548ca6af4c9c11b25bfb87956f34f52df01",
+      "bytes": 1262
+    },
+    "docs/testing/runs/model-gateway-independent-20261016/typescript-after.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/bundle.log": {
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "bytes": 23
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/career-bundle.log": {
+      "sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "bytes": 23
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/diff-whitespace.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/legacy-gauntlet.log": {
+      "sha256": "57eff9b1ff7df3435fbd5e7839b317584b46651c26237399f00e6dd7ee765b95",
+      "bytes": 4463
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/postgres-contracts.log": {
+      "sha256": "0928d359207d90bf2ff9ca00e5f204420d2d587393c807da798e9c11dc7160b3",
+      "bytes": 4055
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/results.json": {
+      "sha256": "f7c88f81df96586e6be25121ac002a021008a990b3e69ebf0672c59469a33cf7",
+      "bytes": 45408
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/scoped-regressions.log": {
+      "sha256": "198617dd7128a4d2c2bf72e691da1b8d0c4720750e2111a6f7310d7ef2827932",
+      "bytes": 25997
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/source-contracts.log": {
+      "sha256": "432451a5c22e3b02aedc8bbf48d702c475165c628a7a2abaf1e462ce39e0c2b3",
+      "bytes": 6389
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/stage.log": {
+      "sha256": "d227fd6190fffd9ddd2511f594c99e9ae456236bd605dbbf6d43914a6aeb4465",
+      "bytes": 889
+    },
+    "docs/testing/runs/model-gateway-independent-20261016-final/typescript.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "stageOnlyChangedFile": "_shared/career_model_reply.ts"
+}

@@ -1,0 +1,74 @@
+✖ independent global uncertainty stop revokes an earlier different-owner dispatch ticket (1471.498666ms)
+✖ independent crashed started requests count as uncertain when their receipt deadlines expire (1059.426025ms)
+✖ independent overdue calls also revoke an unconsumed different-owner ticket (1205.352856ms)
+✔ independent global allowance cannot be overbooked by concurrent owners (960.568557ms)
+✔ independent concurrent same-owner/same-turn retry reserves exactly once (934.586206ms)
+✔ independent timeout/crash reservation remains charged and cannot be refunded or replayed (1276.625391ms)
+✔ independent owner mismatch, STOP and post-erase epochs cannot consume old tickets (1165.490561ms)
+✔ independent no client-role access and no security-definer budget functions (791.190041ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 5
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8981.138708
+
+✖ failing tests:
+
+test at tests/model-budget-independent-postgres.test.cjs:19:1
+✖ independent global uncertainty stop revokes an earlier different-owner dispatch ticket (1471.498666ms)
+  AssertionError [ERR_ASSERTION]: a ticket granted before the global stop must not start a new provider request
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:21:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-budget-independent-postgres.test.cjs:24:1
+✖ independent crashed started requests count as uncertain when their receipt deadlines expire (1059.426025ms)
+  AssertionError [ERR_ASSERTION]: lost processes must not evade the global unknown-outcome stop
+  + actual - expected
+  
+  + undefined
+  - 'usage_review_required'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:27:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'usage_review_required',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-budget-independent-postgres.test.cjs:29:1
+✖ independent overdue calls also revoke an unconsumed different-owner ticket (1205.352856ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:32:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

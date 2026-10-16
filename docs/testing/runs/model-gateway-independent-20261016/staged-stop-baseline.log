@@ -1,0 +1,31 @@
+(node:7722) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7722) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop (2060.10061ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2210.492603
+
+✖ failing tests:
+
+test at tests/model-budget-independent-postgres.test.cjs:36:1
+✖ independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop (2060.10061ms)
+  AssertionError [ERR_ASSERTION]: global stop must be checked immediately before the actual gateway call
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:45:101)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

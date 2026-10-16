@@ -1,0 +1,175 @@
+(node:3720) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3720) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ independent exact opt-in gate: undefined (1044.324567ms)
+✔ independent exact opt-in gate: false (1234.000835ms)
+✔ independent exact opt-in gate: TRUE (454.618585ms)
+✔ independent exact opt-in gate: 1 (264.667188ms)
+✔ independent exact opt-in gate:  true  (201.756069ms)
+✖ independent grounding rejects lowercase unsupported education (217.587391ms)
+✖ independent grounding rejects uppercase unsupported employer (284.876991ms)
+✖ independent grounding rejects passive completion claim (203.409839ms)
+✖ independent grounding rejects unsupported completion state (228.936731ms)
+✖ independent grounding rejects zero-width personal claim (223.566371ms)
+✖ independent grounding rejects lowercase unsupported achievement (189.866488ms)
+✖ independent grounding rejects shell instruction (196.355294ms)
+✔ independent safe guidance and known quoted evidence preserve exact replay and one-use state (559.499078ms)
+✔ independent colliding default identities and untrusted posting do not become foreign or personal evidence (316.027902ms)
+✔ independent corrected and withdrawn location remains absent from fresh owned model context (611.304863ms)
+✔ independent deterministic authority: STOP (296.778607ms)
+✔ independent deterministic authority: Forget my career profile (201.853454ms)
+✔ independent deterministic authority: Forget my target city. (281.62338ms)
+✔ independent deterministic authority: Actually, use Denver as the target city. (382.483986ms)
+✔ independent deterministic authority: What is my graduation date? (186.685604ms)
+✔ independent deterministic authority: Approve and submit the application. (353.486777ms)
+✔ independent invalid raw usage remains fully uncertain: null (425.619279ms)
+✔ independent invalid raw usage remains fully uncertain: {} (232.051324ms)
+✔ independent invalid raw usage remains fully uncertain: {"prompt_tokens":300,"completion_tokens":80,"total_tokens":1} (171.953428ms)
+✔ independent invalid raw usage remains fully uncertain: {"prompt_tokens":300.5,"completion_tokens":80} (209.624012ms)
+✔ independent invalid raw usage remains fully uncertain: {"prompt_tokens":300,"completion_tokens":-80} (311.135052ms)
+✔ independent invalid raw usage remains fully uncertain: {"prompt_tokens":300,"completion_tokens":80,"prompt_tokens_details":{"cached_tokens":301}} (439.636071ms)
+✔ independent real abort deadline retains full uncertainty and does not retry the provider (10212.461751ms)
+✔ independent missing auth and unconfigured model fail before context can reach provider (379.151048ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 22
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20447.682951
+
+✖ failing tests:
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects lowercase unsupported education (217.587391ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects uppercase unsupported employer (284.876991ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects passive completion claim (203.409839ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects unsupported completion state (228.936731ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects zero-width personal claim (223.566371ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects lowercase unsupported achievement (189.866488ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-gateway-independent.test.cjs:16:4
+✖ independent grounding rejects shell instruction (196.355294ms)
+  AssertionError [ERR_ASSERTION]: unsupported model text must not become generated coaching
+  + actual - expected
+  
+  + 'generated'
+  - 'invalid_response'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-gateway-independent.test.cjs:18:36)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'invalid_response',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

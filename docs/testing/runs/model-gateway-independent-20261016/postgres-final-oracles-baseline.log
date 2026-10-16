@@ -1,0 +1,95 @@
+(node:8269) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8269) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ independent global uncertainty stop revokes an earlier different-owner dispatch ticket (1619.26657ms)
+✖ independent crashed started requests count as uncertain when their receipt deadlines expire (1235.533326ms)
+✖ independent overdue calls also revoke an unconsumed different-owner ticket (1286.858698ms)
+✖ independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop (1965.376957ms)
+✔ independent global allowance cannot be overbooked by concurrent owners (1000.129338ms)
+✔ independent concurrent same-owner/same-turn retry reserves exactly once (965.69058ms)
+✔ independent timeout/crash reservation remains charged and cannot be refunded or replayed (1358.511707ms)
+✔ independent owner mismatch, STOP and post-erase epochs cannot consume old tickets (1123.05072ms)
+✔ independent no client-role access and no security-definer budget functions (684.317076ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 5
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11385.003645
+
+✖ failing tests:
+
+test at tests/model-budget-independent-postgres.test.cjs:21:1
+✖ independent global uncertainty stop revokes an earlier different-owner dispatch ticket (1619.26657ms)
+  AssertionError [ERR_ASSERTION]: a ticket granted before the global stop must not start a new provider request
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:23:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-budget-independent-postgres.test.cjs:26:1
+✖ independent crashed started requests count as uncertain when their receipt deadlines expire (1235.533326ms)
+  AssertionError [ERR_ASSERTION]: lost processes must not evade the global unknown-outcome stop
+  + actual - expected
+  
+  + undefined
+  - 'usage_review_required'
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:29:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'usage_review_required',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-budget-independent-postgres.test.cjs:31:1
+✖ independent overdue calls also revoke an unconsumed different-owner ticket (1286.858698ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:34:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/model-budget-independent-postgres.test.cjs:36:1
+✖ independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop (1965.376957ms)
+  AssertionError [ERR_ASSERTION]: global stop must be checked immediately before the actual gateway call
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/workspace/upmore-gateway-review/tests/model-budget-independent-postgres.test.cjs:45:101)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

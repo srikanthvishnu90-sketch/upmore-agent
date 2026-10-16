@@ -1,0 +1,215 @@
+TAP version 13
+# (node:318764) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:318764) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: deadline bounds a transport that ignores the abort signal before headers
+not ok 1 - deadline bounds a transport that ignores the abort signal before headers
+  ---
+  duration_ms: 472.239466
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:12:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   escaped_deadline: true
+    -   type: 'timeout'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    type: 'timeout'
+  actual:
+    escaped_deadline: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    rejected (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:11:127)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:14:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: deadline bounds and cancels a stalled 200 response body
+not ok 2 - deadline bounds and cancels a stalled 200 response body
+  ---
+  duration_ms: 381.876138
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:16:31'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   escaped_deadline: true
+    -   type: 'timeout'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    type: 'timeout'
+  actual:
+    escaped_deadline: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    rejected (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:11:127)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:19:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: deadline bounds and cancels a stalled 503 response body
+not ok 3 - deadline bounds and cancels a stalled 503 response body
+  ---
+  duration_ms: 388.146127
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:16:31'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   escaped_deadline: true
+    -   type: 'timeout'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    type: 'timeout'
+  actual:
+    escaped_deadline: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    rejected (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:11:127)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:19:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: an already aborted parent prevents dispatch
+not ok 4 - an already aborted parent prevents dispatch
+  ---
+  duration_ms: 144.68659
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:22:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   unexpected_success: true
+    -   type: 'aborted'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    type: 'aborted'
+  actual:
+    unexpected_success: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    rejected (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:11:127)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:24:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: parent abort cancels a body read after headers
+not ok 5 - parent abort cancels a body read after headers
+  ---
+  duration_ms: 371.995247
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   escaped_deadline: true
+    -   type: 'aborted'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    type: 'aborted'
+  actual:
+    escaped_deadline: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    rejected (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:11:127)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:30:6)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: response size is measured in UTF-8 bytes before parsing
+not ok 6 - response size is measured in UTF-8 bytes before parsing
+  ---
+  duration_ms: 114.002703
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:32:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   unexpected_success: true
+    -   type: 'too_large'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    type: 'too_large'
+  actual:
+    unexpected_success: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    rejected (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:11:127)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:34:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: over-limit stream is cancelled without draining the remaining response
+not ok 7 - over-limit stream is cancelled without draining the remaining response
+  ---
+  duration_ms: 111.417507
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:36:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-response-limits.test.cjs:39:100)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: bounded successful raw usage retains exact normal gateway translation
+ok 8 - bounded successful raw usage retains exact normal gateway translation
+  ---
+  duration_ms: 116.658873
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 1
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2154.276078

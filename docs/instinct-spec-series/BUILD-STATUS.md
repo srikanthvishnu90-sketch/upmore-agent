@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-16 Spec A gateway prerequisite: narrow shared model_gateway.ts deadline/parent-abort/stream-byte-limit lifecycle only, plus frozen staged-gateway synthetic tests and evidence in the critical-repairs namespace. Preserve provider routing, approved configuration, raw usage checks, no retries and all existing callers. No provider execution. Freeze current seven failures before runtime repair.
+
 - 2026-10-16 full-CI testing-agent checker follow-up: evals/agent/run.ts ALRT-012 test expectation only. Source reproduction shows it counts an existing cadence-exempt standing request as an unsolicited note, contradicting the explicit K2 contract already asserted in tests/edge/proactive.test.ts. Preserve exactly one non-cadence finding and daily-budget suppression; change no financial runtime. Freeze the red 91/92 result before repair.
 
 - 2026-10-16 newly exposed full-CI Deno follow-up: evals/agent/mutations.ts stale M09 anchor and tracked-only disposable-copy preparation (exclude only the two protected writing fixtures; all 12 checks retained), generated docs/testing/agent-report.md and docs/capability-list/flow-evidence.md plus evals/agent/results/latest.json from the actual offline runner. Reproduce obsolete anchor and stale reports before regeneration. No production/model/browser execution.

@@ -1,0 +1,156 @@
+[
+  {
+    "type": "CareerContextSnapshotV1",
+    "value": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "item_version": 1,
+          "scope": {
+            "kind": "account",
+            "owner_id": "00000000-0000-4000-8000-0000000000a1"
+          },
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "status": "active",
+          "value": "Built a synthetic class calculator.",
+          "source_refs": []
+        }
+      ],
+      "sources": [],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "capability_id": "career.coach_answer",
+          "availability": "available",
+          "reason": "Synthetic boundary fixture only"
+        }
+      ]
+    }
+  },
+  {
+    "type": "CareerActionProposalV1",
+    "value": {
+      "contract_version": "career_action_proposal/v1",
+      "action_id": "action-1",
+      "type": "ask_question",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "expected_binding": {
+        "owner_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "journey_revision": 0
+      },
+      "idempotency_key": "fixture-turn-1-question",
+      "input_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_refs": [
+        "fact-1"
+      ],
+      "capability_id": "career.ask_question",
+      "approval_requirement": "host_derives_requirement",
+      "args": {
+        "question": "What did you personally contribute?"
+      }
+    }
+  },
+  {
+    "type": "JourneyTransitionV1",
+    "value": {
+      "contract_version": "career_journey_transition/v1",
+      "expected_binding": {
+        "owner_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "journey_revision": 0
+      },
+      "next_state": {
+        "contract_version": "career_journey_state/v1",
+        "journey_id": "journey-1",
+        "revision": 1,
+        "data": {
+          "phase": "awaiting_answer"
+        }
+      },
+      "reply_plan": {
+        "contract_version": "career_journey_reply_plan/v1",
+        "blocks": [
+          {
+            "kind": "question",
+            "text": "What did you personally contribute?",
+            "claim_ids": []
+          }
+        ],
+        "claims": []
+      },
+      "proposed_actions": [
+        {
+          "contract_version": "career_action_proposal/v1",
+          "action_id": "action-1",
+          "type": "ask_question",
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expected_binding": {
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "epoch": 0,
+            "account_version": 3,
+            "thread_revision": 2,
+            "context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "journey_revision": 0
+          },
+          "idempotency_key": "fixture-turn-1-question",
+          "input_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_refs": [
+            "fact-1"
+          ],
+          "capability_id": "career.ask_question",
+          "approval_requirement": "host_derives_requirement",
+          "args": {
+            "question": "What did you personally contribute?"
+          }
+        }
+      ]
+    }
+  }
+]

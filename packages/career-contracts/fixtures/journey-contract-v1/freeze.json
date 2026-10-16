@@ -1,0 +1,15 @@
+{
+  "frozenAt": "2026-10-16T23:40:28.345995+00:00",
+  "base": "123943e1c12cee3459155562add892fa996872c7",
+  "sourceLibraryId": "libfile_95ab346c2e40819198735d5deae2f373",
+  "sourceLibraryVersion": "1",
+  "referenceAccess": "COMPLETE_SUPPORTED_LIBRARY_READ_NO_MATERIALIZED_FILE_PROVENANCE_CLAIM",
+  "schemaSha256": "e9d67853dc0476391c49b7d5140031a04e64a5a47f69f9fe073f5f013b93b022",
+  "fixtureSha256": {
+    "valid.json": "77d875b428eb4780fb9b978089028c3762fc1849513e6f8ab5f6c55cce5d98c7",
+    "invalid.json": "f71d72ecd96d3163869f233440c27fe32975b51c776b9d0bb4fc18c2bb3b470a"
+  },
+  "evidenceTier": "FROZEN_SYNTHETIC_CONTRACT_ONLY",
+  "actualModelQuality": "NOT_RUN",
+  "paidCalls": 0
+}

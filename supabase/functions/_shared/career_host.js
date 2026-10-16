@@ -43,7 +43,7 @@ const CareerHost = (() => {
     // relayed opt-out records — all four are conversation state the
     // router reads back on later turns, so all four must survive the
     // snapshot round trip like every other store here.
-    "posting", "statedFacts", "intentQueue", "_relayedSuppressions",
+    "posting", "statedFacts", "intentQueue", "_relayedSuppressions", "conversationState",
     // MI-032 STEP 2 (alerts host wiring, docs/career/alerts-host-wiring.md
     // §4/§5): the watch-state box. 142's watch intents read/write module
     // 152's records through a sync {get,set} view of this plain JSON
@@ -106,6 +106,7 @@ const CareerHost = (() => {
       const location = match[1].trim();
       if (!location || /[<>]|https?:|password|\b(?:unknown|not sure)\b/i.test(location)) return null;
       ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: [location] });
+      if (typeof ctx._reconcileLocation === "function") ctx._reconcileLocation(location, text);
       ctx._hostPatch = { preferred_locations: [location] };
       return { intent: "career_preference_corrected", reply: `I saved your preferred location as ${location}. Existing application approvals and watch locations were not silently rewritten; review those separately.` };
     }
@@ -146,9 +147,11 @@ const CareerHost = (() => {
         }
       }
       if (o.profile !== undefined) ctx.profile = o.profile;
+      if (CareerRouter.reconcileLocation) ctx._reconcileLocation = (city, source) => CareerRouter.reconcileLocation(ctx, city, source);
       if (o.account) {
         if (o.account.preferred_locations && ctx.profile) {
           ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: o.account.preferred_locations.slice() });
+          if (!ctx.conversationState?.locationWithdrawn && CareerRouter.reconcileLocation) CareerRouter.reconcileLocation(ctx, o.account.preferred_locations[0] || null, "saved account preference");
         }
         if (o.account.paused === true) ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
         if (o.account.paused === false && ctx.globalPause && ctx.globalPause.source === "account_control") ctx.globalPause = { set: false };

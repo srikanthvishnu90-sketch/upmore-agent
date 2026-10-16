@@ -42,6 +42,7 @@ const CareerRouter = (() => {
   const Apply = typeof CareerApply !== "undefined" ? CareerApply : req("./132-career-apply.js");
   const getPortalApply = () => { try { return typeof CareerPortalApply !== "undefined" ? CareerPortalApply : req("./149-career-portal-apply.js"); } catch { return req("./149-career-portal-apply.js"); } };
   void getPortalApply;
+  const Conversation = typeof CareerConversation !== "undefined" ? CareerConversation : req("./155-career-conversation.js");
   const Reply = typeof CareerReply !== "undefined" ? CareerReply : req("./140-career-reply.js");
   // Lane A (gauntlet round 2): the intent-ownership layer below CALLS the
   // doorstep seam (141) and the onboarding/profile write path (130) through
@@ -352,6 +353,7 @@ const CareerRouter = (() => {
     const sp = scoringProfile(profile);
     const excluded = [], scored = [];
     for (const posting of deduped) {
+      if (Conversation && !Conversation.matchesPosting(posting, Conversation.box(ctx), profile)) { excluded.push({ id: posting.corpus_id, reasons: ["Does not meet the stated hard constraints; missing evidence is not a verified fit."] }); continue; }
       const pre = preCheck(posting, profile, now);
       if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); continue; }
       // A6: when the caller carries the ASK's role families, 121's opt-in
@@ -3450,7 +3452,7 @@ const CareerRouter = (() => {
     const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
     if (mirrored && !primary) c.statedFacts = mirrored;
     else if (mirrored && primary && mirrored !== primary) {
-      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && (FACT_SINGLE_KINDS.has(f.kind) || lc(x.value) === lc(f.value)))) primary.facts.push(f);
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
@@ -3826,7 +3828,7 @@ const CareerRouter = (() => {
             if (ext && ext.draft) {
               const facts = [amtLine || "The extension email itself, composed from your offer record — held on its card, nothing sent:", ext.draft];
               if (amtLine) facts.splice(1, 0, "The actual email, verbatim — held on its card, nothing sent:");
-              const reply = compose({ headline: "The extension email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the exact change." });
+              const reply = `The extension email, written out for your review — nothing sent.\n\n${ext.draft}\n\nTell me the exact change before any separate send approval.`;
               return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: ext, offer: offerObj, payload: offerObj };
             }
           } catch { /* fall through to the counter/advice paths */ }
@@ -3838,7 +3840,7 @@ const CareerRouter = (() => {
             if (email) {
               const facts = [amtLine || "The counter email itself, composed from your offer record — held on its card, nothing sent:", email];
               if (amtLine) facts.splice(1, 0, "The actual email, verbatim — held on its card, nothing sent:");
-              const reply = compose({ headline: "The counter email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the figure or the tone to change." });
+              const reply = `The counter email, written out for your review — nothing sent.\n\n${email}\n\nTell me the figure or tone to change before any separate send approval.`;
               return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: strat.scripts, strategy: strat, offer: offerObj, payload: offerObj };
             }
           } catch { /* fall through to the advice paths */ }
@@ -6242,13 +6244,14 @@ const CareerRouter = (() => {
 
   function dispatchChat(text, ctx) {
     const c = ctx || {};
+    const conversationText = text;
     text = detypo(text); // routing copy only — records keep the original
     const t = lc(text);
     if (!t) return null;
     const profile = c.profile || null;
     syncThreadIn(c);
     capturePastedPosting(text, c);
-    captureStatedFacts(text, c);
+    if (!/\b(?:posting|job description)\s*:/i.test(conversationText)) captureStatedFacts(text, c);
     // A turn FRAMED as a relayed reply ("Reply handling: ...") is reply
     // handling, not a user instruction: the ownership layer's recipient /
     // opt-out matchers would misread the quoted banker's words as the
@@ -6269,6 +6272,8 @@ const CareerRouter = (() => {
     // turns on EVERY route are held (drafting / reading / status still run).
     const paused = handlePauseGate(text, c);
     if (paused) return paused;
+    const conversation = Conversation && Conversation.handle(conversationText, c, { Negotiation, Prep, Tailor, tailor: handleTailor });
+    if (conversation) return conversation;
     // Capability 2 owns read-only resume/role, gap, location and current-source
     // recommendations. It takes only host-injected profile/postings; it never
     // falls back to the filesystem corpus or touches alert/browser state.
@@ -7137,7 +7142,7 @@ const CareerRouter = (() => {
   // level, school, experience, tone. Single-value kinds are REPLACED
   // by a later statement or an explicit correction ("make it Chicago
   // not New York"), never accumulated into a contradiction.
-  const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
+  const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver", "Portland"];
   const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors"]);
   function recordThreadFact(ctx, kind, value, evidence) {
     if (!value) return false;
@@ -7202,7 +7207,7 @@ const CareerRouter = (() => {
       else if ((m = cl.match(/^(?:so|ok|okay|yeah|and)?\s*(sophomore|junior|senior|freshman)\b/i))) push("year", m[1].toLowerCase(), m[0]);
       if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
       else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
-      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) push("majors", _cleanFactVal(m[1].replace(/^(a|the|my)\s+/i, "")), m[0]);
+      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) push("majors", _cleanFactVal(m[1].replace(/^.*?\b(?:junior|senior|sophomore|freshman)\s+/i, "").replace(/^(?:i am|i.m|a|the|my)\s+/i, "")), m[0]);
       if ((m = cl.match(/\btargeting\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/))) push("geography", m[1], m[0]);
       else if ((m = cl.match(/\baiming\s+(?:at|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+firms\b/))) push("geography", m[1], m[0]);
       else if ((m = cl.match(/\btargeting\s+([a-z]+)\s+firms\b/i))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
@@ -7874,6 +7879,6 @@ const CareerRouter = (() => {
     syncThreadOut(c);
     return res;
   }
-  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
+  return { handleChat, reconcileLocation: (ctx, city, source) => Conversation && Conversation.reconcileLocation(ctx, city, source), handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;

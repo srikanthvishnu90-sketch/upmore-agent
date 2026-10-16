@@ -1,0 +1,321 @@
+{
+  "version": "browser-recovery/v1",
+  "definition": "15 distinct genuine public browser tasks; fixture preflight never counts as an outcome. Execution requires actual Upmore causal backend/browser/artifact chain.",
+  "tasks": [
+    {
+      "id": "B01",
+      "title": "Greenhouse role reading",
+      "url": "https://job-boards.greenhouse.io/anthropic",
+      "request": "Extract an actually open entry-level role, or report no matching role; preserve title, location and canonical link.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Extract an actually open entry-level role, or report no matching role; preserve title, location and canonical link.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B02",
+      "title": "Lever role reading",
+      "url": "https://jobs.lever.co/cohere",
+      "request": "Read one current technical role, including seniority and location; do not open an application.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Read one current technical role, including seniority and location; do not open an application.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B03",
+      "title": "Ashby role reading",
+      "url": "https://jobs.ashbyhq.com/notion",
+      "request": "Extract one current role and explicit remote/onsite policy; unknown stays unknown.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Extract one current role and explicit remote/onsite policy; unknown stays unknown.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B04",
+      "title": "Stripe role constraint review",
+      "url": "https://stripe.com/jobs/search",
+      "request": "Find an internship or entry-level listing and preserve stated eligibility; do not infer authorization.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Find an internship or entry-level listing and preserve stated eligibility; do not infer authorization.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B05",
+      "title": "Cloudflare role constraint review",
+      "url": "https://www.cloudflare.com/careers/jobs/",
+      "request": "Find a data or technical role; extract stated location and seniority exclusions.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Find a data or technical role; extract stated location and seniority exclusions.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B06",
+      "title": "Microsoft role source",
+      "url": "https://careers.microsoft.com/",
+      "request": "Extract one public graduate/intern posting and exact employment type, or report blocked search.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Extract one public graduate/intern posting and exact employment type, or report blocked search.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B07",
+      "title": "Google role source",
+      "url": "https://www.google.com/about/careers/applications/jobs/results/",
+      "request": "Read a public student role and stated graduation/degree requirements.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Read a public student role and stated graduation/degree requirements.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B08",
+      "title": "Amazon role source",
+      "url": "https://www.amazon.jobs/en/teams/internships-for-students",
+      "request": "Read the student-program page and extract actual eligibility versus generic marketing.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Read the student-program page and extract actual eligibility versus generic marketing.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B09",
+      "title": "Apple role source",
+      "url": "https://jobs.apple.com/en-us/search?team=internships-STDNT-INTRN",
+      "request": "Identify a public intern listing and preserve location and posted requirements.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Identify a public intern listing and preserve location and posted requirements.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B10",
+      "title": "Datadog early career source",
+      "url": "https://careers.datadoghq.com/early-careers/",
+      "request": "Extract the actual early-career program paths and any explicitly stated application window.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Extract the actual early-career program paths and any explicitly stated application window.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B11",
+      "title": "Jane Street interview preparation",
+      "url": "https://www.janestreet.com/join-jane-street/interviewing/",
+      "request": "Read official interview guidance and produce a cited preparation checklist without invented questions.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Read official interview guidance and produce a cited preparation checklist without invented questions.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B12",
+      "title": "McKinsey interview preparation",
+      "url": "https://www.mckinsey.com/careers/interviewing",
+      "request": "Separate official personal experience and case preparation from speculation.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Separate official personal experience and case preparation from speculation.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B13",
+      "title": "Atlassian interview preparation",
+      "url": "https://www.atlassian.com/company/careers/resources/interviewing",
+      "request": "Extract official interview stages or report unavailable; create a sourced prep card.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Extract official interview stages or report unavailable; create a sourced prep card.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B14",
+      "title": "GitLab remote work research",
+      "url": "https://handbook.gitlab.com/handbook/company/culture/all-remote/",
+      "request": "Read official remote-work guidance and map two sourced practices to learner constraints.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Read official remote-work guidance and map two sourced practices to learner constraints.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    },
+    {
+      "id": "B15",
+      "title": "Python project learning source",
+      "url": "https://docs.python.org/3/library/csv.html",
+      "request": "Read official CSV delimiter and dialect guidance; create an answer-specific interview coaching card.",
+      "allowed": "Public read-only navigation/GET; stop at login, CAPTCHA, paywall or consent gate; no applications, sends, accounts or paid calls.",
+      "expectedOutcome": "Read official CSV delimiter and dialect guidance; create an answer-specific interview coaching card.",
+      "evidenceRequired": [
+        "Frozen task/spec SHA and exact reviewed code SHA",
+        "Upmore request/turn ID and backend dispatch/tool event linked to browser task ID",
+        "Owned sandboxed Chromium/CDP session ID and navigation events with URL and timestamps",
+        "DOM excerpt + screenshot + canonical source link; unsupported or blocked states retained",
+        "User-facing delivered artifact with SHA-256 and claims traceable to captured source",
+        "Backend persisted artifact/task readback linked to same task ID; no success from screenshot alone"
+      ],
+      "status": "NOT_RUN",
+      "blockers": [
+        "Normal sandbox Chromium launch failed before a page opened (browser-sandbox.json)",
+        "Published owned worker only admits registered loopback portals; no supported read-only public-web task adapter in actual entry. Requires Muse integration; do not bypass allowlist."
+      ]
+    }
+  ]
+}

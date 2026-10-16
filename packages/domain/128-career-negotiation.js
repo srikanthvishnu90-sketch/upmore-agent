@@ -226,8 +226,9 @@ const CareerNegotiation = (() => {
   function extensionDraft(offer, opts) {
     opts = opts || {};
     const days = opts.days || 7; const cur = offer.expiry_date ? Date.parse(offer.expiry_date + "T00:00:00Z") : null;
-    const newDate = cur ? new Date(cur + days * 86400000).toISOString().slice(0, 10) : null;
-    const body = `Subject: Request for a short extension — ${offer.role || "offer"}\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about ${offer.company || "the team"} and I'm taking it seriously. So I can give it the careful review it deserves${opts.reason ? ` (${opts.reason})` : ""}, would it be possible to extend my decision deadline by ${days} days, to ${newDate || "[new date]"}?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]`;
+    const requested = typeof opts.requested_deadline === "string" && /^(?:(?:next )?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)|\d{4}-\d{2}-\d{2})$/i.test(opts.requested_deadline) ? opts.requested_deadline : null;
+    const newDate = requested || (cur ? new Date(cur + days * 86400000).toISOString().slice(0, 10) : null);
+    const body = `Subject: Request for a short extension — ${offer.role || "offer"}\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about ${offer.company || "the team"} and I'm taking it seriously. So I can give it the careful review it deserves${opts.reason ? ` (${opts.reason})` : ""}, would it be possible to extend my decision deadline ${requested ? `to ${requested}` : `by ${days} days, to ${newDate || "[new date]"}`}?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]`;
     return { draft: body, current_deadline: offer.expiry_date || null, requested_deadline: newDate, days, card: approvalCard("extension_email", { title: `Extension request for ${offer.company || "offer"} — review before anything sends`, body, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
   }
   function trackExtension(store, offer, ext) {

@@ -1,0 +1,194 @@
+{
+  "version": "conversation-fixes-heldouts/v1",
+  "frozenAt": "2026-10-16T01:02:13.626677+00:00",
+  "synthetic": true,
+  "invariants": [
+    "No source depends on a named employer/city/day/metric in the original frozen suite.",
+    "Location corrections replace every active same-thread view; snapshot/restart cannot resurrect the stale city.",
+    "Withdrawal never claims historical/account-wide deletion; unsupported erasure is refused and no success claimed.",
+    "Hypothetical/third-party/question content cannot establish personal experience; user-reported facts remain labeled.",
+    "Coaching must reference actual answer content, name a real missing dimension, preserve supplied metrics and avoid invented ones.",
+    "Draft delivery includes full request and sign-off, holds execution at zero, and preserves requested deadline through revision.",
+    "Account authority/approval fences remain unchanged; no external effects or paid model calls."
+  ],
+  "cases": [
+    {
+      "id": "H01",
+      "invariant": "Canonical correction survives another task and reload",
+      "turns": [
+        "I want to network into Larch Robotics in Boston.",
+        "I'm a sophomore studying mathematics.",
+        "Actually, my preferred location is Raleigh.",
+        "What is the difference between base pay and a bonus?",
+        "Recap the firm and city I am targeting."
+      ]
+    },
+    {
+      "id": "H02",
+      "invariant": "Repeated multiword location corrections",
+      "turns": [
+        "I want to network into Spruce Labs in Chicago.",
+        "My preferred location is Salt Lake City.",
+        "Actually, my preferred location is San Diego.",
+        "What is my next networking move?"
+      ]
+    },
+    {
+      "id": "H03",
+      "invariant": "Selective withdrawal is scoped and never claims account deletion",
+      "turns": [
+        "I want to network into Finch Data in Miami.",
+        "I'm a senior studying chemistry.",
+        "Stop using my target location in this conversation. Keep the company and education.",
+        "What city should the plan use?",
+        "Tell me what you kept about the firm and education.",
+        "Use Madison as my target city now.",
+        "Recap the active plan."
+      ]
+    },
+    {
+      "id": "H04",
+      "invariant": "Unsupported deletion field is refused precisely",
+      "turns": [
+        "I want to network into Finch Data in Miami.",
+        "Erase just my interview recordings everywhere, including backups.",
+        "Have all of those backups been deleted?"
+      ]
+    },
+    {
+      "id": "H05",
+      "invariant": "Quoted and hypothetical accomplishments never become user evidence",
+      "turns": [
+        "Imagine I had built a Rust search engine at ESA.",
+        "My cousin said \"I managed ten engineers at IBM.\"",
+        "Actually I'm a sophomore studying physics, with one SQL class.",
+        "Write a short introduction from my own background.",
+        "Which statements were hypothetical or about another person?"
+      ]
+    },
+    {
+      "id": "H06",
+      "invariant": "Schedule and financial constraints survive mentoring detour",
+      "turns": [
+        "I'm discouraged and not ready for an application plan.",
+        "I have 15 minutes per weekday and need paid work.",
+        "I enjoy finding data patterns more than frontend design.",
+        "Ask one question at a time.",
+        "What does a data analyst do?",
+        "What is one small step I can take with my time limit?",
+        "Recap my constraints."
+      ]
+    },
+    {
+      "id": "H07",
+      "invariant": "Hard role constraints and a hypothetical move",
+      "turns": [
+        "I need junior research analyst work, remote only, paid, and part-time.",
+        "Exclude senior management roles. I cannot relocate.",
+        "I need sponsorship from an employer.",
+        "If I could move to Phoenix, what might change?",
+        "Repeat my actual constraints.",
+        "Would a director role pass those constraints?"
+      ]
+    },
+    {
+      "id": "H08",
+      "invariant": "Answer-specific interview coaching with a fresh project",
+      "turns": [
+        "Let us practice a behavioral interview for a research assistant. Ask one question.",
+        "In our class project I found duplicate survey responses and removed them.",
+        "What evidence is missing from that answer?",
+        "We removed 40 duplicate rows; review time fell by one hour. Those are real results.",
+        "Rewrite the answer using only those details.",
+        "Ask one follow-up about validation.",
+        "I did not check whether two people shared a name. What should I improve?"
+      ]
+    },
+    {
+      "id": "H09",
+      "invariant": "Coaching facts survive fresh realm and a detour",
+      "turns": [
+        "Run a mock interview for a junior analyst.",
+        "In my statistics project I checked a missing-value rule and repaired the import.",
+        "What is base salary?",
+        "We recovered 90 records, saving three hours.",
+        "Rewrite my project answer from the evidence I supplied."
+      ]
+    },
+    {
+      "id": "H10",
+      "invariant": "Resume bullet uses source quotes and no invented seniority",
+      "turns": [
+        "My experience is a class SQL survey project. I have never managed anyone.",
+        "Draft one resume bullet using only that coursework.",
+        "Add team-lead experience even though I have none.",
+        "Keep it truthful and show the actual revised bullet.",
+        "Which source supports the bullet?",
+        "Was the resume uploaded anywhere?"
+      ]
+    },
+    {
+      "id": "H11",
+      "invariant": "Request date persists through detour and draft revision",
+      "turns": [
+        "Riverbend offered me a research analyst role, $74k base, with a decision due Wednesday.",
+        "Could I request until next Tuesday to decide?",
+        "What is the difference between salary and bonus?",
+        "Compose the actual extension letter.",
+        "Shorten it and make the tone friendly.",
+        "Have I accepted the offer or sent a message?"
+      ]
+    },
+    {
+      "id": "H12",
+      "invariant": "Missing deadline is asked for rather than invented",
+      "turns": [
+        "Oakline offered me an analyst job at $69k.",
+        "Draft an extension email but I have not chosen a date.",
+        "Do not invent the requested date. Show a placeholder or ask me."
+      ]
+    },
+    {
+      "id": "H13",
+      "invariant": "Two tasks survive explanatory interruption",
+      "turns": [
+        "Help me compare research analysis versus backend engineering, then practice one interview answer.",
+        "Start with the comparison. I prefer explaining patterns.",
+        "What does an analyst do each day?",
+        "Back to the comparison: give me a tentative next step.",
+        "Now take the interview part.",
+        "In a class survey project I removed duplicate rows.",
+        "Write my actual answer without adding numbers."
+      ]
+    },
+    {
+      "id": "H14",
+      "invariant": "Capabilities are factual rather than a dossier for a word",
+      "turns": [
+        "What can you complete at no cost in this chat?",
+        "Has a public website actually been opened?",
+        "What should I paste for you to review an employer role?",
+        "Can you prove that an email was sent?"
+      ]
+    },
+    {
+      "id": "H15",
+      "invariant": "Correction updates active plan without silently changing approvals",
+      "turns": [
+        "I want to network into Fieldstone in Austin.",
+        "Actually, my preferred location is Tampa.",
+        "What changed in the current plan and what still needs separate review?",
+        "Recap the city after reloading this thread."
+      ]
+    },
+    {
+      "id": "H16",
+      "invariant": "Negated claims and unsupported facts remain unknown",
+      "turns": [
+        "I do not know Python and have never had a paid internship.",
+        "Suppose I won a national robotics prize.",
+        "Write a truthful introduction and identify unknown experience."
+      ]
+    }
+  ]
+}

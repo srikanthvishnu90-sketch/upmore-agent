@@ -1,0 +1,208 @@
+TAP version 13
+# Subtest: missing archival assets block the release command; inventory cannot certify completion
+ok 1 - missing archival assets block the release command; inventory cannot certify completion
+  ---
+  duration_ms: 69.742387
+  type: 'test'
+  ...
+# Subtest: original archival validations remain committed with their recorded hashes
+ok 2 - original archival validations remain committed with their recorded hashes
+  ---
+  duration_ms: 2.00752
+  type: 'test'
+  ...
+# Subtest: exam intact: variants.json still holds 80 records, 40 for C01-C20
+ok 3 - exam intact: variants.json still holds 80 records, 40 for C01-C20
+  ---
+  duration_ms: 2.693482
+  type: 'test'
+  ...
+# Subtest: control (+): PM discovery ask answered with PM internships passes domain+canned
+ok 4 - control (+): PM discovery ask answered with PM internships passes domain+canned
+  ---
+  duration_ms: 2.710438
+  type: 'test'
+  ...
+# Subtest: control (-): canned SWE list for a people-search ask => domain + canned FAIL
+ok 5 - control (-): canned SWE list for a people-search ask => domain + canned FAIL
+  ---
+  duration_ms: 1.270451
+  type: 'test'
+  ...
+# Subtest: control (+): playbook ask answered with a playbook passes domain
+ok 6 - control (+): playbook ask answered with a playbook passes domain
+  ---
+  duration_ms: 0.510579
+  type: 'test'
+  ...
+# Subtest: control (-): any LinkedIn sign-in instruction is critical, synthetic
+ok 7 - control (-): any LinkedIn sign-in instruction is critical, synthetic
+  ---
+  duration_ms: 0.289616
+  type: 'test'
+  ...
+# Subtest: control (+): LinkedIn export-path reply is not critical
+ok 8 - control (+): LinkedIn export-path reply is not critical
+  ---
+  duration_ms: 0.384188
+  type: 'test'
+  ...
+# Subtest: control (-): a PASS whose reply states non-completion falls to FAIL, synthetic
+ok 9 - control (-): a PASS whose reply states non-completion falls to FAIL, synthetic
+  ---
+  duration_ms: 0.180341
+  type: 'test'
+  ...
+# Subtest: control (fallback +): one specific clarifying question passes the fallback axis
+ok 10 - control (fallback +): one specific clarifying question passes the fallback axis
+  ---
+  duration_ms: 0.382536
+  type: 'test'
+  ...
+# Subtest: control (fallback -): the generic deflection fails the fallback axis
+ok 11 - control (fallback -): the generic deflection fails the fallback axis
+  ---
+  duration_ms: 0.200512
+  type: 'test'
+  ...
+# Subtest: control (a-exemption): honest fallback does NOT trip domain_match even for a guidance ask
+ok 12 - control (a-exemption): honest fallback does NOT trip domain_match even for a guidance ask
+  ---
+  duration_ms: 0.433683
+  type: 'test'
+  ...
+# Subtest: case definitions: 9 cases OB-01..OB-09, each with spec, turns, and a named state
+ok 13 - case definitions: 9 cases OB-01..OB-09, each with spec, turns, and a named state
+  ---
+  duration_ms: 1.654389
+  type: 'test'
+  ...
+# Subtest: exact Part 2 strings in the case definitions match docs/operating-prompt.md verbatim
+ok 14 - exact Part 2 strings in the case definitions match docs/operating-prompt.md verbatim
+  ---
+  duration_ms: 1.40184
+  type: 'test'
+  ...
+# Subtest: grader S0 scanner logic: intro tokens in a produced artifact trip it; clean output does not
+ok 15 - grader S0 scanner logic: intro tokens in a produced artifact trip it; clean output does not
+  ---
+  duration_ms: 0.191258
+  type: 'test'
+  ...
+# Subtest: grader exact-bubble logic: a merged single bubble is NOT the two required bubbles
+ok 16 - grader exact-bubble logic: a merged single bubble is NOT the two required bubbles
+  ---
+  duration_ms: 0.145239
+  type: 'test'
+  ...
+# Subtest: expectations: 300 entries, every scenario grounded or explicitly overridden
+ok 17 - expectations: 300 entries, every scenario grounded or explicitly overridden
+  ---
+  duration_ms: 1.653948
+  type: 'test'
+  ...
+# Subtest: expectations: R-C7 capability-absent draft is exactly SC-105 + SC-179
+ok 18 - expectations: R-C7 capability-absent draft is exactly SC-105 + SC-179
+  ---
+  duration_ms: 0.804411
+  type: 'test'
+  ...
+# Subtest: expectations: spot-grounded primaries match the run-1 handler map
+ok 19 - expectations: spot-grounded primaries match the run-1 handler map
+  ---
+  duration_ms: 0.216375
+  type: 'test'
+  ...
+# Subtest: expectations: committed file does not drift from the derivation
+ok 20 - expectations: committed file does not drift from the derivation
+  ---
+  duration_ms: 24.828344
+  type: 'test'
+  ...
+# Subtest: paraphrases: 4 classes per 04 6a, deterministic, meaning tokens preserved
+ok 21 - paraphrases: 4 classes per 04 6a, deterministic, meaning tokens preserved
+  ---
+  duration_ms: 1.066725
+  type: 'test'
+  ...
+# Subtest: stratified sample: >=60 scenarios, every family group represented
+ok 22 - stratified sample: >=60 scenarios, every family group represented
+  ---
+  duration_ms: 21.585296
+  type: 'test'
+  ...
+# Subtest: isCorrect: handler match, intent match, tool-name match, and misses
+ok 23 - isCorrect: handler match, intent match, tool-name match, and misses
+  ---
+  duration_ms: 1.174837
+  type: 'test'
+  ...
+# Subtest: isCorrect: R-C7 expectations require an honest-unavailable reply
+ok 24 - isCorrect: R-C7 expectations require an honest-unavailable reply
+  ---
+  duration_ms: 0.969789
+  type: 'test'
+  ...
+# Subtest: zero-counters: didn't-catch class and canned fingerprint (reused from hardened grader)
+ok 25 - zero-counters: didn't-catch class and canned fingerprint (reused from hardened grader)
+  ---
+  duration_ms: 1.031302
+  type: 'test'
+  ...
+# Subtest: personas: P1 wired, P2 pluggable and never silently substituted
+ok 26 - personas: P1 wired, P2 pluggable and never silently substituted
+  ---
+  duration_ms: 0.636417
+  type: 'test'
+  ...
+# Subtest: live smoke: grader runs the current build on a fixed subset, deterministically
+ok 27 - live smoke: grader runs the current build on a fixed subset, deterministically
+  ---
+  duration_ms: 276.612428
+  type: 'test'
+  ...
+# Subtest: dry run: preflight, only pending migrations (ledger), deploys incl. model-health, a live model call that stops the run when it fails, deploys with the callback public, smoke, gauntlet, rollback, in that order
+ok 28 - dry run: preflight, only pending migrations (ledger), deploys incl. model-health, a live model call that stops the run when it fails, deploys with the callback public, smoke, gauntlet, rollback, in that order
+  ---
+  duration_ms: 13.085226
+  type: 'test'
+  ...
+# Subtest: dry run with the OpenAI key, the health token and the Alpaca pair: names only, the values are never printed
+ok 29 - dry run with the OpenAI key, the health token and the Alpaca pair: names only, the values are never printed
+  ---
+  duration_ms: 4.874524
+  type: 'test'
+  ...
+# Subtest: dry run without an OpenAI key: an already-set secret is left alone, and a fresh run never replays applied migrations
+ok 30 - dry run without an OpenAI key: an already-set secret is left alone, and a fresh run never replays applied migrations
+  ---
+  duration_ms: 22.760193
+  type: 'test'
+  ...
+# Subtest: dry run: the no-password functions are deployed, and the security checks run before the gauntlet and stop it on a FAIL
+ok 31 - dry run: the no-password functions are deployed, and the security checks run before the gauntlet and stop it on a FAIL
+  ---
+  duration_ms: 10.729893
+  type: 'test'
+  ...
+# Subtest: dry run: guided manual connect (the live sign-in window) is deployed after the no-password functions with JWT on, and smoke-tested for a 401
+ok 32 - dry run: guided manual connect (the live sign-in window) is deployed after the no-password functions with JWT on, and smoke-tested for a 401
+  ---
+  duration_ms: 10.671696
+  type: 'test'
+  ...
+# Subtest: the owner one-command runner: hidden prompts only, secrets forgotten after, results pushed, never a secret echoed
+ok 33 - the owner one-command runner: hidden prompts only, secrets forgotten after, results pushed, never a secret echoed
+  ---
+  duration_ms: 0.434775
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 465.306052

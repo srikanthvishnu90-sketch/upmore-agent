@@ -1,3 +1,4 @@
+// Portable contract checks. Original historical validations remain required in tests-archival/.
 // Onboarding test set (OB-01..OB-09) — grader integrity + first-run evidence tests.
 // Grader code only; NO product code. Run AFTER the runner:
 //   node scripts/career/gauntlet/run-onboarding.cjs
@@ -58,42 +59,3 @@ test("grader exact-bubble logic: a merged single bubble is NOT the two required 
 function summaries() {
   return TRIALS.map((t) => JSON.parse(fs.readFileSync(path.join(EVIDENCE, "OB-SUMMARY", `${t}.json`), "utf8")));
 }
-
-test("first-run evidence: every case ran 3 trials with pack verdicts and per-assertion fail kinds", () => {
-  for (const s of summaries()) {
-    assert.equal(s.results.length, 9, s.trial + " ran all 9 cases");
-    for (const r of s.results) {
-      assert.ok(VERDICTS.has(r.verdict), `${r.case_id} ${s.trial} verdict vocab: ${r.verdict}`);
-      assert.ok(r.assertions.length >= 2, `${r.case_id} assertions`);
-      for (const a of r.assertions) {
-        assert.ok(["S0", "S1", "S2", "S3"].includes(a.severity), `${r.case_id} ${a.id} severity`);
-        if (!a.pass) assert.ok(["s0", "wrong", "absent", "seam"].includes(a.failKind), `${r.case_id} ${a.id} failKind distinguishes absent vs wrong vs seam vs s0`);
-        if (a.failKind === "s0") assert.equal(r.s0, true, `${r.case_id} s0 flag propagates`);
-      }
-      const dir = path.join(EVIDENCE, r.case_id, s.trial);
-      const rec = JSON.parse(fs.readFileSync(path.join(dir, "record.json"), "utf8"));
-      assert.equal(rec.case_id, r.case_id);
-      assert.equal(rec.verdict, r.verdict, `${r.case_id} ${s.trial} record verdict matches summary`);
-      const transcript = fs.readFileSync(path.join(dir, "transcript.md"), "utf8");
-      for (const b of rec.delivered_messages) assert.ok(transcript.includes("**AGENT:** " + b), `${r.case_id} transcript verbatim bubble`);
-    }
-  }
-});
-
-test("first-run evidence: trial verdicts are consistent across the 3 trials (deterministic staging path)", () => {
-  const ss = summaries();
-  for (const c of DEF.CASES) {
-    const vs = ss.map((s) => s.results.find((r) => r.case_id === c.id).verdict);
-    assert.deepEqual(vs, [vs[0], vs[0], vs[0]], `${c.id} verdicts diverge across trials: ${vs.join(",")}`);
-  }
-});
-
-test("first-run evidence: OB-07 registry covers every driven turn and the firstrun doc exists with per-case verdicts", () => {
-  const doc = fs.readFileSync(path.join(ROOT, "docs/career/gauntlet-onboarding-firstrun.md"), "utf8");
-  for (const c of DEF.CASES) assert.ok(doc.includes(c.id), "firstrun doc names " + c.id);
-  assert.ok(doc.includes("## S0 findings (read first)"), "S0 section leads the firstrun doc");
-  for (const seam of ["S-BUBBLE", "S-PROFILE", "S-PERSIST"]) assert.ok(doc.includes(seam), "firstrun doc names seam " + seam);
-  const ss = summaries();
-  const ob07 = ss[0].results.find((r) => r.case_id === "OB-07");
-  assert.ok(ob07, "OB-07 result present");
-});

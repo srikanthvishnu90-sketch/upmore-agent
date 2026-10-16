@@ -77,7 +77,7 @@ const ROOT = path.join(__dirname, "..", "..", "..");
 const EXPECTATIONS_PATH = path.join(__dirname, "routing-expectations.json");
 const SCEN_DIR = path.join(ROOT, "scripts", "career", "scenarios");
 const DOMAIN_DIR = path.join(ROOT, "packages", "domain");
-const CANON_DOC = path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md");
+const CANON_DOC = path.join(ROOT, "tests/fixtures/career-critical-repairs/canonical-scenarios.md");
 const LEDGER = path.join(ROOT, "docs", "scenario-ledger.md");
 const EXPECTATIONS_VERSION = 1;
 

@@ -275,7 +275,7 @@ test("S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in
   const surfaces = [
     path.join(__dirname, "..", "packages", "domain", "124-career-outreach.js"),
     path.join(__dirname, "..", "packages", "domain", "147-career-platform-drafts.js"),
-    path.join(__dirname, "..", "..", "your_files", "review", "honest-yield-copy.md"),
+    path.join(__dirname, "..", "src", "upmore-app-template.html"),
   ];
   for (const f of surfaces) {
     const text = fs.readFileSync(f, "utf8");

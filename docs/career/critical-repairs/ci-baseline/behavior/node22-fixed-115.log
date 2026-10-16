@@ -1,0 +1,700 @@
+TAP version 13
+# Subtest: G1 seed cycle: first run establishes the baseline and alerts on nothing
+ok 1 - G1 seed cycle: first run establishes the baseline and alerts on nothing
+  ---
+  duration_ms: 7.609265
+  type: 'test'
+  ...
+# Subtest: G1+G2: a genuinely new posting emits exactly one typed alert with correct latency math
+ok 2 - G1+G2: a genuinely new posting emits exactly one typed alert with correct latency math
+  ---
+  duration_ms: 8.607427
+  type: 'test'
+  ...
+# Subtest: G6 gate: senior and manager postings produce NO alert even when new
+ok 3 - G6 gate: senior and manager postings produce NO alert even when new
+  ---
+  duration_ms: 3.128165
+  type: 'test'
+  ...
+# Subtest: G6 gate: a new intern posting outside the watched families produces NO alert
+ok 4 - G6 gate: a new intern posting outside the watched families produces NO alert
+  ---
+  duration_ms: 1.570161
+  type: 'test'
+  ...
+# Subtest: G6 gate: a hard-excluded intern posting (scoreFit) produces NO alert
+ok 5 - G6 gate: a hard-excluded intern posting (scoreFit) produces NO alert
+  ---
+  duration_ms: 1.207767
+  type: 'test'
+  ...
+# Subtest: no duplicates: a second cycle over the same board state emits nothing new
+ok 6 - no duplicates: a second cycle over the same board state emits nothing new
+  ---
+  duration_ms: 0.946864
+  type: 'test'
+  ...
+# Subtest: removals are counted silently: a posting that disappears never alerts
+ok 7 - removals are counted silently: a posting that disappears never alerts
+  ---
+  duration_ms: 0.685331
+  type: 'test'
+  ...
+# Subtest: per-board degradation: one board throwing names that board in errors[], the rest still process
+ok 8 - per-board degradation: one board throwing names that board in errors[], the rest still process
+  ---
+  duration_ms: 1.477382
+  type: 'test'
+  ...
+# Subtest: G7 deadline: a board whose fetch never resolves is cut off at the watch-level deadline
+ok 9 - G7 deadline: a board whose fetch never resolves is cut off at the watch-level deadline
+  ---
+  duration_ms: 62.090117
+  type: 'test'
+  ...
+# Subtest: cycle result is typed and complete
+ok 10 - cycle result is typed and complete
+  ---
+  duration_ms: 0.782146
+  type: 'test'
+  ...
+# Subtest: G7 body deadline keeps an awaited Node22 cycle live until its bounded failure
+ok 11 - G7 body deadline keeps an awaited Node22 cycle live until its bounded failure
+  ---
+  duration_ms: 60.569756
+  type: 'test'
+  ...
+# Subtest: the career bundle is current with packages/domain (build --career-only --check)
+ok 12 - the career bundle is current with packages/domain (build --career-only --check)
+  ---
+  duration_ms: 235.842331
+  type: 'test'
+  ...
+# Subtest: the career bundle exports only Career* names — no finance surface
+ok 13 - the career bundle exports only Career* names — no finance surface
+  ---
+  duration_ms: 116.04555
+  type: 'test'
+  ...
+# Subtest: pruned artifact == full bundle: 9-turn chain and the whole battery, byte-identical
+ok 14 - pruned artifact == full bundle: 9-turn chain and the whole battery, byte-identical
+  ---
+  duration_ms: 539.859577
+  type: 'test'
+  ...
+# Subtest: the whole battery: zero generic-fallback turns (was 61 of 84 at the wave's start)
+ok 15 - the whole battery: zero generic-fallback turns (was 61 of 84 at the wave's start)
+  ---
+  duration_ms: 1.378533
+  type: 'test'
+  ...
+# Subtest: no reply anywhere renders an empty-set artifact (BUG-174)
+ok 16 - no reply anywhere renders an empty-set artifact (BUG-174)
+  ---
+  duration_ms: 0.699142
+  type: 'test'
+  ...
+# Subtest: c29 (BUG-169, the S0): a torn deadline question writes NO invalidation
+ok 17 - c29 (BUG-169, the S0): a torn deadline question writes NO invalidation
+  ---
+  duration_ms: 0.240522
+  type: 'test'
+  ...
+# Subtest: c14 (BUG-170): the typo'd kill switch pauses, and the pause is inspectable
+ok 18 - c14 (BUG-170): the typo'd kill switch pauses, and the pause is inspectable
+  ---
+  duration_ms: 0.136786
+  type: 'test'
+  ...
+# Subtest: c42 (BUG-171): pause is inspectable, liftable in natural words, and the plan question is answered
+ok 19 - c42 (BUG-171): pause is inspectable, liftable in natural words, and the plan question is answered
+  ---
+  duration_ms: 0.246781
+  type: 'test'
+  ...
+# Subtest: c07: unpause works and the send attempt is answered from state — nothing sent
+ok 20 - c07: unpause works and the send attempt is answered from state — nothing sent
+  ---
+  duration_ms: 0.15317
+  type: 'test'
+  ...
+# Subtest: c16 (BUG-172): suppression inside a campaign thread lands in the persisted store
+ok 21 - c16 (BUG-172): suppression inside a campaign thread lands in the persisted store
+  ---
+  duration_ms: 0.165959
+  type: 'test'
+  ...
+# Subtest: c17 (BUG-175): tracker adds land, the correction renames the row, the status read names it
+ok 22 - c17 (BUG-175): tracker adds land, the correction renames the row, the status read names it
+  ---
+  duration_ms: 0.096075
+  type: 'test'
+  ...
+# Subtest: c18 (BUG-175): a named application logs with its role, its status reads back, a reported move lands
+ok 23 - c18 (BUG-175): a named application logs with its role, its status reads back, a reported move lands
+  ---
+  duration_ms: 0.254122
+  type: 'test'
+  ...
+# Subtest: c03 (BUG-174/176): a firm correction re-plans, and the first draft is produced from the corrected plan
+ok 24 - c03 (BUG-174/176): a firm correction re-plans, and the first draft is produced from the corrected plan
+  ---
+  duration_ms: 0.486712
+  type: 'test'
+  ...
+# Subtest: c15: the plan enumerates the proposed set honestly, follow-up timing is answered, a cadence change is refused
+ok 25 - c15: the plan enumerates the proposed set honestly, follow-up timing is answered, a cadence change is refused
+  ---
+  duration_ms: 0.183026
+  type: 'test'
+  ...
+# Subtest: c05/c35 (BUG-176): draft continuation produces a held draft; surgery revises the stored draft
+ok 26 - c05/c35 (BUG-176): draft continuation produces a held draft; surgery revises the stored draft
+  ---
+  duration_ms: 0.144207
+  type: 'test'
+  ...
+# Subtest: c34 (BUG-176): surgery on a draft that does not exist is answered as exactly that
+ok 27 - c34 (BUG-176): surgery on a draft that does not exist is answered as exactly that
+  ---
+  duration_ms: 0.141072
+  type: 'test'
+  ...
+# Subtest: c32 (BUG-176): the decline ask produces the decline draft for the named firm
+ok 28 - c32 (BUG-176): the decline ask produces the decline draft for the named firm
+  ---
+  duration_ms: 0.097607
+  type: 'test'
+  ...
+# Subtest: c11 (BUG-176/179): offer details merge into the offer record the advice runs on
+ok 29 - c11 (BUG-176/179): offer details merge into the offer record the advice runs on
+  ---
+  duration_ms: 0.078268
+  type: 'test'
+  ...
+# Subtest: c01/c10/c40 (BUG-179): multi-intent parts are queued and named, finance is scoped honestly, product rules answer in full
+ok 30 - c01/c10/c40 (BUG-179): multi-intent parts are queued and named, finance is scoped honestly, product rules answer in full
+  ---
+  duration_ms: 0.133731
+  type: 'test'
+  ...
+# Subtest: c08/c26 (BUG-177): mass-apply demands get the guardrail's own refusal, not the fallback
+ok 31 - c08/c26 (BUG-177): mass-apply demands get the guardrail's own refusal, not the fallback
+  ---
+  duration_ms: 0.089605
+  type: 'test'
+  ...
+# Subtest: c27/c28 (BUG-177): unverified claims onto materials are refused, distinguishably
+ok 32 - c27/c28 (BUG-177): unverified claims onto materials are refused, distinguishably
+  ---
+  duration_ms: 0.129755
+  type: 'test'
+  ...
+# Subtest: c23 (BUG-178): the voice-mock ask gets CA-01's honest-absent answer
+ok 33 - c23 (BUG-178): the voice-mock ask gets CA-01's honest-absent answer
+  ---
+  duration_ms: 0.09325
+  type: 'test'
+  ...
+# Subtest: c21/c22: single-question prep and the night-before plan route to real prep
+ok 34 - c21/c22: single-question prep and the night-before plan route to real prep
+  ---
+  duration_ms: 0.188694
+  type: 'test'
+  ...
+# Subtest: c30/c31 (BUG-174): a firm with no file gets the honest no-file answer; a one-sided compare says so
+ok 35 - c30/c31 (BUG-174): a firm with no file gets the honest no-file answer; a one-sided compare says so
+  ---
+  duration_ms: 0.215184
+  type: 'test'
+  ...
+# Subtest: c33/c09 (BUG-173): profile-less tailor asks name the target and the one missing input
+ok 36 - c33/c09 (BUG-173): profile-less tailor asks name the target and the one missing input
+  ---
+  duration_ms: 0.098538
+  type: 'test'
+  ...
+# Subtest: c12/c02/c38 (BUG-173): discovery follow-ups merge into the stored search and speak the merge
+ok 37 - c12/c02/c38 (BUG-173): discovery follow-ups merge into the stored search and speak the merge
+  ---
+  duration_ms: 0.128994
+  type: 'test'
+  ...
+# Subtest: c41/c06/c13/c19 (BUG-180): stated facts are carried, synthesized, and missing referents get one question
+ok 38 - c41/c06/c13/c19 (BUG-180): stated facts are carried, synthesized, and missing referents get one question
+  ---
+  duration_ms: 0.118589
+  type: 'test'
+  ...
+# Subtest: regression watch (passed before the wave, must not break): c20 negotiation, c24/c25 refusals, c36 honest tracker
+ok 39 - regression watch (passed before the wave, must not break): c20 negotiation, c24/c25 refusals, c36 honest tracker
+  ---
+  duration_ms: 0.06642
+  type: 'test'
+  ...
+# Subtest: the shipped bundle carries the career data (BUG-174): firm sets and the company-file library are embedded
+ok 40 - the shipped bundle carries the career data (BUG-174): firm sets and the company-file library are embedded
+  ---
+  duration_ms: 199.809783
+  type: 'test'
+  ...
+# Subtest: negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap
+ok 41 - negotiation chain: offer statement -> more-time ask -> the ACTUAL email, twice-asked -> recap
+  ---
+  duration_ms: 80.664691
+  type: 'test'
+  ...
+# Subtest: negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1
+ok 42 - negotiation claiming: an exploding-deadline offer statement is claimed in-family on turn 1
+  ---
+  duration_ms: 5.550679
+  type: 'test'
+  ...
+# Subtest: career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step
+ok 43 - career-os chain: semester ask gets a concrete two-move plan, then checklist, then one next step
+  ---
+  duration_ms: 22.330499
+  type: 'test'
+  ...
+# Subtest: fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city
+ok 44 - fact chain: bare fact turn recorded, plan USES the named firm and city, correction replaces the city
+  ---
+  duration_ms: 15.159823
+  type: 'test'
+  ...
+# Subtest: fact chain survives the shallow-copy harness (Lane C semantics)
+ok 45 - fact chain survives the shallow-copy harness (Lane C semantics)
+  ---
+  duration_ms: 12.10667
+  type: 'test'
+  ...
+# Subtest: pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record
+ok 46 - pause chain (host): after an unpause, a send ask is answered from the CURRENT pause record
+  ---
+  duration_ms: 2.225678
+  type: 'test'
+  ...
+# Subtest: pause chain (shallow-copy harness): the lifted pause survives to the send turn
+ok 47 - pause chain (shallow-copy harness): the lifted pause survives to the send turn
+  ---
+  duration_ms: 1.527498
+  type: 'test'
+  ...
+# Subtest: multi-intent: parts are answered/named, and a novel continuation delivers part two
+ok 48 - multi-intent: parts are answered/named, and a novel continuation delivers part two
+  ---
+  duration_ms: 9.082892
+  type: 'test'
+  ...
+# Subtest: adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state
+ok 49 - adversarial: fact and offer content in question, quoted, or conditional form writes NO thread state
+  ---
+  duration_ms: 5.344279
+  type: 'test'
+  ...
+# Subtest: set mapping: a healthcare-consulting ask never proposes the bulge-bracket set
+ok 50 - set mapping: a healthcare-consulting ask never proposes the bulge-bracket set
+  ---
+  duration_ms: 2.389084
+  type: 'test'
+  ...
+# Subtest: set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set
+ok 51 - set mapping: a finance ask still proposes the finance set; a named firm is never replaced by a set
+  ---
+  duration_ms: 2.137846
+  type: 'test'
+  ...
+# Subtest: track events: plain-words reports are claimed and routed to the tracker ingest
+ok 52 - track events: plain-words reports are claimed and routed to the tracker ingest
+  ---
+  duration_ms: 11.510464
+  type: 'test'
+  ...
+# Subtest: track events adversarial: a question or a friend's event writes nothing to the user's tracker
+ok 53 - track events adversarial: a question or a friend's event writes nothing to the user's tracker
+  ---
+  duration_ms: 2.306028
+  type: 'test'
+  ...
+# Subtest: R1 C01: sloppy internship ask routes to discovery using the on-file profile
+ok 54 - R1 C01: sloppy internship ask routes to discovery using the on-file profile
+  ---
+  duration_ms: 91.281721
+  type: 'test'
+  ...
+# Subtest: R1 C05: 'find 5 roles' returns a fit-ranked shortlist of 5 with reasons + caveats, deduped, no closed role
+ok 55 - R1 C05: 'find 5 roles' returns a fit-ranked shortlist of 5 with reasons + caveats, deduped, no closed role
+  ---
+  duration_ms: 31.216715
+  type: 'test'
+  ...
+# Subtest: R1 C11: 'tailor my resume to this' produces a saved artifact, no added skills, gap named
+ok 56 - R1 C11: 'tailor my resume to this' produces a saved artifact, no added skills, gap named
+  ---
+  duration_ms: 37.13763
+  type: 'test'
+  ...
+# Subtest: R1 C15: packet prep binds the BACKEND resume.pdf record by sha256 and shows a review surface
+ok 57 - R1 C15: packet prep binds the BACKEND resume.pdf record by sha256 and shows a review surface
+  ---
+  duration_ms: 43.684868
+  type: 'test'
+  ...
+# Subtest: R1 C23: 'send Alex my resume' with two Alexes = ONE batched clarification, zero sends
+ok 58 - R1 C23: 'send Alex my resume' with two Alexes = ONE batched clarification, zero sends
+  ---
+  duration_ms: 10.054393
+  type: 'test'
+  ...
+# Subtest: R1 C23 draft path: a unique recipient with account + purpose + version drafts via 124, still zero sends
+ok 59 - R1 C23 draft path: a unique recipient with account + purpose + version drafts via 124, still zero sends
+  ---
+  duration_ms: 5.851752
+  type: 'test'
+  ...
+# Subtest: R1 C31: mock interview starts, follows up on the actual answers, flags a profile contradiction, invites a retry
+ok 60 - R1 C31: mock interview starts, follows up on the actual answers, flags a profile contradiction, invites a retry
+  ---
+  duration_ms: 20.219162
+  type: 'test'
+  ...
+# Subtest: R1 discovery: a dead-registry board (Goldman Sachs) is named as unavailable, never presented as live
+ok 61 - R1 discovery: a dead-registry board (Goldman Sachs) is named as unavailable, never presented as live
+  ---
+  duration_ms: 1.514438
+  type: 'test'
+  ...
+# Subtest: R1 router: the 140 sha256 helper matches node crypto
+ok 62 - R1 router: the 140 sha256 helper matches node crypto
+  ---
+  duration_ms: 0.460673
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-122: inbox event turn carries the tracking-write doorstep
+ok 63 - [RED] IB-TN-1 SC-122: inbox event turn carries the tracking-write doorstep
+  ---
+  duration_ms: 48.619
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-123: inbox event turn carries the tracking-write doorstep
+ok 64 - [RED] IB-TN-1 SC-123: inbox event turn carries the tracking-write doorstep
+  ---
+  duration_ms: 10.216888
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-124: inbox event turn carries the tracking-write doorstep
+ok 65 - [RED] IB-TN-1 SC-124: inbox event turn carries the tracking-write doorstep
+  ---
+  duration_ms: 2.440301
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-126: inbox event turn carries the tracking-write doorstep
+ok 66 - [RED] IB-TN-1 SC-126: inbox event turn carries the tracking-write doorstep
+  ---
+  duration_ms: 3.143359
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-127: inbox event turn carries the tracking-write doorstep
+ok 67 - [RED] IB-TN-1 SC-127: inbox event turn carries the tracking-write doorstep
+  ---
+  duration_ms: 2.027159
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-138: a manual "I got an interview" update logs the Interview rounds stage
+ok 68 - [RED] IB-TN-1 SC-138: a manual "I got an interview" update logs the Interview rounds stage
+  ---
+  duration_ms: 3.228396
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-125: ambiguous recruiter reply carries the real clarifying draft at the gate
+ok 69 - [RED] IB-TN-1 SC-125: ambiguous recruiter reply carries the real clarifying draft at the gate
+  ---
+  duration_ms: 7.063774
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-128: quiet-application turn carries 126's real nudge draft, not the stub
+ok 70 - [RED] IB-TN-1 SC-128: quiet-application turn carries 126's real nudge draft, not the stub
+  ---
+  duration_ms: 2.407231
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-130: digest turn carries the status-summary doorstep
+ok 71 - [RED] IB-TN-1 SC-130: digest turn carries the status-summary doorstep
+  ---
+  duration_ms: 8.60243
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-1 SC-131: digest turn carries the status-summary doorstep
+ok 72 - [RED] IB-TN-1 SC-131: digest turn carries the status-summary doorstep
+  ---
+  duration_ms: 5.140402
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-4 SC-132: version funnel turn emits the resume-version verdict doorstep
+ok 73 - [RED] IB-TN-4 SC-132: version funnel turn emits the resume-version verdict doorstep
+  ---
+  duration_ms: 4.84697
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-4 SC-133: source funnel turn emits the funnel-analytics doorstep
+ok 74 - [RED] IB-TN-4 SC-133: source funnel turn emits the funnel-analytics doorstep
+  ---
+  duration_ms: 2.163865
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-3 SC-137: accepted-offer turn carries a doorstep and claims no withdrawal
+ok 75 - [RED] IB-TN-3 SC-137: accepted-offer turn carries a doorstep and claims no withdrawal
+  ---
+  duration_ms: 4.67341
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-10 SC-141: season turn carries the tracking-write doorstep
+ok 76 - [RED] IB-TN-10 SC-141: season turn carries the tracking-write doorstep
+  ---
+  duration_ms: 5.28516
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-10 SC-144: season turn carries the tracking-write doorstep
+ok 77 - [RED] IB-TN-10 SC-144: season turn carries the tracking-write doorstep
+  ---
+  duration_ms: 2.711739
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-10 SC-145: season turn carries the tracking-write doorstep
+ok 78 - [RED] IB-TN-10 SC-145: season turn carries the tracking-write doorstep
+  ---
+  duration_ms: 4.078514
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-10 SC-135: prep brief product is delivered (doorstep carriage = pack decision item)
+ok 79 - [GUARD] IB-TN-10 SC-135: prep brief product is delivered (doorstep carriage = pack decision item)
+  ---
+  duration_ms: 6.587288
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-10 SC-136: prep brief product is delivered (doorstep carriage = pack decision item)
+ok 80 - [GUARD] IB-TN-10 SC-136: prep brief product is delivered (doorstep carriage = pack decision item)
+  ---
+  duration_ms: 3.538582
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-2 SC-121: status turn carries the summary doorstep with the scrubbed copy
+ok 81 - [GUARD] IB-TN-2 SC-121: status turn carries the summary doorstep with the scrubbed copy
+  ---
+  duration_ms: 2.464768
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-1 SC-134: status-shaped turn keeps its summary doorstep
+ok 82 - [GUARD] IB-TN-1 SC-134: status-shaped turn keeps its summary doorstep
+  ---
+  duration_ms: 1.672275
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-1 SC-139: status-shaped turn keeps its summary doorstep
+ok 83 - [GUARD] IB-TN-1 SC-139: status-shaped turn keeps its summary doorstep
+  ---
+  duration_ms: 1.408388
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-1 SC-140: status-shaped turn keeps its summary doorstep
+ok 84 - [GUARD] IB-TN-1 SC-140: status-shaped turn keeps its summary doorstep
+  ---
+  duration_ms: 1.359094
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-6 SC-142: comp-expectation ask gets the draft on its card, never the outreach plan
+ok 85 - [GUARD] IB-TN-6 SC-142: comp-expectation ask gets the draft on its card, never the outreach plan
+  ---
+  duration_ms: 2.133999
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-7 SC-143: reschedule turn carries the calendar doorstep card
+ok 86 - [GUARD] IB-TN-7 SC-143: reschedule turn carries the calendar doorstep card
+  ---
+  duration_ms: 8.065972
+  type: 'test'
+  ...
+# Subtest: [GUARD] IB-TN-8 SC-207 (staged ctx): a plumbed offer produces the plan, the scripts, and the CIR's own as-of
+ok 87 - [GUARD] IB-TN-8 SC-207 (staged ctx): a plumbed offer produces the plan, the scripts, and the CIR's own as-of
+  ---
+  duration_ms: 11.10914
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-8 SC-206: advice turn carries the benchmark product and no hard-coded as-of
+ok 88 - [RED] IB-TN-8 SC-206: advice turn carries the benchmark product and no hard-coded as-of
+  ---
+  duration_ms: 2.856046
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-8 SC-210: advice turn carries the benchmark product and no hard-coded as-of
+ok 89 - [RED] IB-TN-8 SC-210: advice turn carries the benchmark product and no hard-coded as-of
+  ---
+  duration_ms: 2.533561
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-6 SC-208: counter-script ask gets 128's scripts, not the outreach plan
+ok 90 - [RED] IB-TN-6 SC-208: counter-script ask gets 128's scripts, not the outreach plan
+  ---
+  duration_ms: 2.463225
+  type: 'test'
+  ...
+# Subtest: [RED] IB-TN-9 SC-209: roleplay ask reaches 128's roleplay engine, not mock prep
+ok 91 - [RED] IB-TN-9 SC-209: roleplay ask reaches 128's roleplay engine, not mock prep
+  ---
+  duration_ms: 1.422069
+  type: 'test'
+  ...
+# Subtest: [GUARD] SC-129 nuance (product half): the thank-you turn carries 141's doorstep record today
+ok 92 - [GUARD] SC-129 nuance (product half): the thank-you turn carries 141's doorstep record today
+  ---
+  duration_ms: 1.658665
+  type: 'test'
+  ...
+# Subtest: [GUARD] SC-129 nuance (grader half): rescore completionTruth passes iff the v1 A4 passed — the map is the only missing half
+ok 93 - [GUARD] SC-129 nuance (grader half): rescore completionTruth passes iff the v1 A4 passed — the map is the only missing half
+  ---
+  duration_ms: 2.624067
+  type: 'test'
+  ...
+# Subtest: [RED] §A4 completion map: run-grand's completion list covers the TN intent shapes
+ok 94 - [RED] §A4 completion map: run-grand's completion list covers the TN intent shapes
+  ---
+  duration_ms: 0.31863
+  type: 'test'
+  ...
+# Subtest: grid cell cold: every next-step follow-up shape is answered, none on the generic fallback
+ok 95 - grid cell cold: every next-step follow-up shape is answered, none on the generic fallback
+  ---
+  duration_ms: 84.066117
+  type: 'test'
+  ...
+# Subtest: grid cell tracked: every next-step follow-up shape is answered, none on the generic fallback
+ok 96 - grid cell tracked: every next-step follow-up shape is answered, none on the generic fallback
+  ---
+  duration_ms: 16.830355
+  type: 'test'
+  ...
+# Subtest: grid cell outreach: every next-step follow-up shape is answered, none on the generic fallback
+ok 97 - grid cell outreach: every next-step follow-up shape is answered, none on the generic fallback
+  ---
+  duration_ms: 30.281448
+  type: 'test'
+  ...
+# Subtest: grid cell prep: every next-step follow-up shape is answered, none on the generic fallback
+ok 98 - grid cell prep: every next-step follow-up shape is answered, none on the generic fallback
+  ---
+  duration_ms: 25.829271
+  type: 'test'
+  ...
+# Subtest: grid cell named_target: every next-step follow-up shape is answered, none on the generic fallback
+ok 99 - grid cell named_target: every next-step follow-up shape is answered, none on the generic fallback
+  ---
+  duration_ms: 23.844355
+  type: 'test'
+  ...
+# Subtest: tracked cell: the next move is read from the tracker row — the company and its stage
+ok 100 - tracked cell: the next move is read from the tracker row — the company and its stage
+  ---
+  duration_ms: 8.224871
+  type: 'test'
+  ...
+# Subtest: outreach + named-target cells: the next move is the standing plan's approval step, naming the target
+ok 101 - outreach + named-target cells: the next move is the standing plan's approval step, naming the target
+  ---
+  duration_ms: 30.863994
+  type: 'test'
+  ...
+# Subtest: prep cell: the next move stays on the prep in motion — never the cold intake question
+ok 102 - prep cell: the next move stays on the prep in motion — never the cold intake question
+  ---
+  duration_ms: 10.56403
+  type: 'test'
+  ...
+# Subtest: cold cell: the answer is the one intake question that starts a plan — no invented plan over no facts
+ok 103 - cold cell: the answer is the one intake question that starts a plan — no invented plan over no facts
+  ---
+  duration_ms: 5.649719
+  type: 'test'
+  ...
+# Subtest: a next-step ask writes nothing: tracker rows, thread facts, and pause state are unchanged by the ask
+ok 104 - a next-step ask writes nothing: tracker rows, thread facts, and pause state are unchanged by the ask
+  ---
+  duration_ms: 41.82406
+  type: 'test'
+  ...
+# Subtest: claim order: more specific routes keep their turns in the same threads
+ok 105 - claim order: more specific routes keep their turns in the same threads
+  ---
+  duration_ms: 16.463614
+  type: 'test'
+  ...
+# Subtest: paused thread: a next-step follow-up names the standing pause instead of an unpaused move
+ok 106 - paused thread: a next-step follow-up names the standing pause instead of an unpaused move
+  ---
+  duration_ms: 1.783813
+  type: 'test'
+  ...
+# Subtest: W1 role closure: only the user's own closure report writes an invalidation
+ok 107 - W1 role closure: only the user's own closure report writes an invalidation
+  ---
+  duration_ms: 64.281709
+  type: 'test'
+  ...
+# Subtest: W2 prior application: a disclosure writes; questions, conditionals, and quotes do not
+ok 108 - W2 prior application: a disclosure writes; questions, conditionals, and quotes do not
+  ---
+  duration_ms: 9.116082
+  type: 'test'
+  ...
+# Subtest: W3 sensitive correction: only a statement-sentence direction writes to the profile
+ok 109 - W3 sensitive correction: only a statement-sentence direction writes to the profile
+  ---
+  duration_ms: 12.843318
+  type: 'test'
+  ...
+# Subtest: W5 opt-out: a relayed report writes; a question about a relay asks, and writes nothing
+ok 110 - W5 opt-out: a relayed report writes; a question about a relay asks, and writes nothing
+  ---
+  duration_ms: 2.482044
+  type: 'test'
+  ...
+# Subtest: W5b user suppression (BUG-172): an instruction writes; a question about it does not
+ok 111 - W5b user suppression (BUG-172): an instruction writes; a question about it does not
+  ---
+  duration_ms: 5.008333
+  type: 'test'
+  ...
+# Subtest: W6/W7 cancels: question forms write nothing anywhere
+ok 112 - W6/W7 cancels: question forms write nothing anywhere
+  ---
+  duration_ms: 2.996037
+  type: 'test'
+  ...
+# Subtest: W8 halt (141): the assertion halts — spelled correctly or with typos — and a question never does
+ok 113 - W8 halt (141): the assertion halts — spelled correctly or with typos — and a question never does
+  ---
+  duration_ms: 3.376649
+  type: 'test'
+  ...
+# Subtest: W9 tracker (BUG-175): assertion logs; hypothetical and quoted forms get a question, never a row
+ok 114 - W9 tracker (BUG-175): assertion logs; hypothetical and quoted forms get a question, never a row
+  ---
+  duration_ms: 4.598807
+  type: 'test'
+  ...
+# Subtest: W4 recipient change / W10 onboarding: question forms write nothing
+ok 115 - W4 recipient change / W10 onboarding: question forms write nothing
+  ---
+  duration_ms: 2.561774
+  type: 'test'
+  ...
+1..115
+# tests 115
+# suites 0
+# pass 115
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1223.072433

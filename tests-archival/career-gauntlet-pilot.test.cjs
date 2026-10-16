@@ -9,7 +9,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = path.join(process.env.HOME, "workspace/your_files/upmore-career-gauntlet");
+const ROOT = path.join(require("../scripts/career/critical-repairs/archive-gate.cjs").archiveRoot(), "upmore-career-gauntlet");
 const CASES = ["C01", "C03", "C05", "C11", "C15", "C17", "C18", "C20", "C23", "C31", "C37", "C38", "U02", "U03", "U04", "U12"];
 const ACTION_CASES = ["C03", "C11", "C15", "C17", "C18", "C20", "C23", "C37", "C38", "U04"];
 const VERDICTS = new Set(["PASS", "FAIL", "BLOCKED", "NOT IMPLEMENTED", "INCONCLUSIVE"]);

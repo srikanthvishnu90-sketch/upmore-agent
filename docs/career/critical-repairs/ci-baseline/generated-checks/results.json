@@ -1,0 +1,86 @@
+{
+  "commit": "c887ce0bf884cbae5ba4fce9a2a9a560ac70a73b",
+  "at": "2026-10-16T23:36:13.088973+00:00",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/build-financial-core.py",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "scripts/build-connect-cards.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "scripts/build-connector-matrix.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "scripts/build-teardowns.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "scripts/build-methods.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "scripts/build-mutation-report.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/build-standalone-gauntlet.py",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "evals/parity/build-matrix.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/tmp/upmore-spec-a-node22/node",
+        "scripts/realworld-audit.cjs",
+        "--check"
+      ],
+      "exitCode": 0
+    }
+  ]
+}

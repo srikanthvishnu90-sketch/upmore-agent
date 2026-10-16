@@ -1,0 +1,820 @@
+TAP version 13
+# Subtest: BUG-070 SC-073 salary branch carries 132's salary product + a packet doorstep
+ok 1 - BUG-070 SC-073 salary branch carries 132's salary product + a packet doorstep
+  ---
+  duration_ms: 124.765827
+  type: 'test'
+  ...
+# Subtest: BUG-070 SC-064 link triage carries the triage verdicts
+ok 2 - BUG-070 SC-064 link triage carries the triage verdicts
+  ---
+  duration_ms: 42.708924
+  type: 'test'
+  ...
+# Subtest: BUG-070 SC-078 autopilot carries 132's rule product (or its typed refusal)
+ok 3 - BUG-070 SC-078 autopilot carries 132's rule product (or its typed refusal)
+  ---
+  duration_ms: 23.957677
+  type: 'test'
+  ...
+# Subtest: BUG-070 SC-080 cooldown carries the cooldown product or a typed blocker — never neither
+ok 4 - BUG-070 SC-080 cooldown carries the cooldown product or a typed blocker — never neither
+  ---
+  duration_ms: 24.157563
+  type: 'test'
+  ...
+# Subtest: BUG-070 SC-107 deadline radar carries Apply3's radar product
+ok 5 - BUG-070 SC-107 deadline radar carries Apply3's radar product
+  ---
+  duration_ms: 23.117298
+  type: 'test'
+  ...
+# Subtest: BUG-070 contract: run-grand A4 reads the application_packet doorstep shape
+ok 6 - BUG-070 contract: run-grand A4 reads the application_packet doorstep shape
+  ---
+  duration_ms: 0.466812
+  type: 'test'
+  ...
+# Subtest: BUG-071 SC-208 counter scripts carry the offer record under payload
+ok 7 - BUG-071 SC-208 counter scripts carry the offer record under payload
+  ---
+  duration_ms: 8.262688
+  type: 'test'
+  ...
+# Subtest: BUG-071 SC-210 advice carries the benchmark product under payload
+ok 8 - BUG-071 SC-210 advice carries the benchmark product under payload
+  ---
+  duration_ms: 9.039575
+  type: 'test'
+  ...
+# Subtest: BUG-072 SC-271 market value carries an F8-valid payload
+ok 9 - BUG-072 SC-271 market value carries an F8-valid payload
+  ---
+  duration_ms: 1.982922
+  type: 'test'
+  ...
+# Subtest: BUG-072 SC-274 upkeep carries an F8-valid payload
+ok 10 - BUG-072 SC-274 upkeep carries an F8-valid payload
+  ---
+  duration_ms: 1.33631
+  type: 'test'
+  ...
+# Subtest: BUG-072 SC-277 playbook carries an F8-valid payload
+ok 11 - BUG-072 SC-277 playbook carries an F8-valid payload
+  ---
+  duration_ms: 1.048747
+  type: 'test'
+  ...
+# Subtest: BUG-072 SC-279 goals carries an F8-valid payload
+ok 12 - BUG-072 SC-279 goals carries an F8-valid payload
+  ---
+  duration_ms: 1.039844
+  type: 'test'
+  ...
+# Subtest: BUG-073 SC-177 question-bank ask reaches the question bank (not the failure-story branch)
+ok 13 - BUG-073 SC-177 question-bank ask reaches the question bank (not the failure-story branch)
+  ---
+  duration_ms: 5.25965
+  type: 'test'
+  ...
+# Subtest: BUG-073 SC-185 case plan payload validates F5
+ok 14 - BUG-073 SC-185 case plan payload validates F5
+  ---
+  duration_ms: 3.020413
+  type: 'test'
+  ...
+# Subtest: BUG-073 SC-247 compare ask carries 125's comparison product under payload
+ok 15 - BUG-073 SC-247 compare ask carries 125's comparison product under payload
+  ---
+  duration_ms: 4.294218
+  type: 'test'
+  ...
+# Subtest: BUG-073 SC-263 company-file build resolves the BCG file and carries it
+ok 16 - BUG-073 SC-263 company-file build resolves the BCG file and carries it
+  ---
+  duration_ms: 3.377029
+  type: 'test'
+  ...
+# Subtest: BUG-074 SC-206 negotiation advice reply names a source class and an as-of date
+ok 17 - BUG-074 SC-206 negotiation advice reply names a source class and an as-of date
+  ---
+  duration_ms: 2.656065
+  type: 'test'
+  ...
+# Subtest: BUG-074 128 benchmark text carries no bare CIR acronym (composer jargon kill)
+ok 18 - BUG-074 128 benchmark text carries no bare CIR acronym (composer jargon kill)
+  ---
+  duration_ms: 0.215715
+  type: 'test'
+  ...
+# Subtest: BUG-074 SC-269 stale-file turn carries a typed record or blocker
+ok 19 - BUG-074 SC-269 stale-file turn carries a typed record or blocker
+  ---
+  duration_ms: 1.541498
+  type: 'test'
+  ...
+# Subtest: BUG-075 contract reads the validator's actual verdict field (valid)
+ok 20 - BUG-075 contract reads the validator's actual verdict field (valid)
+  ---
+  duration_ms: 0.281394
+  type: 'test'
+  ...
+# Subtest: BUG-073 SC-242 trend ask carries 144's cited record (the ok:false honest record is the answer)
+ok 21 - BUG-073 SC-242 trend ask carries 144's cited record (the ok:false honest record is the answer)
+  ---
+  duration_ms: 4.389051
+  type: 'test'
+  ...
+# Subtest: BUG-076 contract discovery branch reads singular role/job ask forms
+ok 22 - BUG-076 contract discovery branch reads singular role/job ask forms
+  ---
+  duration_ms: 17.438958
+  type: 'test'
+  ...
+# Subtest: BUG-077 SC-071 truth-audit branch carries the audit artifact
+ok 23 - BUG-077 SC-071 truth-audit branch carries the audit artifact
+  ---
+  duration_ms: 1.355239
+  type: 'test'
+  ...
+# Subtest: BUG-077 SC-076 bans-AI branch delivers the outline artifact (prepared)
+ok 24 - BUG-077 SC-076 bans-AI branch delivers the outline artifact (prepared)
+  ---
+  duration_ms: 1.890192
+  type: 'test'
+  ...
+# Subtest: BUG-077→BUG-111 SC-089 per-firm impact-bullets ask: the named firm is resolved or honestly stopped — never a substitute artifact
+ok 25 - BUG-077→BUG-111 SC-089 per-firm impact-bullets ask: the named firm is resolved or honestly stopped — never a substitute artifact
+  ---
+  duration_ms: 16.469249
+  type: 'test'
+  ...
+# Subtest: BUG-077 SC-097 diff review carries the quoted changes as the review artifact
+ok 26 - BUG-077 SC-097 diff review carries the quoted changes as the review artifact
+  ---
+  duration_ms: 1.796181
+  type: 'test'
+  ...
+# Subtest: BUG-078 contract carries an element branch for the prior-application record
+ok 27 - BUG-078 contract carries an element branch for the prior-application record
+  ---
+  duration_ms: 1.944734
+  type: 'test'
+  ...
+# Subtest: BUG-079 SC-114 triage ask reaches the apply-rules triage branch
+ok 28 - BUG-079 SC-114 triage ask reaches the apply-rules triage branch
+  ---
+  duration_ms: 25.790739
+  type: 'test'
+  ...
+# Subtest: S2 isolation: profile facts never cross profiles (122)
+ok 29 - S2 isolation: profile facts never cross profiles (122)
+  ---
+  duration_ms: 2.47308
+  type: 'test'
+  ...
+# Subtest: S2 isolation: application logs never cross users (132)
+ok 30 - S2 isolation: application logs never cross users (132)
+  ---
+  duration_ms: 0.48555
+  type: 'test'
+  ...
+# Subtest: S2 isolation: campaign state never crosses campaigns/users (124)
+ok 31 - S2 isolation: campaign state never crosses campaigns/users (124)
+  ---
+  duration_ms: 0.59213
+  type: 'test'
+  ...
+# Subtest: S2 no unapproved send / S3-H4: an unapproved campaign sends nothing
+ok 32 - S2 no unapproved send / S3-H4: an unapproved campaign sends nothing
+  ---
+  duration_ms: 0.295525
+  type: 'test'
+  ...
+# Subtest: S2 no duplicate submit: a crash-retry replay sends each draft once (124 idempotency)
+ok 33 - S2 no duplicate submit: a crash-retry replay sends each draft once (124 idempotency)
+  ---
+  duration_ms: 0.461204
+  type: 'test'
+  ...
+# Subtest: S2 no duplicate submit: the apply log flags a second application to the same posting (132)
+ok 34 - S2 no duplicate submit: the apply log flags a second application to the same posting (132)
+  ---
+  duration_ms: 0.216696
+  type: 'test'
+  ...
+# Subtest: S2 mass-close: a zero-result poll fires NO closed events
+ok 35 - S2 mass-close: a zero-result poll fires NO closed events
+  ---
+  duration_ms: 6.930935
+  type: 'test'
+  ...
+# Subtest: S2 mass-close: a >50% drop poll fires NO closed events; a small drop still closes normally
+ok 36 - S2 mass-close: a >50% drop poll fires NO closed events; a small drop still closes normally
+  ---
+  duration_ms: 1.295208
+  type: 'test'
+  ...
+# Subtest: S2 injection corpus: 40 posting-text cases are processed as data, markers confined, zero side effects
+ok 37 - S2 injection corpus: 40 posting-text cases are processed as data, markers confined, zero side effects
+  ---
+  duration_ms: 7.267831
+  type: 'test'
+  ...
+# Subtest: S2 injection corpus: posting text never reaches the tailor as instructions (10 classes)
+ok 38 - S2 injection corpus: posting text never reaches the tailor as instructions (10 classes)
+  ---
+  duration_ms: 82.318346
+  type: 'test'
+  ...
+# Subtest: S3-H1 invention: a skill absent from the fact bank never reaches tailored output (3 adversarial shapes)
+ok 39 - S3-H1 invention: a skill absent from the fact bank never reaches tailored output (3 adversarial shapes)
+  ---
+  duration_ms: 19.924837
+  type: 'test'
+  ...
+# Subtest: S3-H2 numbers: an invented number is a truth-audit violation; the fact's own number passes
+ok 40 - S3-H2 numbers: an invented number is a truth-audit violation; the fact's own number passes
+  ---
+  duration_ms: 0.517909
+  type: 'test'
+  ...
+# Subtest: S3-H3/R10 immutability: a foreign employer in a line is a violation; tailored output keeps full title + company suffix verbatim
+ok 41 - S3-H3/R10 immutability: a foreign employer in a line is a violation; tailored output keeps full title + company suffix verbatim
+  ---
+  duration_ms: 6.371583
+  type: 'test'
+  ...
+# Subtest: S3-H4: a tailored version is an unsubmitted draft artifact (outcome null, nothing saved final)
+ok 42 - S3-H4: a tailored version is an unsubmitted draft artifact (outcome null, nothing saved final)
+  ---
+  duration_ms: 7.573661
+  type: 'test'
+  ...
+# Subtest: S3-H5 injection: JD-embedded instructions are treated as data (§8D example 4 verbatim shape)
+ok 43 - S3-H5 injection: JD-embedded instructions are treated as data (§8D example 4 verbatim shape)
+  ---
+  duration_ms: 5.89771
+  type: 'test'
+  ...
+# Subtest: S3-H6: pipeline runs emit no PII on any console channel
+ok 44 - S3-H6: pipeline runs emit no PII on any console channel
+  ---
+  duration_ms: 6.976232
+  type: 'test'
+  ...
+# Subtest: S3-R11 placeholders: placeholder resume lines fail the audit (Greenhouse skips placeholders; we never submit them)
+ok 45 - S3-R11 placeholders: placeholder resume lines fail the audit (Greenhouse skips placeholders; we never submit them)
+  ---
+  duration_ms: 0.266762
+  type: 'test'
+  ...
+# Subtest: S3-8D example 1: the allowed line passes the audit; the not-allowed additions trip it
+ok 46 - S3-8D example 1: the allowed line passes the audit; the not-allowed additions trip it
+  ---
+  duration_ms: 0.595286
+  type: 'test'
+  ...
+# Subtest: S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in the copy surfaces this program owns
+ok 47 - S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in the copy surfaces this program owns
+  ---
+  duration_ms: 7.039828
+  type: 'test'
+  ...
+# Subtest: S2 §11(F) captcha hand-off: a challenge at review stops the run, hands the user the link, zero submits (149)
+ok 48 - S2 §11(F) captcha hand-off: a challenge at review stops the run, hands the user the link, zero submits (149)
+  ---
+  duration_ms: 1.937925
+  type: 'test'
+  ...
+# Subtest: S2 §11(F) timeout -> needs_human: an unanswered submit is unknown_outcome, blind retry refused, reconcile reads the board (149)
+ok 49 - S2 §11(F) timeout -> needs_human: an unanswered submit is unknown_outcome, blind retry refused, reconcile reads the board (149)
+  ---
+  duration_ms: 1.042809
+  type: 'test'
+  ...
+# Subtest: S2 §11(F) name-mismatch block: the board account name differs from the profile — blocked before any submit (149)
+ok 50 - S2 §11(F) name-mismatch block: the board account name differs from the profile — blocked before any submit (149)
+  ---
+  duration_ms: 0.288554
+  type: 'test'
+  ...
+# Subtest: S2 §11(A) fetcher contract fixtures with recorded real ATS responses
+ok 51 - S2 §11(A) fetcher contract fixtures with recorded real ATS responses # SKIP SUT not built: the F2 poller upgrade (fetchers per Spec 2 §1) starts after the wedge; 121's recorded-shape normalizers are covered by career-jobs tests meanwhile
+  ---
+  duration_ms: 0.049815
+  type: 'test'
+  ...
+# Subtest: S2 §11(C) dedupe precision/recall on 300 labelled pairs
+ok 52 - S2 §11(C) dedupe precision/recall on 300 labelled pairs # SKIP needs the labelled pair set (Spec 2 §2.5); not yet created
+  ---
+  duration_ms: 0.108243
+  type: 'test'
+  ...
+# Subtest: S2 §11(D) matching quality on 200 labelled pairs incl. authorization traps
+ok 53 - S2 §11(D) matching quality on 200 labelled pairs incl. authorization traps # SKIP SUT not built: matcher stages 3-4 (semantic + LLM judge) are Codex-lane / post-wedge
+  ---
+  duration_ms: 0.044106
+  type: 'test'
+  ...
+# Subtest: S2 §11(H) load test: 5,000 companies on the poll schedule
+ok 54 - S2 §11(H) load test: 5,000 companies on the poll schedule # SKIP SUT not built: the polling worker (Spec 2 §8.1) is a [DECISION]-gated build (worker hosting)
+  ---
+  duration_ms: 0.034913
+  type: 'test'
+  ...
+# Subtest: S3 §13.2 parse tests: 50+ varied resumes x DOCX/PDF x 2 parsers — reading order + field capture (CA-02, Spec 3 §2.5)
+ok 55 - S3 §13.2 parse tests: 50+ varied resumes x DOCX/PDF x 2 parsers — reading order + field capture (CA-02, Spec 3 §2.5)
+  ---
+  duration_ms: 1415.080623
+  type: 'test'
+  ...
+# Subtest: S3 §8B.4 healthcare credential rules (exact copy, PHI block on detection)
+ok 56 - S3 §8B.4 healthcare credential rules (exact copy, PHI block on detection) # SKIP SUT not built: no healthcare fact path exists; rule recorded in the CA-02 plan; family ships only after 3 sources + human reviewer
+  ---
+  duration_ms: 0.071988
+  type: 'test'
+  ...
+# Subtest: BUG-087 intel: 23 company-file asks — no two replies byte-identical
+ok 57 - BUG-087 intel: 23 company-file asks — no two replies byte-identical
+  ---
+  duration_ms: 122.079657
+  type: 'test'
+  ...
+# Subtest: BUG-111 tailor: 15 asks — no two replies byte-identical, artifacts preserved
+ok 58 - BUG-111 tailor: 15 asks — no two replies byte-identical, artifacts preserved
+  ---
+  duration_ms: 375.188663
+  type: 'test'
+  ...
+# Subtest: BUG-111 tailor: named firm with no posting gets that firm's honest stop — never a substitute role
+ok 59 - BUG-111 tailor: named firm with no posting gets that firm's honest stop — never a substitute role
+  ---
+  duration_ms: 343.339117
+  type: 'test'
+  ...
+# Subtest: BUG-110 outreach: 32 plan asks — no two replies byte-identical
+ok 60 - BUG-110 outreach: 32 plan asks — no two replies byte-identical
+  ---
+  duration_ms: 74.925598
+  type: 'test'
+  ...
+# Subtest: BUG-110 outreach: named firms are the plan's firms; a default is spoken as a proposal
+ok 61 - BUG-110 outreach: named firms are the plan's firms; a default is spoken as a proposal
+  ---
+  duration_ms: 103.551902
+  type: 'test'
+  ...
+# Subtest: BUG-110 parseTarget units: named-firm extraction is a recognizer, not an expander
+ok 62 - BUG-110 parseTarget units: named-firm extraction is a recognizer, not an expander
+  ---
+  duration_ms: 5.195574
+  type: 'test'
+  ...
+# Subtest: BUG-109 referrals: 19 warm-path asks — no two replies byte-identical
+ok 63 - BUG-109 referrals: 19 warm-path asks — no two replies byte-identical
+  ---
+  duration_ms: 49.886194
+  type: 'test'
+  ...
+# Subtest: BUG-109 referrals: every reply grounded in its ask or typed graph state
+ok 64 - BUG-109 referrals: every reply grounded in its ask or typed graph state
+  ---
+  duration_ms: 53.72357
+  type: 'test'
+  ...
+# Subtest: BUG-088 negotiation: 13 advice asks — no two replies byte-identical
+ok 65 - BUG-088 negotiation: 13 advice asks — no two replies byte-identical
+  ---
+  duration_ms: 36.848661
+  type: 'test'
+  ...
+# Subtest: BUG-088 negotiation: each reply is its own ask's answer, bench product still carried
+ok 66 - BUG-088 negotiation: each reply is its own ask's answer, bench product still carried
+  ---
+  duration_ms: 27.585859
+  type: 'test'
+  ...
+# Subtest: BUG-089 casePrepPlan: a set ask names the set in the spoken text, never its first file alone
+ok 67 - BUG-089 casePrepPlan: a set ask names the set in the spoken text, never its first file alone
+  ---
+  duration_ms: 1.147175
+  type: 'test'
+  ...
+# Subtest: BUG-089 casePrepPlan: a single-firm ask keeps its single-firm plan
+ok 68 - BUG-089 casePrepPlan: a single-firm ask keeps its single-firm plan
+  ---
+  duration_ms: 0.200301
+  type: 'test'
+  ...
+# Subtest: BUG-089 SC-185 through the chat path: MBB-wide ask, no single-firm attribution
+ok 69 - BUG-089 SC-185 through the chat path: MBB-wide ask, no single-firm attribution
+  ---
+  duration_ms: 7.189112
+  type: 'test'
+  ...
+# Subtest: BUG-087 intel: every reply grounded + carries its own file's content
+ok 70 - BUG-087 intel: every reply grounded + carries its own file's content
+  ---
+  duration_ms: 141.71564
+  type: 'test'
+  ...
+# Subtest: BUG-119 SC-211 extension shape: the mechanics are stated with no bare claim verb; reply ends on a next step
+ok 71 - BUG-119 SC-211 extension shape: the mechanics are stated with no bare claim verb; reply ends on a next step
+  ---
+  duration_ms: 3.242016
+  type: 'test'
+  ...
+# Subtest: BUG-120 SC-213 equity shape: the dated grounding line rides; reply ends on a next step
+ok 72 - BUG-120 SC-213 equity shape: the dated grounding line rides; reply ends on a next step
+  ---
+  duration_ms: 2.258807
+  type: 'test'
+  ...
+# Subtest: BUG-121 SC-225 comparison: the firm's screen is reported in third person, never re-addressed to the user; reply ends on a next step
+ok 73 - BUG-121 SC-225 comparison: the firm's screen is reported in third person, never re-addressed to the user; reply ends on a next step
+  ---
+  duration_ms: 2.193368
+  type: 'test'
+  ...
+# Subtest: BUG-122 SC-256 entry routes: the file's degree fields are named without the bare claim token
+ok 74 - BUG-122 SC-256 entry routes: the file's degree fields are named without the bare claim token
+  ---
+  duration_ms: 1.54924
+  type: 'test'
+  ...
+# Subtest: BUG-125: plan replies open building-now and never defer with 'Say go'
+ok 75 - BUG-125: plan replies open building-now and never defer with 'Say go'
+  ---
+  duration_ms: 93.529177
+  type: 'test'
+  ...
+# Subtest: BUG-127: plan replies speak every filter the ask carries
+ok 76 - BUG-127: plan replies speak every filter the ask carries
+  ---
+  duration_ms: 37.412158
+  type: 'test'
+  ...
+# Subtest: BUG-124: 'competition-math' never yields MATH Venture Partners
+ok 77 - BUG-124: 'competition-math' never yields MATH Venture Partners
+  ---
+  duration_ms: 2.562824
+  type: 'test'
+  ...
+# Subtest: BUG-126: 'Bain Capital' is never rewritten to Bain & Company
+ok 78 - BUG-126: 'Bain Capital' is never rewritten to Bain & Company
+  ---
+  duration_ms: 2.393379
+  type: 'test'
+  ...
+# Subtest: BUG-128: population asks are answered as populations, not the default 40
+ok 79 - BUG-128: population asks are answered as populations, not the default 40
+  ---
+  duration_ms: 4.266126
+  type: 'test'
+  ...
+# Subtest: BUG-129: no bulge-bracket proposal serves a non-banking ask
+ok 80 - BUG-129: no bulge-bracket proposal serves a non-banking ask
+  ---
+  duration_ms: 15.730878
+  type: 'test'
+  ...
+# Subtest: BUG-130: SC-025 states the Tier C hold as settled
+ok 81 - BUG-130: SC-025 states the Tier C hold as settled
+  ---
+  duration_ms: 1.823923
+  type: 'test'
+  ...
+# Subtest: BUG-131: voice ask keeps its own sample count; reserve speaks its split; safety plan states the cap
+ok 82 - BUG-131: voice ask keeps its own sample count; reserve speaks its split; safety plan states the cap
+  ---
+  duration_ms: 11.159784
+  type: 'test'
+  ...
+# Subtest: BUG-132: SC-031 names both offered times with absolute dates
+ok 83 - BUG-132: SC-031 names both offered times with absolute dates
+  ---
+  duration_ms: 9.299947
+  type: 'test'
+  ...
+# Subtest: BUG-125: no two plan replies in the family are byte-identical
+ok 84 - BUG-125: no two plan replies in the family are byte-identical
+  ---
+  duration_ms: 51.503371
+  type: 'test'
+  ...
+# Subtest: BUG-133: prep sets speak their true track and grounding
+ok 85 - BUG-133: prep sets speak their true track and grounding
+  ---
+  duration_ms: 25.285859
+  type: 'test'
+  ...
+# Subtest: BUG-134: question bank and STAR bank speak their true match state
+ok 86 - BUG-134: question bank and STAR bank speak their true match state
+  ---
+  duration_ms: 3.325862
+  type: 'test'
+  ...
+# Subtest: BUG-135: producer replies speak their records with per-shape next steps
+ok 87 - BUG-135: producer replies speak their records with per-shape next steps
+  ---
+  duration_ms: 25.524488
+  type: 'test'
+  ...
+# Subtest: BUG-136: brief replies speak bar, loop, and story state; coffee chats speak their points
+ok 88 - BUG-136: brief replies speak bar, loop, and story state; coffee chats speak their points
+  ---
+  duration_ms: 46.837734
+  type: 'test'
+  ...
+# Subtest: BUG-137: announcements name the event, its source, and its next step
+ok 89 - BUG-137: announcements name the event, its source, and its next step
+  ---
+  duration_ms: 17.333219
+  type: 'test'
+  ...
+# Subtest: BUG-138: empty-tracker replies take the ask's shape
+ok 90 - BUG-138: empty-tracker replies take the ask's shape
+  ---
+  duration_ms: 13.94285
+  type: 'test'
+  ...
+# Subtest: BUG-139: nudge, thank-you, and classification speak their true state
+ok 91 - BUG-139: nudge, thank-you, and classification speak their true state
+  ---
+  duration_ms: 7.594732
+  type: 'test'
+  ...
+# Subtest: BUG-140: track summaries speak their records
+ok 92 - BUG-140: track summaries speak their records
+  ---
+  duration_ms: 22.329443
+  type: 'test'
+  ...
+# Subtest: BUG-187: proposed-set and category plans build now; the peer tone speaks peer to peer
+ok 93 - BUG-187: proposed-set and category plans build now; the peer tone speaks peer to peer
+  ---
+  duration_ms: 11.479696
+  type: 'test'
+  ...
+# Subtest: BUG-188: closed/named firm sets get window arithmetic, not a ramp-only timeline
+ok 94 - BUG-188: closed/named firm sets get window arithmetic, not a ramp-only timeline
+  ---
+  duration_ms: 8.733115
+  type: 'test'
+  ...
+# Subtest: BUG-189: cohort years never parse as a headcount; every listed firm is named; the school capture stops at the school
+ok 95 - BUG-189: cohort years never parse as a headcount; every listed firm is named; the school capture stops at the school
+  ---
+  duration_ms: 9.225034
+  type: 'test'
+  ...
+# Subtest: BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap reads one way with dated finish arithmetic
+ok 96 - BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap reads one way with dated finish arithmetic
+  ---
+  duration_ms: 2.787983
+  type: 'test'
+  ...
+# Subtest: BUG-191: empty-record deliverables state their zero with the arithmetic shown
+ok 97 - BUG-191: empty-record deliverables state their zero with the arithmetic shown
+  ---
+  duration_ms: 4.287008
+  type: 'test'
+  ...
+# Subtest: BUG-201: no advice reply carries the shared opener, the degree-as-source, or the population grounding line; topics answer on topic
+ok 98 - BUG-201: no advice reply carries the shared opener, the degree-as-source, or the population grounding line; topics answer on topic
+  ---
+  duration_ms: 74.898887
+  type: 'test'
+  ...
+# Subtest: BUG-202: route details and cadence windows are spoken, comparisons are two-sided, the cohort school row states the pattern or its absence
+ok 99 - BUG-202: route details and cadence windows are spoken, comparisons are two-sided, the cohort school row states the pattern or its absence
+  ---
+  duration_ms: 24.27515
+  type: 'test'
+  ...
+# Subtest: BUG-197: no deadline or expiry is claimed without a value on the record; the clarifying draft is shown; the nudge blocker names its gate
+ok 100 - BUG-197: no deadline or expiry is claimed without a value on the record; the clarifying draft is shown; the nudge blocker names its gate
+  ---
+  duration_ms: 8.464521
+  type: 'test'
+  ...
+# Subtest: BUG-198: offered slots that have all passed are re-proposed for the next day, disclosed
+ok 101 - BUG-198: offered slots that have all passed are re-proposed for the next day, disclosed
+  ---
+  duration_ms: 8.545001
+  type: 'test'
+  ...
+# Subtest: BUG-199: ghosted names a pattern, quiet hours arm conditionally, expiries carry dates, the dashboard addresses the plan, the retro delivers the plan
+ok 102 - BUG-199: ghosted names a pattern, quiet hours arm conditionally, expiries carry dates, the dashboard addresses the plan, the retro delivers the plan
+  ---
+  duration_ms: 7.213769
+  type: 'test'
+  ...
+# Subtest: BUG-200: interview times carry a timezone, the interviewer gap is stated, and a two-interview pack is marked as its own shape
+ok 103 - BUG-200: interview times carry a timezone, the interviewer gap is stated, and a two-interview pack is marked as its own shape
+  ---
+  duration_ms: 4.123822
+  type: 'test'
+  ...
+# Subtest: BUG-192: research talk, teaching demo, and bar-raiser briefs are three different briefs
+ok 104 - BUG-192: research talk, teaching demo, and bar-raiser briefs are three different briefs
+  ---
+  duration_ms: 8.003888
+  type: 'test'
+  ...
+# Subtest: BUG-193: the night-before pack has no repeated sentence and no listing scaffolding
+ok 105 - BUG-193: the night-before pack has no repeated sentence and no listing scaffolding
+  ---
+  duration_ms: 17.509234
+  type: 'test'
+  ...
+# Subtest: BUG-194: counts are spoken truthfully, empty debriefs mine and draft nothing, the standard set is delivered
+ok 106 - BUG-194: counts are spoken truthfully, empty debriefs mine and draft nothing, the standard set is delivered
+  ---
+  duration_ms: 10.537369
+  type: 'test'
+  ...
+# Subtest: BUG-195: the quant set is only quant, the finance set is complete, the PM set speaks the shipped work
+ok 107 - BUG-195: the quant set is only quant, the finance set is complete, the PM set speaks the shipped work
+  ---
+  duration_ms: 7.801294
+  type: 'test'
+  ...
+# Subtest: BUG-196: no claim-verb nouns in wave replies; set replies name their head, not a shortlist; status answers carry the record
+ok 108 - BUG-196: no claim-verb nouns in wave replies; set replies name their head, not a shortlist; status answers carry the record
+  ---
+  duration_ms: 98.180503
+  type: 'test'
+  ...
+# Subtest: BUG-181: the saved sponsorship answer is printed word for word
+ok 109 - BUG-181: the saved sponsorship answer is printed word for word
+  ---
+  duration_ms: 26.297592
+  type: 'test'
+  ...
+# Subtest: BUG-181: referral stacking runs against the named role and states the no-invention rule in user terms
+ok 110 - BUG-181: referral stacking runs against the named role and states the no-invention rule in user terms
+  ---
+  duration_ms: 20.660854
+  type: 'test'
+  ...
+# Subtest: BUG-181: the truth audit reports its result; the diff is shown line by line
+ok 111 - BUG-181: the truth audit reports its result; the diff is shown line by line
+  ---
+  duration_ms: 2.810968
+  type: 'test'
+  ...
+# Subtest: BUG-181: the knockout the user named is named as the reason; the cooldown headline never claims an uncomputed date
+ok 112 - BUG-181: the knockout the user named is named as the reason; the cooldown headline never claims an uncomputed date
+  ---
+  duration_ms: 53.393214
+  type: 'test'
+  ...
+# Subtest: BUG-181: an empty-log autopsy asks for the user's applications first
+ok 113 - BUG-181: an empty-log autopsy asks for the user's applications first
+  ---
+  duration_ms: 1.771534
+  type: 'test'
+  ...
+# Subtest: BUG-182: essay headline leads with the missing-theme gap; hold headline drops the unshown math; gap headline states the finding
+ok 114 - BUG-182: essay headline leads with the missing-theme gap; hold headline drops the unshown math; gap headline states the finding
+  ---
+  duration_ms: 4.864296
+  type: 'test'
+  ...
+# Subtest: BUG-183: the review set is tailored whole; variants are delivered as named cuts; bucket reasons are spoken
+ok 115 - BUG-183: the review set is tailored whole; variants are delivered as named cuts; bucket reasons are spoken
+  ---
+  duration_ms: 90.692621
+  type: 'test'
+  ...
+# Subtest: BUG-184: graph rule speaks plain caps; packet document line is plain words; one-page and ATS rules are answered
+ok 116 - BUG-184: graph rule speaks plain caps; packet document line is plain words; one-page and ATS rules are answered
+  ---
+  duration_ms: 69.221488
+  type: 'test'
+  ...
+# Subtest: BUG-185: autopilot rule restated in full; watch carries the window and the hour; triage uses the user's flags
+ok 117 - BUG-185: autopilot rule restated in full; watch carries the window and the hour; triage uses the user's flags
+  ---
+  duration_ms: 102.770307
+  type: 'test'
+  ...
+# Subtest: BUG-186: 'What happened with my Stripe application?' reaches the application-status answer, not the company file
+ok 118 - BUG-186: 'What happened with my Stripe application?' reaches the application-status answer, not the company file
+  ---
+  duration_ms: 2.316584
+  type: 'test'
+  ...
+# Subtest: BUG-204: a proposed closed set gets window arithmetic, not a ramp-only timeline (SC-010)
+ok 119 - BUG-204: a proposed closed set gets window arithmetic, not a ramp-only timeline (SC-010)
+  ---
+  duration_ms: 3.043558
+  type: 'test'
+  ...
+# Subtest: BUG-204: a user-named category is never handed back as the plan's proposal (SC-028)
+ok 120 - BUG-204: a user-named category is never handed back as the plan's proposal (SC-028)
+  ---
+  duration_ms: 2.38661
+  type: 'test'
+  ...
+# Subtest: BUG-204: the safety plan states its milestone anchor (SC-043)
+ok 121 - BUG-204: the safety plan states its milestone anchor (SC-043)
+  ---
+  duration_ms: 1.849953
+  type: 'test'
+  ...
+# Subtest: BUG-204: the coffee-chat brief speaks every question it counts (SC-182)
+ok 122 - BUG-204: the coffee-chat brief speaks every question it counts (SC-182)
+  ---
+  duration_ms: 2.006688
+  type: 'test'
+  ...
+# Subtest: BUG-204: a quant prep set carries no generic behavioral opener (SC-186)
+ok 123 - BUG-204: a quant prep set carries no generic behavioral opener (SC-186)
+  ---
+  duration_ms: 1.767599
+  type: 'test'
+  ...
+# Subtest: BUG-204: no reply says 'merged company file' (SC-193/SC-200)
+ok 124 - BUG-204: no reply says 'merged company file' (SC-193/SC-200)
+  ---
+  duration_ms: 2.930136
+  type: 'test'
+  ...
+# Subtest: BUG-204: the rejection note's own first line rides the reply (SC-123)
+ok 125 - BUG-204: the rejection note's own first line rides the reply (SC-123)
+  ---
+  duration_ms: 1.643702
+  type: 'test'
+  ...
+# Subtest: BUG-204: the calendar proposal names its pick first (SC-143)
+ok 126 - BUG-204: the calendar proposal names its pick first (SC-143)
+  ---
+  duration_ms: 9.001097
+  type: 'test'
+  ...
+# Subtest: BUG-204: a not-found status never offers a timeline for the missing application (SC-115)
+ok 127 - BUG-204: a not-found status never offers a timeline for the missing application (SC-115)
+  ---
+  duration_ms: 1.520647
+  type: 'test'
+  ...
+# Subtest: BUG-204: an autopilot ask hears the doorstep rule first (SC-061)
+ok 128 - BUG-204: an autopilot ask hears the doorstep rule first (SC-061)
+  ---
+  duration_ms: 24.225775
+  type: 'test'
+  ...
+# Subtest: BUG-204: no fixture marker rides a spoken tailor bullet (SC-094)
+ok 129 - BUG-204: no fixture marker rides a spoken tailor bullet (SC-094)
+  ---
+  duration_ms: 20.376216
+  type: 'test'
+  ...
+# Subtest: BUG-204: file prose never speaks the file's claim verbs as this turn's acts (SC-255)
+ok 130 - BUG-204: file prose never speaks the file's claim verbs as this turn's acts (SC-255)
+  ---
+  duration_ms: 3.845884
+  type: 'test'
+  ...
+# Subtest: BUG-204: every advice record's bottom line is under 30 words and carries no claim-verb adjectives (F7)
+ok 131 - BUG-204: every advice record's bottom line is under 30 words and carries no claim-verb adjectives (F7)
+  ---
+  duration_ms: 26.880048
+  type: 'test'
+  ...
+# Subtest: BUG-205 negotiation: scripts delivered, absence never contradicted
+ok 132 - BUG-205 negotiation: scripts delivered, absence never contradicted
+  ---
+  duration_ms: 16.478263
+  type: 'test'
+  ...
+# Subtest: BUG-205 referrals: keep-warm and timing answers are per-ask, closers name the input
+ok 133 - BUG-205 referrals: keep-warm and timing answers are per-ask, closers name the input
+  ---
+  duration_ms: 22.153749
+  type: 'test'
+  ...
+# Subtest: BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked steps
+ok 134 - BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked steps
+  ---
+  duration_ms: 54.776904
+  type: 'test'
+  ...
+# Subtest: BUG-205 leftovers: closers and dedupes hold
+ok 135 - BUG-205 leftovers: closers and dedupes hold
+  ---
+  duration_ms: 12.261882
+  type: 'test'
+  ...
+1..135
+# tests 135
+# suites 0
+# pass 130
+# fail 0
+# cancelled 0
+# skipped 5
+# todo 0
+# duration_ms 1862.863807

@@ -16,7 +16,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const L = require("../scripts/career/gauntlet/pilot-lib.cjs");
 
-const doc = fs.readFileSync(path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md"), "utf8");
+const doc = fs.readFileSync(path.join(__dirname, "fixtures/career-critical-repairs/canonical-scenarios.md"), "utf8");
 const CANON = new Map();
 for (const line of doc.split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !CANON.has(m[1])) CANON.set(m[1], m[2].trim()); }
 

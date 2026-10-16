@@ -10,7 +10,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = path.join(process.env.HOME, "workspace/your_files/upmore-career-gauntlet-variants-b");
+const ROOT = path.join(require("../scripts/career/critical-repairs/archive-gate.cjs").archiveRoot(), "upmore-career-gauntlet-variants-b");
 const VARIANTS = [];
 for (let c = 21; c <= 40; c++) for (const v of ["V1", "V2"]) VARIANTS.push(`C${c}-${v}`);
 const VERDICTS = new Set(["PASS", "FAIL", "BLOCKED", "NOT IMPLEMENTED", "INCONCLUSIVE"]);

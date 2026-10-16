@@ -14,7 +14,7 @@ const L = require("../scripts/career/gauntlet/pilot-lib.cjs");
 const Outreach = require("../packages/domain/124-career-outreach.js");
 const Doorstep = require("../packages/domain/141-career-doorstep.js");
 
-const doc = fs.readFileSync(path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md"), "utf8");
+const doc = fs.readFileSync(path.join(__dirname, "fixtures/career-critical-repairs/canonical-scenarios.md"), "utf8");
 const CANON = new Map();
 for (const line of doc.split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !CANON.has(m[1])) CANON.set(m[1], m[2].trim()); }
 

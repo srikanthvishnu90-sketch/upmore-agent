@@ -1,0 +1,3 @@
+error: Uncaught (in promise) NotCapable: Requires read access to "/workspace/upmore-critical-repairs/supabase/functions/gmail-oauth/index.ts", run again with the --allow-read flag
+    at Object.readTextFile (ext:deno_fs/30_fs.js:1:10048)
+    at file:///tmp/upmore-spec-a-deno-source-read.ts:1:23

@@ -11,6 +11,7 @@
 #                                           0600) when not given and not already saved
 #   bash scripts/launch/go-live.sh [--no-wait]
 #
+# Preflight also requires original authorized archives, the pinned CI test dependencies, Docker, poppler and python-docx.
 # Needs: the supabase CLI logged in (`supabase login`), psql, node 18+, curl, jq. Stops at the first failure.
 #   0. preflight: clean tree, the exact commit, the local checks green (node tests, bundle current)
 #   1. migrations: only those not yet in the live ledger (--pending), ONE transaction; a re-run applies nothing
@@ -43,7 +44,8 @@ if [[ -z "$DRY" ]]; then
   : "${SUPABASE_DB_URL:?set SUPABASE_DB_URL}"; : "${GAUNTLET_PASSWORD:?set GAUNTLET_PASSWORD (gauntlet-test@upmore.test)}"
   for t in supabase psql node curl jq; do command -v "$t" >/dev/null || { echo "missing: $t"; exit 1; }; done
   [[ -z "$(git status --porcelain)" ]] || { echo "the tree has uncommitted changes; the live test must run on an exact commit"; exit 1; }
-  node --test tests/*.cjs >/tmp/upmore-go-live-tests.log 2>&1 || { echo "local tests are red (see /tmp/upmore-go-live-tests.log); nothing was touched"; exit 1; }
+  node scripts/career/critical-repairs/archive-gate.cjs --require-complete
+  node scripts/career/critical-repairs/ci-node.cjs >/tmp/upmore-go-live-tests.log 2>&1 || { echo "local tests are red (see /tmp/upmore-go-live-tests.log); nothing was touched"; exit 1; }
   python3 scripts/build-router-core.py --check
 fi
 echo "commit $SHA"

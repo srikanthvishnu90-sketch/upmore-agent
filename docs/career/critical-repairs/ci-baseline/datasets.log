@@ -1,0 +1,9 @@
+ok   advice-boundary           100 rows  labeled/advice-boundary.json
+ok   gold                     1718 rows  gold/drafts.json
+ok   injection                 115 rows  adversarial/injection.json
+ok   merchants                4717 rows  labeled/merchants.json
+ok   news-relevance            500 rows  labeled/news-relevance.json
+ok   savings-lives              40 rows  labeled/savings-lives.json
+ok   traces                    296 rows  traces/traces.json
+ok   traps                      45 rows  adversarial/traps.json
+datasets valid

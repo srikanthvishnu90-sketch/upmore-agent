@@ -1,0 +1,66 @@
+{
+  "archives": [
+    {
+      "source": "tests/career-gauntlet-pilot.test.cjs",
+      "archive": "tests-archival/career-gauntlet-pilot.test.cjs",
+      "originalSha256": "43c391e90d6d3c236103ce36dbfe27987958f0f807b27377be8da16b533f8eee",
+      "archivedSha256": "3d5d71b67e3a10509035516d99fbea287273ee6a3d72b7a3c305954310db6e57",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    },
+    {
+      "source": "tests/career-gauntlet-rerun.test.cjs",
+      "archive": "tests-archival/career-gauntlet-rerun.test.cjs",
+      "originalSha256": "fd0ccb50c4919910cce6fdf021cc33f20380fa9b816436af40d4a34a9b6edd87",
+      "archivedSha256": "7843b8ff14488bede8840ffa8e7838029b0cb4e9d3fe4fc712ccf791831b4c8b",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    },
+    {
+      "source": "tests/career-gauntlet-cvarb.test.cjs",
+      "archive": "tests-archival/career-gauntlet-cvarb.test.cjs",
+      "originalSha256": "c349fc34b3ec0d84661aa006af95a7184556e18636d13a8d3c3759220c84e6ef",
+      "archivedSha256": "c9c39acfe807c475a12292da57c34fc23cad1a652a7fc9c4d7b7a0419fd1f1e5",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    },
+    {
+      "source": "tests/career-gauntlet-u.test.cjs",
+      "archive": "tests-archival/career-gauntlet-u.test.cjs",
+      "originalSha256": "94ef7f624d185e6bbe556acbc1ce470c6ff7f2215d88770094aed74dda95bfd5",
+      "archivedSha256": "f1ff5bd5551a7ba2f32da4a1a4f83995fd56fe1b33d361725eb08934e5551afc",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    },
+    {
+      "source": "tests/career-gauntlet-cvar-a.test.cjs",
+      "archive": "tests-archival/career-gauntlet-cvar-a.test.cjs",
+      "originalSha256": "d33e331c091bc9d78c4513b61201d25096a54d4b829888d0332005a6bf47af06",
+      "archivedSha256": "389d223052f6d07df021f2d2843d5fa4840e476c60fe04a411d2d7f6f3808026",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    },
+    {
+      "source": "tests/career-gauntlet-regressions.test.cjs",
+      "archive": "tests-archival/career-gauntlet-regressions.test.cjs",
+      "originalSha256": "b51bec8bc08e1b571a64d5932a74dd0c71f6abfa5b4ff2585b5504320a133ec7",
+      "archivedSha256": "78265566da40ad5a47609d093106a81a2900287676d58e0841588b45beae3b6b",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    },
+    {
+      "source": "tests/career-quality-onboarding.test.cjs",
+      "archive": "tests-archival/career-quality-onboarding.test.cjs",
+      "originalSha256": "c2bee568d4668e7641d2c2fbe6fe43b76e766432a4fd8ffef8841d7a7f376777",
+      "archivedSha256": "c59b7e97aaf6c0e638b390cdd8735bf64136b479e138596f2462f8350e58dfcb",
+      "assertionsPreserved": true,
+      "historicalProofRegenerated": false
+    }
+  ],
+  "proofStatus": "NOT_RUN_MISSING_HISTORICAL_ASSETS",
+  "sourceInputsRecoveredFrom": "scripts/career/gauntlet/routing-expectations.json@123943e1",
+  "scenarioCount": 300,
+  "canonicalInputSha256": "f69d0f5991f26523e2a40c948ae0558d93952a8fe369f6f5e6d794e71cb49a09",
+  "generatedHistoricalRecords": 0,
+  "releaseRequirement": "tests-archival remains required by archive-gate --require-complete before go-live preflight"
+}

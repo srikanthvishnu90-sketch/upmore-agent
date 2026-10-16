@@ -1,0 +1,19 @@
+{
+  "base": "123943e1c12cee3459155562add892fa996872c7",
+  "result": "EXPECTED_FAIL",
+  "reason": "new pure journey module absent; A shared contracts also absent",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/frozen-contract.test.cjs"
+  ],
+  "exit_code": 1,
+  "sha256": {
+    "tests/career-interview-journey/frozen-contract.test.cjs": "d6ee699961cd53ef7d2fbc56feb6a847915f845ba0af894cc48557680672f881",
+    "tests/career-interview-journey/fixtures.cjs": "a3170ee93bbb0a033aea4dba80dc2d5e6ce457fdcdedacf2c933907a1afc205f",
+    "evals/career-interview-journey/protocol.json": "d49907660b15ed3e98ece127b2085a1900daf6d0f664acbde11be8dece7e916e"
+  },
+  "log_sha256": "e1a073094b30298ef5010df0ce69bc15c303b9e62e99bba44faed710a8c25611",
+  "provider_calls": 0,
+  "quality": "NOT_RUN"
+}

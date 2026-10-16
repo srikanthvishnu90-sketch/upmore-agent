@@ -1,0 +1,28 @@
+{
+  "version": "interview-depth-eval/v1",
+  "frozen_before_implementation": true,
+  "development_examples_are_visible": true,
+  "provider_mode": "NOT_RUN",
+  "protected_holdout_content": "evaluator_owned_absent",
+  "protected_holdout_hashes": [],
+  "required_episodes": 24,
+  "families": {
+    "causal_pairs": ["time", "ownership", "outcome_evidence", "role_level", "recruiter_format", "root_gap"],
+    "invariance_pairs": ["equivalent_wording", "decorative_detail"],
+    "recovery": ["benign_style_edit", "answer_and_side_question", "correction_restart", "source_failure"],
+    "complete_journeys": ["revision_and_transfer", "inflight_correction", "pause_shorter_time", "stop_then_resume"]
+  },
+  "human_dimensions": ["grounding", "relevance", "diagnosis", "adaptation", "usefulness", "continuity", "artifact_quality"],
+  "gate": {
+    "critical_failures": 0,
+    "complete_journey_min_each_dimension": 3,
+    "scale_max": 4,
+    "all_causal_invariance_recovery_properties_required": true,
+    "independent_reviewers": 2,
+    "technical_expert_required": true,
+    "retain_disagreements": true,
+    "blinded_legacy_comparison_required": true
+  },
+  "prerequisites": ["A actual entry integration", "approved provider", "evaluated real checker", "reconciled original shared allowance", "explicit run authorization", "evaluator frozen unseen content hashes"],
+  "prohibited_claims": ["scripted tests prove semantic accuracy", "assisted rewrite proves mastery", "assertions equal conversations", "local files prove deployed delivery"]
+}

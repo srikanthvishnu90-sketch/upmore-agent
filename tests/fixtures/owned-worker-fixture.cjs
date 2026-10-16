@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createFileTaskStore, hash } = require("../../workers/career-browser/store.cjs");
 const { createWorker } = require("../../workers/career-browser/service.cjs");
+const { mockAuthority, bindMockTaskClient } = require("./owned-worker-authority.cjs");
 function fixture(root, options = {}) {
   fs.mkdirSync(root, { recursive: true });
   const resumePath = path.join(root, "resume.txt");
@@ -49,13 +50,16 @@ function fixture(root, options = {}) {
     if (options.wrongProof) proof.userId = "other-user";
     return proof;
   };
-  const worker = createWorker({ store, resolveEquipment: () => ({ userId: options.userId || "user-a", profile, resumePath, attestations: options.attestations || {} }),
+  const authority = options.authority || mockAuthority(root);
+  const rawWorker = createWorker({ store, authority, resolveEquipment: () => ({ userId: options.userId || "user-a", profile, resumePath, attestations: options.attestations || {},
+    accountVersion: authority.current(options.userId||"user-a").version, privacyEpoch: authority.current(options.userId||"user-a").epoch }),
     controlledPortals: [{ url: posting.url, submitUrl: "http://localhost:8123/submit" }],
     boardFactory: options.boardFactory || boardFactory, readReceipt, now: () => clock.value,
     maxActions: options.maxActions ?? 120, timeoutMs: options.timeoutMs ?? 30000 });
+  const worker = options.authority ? rawWorker : bindMockTaskClient(rawWorker,authority);
   const input = { eventId: "event-1", posting, artifactId: "owned-resume-1", resumeSha256 };
   const approval = (task, ref = "approval-1") => ({ approvedByUser: true, approvalRef: ref,
     payloadSha256: task.review.payloadSha256, resumeSha256: task.review.resumeSha256, destination: task.review.destination });
-  return { worker, store, input, profile, resumePath, clock, count, approval, receiptPath };
+  return { worker, store, authority, input, profile, resumePath, clock, count, approval, receiptPath };
 }
 module.exports = { fixture };

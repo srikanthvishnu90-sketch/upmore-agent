@@ -1,52 +1,54 @@
-// Edge-safe protocol only. The Node worker and task store never enter the
-// deployed function's import graph. CareerHost remains the conversation owner.
-async function routeCareerBrowserTask({ taskRequest, message, userId, userToken, ctx, endpoint, fetchImpl = fetch }) {
-  if (!taskRequest) return null;
-  const reply = (text, resultStatus = "blocked", task = null, code = null) => ({
-    reply: text, intent: "career_browser_task", resultStatus, contained: false,
-    task, blocker: code, result: { task, sends: 0 },
-    capabilities: { portal_browser: { status: task ? "CONTROLLED_LOCAL_ONLY" : "NOT_WIRED" }, job_alert_delivery: { status: "NOT_WIRED" } },
-  });
-  if (!endpoint || !userToken) return reply("The owned browser worker is not wired for this chat session; no browser task was started.", "blocked", null, "WORKER_NOT_WIRED");
-  const action = taskRequest.action;
-  if (!["prepare", "status", "approve", "reconcile"].includes(action)) return reply("That browser task action is unavailable.", "blocked", null, "TASK_ACTION_INVALID");
-  const id = taskRequest.taskId;
-  if (action !== "prepare" && !/^[a-f0-9]{32}$/.test(id || "")) return reply("Name the browser task to continue.", "awaiting_user", null, "TASK_ID_REQUIRED");
-  const base = new URL(endpoint);
-  if (base.username || base.password || base.search || base.hash || !["https:", "http:"].includes(base.protocol)) return reply("The owned browser worker configuration is unavailable.", "blocked", null, "WORKER_CONFIGURATION_INVALID");
-  if (base.protocol === "http:" && !["localhost", "127.0.0.1"].includes(base.hostname)) return reply("The owned browser worker requires a protected connection.", "blocked", null, "WORKER_CONFIGURATION_INVALID");
-  let method = "POST", target, body;
-  if (action === "prepare") {
-    if (!ctx?.posting || !taskRequest.artifactId || !taskRequest.resumeSha256 || !taskRequest.eventId) return reply("I need the chosen posting and an existing resume artifact with its exact hash before queuing browser preparation.", "awaiting_user", null, "TASK_INPUT_REQUIRED");
-    // Only the current host's chosen posting is used. Caller-supplied profile,
-    // local file paths, destinations or user identity are never forwarded.
-    target = "/tasks";
-    body = { eventId: taskRequest.eventId, posting: ctx.posting, artifactId: taskRequest.artifactId, resumeSha256: taskRequest.resumeSha256 };
-  } else if (action === "status") { target = "/tasks/" + id; method = "GET"; }
-  else {
-    target = "/tasks/" + id + "/" + action;
-    if (action === "approve" && !/^\s*approve browser task [a-f0-9]{32}\s*[.!]?\s*$/i.test(message || "")) return reply("Review the exact task payload first, then approve that browser task explicitly.", "awaiting_user", null, "EXPLICIT_APPROVAL_REQUIRED");
-    if (action === "approve" && !(message || "").toLowerCase().includes(id)) return reply("The approval names a different browser task.", "blocked", null, "APPROVAL_TASK_MISMATCH");
-    body = action === "approve" ? { approvedByUser: true, approvalRef: taskRequest.eventId,
-      payloadSha256: taskRequest.payloadSha256, resumeSha256: taskRequest.resumeSha256, destination: taskRequest.destination } : {};
+// Intent planning only. SQL commits this intent with the reply receipt.
+// No HTTP worker transport or browser effect is permitted in a chat turn.
+const VERSION = "career_task_intent/v1";
+const fail = () => { throw Object.assign(new Error("invalid_career_task"), { code: "invalid_career_task" }); };
+const hash64 = v => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
+const id32 = v => typeof v === "string" && /^[a-f0-9]{32}$/.test(v);
+export function normalizeCareerTaskRequest(value) {
+  if (value == null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) return fail();
+  const fields = {
+    prepare: ["action", "version", "eventId", "artifactId", "resumeSha256"],
+    approve: ["action", "version", "eventId", "taskId", "payloadSha256", "resumeSha256", "profileSha256", "destination"],
+    status: ["action", "version", "taskId", "intentId"],
+    reconcile: ["action", "version", "eventId", "taskId"],
+  }[value.action];
+  if (!fields || Object.keys(value).some(k => !fields.includes(k)) || (value.version && value.version !== VERSION)) return fail();
+  const out = { version: VERSION, action: value.action };
+  for (const key of fields) if (key !== "version" && value[key] !== undefined) out[key] = value[key];
+  if (out.action !== "status" && (typeof out.eventId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(out.eventId))) return fail();
+  if (out.action === "prepare" && (!/^[A-Za-z0-9_-]{1,160}$/.test(out.artifactId || "") || !hash64(out.resumeSha256))) return fail();
+  if (["approve", "reconcile"].includes(out.action) && !id32(out.taskId)) return fail();
+  if (out.action === "status" && ((!id32(out.taskId) && !hash64(out.intentId)) || (out.taskId && out.intentId))) return fail();
+  if (out.action === "approve") {
+    if (!hash64(out.payloadSha256) || !hash64(out.resumeSha256) || (out.profileSha256 != null && !hash64(out.profileSha256))) return fail();
+    let url; try { url = new URL(out.destination); } catch (_) { return fail(); }
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.hash || url.href !== out.destination) return fail();
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetchImpl(new URL(target, base), { method, redirect: "error", signal: controller.signal,
-      headers: { Authorization: "Bearer " + userToken, "Content-Type": "application/json" }, ...(method === "POST" ? { body: JSON.stringify(body) } : {}) });
-    const data = await res.json();
-    if (!res.ok || !data.task) return reply("The browser task did not confirm that operation; check its status before retrying.", "blocked", null, data.error || "WORKER_OPERATION_UNCONFIRMED");
-    const task = data.task;
-    if (task.userId !== userId) return reply("The worker returned a task for another owner; no result is accepted.", "blocked", null, "TASK_OWNER_MISMATCH");
-    if (task.id !== id && action !== "prepare") return reply("The worker returned a different task; no result is accepted.", "blocked", null, "TASK_RESULT_MISMATCH");
-    const text = task.status === "review_ready" ? "The application is prepared for review; nothing has been submitted. Review the exact payload and resume hash before approving this task."
-      : task.status === "completed" ? "The controlled local portal confirmed this task; its checked result is attached."
-      : task.status === "unknown_outcome" ? "The submission outcome is unknown. I will reconcile the destination before any further action; I have not retried it."
-      : task.status === "queued" ? "Browser preparation is queued. No form has been opened or submitted yet; check this task for its review artifact."
-      : "The browser task is " + task.status + "; no completed submission is claimed. Its current details are attached.";
-    return reply(text, task.status, task);
-  } catch (_) { return reply("The browser worker did not confirm the operation. Its outcome is uncertain; check the task before retrying.", "unknown_outcome", null, "WORKER_OPERATION_UNCERTAIN"); }
-  finally { clearTimeout(timer); }
+  return out;
 }
-export { routeCareerBrowserTask };
+export async function planCareerTaskIntent({ taskRequest, message, userId, threadId, turnKey, requestHash, ctx, accountVersion, account, persistence }) {
+  const reply = (text, status, task = null) => ({ reply: text, intent: "career_browser_task", resultStatus: status,
+    contained: false, task, capabilities: ctx.workerCapabilities, result: { task, sends: 0 } });
+  if (taskRequest.action === "status") {
+    const task = await persistence.readTask({ userId, taskId: taskRequest.taskId || null, intentId: taskRequest.intentId || null });
+    return { intent: null, out: reply(task ? "The owned browser task's saved evidence is attached. No new browser action was started." : "No owned task evidence is available for that reference.", task?.status || "awaiting_user", task) };
+  }
+  if (taskRequest.action === "approve" && message !== "Approve browser task " + taskRequest.taskId) {
+    return { intent: null, out: reply("Approve the specific browser task explicitly from its exact review; a bare yes authorizes nothing.", "awaiting_user") };
+  }
+  if (taskRequest.action === "prepare" && (!ctx.posting?.url || !ctx.posting?.canonicalKey)) {
+    return { intent: null, out: reply("Choose the posting and existing owned resume artifact before queuing browser preparation.", "awaiting_user") };
+  }
+  const bytes = new TextEncoder().encode(JSON.stringify([VERSION, userId, threadId, turnKey, requestHash]));
+  const intentId = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(v => v.toString(16).padStart(2, "0")).join("");
+  const intent = { version: VERSION, intent_id: intentId, user_id: userId, thread_id: threadId, turn_key: turnKey,
+    request_hash: requestHash, action: taskRequest.action, task_id: taskRequest.taskId || null, event_id: taskRequest.eventId,
+    artifact_id: taskRequest.artifactId || null, resume_sha256: taskRequest.resumeSha256 || null,
+    payload_sha256: taskRequest.payloadSha256 || null, profile_sha256: taskRequest.profileSha256 || null,
+    destination: taskRequest.action === "prepare" ? ctx.posting.url : taskRequest.destination || null,
+    authority_account_version: accountVersion + 1, privacy_epoch: account.epoch || 0 };
+  const task = { version: VERSION, id: intent.task_id, userId, status: "queued", kind: "pending_task_intent",
+    intent_id: intentId, bindings: intent, provenance: { source: "atomic_career_task_intent", threadId, turnKey } };
+  return { intent, out: reply("The browser task intent is queued for a separate worker. No browser action is claimed by this chat reply; its immutable intent reference is attached.", "queued", task) };
+}

@@ -1,7 +1,8 @@
 // Host-only persistence adapter. The RPCs preserve Muse's snapshot shape;
 // callers cannot turn client-supplied owner/state into storage authority.
 const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
-function validResponse(value,threadId,turnKey){return record(value)&&value.thread_id===threadId&&value.turn_key===turnKey&&typeof value.reply==='string'&&Array.isArray(value.reminders);}
+function validTask(value,userId){return record(value)&&value.userId===userId&&typeof value.status==='string'&&((value.version==='career_task_intent/v1'&&value.kind==='pending_task_intent'&&/^[a-f0-9]{64}$/.test(value.intent_id||'')&&(value.id===null||/^[a-f0-9]{32}$/.test(value.id)))||(value.version==='career_task/v1'&&/^[a-f0-9]{32}$/.test(value.id||'')));}
+function validResponse(value,threadId,turnKey,userId){return record(value)&&value.thread_id===threadId&&value.turn_key===turnKey&&typeof value.reply==='string'&&Array.isArray(value.reminders)&&(!('task' in value)||validTask(value.task,userId));}
 function unavailable(){throw Object.assign(new Error('career_storage_invalid'),{code:'storage_unavailable'});}
 export function createCareerPersistence(client) {
   async function call(name, args) {
@@ -14,23 +15,30 @@ export function createCareerPersistence(client) {
   return {
     async load({ userId, threadId, turnKey, requestHash }) {
       const data=await call('career_host_load',{p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash});
-      if('replay' in data){if(!validResponse(data.replay,threadId,turnKey))unavailable();}
+      if('replay' in data){if(!validResponse(data.replay,threadId,turnKey,userId))unavailable();}
       else if(!Number.isSafeInteger(data.revision)||data.revision<0||!Number.isSafeInteger(data.accountVersion)||data.accountVersion<0||!record(data.account)||!record(data.watchState)||!Array.isArray(data.reminders)||(data.snapshot!==null&&!record(data.snapshot)))unavailable();
       return data;
     },
-    async commit({ userId, threadId, turnKey, requestHash, revision, accountVersion, snapshot, patch, input, response }) {
-      const data=await call('career_host_commit',{
+    async commit({ userId, threadId, turnKey, requestHash, revision, accountVersion, snapshot, patch, input, response, taskIntent }) {
+      const base={
         p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash,
         p_revision:revision,p_account_version:accountVersion,
         p_snapshot:snapshot,p_patch:patch||{},p_input:input,p_response:response,
-      });
-      if(!validResponse(data.response,threadId,turnKey))unavailable();
+      };
+      const data=taskIntent?await call('career_task_turn_commit_v1',{p_base:base,p_intent:taskIntent}):await call('career_host_commit',base);
+      if(!validResponse(data.response,threadId,turnKey,userId))unavailable();
       return data;
+    },
+    async readTask({userId,taskId,intentId}) {
+      const data=await call('career_task_result_v1',{p_user:userId,p_task:taskId,p_intent:intentId});
+      if(data.task!==null&&!validTask(data.task,userId))unavailable();
+      return data.task;
     },
   };
 }
 
-export async function careerRequestHash(message, images) {
-  const bytes = new TextEncoder().encode(JSON.stringify([message, images || null]));
+export async function careerRequestHash(message, images, careerTask=null) {
+  const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+  const bytes = new TextEncoder().encode(JSON.stringify(canonical({version:'career_turn/v2',message,acceptedImages:images||null,careerTask})));
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
 }

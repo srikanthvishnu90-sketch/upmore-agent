@@ -35,10 +35,12 @@ test("owned Chromium: conditional multi-page form, actual uploaded file hash, ex
   const resumeSha256 = hash(fs.readFileSync(resumePath));
   const profile = { name: "Synthetic Test", email: "synthetic@example.test", resume: { filename: "resume.txt", sha256: resumeSha256 },
     answers: { sponsorship: { confirmed: true, value: "Yes" }, work_authorization: { confirmed: true, value: "Yes" } } };
-  const worker = createWorker({ store: createFileTaskStore(path.join(root, "tasks")),
+  const { mockAuthority, bindMockTaskClient } = require("./fixtures/owned-worker-authority.cjs");
+  const authority = mockAuthority(root);
+  const worker = bindMockTaskClient(createWorker({ authority, store: createFileTaskStore(path.join(root, "tasks")),
     controlledPortals: [{ url: base + "/form", submitUrl: base + "/submit" }],
-    resolveEquipment: () => ({ userId: "test-user", profile, resumePath, attestations: { certify: { explicit: true, value: true } } }),
-    readReceipt: (task) => { const p = path.join(root, "receipts", task.id + ".json"); return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p)) : null; } });
+    resolveEquipment: () => ({ userId: "test-user", profile, resumePath, accountVersion: authority.current("test-user").version, privacyEpoch: authority.current("test-user").epoch, attestations: { certify: { explicit: true, value: true } } }),
+    readReceipt: (task) => { const p = path.join(root, "receipts", task.id + ".json"); return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p)) : null; } }), authority);
   const queued = worker.receive("test-user", { eventId: "test-event", posting: { canonicalKey: "local-form", url: base + "/form", status: "open" }, artifactId: "test-artifact", resumeSha256 });
   const prepared = worker.prepare("test-user", queued.id);
   assert.equal(prepared.status, "review_ready", JSON.stringify(prepared));

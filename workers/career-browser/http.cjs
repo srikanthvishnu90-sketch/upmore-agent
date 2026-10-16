@@ -23,7 +23,7 @@ function createHttpHandler({ worker, authenticate }) {
       const action = match[2];
       if (action === "prepare") return json({ task: worker.prepare(user.id, match[1]) });
       if (action === "approve") return json({ task: worker.approve(user.id, match[1], body) });
-      if (action === "reconcile") return json({ task: worker.reconcile(user.id, match[1]) });
+      if (action === "reconcile") return json({ task: worker.reconcile(user.id, match[1], body) });
       return json({ error: "not_found" }, 404);
     } catch (e) { return json({ error: e.code || "worker_error" }, e.code === "TASK_NOT_FOUND" ? 404 : 409); }
   };

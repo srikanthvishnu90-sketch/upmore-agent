@@ -117,13 +117,13 @@ if (!vm.SourceTextModule) {
     const bundle = modules.get(path.join(stage, "_shared/router_core.career.js")).namespace;
     return {
       bundle, db,
-      async chat(message, careerTask) {
+      async chat(message, careerTask, expectedStatus = 200) {
         const res = await handle(new Request("https://upmore.example.test/chat", {
           method: "POST", headers: { Authorization: "Bearer mock-user-token", "Content-Type": "application/json" },
           body: JSON.stringify({ thread_id: THREAD, message, career_task: careerTask }),
         }));
         const body = await res.json();
-        assert.equal(res.status, 200, JSON.stringify(body));
+        assert.equal(res.status, expectedStatus, JSON.stringify(body));
         assert.equal(body.action, null, "chat never invents an external action");
         assert.equal(networkCalls, 0, "no alert, browser, submission, email or paid API call");
         return { ...body, meta: db.messages.at(-1).meta };
@@ -233,40 +233,30 @@ if (!vm.SourceTextModule) {
     assert.equal(app.db.messages.filter((m) => m.role === "assistant").length, 1, "only the requested chat reply, no phantom alert delivery");
   });
 
-  test("actual staged chat bridges durable tasks while preserving CareerHost snapshot ownership", async () => {
-    const { fixture } = require("./fixtures/owned-worker-fixture.cjs");
-    const { createHttpHandler } = require("../workers/career-browser/http.cjs");
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "owned-chat-bridge-"));
-    try {
-      const f = fixture(root, { userId: USER });
-      const handleWorker = createHttpHandler({ worker: f.worker, authenticate: async (auth) => {
-        assert.equal(auth, "Bearer mock-user-token", "forward only the existing user token");
-        return { id: USER };
-      } });
-      const app = await stagedEntry(handleWorker);
-      app.db.state.career.stores.posting = f.input.posting;
-      const prior = clone(app.db.state.career.stores);
-      const queued = await app.chat("Prepare the chosen application in the browser", { action: "prepare", ...f.input });
-      assert.equal(queued.task.status, "queued");
-      assert.deepEqual(app.db.state.career.stores, prior, "worker tasks do not replace or extend CareerHost stores");
-      assert.equal(f.worker.runPending()[0].status, "review_ready");
-      const current = await app.chat("Show my browser task", { action: "status", taskId: queued.task.id });
-      assert.equal(current.task.review.kind, "career_browser_review");
-      const a = f.approval(current.task);
-      const request = { action: "approve", taskId: queued.task.id, eventId: a.approvalRef, ...a };
-      await app.chat("yes", request);
-      assert.equal(f.count().clicks, 0, "a bare yes never authorizes a task through the bridge");
-      const done = await app.chat("Approve browser task " + queued.task.id, request);
-      assert.equal(done.task.status, "completed");
-      assert.equal(done.task.result.receipt.source, "controlled_portal_readback");
-      assert.equal(f.count().clicks, 1);
-      await app.chat("Approve browser task " + queued.task.id, request);
-      assert.equal(f.count().clicks, 1, "a duplicate approval webhook cannot re-submit");
-      const wrongOwner = await stagedEntry(async () => new Response(JSON.stringify({ task: { id: queued.task.id, userId: "someone-else", status: "queued" } }), { headers: { "Content-Type": "application/json" } }));
-      wrongOwner.db.state.career.stores.posting = f.input.posting;
-      const refused = await wrongOwner.chat("Prepare the chosen application in the browser", { action: "prepare", ...f.input });
-      assert.equal(refused.meta.result_status, "blocked");
-      assert.equal(refused.task, undefined, "the bridge never presents another owner's task");
-    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  test("actual staged chat commits a typed task intent before any worker can execute", async () => {
+    let workerCalls = 0;
+    const app = await stagedEntry(() => { workerCalls++; throw Error("chat must not call worker"); });
+    app.db.state.career.stores.posting = { url: "http://localhost:8123/form", canonicalKey: "local:test-role" };
+    const reference = await stagedEntry();
+    reference.db.state.career.stores.posting = clone(app.db.state.career.stores.posting);
+    await reference.chat("Prepare the chosen application in the browser");
+    const prior = clone(reference.db.state.career.stores);
+    const request = { action: "prepare", eventId: "synthetic-event", artifactId: "owned-resume-1", resumeSha256: "a".repeat(64) };
+    const queued = await app.chat("Prepare the chosen application in the browser", request);
+    assert.equal(queued.task.status, "queued");
+    assert.equal(queued.task.kind, "pending_task_intent");
+    assert.equal(queued.task.id, null, "no worker task identity is invented before dispatch");
+    assert.equal(queued.task.bindings.user_id, USER);
+    assert.equal(app.db.taskIntents.get(queued.task.intent_id).artifact_id, request.artifactId);
+    assert.deepEqual(app.db.state.career.stores, prior, "task intents do not extend CareerHost stores");
+    assert.equal(workerCalls, 0);
+    const task = { version: "career_task/v1", id: "b".repeat(32), userId: USER, status: "review_ready", review: { kind: "career_browser_review", payloadSha256: "c".repeat(64) } };
+    app.db.taskResults = new Map([[queued.task.intent_id, task]]);
+    const current = await app.chat("Show my browser task", { action: "status", intentId: queued.task.intent_id });
+    assert.deepEqual(current.task, task, "structured owned evidence survives the actual staged handler response");
+    app.db.taskResults.set(queued.task.intent_id, { ...task, userId: "someone-else" });
+    const refused = await app.chat("Show my browser task", { action: "status", intentId: queued.task.intent_id }, 503);
+    assert.equal(refused.task, undefined, "another owner's evidence is never surfaced");
+    assert.equal(workerCalls, 0);
   });
 }

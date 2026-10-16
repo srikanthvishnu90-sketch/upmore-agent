@@ -3,6 +3,8 @@ const InterviewJourneyPack = (() => {
   const H=typeof InterviewJourneyHash!=='undefined'?InterviewJourneyHash:require('./hash.js');
   const C=typeof InterviewJourneyContext!=='undefined'?InterviewJourneyContext:require('../../career-interview-journey/adapters/context.js');
   const text = x => typeof x==='string'?x:H.canonical(x);
+  const label=x=>String(x).replace(/_/g,' ');
+  const references=refs=>refs.map(r=>r.id+'@'+r.version).join(', ')||'none';
   // Escape HTML and Markdown control characters in untrusted user/source text.
   const safe = x => text(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/([\\`*_{}\[\]#!|])/g,'\\$1');
   function build(snapshot,state){
@@ -16,21 +18,24 @@ const InterviewJourneyPack = (() => {
     const families=['project','technical','behavioral'];
     const missing=[];
     if(!state.target)missing.push('Target role not supplied');
+    if(state.target&&!state.target.company)missing.push('Company not supplied; role-only preparation');
     if(!state.resume_ref)missing.push('Selected resume not supplied');
     if(state.constraints.available_minutes===null)missing.push('Preparation time not supplied');
     if(captures.length===0)missing.push('Research limited: no verified role/company capture');
+    const briefs=state.briefs.filter(b=>b.status==='active'&&b.source_refs.every(r=>refs.some(x=>x.id===r.id&&x.version===r.version)));
+    if(!briefs.length)missing.push('Source-backed role/company synthesis not assessed');
     for(const family of families)if(!assessments.some(a=>a.family===family))missing.push(family+' answer not assessed');
     for(const kind of ['practice','revision'])if(!attempts.some(t=>t.kind===kind&&assessments.some(a=>a.attempt_id===t.id)))missing.push(kind+' not assessed');
     if(!state.observations.some(o=>o.kind==='transfer'&&o.assistance==='none'&&o.status==='observed'))missing.push('Unassisted transfer not assessed');
     if(!drafts.length)missing.push('No current evidence-linked answer draft');
     if(state.status==='partial_at_user_stop')missing.push('User stopped before full completion');
     const sections=[
-      {id:'target',title:'Target and constraints',content:[state.target?text(state.target):'Target unknown', 'Resume: '+text(state.resume_ref),'Available minutes: '+text(state.constraints.available_minutes),'Interview timing: '+text(state.constraints.interview_at),'Daily study: '+text(state.constraints.daily_study_minutes),'Unknowns: '+state.constraints.unknowns.join('; ')]},
-      {id:'brief',title:'Role and company brief',content:captures.length?captures.map(s=>`${s.title} — ${s.final_url} — as of ${s.captured_at} (${s.completeness}, ${s.classification})\n${s.excerpt}\nCapture is evidence of source content, not validated synthesis.`):['Research limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.']},
+      {id:'target',title:'Target and constraints',content:[state.target?`Role: ${state.target.role||'unknown'}; company: ${state.target.company||'unknown'}; level: ${state.target.level||'unknown'}; stage: ${state.target.stage||'unknown'}`:'Target unknown', 'Resume: '+(state.resume_ref?references([state.resume_ref]):'not supplied'),'Available minutes: '+text(state.constraints.available_minutes),'Interview timing: '+(state.constraints.interview_at?`${state.constraints.interview_at.at}; timezone: ${state.constraints.interview_at.timezone||'not supplied'}`:'not supplied'),'Daily study minutes: '+text(state.constraints.daily_study_minutes),'Unknowns: '+state.constraints.unknowns.join('; ')]},
+      {id:'brief',title:'Role and company brief',content:briefs.map(b=>`${b.text}\nLimits: ${b.limits}\nSource refs: ${text(b.source_refs)}; checked advisory synthesis, quality unmeasured.`).concat(captures.length?captures.map(s=>`${s.title} — ${s.final_url} — as of ${s.captured_at} (${s.completeness}, ${s.classification})\n${s.excerpt}\nCapture is evidence of source content, not validated synthesis.`):['Research limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.'])},
       {id:'plan',title:'Prioritized preparation plan',content:state.plan.items.map(i=>`${i.competency}: ${i.minutes} minutes. ${i.reason} Evidence: ${text(i.source_refs)}`)},
       {id:'stories',title:'Truthful story bank',content:facts.filter(f=>f.kind==='project'||f.kind==='experience').map(f=>`${f.id}@${f.version}: ${text(f.value)} — source ${text(f.provenance)}`)},
       {id:'answers',title:'Original and revised answers',content:attempts.map(a=>`${a.id} / ${a.question_id} / ${a.kind}; assistance: ${a.assistance}; parent: ${a.parent_attempt_id||'none'}\n${a.text}\nSHA-256: ${a.answer_sha256}`).concat(drafts.map(d=>`Draft ${d.id}@${d.version}; generated wording, not a canonical fact. Attempts: ${d.source_attempt_ids.join(', ')}\n${d.text}`))},
-      {id:'feedback',title:'Feedback, practice and transfer',content:assessments.map(a=>`${a.id}; provisional practice judgment by ${a.generator}; ${a.family}\n${a.feedback}\n${text(a.dimensions)}\nPriority: ${a.priority_fix.text}; uncertainty: ${a.uncertainty}`).concat(state.observations.filter(o=>o.status==='observed').map(o=>text(o)))},
+      {id:'feedback',title:'Feedback, practice and transfer',content:assessments.map(a=>`${a.id}; provisional practice judgment by ${a.generator}; ${a.family}\n${a.feedback}\n${a.dimensions.map(d=>`${label(d.id)}: ${label(d.score)}. ${d.rationale} Support: ${d.spans.map(s=>s.quote).join('; ')||d.missing_criterion}. Uncertainty: ${d.uncertainty}`).join('\n')}\nPriority: ${a.priority_fix.text}; uncertainty: ${a.uncertainty}`).concat(state.observations.filter(o=>o.status==='observed').map(o=>`${label(o.kind)}: ${label(o.competency)}; assistance: ${o.assistance}; outcome: ${o.outcome}. ${o.uncertainty} (Attempt ${o.attempt_id})`))},
       {id:'remaining',title:'Remaining preparation and deferrals',content:[`Remaining declared time: ${text(state.plan.remaining_minutes)} minutes. Time spent is user/host reported, never inferred.`,...state.plan.deferrals,...missing]},
       {id:'interviewer_questions',title:'Questions to ask the interviewer',content:['Generic, not company-specific: What would a successful first project look like for someone at this level?','Generic, not company-specific: How does the team review design choices and validate changes?']},
       {id:'logistics',title:'Day-of checklist',content:state.constraints.logistics.length?state.constraints.logistics:['Appointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.']},

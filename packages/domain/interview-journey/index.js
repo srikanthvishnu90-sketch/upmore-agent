@@ -16,7 +16,8 @@ const CareerInterviewJourney = (() => {
     C.assert(Number.isSafeInteger(s.revision)&&s.revision>0,'invalid journey revision');
     C.assert(new Set(s.attempts.map(a=>a.id)).size===s.attempts.length,'duplicate attempt');
     for(const a of s.attempts)if(a.status!=='withdrawn')C.assert(a.answer_sha256===H.sha256(a.text),'attempt integrity mismatch');
-    for(const r of [...s.attempts,...s.assessments,...s.drafts,...s.observations])C.assert(r.owner_id===s.owner_id&&r.thread_id===s.thread_id&&r.journey_id===s.journey_id&&r.epoch===s.epoch&&r.content_sha256===recordHash(r),'record owner/epoch/integrity mismatch');
+    for(const a of s.assessments)if(a.status==='active')C.assert(s.attempts.some(t=>t.id===a.attempt_id&&t.answer_sha256===a.answer_sha256&&t.question_id===a.question_id&&t.rubric_id===a.rubric_id),'assessment no longer binds immutable attempt');
+    for(const r of [...s.attempts,...s.assessments,...s.drafts,...s.observations,...s.briefs])C.assert(r.owner_id===s.owner_id&&r.thread_id===s.thread_id&&r.journey_id===s.journey_id&&r.epoch===s.epoch&&r.content_sha256===recordHash(r),'record owner/epoch/integrity mismatch');
     C.assert(s.plan.items.every(i=>Number.isInteger(i.minutes)&&i.minutes>0),'invalid plan duration');
     if(s.plan.remaining_minutes!==null)C.assert(s.plan.items.reduce((n,i)=>n+i.minutes,0)<=s.plan.remaining_minutes,'plan exceeds declared budget');
     return s;
@@ -24,13 +25,15 @@ const CareerInterviewJourney = (() => {
   function allocate(s){
     const total=s.constraints.available_minutes, remaining=total===null?null:Math.max(0,total-s.constraints.spent_minutes);
     const template=[['project',20,'Ground a truthful narrative in actual experience.'],['technical',35,'Practice role-relevant correctness and recovery reasoning.'],['behavioral',20,'Separate personal contribution, team decisions and evidence.'],['pack',10,'Review and save current evidence with unassessed gaps explicit.']];
+    const priorities=s.plan_priorities||[];template.sort((a,b)=>{const ai=priorities.findIndex(p=>p.competency===a[0]),bi=priorities.findIndex(p=>p.competency===b[0]);return (ai<0?100:ai)-(bi<0?100:bi);});
     const items=[],deferrals=[];
     if(remaining===null)return {remaining_minutes:null,items,deferrals:['Preparation time unknown; ask for minutes now without inferring from the interview date.']};
     let left=remaining;
     for(let i=0;i<template.length;i++){
       const [competency,max,reason]=template[i],fraction=[0.27,0.36,0.23,1][i];
       const minutes=Math.min(max,i===3?left:Math.floor(remaining*fraction),left);
-      if(minutes>=1){items.push({id:'plan-'+competency,competency,minutes,reason,source_refs:H.clone(s.dependencies)});left-=minutes;}
+      const priority=priorities.find(p=>p.competency===competency);
+      if(minutes>=1){items.push({id:'plan-'+competency,competency,minutes,reason:priority?.reason||reason,source_refs:H.clone(priority?.source_refs||s.dependencies),reason_kind:priority?'checked_advisory_priority':'provisional_slice_coverage'});left-=minutes;}
       if(minutes<max)deferrals.push(competency+': extended work deferred to fit the declared remaining time.');
     }
     deferrals.push('Current company research requires an approved source/capture; missing research does not block experience practice.');
@@ -44,7 +47,7 @@ const CareerInterviewJourney = (() => {
     const dependencies=snapshot.facts.filter(f=>['target','resume','project','experience','interview_guidance'].includes(f.kind)).map(C.ref);
     const s={schema_version:VERSION,owner_id:snapshot.owner_id,thread_id:snapshot.thread_id,journey_id:event.journey_id,epoch:snapshot.binding.epoch,revision:0,created_at:event.at,updated_at:event.at,status:'active',stage:'intake',context_binding:H.clone(snapshot.binding),target_ref:event.target_ref||null,target:target?H.clone(target.value):null,resume_ref:event.resume_ref||null,mode:event.mode||'coaching',dependencies,
       constraints:{available_minutes:minutes,spent_minutes:0,interview_at:event.interview_at||null,daily_study_minutes:event.daily_study_minutes??null,logistics:[],unknowns:[...(!target?['target role']:[]),...(!resume?['selected resume']:[]),...(minutes===null?['minutes available now']:[]),...(!target?.value?.company?['company']:[]),...(!target?.value?.stage?['interview stage']:[])]},
-      checkpoint:{active_question:null,active_attempt_id:null,pending_reasoning:null,pending_research:null,pending_artifact:null,interruption_stack:[],unresolved_asks:[],selected_draft_id:null},plan:null,attempts:[],assessments:[],drafts:[],observations:[],hints:[],research:[],invalidations:[],processed_events:[],completion:{artifact:null,unmet_conditions:['No saved/readable artifact']}};
+      checkpoint:{active_question:null,active_attempt_id:null,pending_reasoning:null,pending_research:null,pending_artifact:null,interruption_stack:[],unresolved_asks:[],selected_draft_id:null},plan:null,plan_priorities:[],briefs:[],attempts:[],assessments:[],drafts:[],observations:[],hints:[],research:[],invalidations:[],processed_events:[],completion:{artifact:null,unmet_conditions:['No saved/readable artifact']}};
     C.assert(typeof s.journey_id==='string'&&s.journey_id.length>0,'journey id required');s.plan=allocate(s);return s;
   }
   function action(snapshot,s,event,type,args,source_refs=[],capability_id=null){
@@ -63,10 +66,12 @@ const CareerInterviewJourney = (() => {
     const expected=C.binding(snapshot,s.revision),actions=[];let reply={status:'planned',text:'',unresolved_asks:[]};
     const emit=(type,args,refs=[],cap=null)=>{const a=action(snapshot,s,event,type,args,refs,cap);if(a.blocked){reply={...reply,...a.blocked};return null;}actions.push(a.proposal);return a.proposal;};
     const ask=(id,stage='awaiting_answer')=>{const q=R.questions[id];C.assert(q,'unknown question');s.stage=stage;s.checkpoint.active_question=H.clone(q);emit('ask_question',{question_id:q.id,text:q.text,representative_practice:true,rubric_id:q.rubric.id});};
-    const reasoning=(attempt,task,extra={})=>{const req=M.request(snapshot,s,attempt,task,extra);if(req.status==='blocked'){reply={status:'blocked',reason:req.reason,text:'The complete answer does not fit the admitted request. Your exact attempt is retained; provide a shorter version or request a separately admitted evidence read.',request:req};return;}
+    const reasoning=(attempt,task,extra={})=>{Object.assign(attempt,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch});attempt.content_sha256=recordHash(attempt);const req=M.request(snapshot,s,attempt,task,extra);if(req.status==='blocked'){reply={status:'blocked',reason:req.reason,text:'The complete answer does not fit the admitted request. Your exact attempt is retained; provide a shorter version or request a separately admitted evidence read.',request:req};return;}
       const a=emit('coach_answer',{request:req.body,prompt_sha256:req.prompt_sha256,max_output_tokens:req.max_output_tokens},s.dependencies,'interview.coach.v1');
       if(a)s.checkpoint.pending_reasoning={kind:'reasoning',action_id:a.action_id,input_digest:a.input_digest,request_digest:req.input_digest,attempt_id:attempt.id,source_refs:H.clone(s.dependencies),expected_binding:a.expected_binding,task,turn_id:event.id};};
     s.revision++;s.updated_at=event.at;s.context_binding=H.clone(snapshot.binding);
+    const changesContent=['time_change','context_changed','submit_answer','style_edit','select_question','read_source'].includes(event.type)||(event.type==='model_candidate'&&s.checkpoint.pending_reasoning&&event.action_id===s.checkpoint.pending_reasoning.action_id)||(event.type==='tool_result'&&s.checkpoint.pending_research);
+    if(changesContent&&s.completion.artifact){s.completion={artifact:null,unmet_conditions:['Journey changed; build and reopen a current pack']};if(s.stage==='completed'||s.stage==='pack_ready')s.stage='plan_ready';}
     if(state&&snapshot.binding.epoch!==state.epoch){
       C.assert(snapshot.binding.epoch>state.epoch,'context epoch moved backward');
       s=initial(snapshot,{...event,journey_id:state.journey_id,available_minutes:null,mode:state.mode});s.revision=state.revision+1;s.epoch=snapshot.binding.epoch;s.status='cancelled';s.stage='intake';reply={status:'stale_context',text:'Previous journey data belongs to an erased epoch. Start again from current authorized evidence.'};
@@ -97,6 +102,7 @@ const CareerInterviewJourney = (() => {
       s.assessments=s.assessments.map(a=>touches(a.source_refs)?invalidations.some(i=>i.kind==='withdrawal')?{id:a.id,version:a.version,status:'withdrawn',attempt_id:a.attempt_id,source_refs:a.source_refs}:{...a,status:'stale'}:a);
       s.drafts=s.drafts.map(d=>touches(d.source_refs||d.fact_refs)?invalidations.some(i=>i.kind==='withdrawal')?{id:d.id,version:d.version,status:'withdrawn',source_attempt_ids:d.source_attempt_ids,fact_refs:d.fact_refs,source_refs:d.source_refs||d.fact_refs}:{...d,status:'stale'}:d);
       s.research=s.research.filter(r=>!r.source_ref||!affected.has(r.source_ref.id));s.observations=s.observations.map(o=>touches(o.source_refs)?{id:o.id,status:'stale',kind:o.kind,source_refs:o.source_refs}:o);
+      s.briefs=s.briefs.filter(b=>!touches(b.source_refs));s.plan_priorities=s.plan_priorities.filter(p=>!touches(p.source_refs));
       s.dependencies=s.dependencies.filter(r=>!affected.has(r.id));
       for(const i of invalidations){const fresh=[...snapshot.facts,...snapshot.sources].find(f=>f.id===i.evidence_id);if(fresh)s.dependencies.push(C.ref(fresh));}
       if(event.target_ref){s.target_ref=H.clone(event.target_ref);s.target=H.clone(C.resolve(snapshot,event.target_ref).value);}else if(s.target_ref&&affected.has(s.target_ref.id)){s.target=null;s.target_ref=null;}
@@ -127,6 +133,8 @@ const CareerInterviewJourney = (() => {
         for(const ref of pending.source_refs)C.resolve(snapshot,ref);
         const {attempt,question}=M.validateCandidate(snapshot,s,event.candidate,pending),candidate=event.candidate;
         const assessment={...H.clone(candidate),id:s.journey_id+':assessment:'+event.id,version:1,status:'active',family:question.family,source_refs:H.clone(pending.source_refs),generator:receipt.generator,validation_receipt:receipt.id,judgment:'provisional practice inference',at:event.at};delete assessment.draft;s.assessments.push(assessment);
+        if(candidate.brief)s.briefs.push({id:assessment.id+':brief',version:1,...H.clone(candidate.brief),status:'active',validation_receipt:receipt.id});
+        if(candidate.plan_updates){s.plan_priorities=H.clone(candidate.plan_updates);s.plan=allocate(s);}
         if(candidate.draft){const draft={id:s.journey_id+':draft:'+event.id,version:1,text:candidate.draft.text,source_attempt_ids:[attempt.id],fact_refs:H.clone(candidate.draft.fact_refs),source_refs:H.clone(pending.source_refs),edits:pending.task==='style'?[{purpose:'user requested style revision'}]:[],status:'active',context_revision:snapshot.binding.thread_revision};s.drafts.push(draft);s.checkpoint.selected_draft_id=draft.id;}
         s.checkpoint.pending_reasoning=null;s.checkpoint.unresolved_asks=[];
         if(pending.task==='style'){reply.text=candidate.feedback;}
@@ -168,7 +176,7 @@ const CareerInterviewJourney = (() => {
       reply={status:'needs_confirmation',text:'Interpret this turn through the host into an explicit answer, style edit, task switch or control event. It has not been graded or used to reset evidence.'};
     }else{reply={status:'unsupported',text:'This journey supports interview preparation only. The preparation checkpoint is preserved.'};}
     s.processed_events.push({id:event.id,input_digest:digest});
-    for(const record of [...s.attempts,...s.assessments,...s.drafts,...s.observations]){Object.assign(record,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch});record.content_sha256=recordHash(record);}
+    for(const record of [...s.attempts,...s.assessments,...s.drafts,...s.observations,...s.briefs]){Object.assign(record,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch});record.content_sha256=recordHash(record);}
     s.last_event={id:event.id,input_digest:digest,expected_binding:expected,reply_plan:H.clone(reply),proposed_actions:H.clone(actions)};
     s.content_sha256=contentHash(s);validateState(s);
     return {expected_binding:expected,next_state:s,reply_plan:reply,proposed_actions:actions};

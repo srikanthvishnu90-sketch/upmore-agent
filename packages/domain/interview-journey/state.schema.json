@@ -3,7 +3,7 @@
   "$id": "urn:upmore:interview-journey:state:v1",
   "title": "B-owned InterviewJourneyStateV1; provisional consumer of A's absent shared contract",
   "type": "object",
-  "required": ["schema_version", "owner_id", "thread_id", "journey_id", "epoch", "revision", "created_at", "updated_at", "status", "stage", "context_binding", "target_ref", "resume_ref", "constraints", "plan", "checkpoint", "dependencies", "attempts", "assessments", "drafts", "observations", "completion", "content_sha256"],
+  "required": ["schema_version", "owner_id", "thread_id", "journey_id", "epoch", "revision", "created_at", "updated_at", "status", "stage", "context_binding", "target_ref", "resume_ref", "constraints", "plan", "plan_priorities", "briefs", "checkpoint", "dependencies", "attempts", "assessments", "drafts", "observations", "completion", "content_sha256"],
   "properties": {
     "schema_version": {"const": "interview_journey_state/v1"},
     "owner_id": {"type": "string", "minLength": 1},

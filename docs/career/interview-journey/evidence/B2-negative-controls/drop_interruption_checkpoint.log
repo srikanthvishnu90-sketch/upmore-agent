@@ -1,0 +1,30 @@
+✖ pause stores unresolved side question and exact attempt checkpoint before serialization (29.09083ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 153.721661
+
+✖ failing tests:
+
+test at tests/career-interview-journey/journey.test.cjs:9:1
+✖ pause stores unresolved side question and exact attempt checkpoint before serialization (29.09083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (/tmp/interview-negative-RvaCRt/tests/career-interview-journey/journey.test.cjs:9:329)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

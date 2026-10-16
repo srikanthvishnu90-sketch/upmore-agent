@@ -1,0 +1,113 @@
+{
+  "version": "interview-reserve-contracts/v1",
+  "label": "BUILDER_AUTHORED_STRUCTURAL_RESERVE",
+  "independent_semantic_holdouts": false,
+  "runtime_prompt_imports": false,
+  "case_count": 24,
+  "cases": [
+    {
+      "id": "time-0",
+      "kind": "time",
+      "minutes": 0
+    },
+    {
+      "id": "time-1",
+      "kind": "time",
+      "minutes": 1
+    },
+    {
+      "id": "time-3",
+      "kind": "time",
+      "minutes": 3
+    },
+    {
+      "id": "time-5",
+      "kind": "time",
+      "minutes": 5
+    },
+    {
+      "id": "time-7",
+      "kind": "time",
+      "minutes": 7
+    },
+    {
+      "id": "time-20",
+      "kind": "time",
+      "minutes": 20
+    },
+    {
+      "id": "time-45",
+      "kind": "time",
+      "minutes": 45
+    },
+    {
+      "id": "time-180",
+      "kind": "time",
+      "minutes": 180
+    },
+    {
+      "id": "foreign_fact",
+      "kind": "owner"
+    },
+    {
+      "id": "foreign_source",
+      "kind": "owner"
+    },
+    {
+      "id": "foreign_receipt",
+      "kind": "owner"
+    },
+    {
+      "id": "foreign_artifact",
+      "kind": "owner"
+    },
+    {
+      "id": "withdraw_project",
+      "kind": "invalidation"
+    },
+    {
+      "id": "replace_resume",
+      "kind": "invalidation"
+    },
+    {
+      "id": "target_changed",
+      "kind": "invalidation"
+    },
+    {
+      "id": "epoch_after_pause",
+      "kind": "invalidation"
+    },
+    {
+      "id": "missing_coach_capability",
+      "kind": "boundary"
+    },
+    {
+      "id": "missing_research_capability",
+      "kind": "boundary"
+    },
+    {
+      "id": "unknown_research",
+      "kind": "boundary"
+    },
+    {
+      "id": "stale_answer_hash",
+      "kind": "boundary"
+    },
+    {
+      "id": "unsupported_candidate_field",
+      "kind": "boundary"
+    },
+    {
+      "id": "invalid_span",
+      "kind": "boundary"
+    },
+    {
+      "id": "empty_artifact",
+      "kind": "boundary"
+    },
+    {
+      "id": "stale_artifact_revision",
+      "kind": "boundary"
+    }
+  ]
+}

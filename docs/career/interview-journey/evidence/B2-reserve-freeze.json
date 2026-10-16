@@ -1,0 +1,7 @@
+{
+  "file": "evals/career-interview-journey/reserve-contract-cases.json",
+  "sha256": "7995c9bbc7e5783deb96722079308d78f750e0a95a9bb280114ebb979f4e177b",
+  "frozen_before_reserve_test_implementation": true,
+  "protected_real_provider_episodes": "NOT_RUN_24_OF_24",
+  "meaning": "Structural cases separated from runtime prompts; builder-visible, not independent semantic-quality evidence."
+}

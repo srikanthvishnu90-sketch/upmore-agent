@@ -1,0 +1,9 @@
+{
+  "version": "interview-development/v1",
+  "kind": "visible_scripted_development",
+  "provider_calls": 0,
+  "scenario": "scripts/career/interview-journey/scripted-scenario.cjs",
+  "tests": "tests/career-interview-journey/*.test.cjs",
+  "protected_holdout_results": "NOT_RUN",
+  "claims": "Contract handling and local artifact bytes only. Not provider quality, independent holdouts, user improvement or actual host durability."
+}

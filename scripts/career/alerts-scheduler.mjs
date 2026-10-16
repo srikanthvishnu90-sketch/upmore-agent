@@ -34,9 +34,9 @@
 // ledger (career_reminder_outbox + claim/ack RPCs), unchanged.
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import { runUserAlertCycle, createSupabaseStore, probeSupabaseStore, Watch } from "./alerts-host.mjs";
 
 const require = createRequire(import.meta.url);
@@ -45,8 +45,24 @@ const BASE = `https://${REF}.supabase.co`;
 const RUNTIME = process.env.ALERTS_RUNTIME_DIR || "/home/hatch/workspace/alerts-scheduler"; // pinned: under systemd HOME is unset and os.homedir() resolves to /root — the runtime dir must not depend on it
 const LOG_PATH = path.join(RUNTIME, "logs", "cycles.jsonl");
 const STATE_PATH = path.join(RUNTIME, "state", "scheduler-state.json");
-const STARRED_EVERY_MS = 14 * 60 * 1000;  // 15-min cadence, 1 min of slack
-const DEFAULT_EVERY_MS = 59 * 60 * 1000;  // hourly cadence, 1 min of slack
+const STARRED_SLOT_MIN = 15;   // starred cadence: one run per 15-minute wall-clock slot
+const DEFAULT_SLOT_MIN = 60;   // default cadence: one run per hourly wall-clock slot
+
+// Which cadence subsets are due. GRID-ANCHORED (BUG-239): a subset is due
+// when a new wall-clock slot has begun since its last run — never "N
+// minutes since the last run", which drifts: a run at :04 pushed the
+// next due to :18, the :15 timer fire found nothing due, and the slot
+// was silently skipped (a 26-minute gap on a 15-minute cadence). Exported
+// for its replay guard.
+export function cadencesDue(sched, now, mode) {
+  if (mode === "all") return ["starred", "default"];
+  if (mode === "starred" || mode === "default") return [mode];
+  const slotOf = (ms, min) => Math.floor(ms / (min * 60000));
+  const due = [];
+  if (slotOf(now, STARRED_SLOT_MIN) > slotOf(sched.starred_last || 0, STARRED_SLOT_MIN)) due.push("starred");
+  if (slotOf(now, DEFAULT_SLOT_MIN) > slotOf(sched.default_last || 0, DEFAULT_SLOT_MIN)) due.push("default");
+  return due;
+}
 
 function logLine(obj) {
   fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
@@ -125,13 +141,7 @@ async function main() {
   let sched = {};
   try { sched = JSON.parse(fs.readFileSync(STATE_PATH, "utf8")); } catch { sched = {}; }
   const now = Date.now();
-  const due = [];
-  if (cadenceArg === "all") due.push("starred", "default");
-  else if (cadenceArg === "starred" || cadenceArg === "default") due.push(cadenceArg);
-  else {
-    if (!sched.starred_last || now - sched.starred_last >= STARRED_EVERY_MS) due.push("starred");
-    if (!sched.default_last || now - sched.default_last >= DEFAULT_EVERY_MS) due.push("default");
-  }
+  const due = cadencesDue(sched, now, cadenceArg);
 
   const directory = require("../../packages/career-data/board-directory.json");
   const entries = Array.isArray(directory) ? directory : (directory.entries || directory.boards || []);
@@ -162,8 +172,10 @@ async function main() {
   console.log(JSON.stringify(line, null, 1));
 }
 
-main().catch((e) => {
-  logLine({ type: "career_alert_scheduler_cycle", at: new Date().toISOString(), status: "crashed", error: String((e && e.message) || e) });
-  console.error(e);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    logLine({ type: "career_alert_scheduler_cycle", at: new Date().toISOString(), status: "crashed", error: String((e && e.message) || e) });
+    console.error(e);
+    process.exit(1);
+  });
+}

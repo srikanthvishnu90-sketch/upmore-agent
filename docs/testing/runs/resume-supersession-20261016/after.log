@@ -1,0 +1,41 @@
+(node:923) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:923) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ exact staged entry commits repeated owned updates, free replay and fresh-handler recall (671.772514ms)
+✔ repeated update source authority never crosses owners with default-id (217.185539ms)
+✔ repeated update source authority never crosses owners with name (268.871128ms)
+✔ repeated update source authority never crosses owners with email (408.945373ms)
+✔ failed repeated update leaves 2028 and can retry the same key once without leaking 2033 to B (430.424392ms)
+✔ mere source import/recall does not update a fact, and a superseded source cannot replay on a new key (223.533334ms)
+✔ reported CP10: confirmed 2028 can explicitly become 2033 then 2030, preserving fact identity and prior active audit (7.958376ms)
+✔ explicit current source wins over unresolved historical old/new labels (0.339488ms)
+✔ existing explicit source alias resumeTexts.new can supersede a confirmed fact (0.557863ms)
+✔ existing explicit source alias resumeTexts.newText can supersede a confirmed fact (0.261025ms)
+✔ existing explicit source alias resumeSources.resume-new.txt can supersede a confirmed fact (0.466285ms)
+✔ an initially confirmed education record can accept an explicit new date (0.245644ms)
+✔ current explicit source is idempotent across JSON reload, with no version or audit bump (1.402499ms)
+✔ a previously adopted, superseded source cannot replay after fresh profile reload (0.413084ms)
+✔ adopted source fingerprint is owner-profile metadata, not a global correction store (0.455212ms)
+✔ ambiguous/stale explicit source never falls back to old labels: missing date (0.419104ms)
+✔ ambiguous/stale explicit source never falls back to old labels: empty new source (0.201955ms)
+✔ ambiguous/stale explicit source never falls back to old labels: old source only (0.277072ms)
+✔ ambiguous/stale explicit source never falls back to old labels: conflicting aliases (0.160096ms)
+✔ ambiguous/stale explicit source never falls back to old labels: conflicting source boxes (0.0691ms)
+✔ ambiguous/stale explicit source never falls back to old labels: multiple graduation dates (0.180514ms)
+✔ ambiguous/stale explicit source never falls back to old labels: structured unowned source is not text (0.065405ms)
+✔ multiple education targets cannot all receive one unbound graduation correction (0.147699ms)
+✔ an ambiguous education update cannot partially confirm another employment conflict (0.274801ms)
+✔ repeat employment-date corrections replace the active range annotation and audit the previous range (0.72569ms)
+✔ non-direct correction text cannot mutate a profile: Suppose I say use the new resume. (33.288892ms)
+✔ non-direct correction text cannot mutate a profile: What does "use the new resume" mean? (0.812889ms)
+✔ non-direct correction text cannot mutate a profile: "Use the new resume" (0.217077ms)
+✔ non-direct correction text cannot mutate a profile: Use the new resume if the date is verified. (0.180875ms)
+✔ without a newly selected source, confirmed history remains immutable on correction/read/legacy replay (0.439666ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2504.231195

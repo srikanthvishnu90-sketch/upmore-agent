@@ -1,0 +1,46 @@
+✔ staged career entry regressions in an ESM-only realm (2103.692389ms)
+✔ AP22: status re-reads the destination — receipt removed after an accepted submit, status is UNCERTAIN, never a confirmation (374.043835ms)
+✔ AP22 positive control: receipt still at the destination — the same status path confirms from the re-read (20.446557ms)
+✔ AP20: a recorded manual-apply disclosure refuses the submit as a duplicate — zero sink writes (8.807225ms)
+✔ AP20: a disclosure on record before the fill stops the duplicate at preparation too (11.264498ms)
+✔ AP23: a fact correction through 130's write path after packet prep refuses the submit as stale (8.115759ms)
+✔ AP23 (hash leg): a direct constraints edit with no version bump is still caught by the bound fact hash (8.073934ms)
+✔ AP08: role closed in state — a bare 'approve and submit' is refused at execution time, zero sink writes (6.568561ms)
+✔ AP18: approval cancelled in state — a bare 'approve and submit' cannot revive it, zero sink writes (19.355768ms)
+✔ invalidated approval in state — submit refused as invalidated, zero sink writes (3.710948ms)
+✔ binding: fill stamps the doorstep + packet prep stamps its binding with the profile fact version/hash (70.991279ms)
+✔ recorders: Lane A's state mutations exist as 141 exports and the guards honor what they write (11.184539ms)
+✔ DD-10: halt reply never claims 'nothing was sent' when an item already went out (1.5312ms)
+✔ C03: 'use the new one' via chat updates the profile with precedence + audit, rebuilds dependents, and post-restart recall answers 2014 (18.109697ms)
+✔ C17: chat fills the Greenhouse-like replica to REVIEW, not submitted, with step log + payload snapshot + sink-armed dry validation (238.57788ms)
+✔ C17 seam: a profile with no phone surfaces phone as an ask instead of guessing it (6.423172ms)
+✔ C18: chat fill of the Ashby-like replica STOPS on the unresolved sensitive hidden default (3.85938ms)
+✔ C20: doorstep -> approve-and-submit -> timeout reported unknown -> 'did it go through?' reconciles BEFORE any retry, exactly one receipt (6.731464ms)
+✔ C37: 'stop everything' via chat halts the queue, PERSISTS across restart, and duplicate/out-of-order events revive nothing (3.535959ms)
+✔ C15: packet prep via chat binds the BACKEND resume.pdf by content hash (133 called, not edited) (92.207594ms)
+✔ host creates and a networking ask is answered by the career path (109.179638ms)
+✔ apply ask with an empty live pool fabricates no roles (43.875257ms)
+✔ tracking ask gets a career answer, never the finance product (4.239533ms)
+✔ kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx (3.431275ms)
+✔ a finance ask is NOT served as the finance product (28.238094ms)
+✔ garbage input never throws and still returns a reply (16.193927ms)
+✔ onboarding interview: one question at a time, answers stored, known steps never re-asked (14.636356ms)
+✔ ask-once memory: graduation answered from stored profile; missing facts are asked once, not guessed (2.774598ms)
+✔ sensitive answer: saved value shown verbatim for confirmation; audit record only after a yes (1.772156ms)
+✔ profile export: facts, connections, tokens by name only; delete path offered; no value-shaped field (2.385332ms)
+✔ capability status: buckets counted from the rows passed in — proven-live never invented (2.886776ms)
+✔ reauth dedupe: same source + same expiry sends once however often re-planned; a new expiry sends again (1.36873ms)
+✔ BUG-002/003/004 regressions: ledger phrasings route in 120 handleChat (3.025056ms)
+✔ BUG-005 regression: gmail + calendar blocked by the SAME dead career grant produce ONE re-auth message (0.482982ms)
+✔ 130 chat glue: onboarding start, capability status, stored-about-me all answer (3.101701ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (438.196646ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (286.31362ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (1.457797ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2200.748979

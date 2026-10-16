@@ -1,0 +1,12 @@
+{
+  "replacement": "382b6e37bd03c0d0dd11b03cbc3fe32ad5157052",
+  "case": "CP10-existing-frozen-supersession",
+  "first_ok": true,
+  "second_ok": false,
+  "expected_active_graduation": "2033",
+  "observed_active_graduation": "2028",
+  "audit_entries": 1,
+  "cache_export": [],
+  "actual_provider_calls": 0,
+  "product_edits": 0
+}

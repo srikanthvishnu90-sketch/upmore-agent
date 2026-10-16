@@ -1,0 +1,63 @@
+{
+  "first": {
+    "intent": "profile_correction",
+    "resultStatus": "completed",
+    "ok": true,
+    "changes": [
+      {
+        "fact_id": "SYNTHETIC-GRAD",
+        "field": "graduation_date",
+        "from": "2027",
+        "to": "2028",
+        "source": "resume-new.txt"
+      }
+    ],
+    "audit": {
+      "at": "2026-10-16T12:00:00Z",
+      "instruction": "use the new one, old resume's wrong",
+      "source": "resume-new.txt",
+      "precedence": "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+      "changes": [
+        {
+          "fact_id": "SYNTHETIC-GRAD",
+          "field": "graduation_date",
+          "from": "2027",
+          "to": "2028",
+          "source": "resume-new.txt"
+        }
+      ],
+      "outcome": "user-directed correction"
+    },
+    "reply": "Done — I switched your active resume to the new one and recorded that it wins over the old one. Your graduation year is now 2028 from the new resume, and I rebuilt your eligibility and materials on the new facts."
+  },
+  "second": {
+    "intent": "profile_correction",
+    "resultStatus": "blocked",
+    "ok": false,
+    "changes": [],
+    "audit": null,
+    "reply": "I do not have a newer resume source on file that resolves a stored conflict, so I changed nothing. Upload the new resume or tell me the corrected value and I will record it."
+  },
+  "activeGraduation": "2028",
+  "factVersion": 1,
+  "auditEntries": 1,
+  "corrections": [
+    {
+      "at": "2026-10-16T12:00:00Z",
+      "instruction": "use the new one, old resume's wrong",
+      "source": "resume-new.txt",
+      "precedence": "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+      "changes": [
+        {
+          "fact_id": "SYNTHETIC-GRAD",
+          "field": "graduation_date",
+          "from": "2027",
+          "to": "2028",
+          "source": "resume-new.txt"
+        }
+      ],
+      "outcome": "user-directed correction"
+    }
+  ],
+  "legacyCacheExport": []
+}

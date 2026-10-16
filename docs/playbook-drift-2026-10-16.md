@@ -122,3 +122,20 @@ The handler's old pruning header still claimed ZERO finance code, although the o
 ### C37 legacy test expectation repaired without product change
 
 The current handoff still carried C37 as a routing blocker, but inspection on a25b874b proved two stale R2A assertions: handler ownership and literal reply copy. Explicit authorization now replaces only that guard with persisted halt, truthful accounting/no irreversible receipt, and late/duplicate-event checks. R2A/R3 pass 27/27; four deliberately broken persistence/event/count behaviors are rejected. Original failing evidence is retained, product bytes are unchanged from 06b0999f, and actual model/browser/allowance/deploy gates remain unresolved.
+
+## Explicit resume supersession after the privacy repair
+
+The cache-removal repair correctly removed cross-account authority, but module
+130 still skipped confirmed facts and preferred old embedded labels to an
+explicit new source. The claim that a new explicit resume wins therefore failed
+for a second correction: 2028 stayed active instead of supplied 2033. The unique
+superseded-audit finding was recovered and independently reproduced on integrated
+e66e39cf; no superseded implementation was reused or republished.
+
+Module 130 now preflights the direct instruction, unique source and fact targets,
+permits repeated confirmed-date updates, records the prior active value, replaces
+the active annotation, and keeps adopted-source fingerprints only in owned profile
+JSON. Repeated current sources do not write facts, ambiguous/superseded sources
+cannot replay, and legacy cache APIs remain inert. Existing transaction/schema
+and other contribution ownership remain unchanged. Evidence and limits are in
+`docs/career/resume-correction-supersession-20261016.md`.

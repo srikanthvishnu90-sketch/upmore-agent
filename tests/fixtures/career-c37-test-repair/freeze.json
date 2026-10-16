@@ -14,5 +14,11 @@
     "C37-inspection.md": "860c570a45abf3fe7e62611317876a4b4a5d119cca385c18856dd9594449ffce",
     "minimal-reproduction.json": "e00ea8c8c06af5ad9579afe521fe88a57a8b22785eebab8dc93d12c1f06475bc",
     "reproduce.cjs": "5c322938278e99f2dfc8c13683e12ca8cd277f3631f0ba2eea2a9a5a4602a0b1"
+  },
+  "additionalNoQueueSpotCheck": {
+    "frozenAt": "2026-10-16T21:49:43.385461+00:00",
+    "baselineLog": "docs/testing/runs/resume-flexible-composition-20261016/inherited-r2-c37-before-repair.log",
+    "baselineSha256": "289fa95bd53460fd2d49ea7b2b5f2e2183b18ee9f24096708c3b51cf178dabb0",
+    "expected": "With no queue records, set the global pause, report all exact counts as unknown/null, deliver a nonempty honest bubble and make no zero-send claim."
   }
 }

@@ -1,0 +1,14 @@
+{
+  "frozenAt": "2026-10-16T21:49:43.385992+00:00",
+  "localBeforeComposition": "31716136",
+  "upstream": "00aad4ea0fd62e9245e205c9f84cea44465b2090",
+  "productOwnerTested": "567389b8c7887b24ac0f751abb5f00375172ac23",
+  "expectations": [
+    "Explicit 2033 and later 2030 owned source supersede initial confirmed 2028; stale 2033 source replay is refused without changing facts/version/audit.",
+    "Enabled flexible context receives only current corrected year and source status; stale mirrors, older dialogue/drafts and old cached replies cannot revive prior dates.",
+    "Colliding profile IDs in another owner never receive the corrected owner facts, audit or source markers.",
+    "Failed atomic correction leaves current facts/history unchanged and does not mark a source adopted; fresh coaching sees only prior committed evidence; same-key correction retry can succeed.",
+    "Erasure removes source authority and old generated context; reimport in a new owned epoch starts fresh history without a global source cache.",
+    "All provider and semantic responses in combined tests are scripted mocks; actual quality remains NOT_RUN and no paid calls occur."
+  ]
+}

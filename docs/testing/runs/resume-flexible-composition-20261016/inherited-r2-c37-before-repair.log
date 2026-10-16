@@ -1,0 +1,27 @@
+✖ R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs) (34.7903ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 142.457988
+
+✖ failing tests:
+
+test at tests/career-gauntlet-r2.test.cjs:199:1
+✖ R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs) (34.7903ms)
+  AssertionError [ERR_ASSERTION]: '142-career-router.handleChat' == '141-career-doorstep.handleChat'
+      at TestContext.<anonymous> (/workspace/upmore-flexible-grounding/tests/career-gauntlet-r2.test.cjs:203:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '142-career-router.handleChat',
+    expected: '141-career-doorstep.handleChat',
+    operator: '==',
+    diff: 'simple'
+  }

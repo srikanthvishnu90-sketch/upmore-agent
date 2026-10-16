@@ -7,7 +7,8 @@ have been manufactured or regenerated from newer code under old build pins.
 
 Engineering CI inventories this prerequisite and exercises portable current-code
 and synthetic grader controls. Inventory success is not archival validation.
-Missing archives remain **NOT_RUN** and block the actual release preflight:
+Missing archives remain **NOT_RUN** and fail the separately visible required
+`archival_release_gate` CI job as well as the actual release preflight:
 
 ```sh
 UPMORE_CAREER_ARCHIVE_ROOT=/absolute/path/to/authorized/original/your_files \

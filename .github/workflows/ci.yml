@@ -55,8 +55,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with: { deno-version: v2.9.7 }
-      - name: Typed Edge tests (read only the Gmail OAuth source contract; no network/env/write permissions)
-        run: deno test --allow-read=supabase/functions/gmail-oauth/index.ts tests/edge/
+      - name: Typed Edge tests (read only both Gmail OAuth source-contract files; no network/env/write permissions)
+        run: deno test --allow-read=supabase/functions/gmail-oauth/index.ts,supabase/functions/gmail-oauth/career.ts tests/edge/
       - name: Testing agent (10/10 bar; a single CRITICAL fails the run; the committed report must be current)
         if: always()
         run: deno run -A evals/agent/run.ts --check
@@ -72,3 +72,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
         run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh
+  archival_release_gate:
+    name: Required original archival evidence
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - name: Validate genuine original archives (missing assets block CI and release)
+        run: node scripts/career/critical-repairs/archive-gate.cjs --require-complete

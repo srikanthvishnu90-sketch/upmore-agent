@@ -1,0 +1,114 @@
+TAP version 13
+# Subtest: missing archival assets block the release command; inventory cannot certify completion
+ok 1 - missing archival assets block the release command; inventory cannot certify completion
+  ---
+  duration_ms: 66.096031
+  type: 'test'
+  ...
+# Subtest: original archival validations remain committed with their recorded hashes
+ok 2 - original archival validations remain committed with their recorded hashes
+  ---
+  duration_ms: 1.492084
+  type: 'test'
+  ...
+# (node:317351) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: frozen schema and synthetic examples retain their pre-implementation bytes
+ok 3 - frozen schema and synthetic examples retain their pre-implementation bytes
+  ---
+  duration_ms: 1.406505
+  type: 'test'
+  ...
+# Subtest: shared v1 accepts frozen valid 0 CareerContextSnapshotV1
+ok 4 - shared v1 accepts frozen valid 0 CareerContextSnapshotV1
+  ---
+  duration_ms: 46.847019
+  type: 'test'
+  ...
+# Subtest: shared v1 accepts frozen valid 1 CareerActionProposalV1
+ok 5 - shared v1 accepts frozen valid 1 CareerActionProposalV1
+  ---
+  duration_ms: 0.329615
+  type: 'test'
+  ...
+# Subtest: shared v1 accepts frozen valid 2 JourneyTransitionV1
+ok 6 - shared v1 accepts frozen valid 2 JourneyTransitionV1
+  ---
+  duration_ms: 0.235895
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses foreign_owner_fact
+ok 7 - shared v1 refuses foreign_owner_fact
+  ---
+  duration_ms: 0.25275
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses withdrawn_value_present
+ok 8 - shared v1 refuses withdrawn_value_present
+  ---
+  duration_ms: 0.138739
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses extra_authority_channel
+ok 9 - shared v1 refuses extra_authority_channel
+  ---
+  duration_ms: 0.75808
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses unsupported_send
+ok 10 - shared v1 refuses unsupported_send
+  ---
+  duration_ms: 0.161292
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses client_downgrades_approval
+ok 11 - shared v1 refuses client_downgrades_approval
+  ---
+  duration_ms: 0.434574
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses action_laundering
+ok 12 - shared v1 refuses action_laundering
+  ---
+  duration_ms: 0.430858
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses foreign_binding
+ok 13 - shared v1 refuses foreign_binding
+  ---
+  duration_ms: 0.215374
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses unchanged_journey_revision
+ok 14 - shared v1 refuses unchanged_journey_revision
+  ---
+  duration_ms: 0.256456
+  type: 'test'
+  ...
+# Subtest: shared v1 refuses unproven_artifact_success
+ok 15 - shared v1 refuses unproven_artifact_success
+  ---
+  duration_ms: 0.247442
+  type: 'test'
+  ...
+# Subtest: snapshot returned to the pure reducer is deeply immutable and does not mutate canonical input
+ok 16 - snapshot returned to the pure reducer is deeply immutable and does not mutate canonical input
+  ---
+  duration_ms: 0.63827
+  type: 'test'
+  ...
+# Subtest: runtime and published JSON Schema describe the same contract bytes
+ok 17 - runtime and published JSON Schema describe the same contract bytes
+  ---
+  duration_ms: 0.845531
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 117.279886

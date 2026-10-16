@@ -199,3 +199,17 @@ suite; missing assets remain NOT_RUN and block go-live before side effects.
 Canonical scenario inputs are recovered from already committed expectations,
 not regenerated outcomes. Root copy checks cover the actual app template; the
 missing historical review-copy check remains in archival release validation.
+
+## Testing-agent checker and explicit archival CI blocker
+
+The ALRT-012 offline checker counted a cadence-exempt standing request against
+the unsolicited finding cap, despite the existing K2 Edge contract. Its actual
+91/92 failure was frozen before correcting only that checker. Native Deno now
+reports 92/92 and catches all 12 mutations after a green baseline; the financial
+runtime is unchanged. The stale cancellation mutation anchor is repaired.
+
+Archival inventory alone could leave engineering CI green while original
+historical evidence was unavailable. CI now has a separate required
+`--require-complete` job. Missing originals remain NOT_RUN and block that job
+and release. No historical receipts were regenerated. The current shared
+journey schema is a tested prototype, not integrated production authority.

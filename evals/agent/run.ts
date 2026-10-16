@@ -270,7 +270,8 @@ async function flow() {
   ex["ALRT-008"] = async () => has(base([tx("2026-10-11", -3500, "OVERDRAFT FEE", "f1")]), /fee/);
   ex["ALRT-010"] = async () => has(base([], { watches: [{ kind: "balance_below", account: "checking", threshold_cents: 50000, id: "w1", status: "active" }] }), /watch|balance_below/);
   ex["ALRT-011"] = async () => { const p = base([tx("2026-10-11", -89900, "BEST BUY 00123", "b1")], null, Date.UTC(2026, 9, 12, 3)); return [p.suppressed.some(s => s.reason === "quiet_hours"), JSON.stringify(p.suppressed)]; };
-  ex["ALRT-012"] = async () => { const p = base([tx("2026-10-11", -89900, "BEST BUY 00123", "b1"), tx("2026-10-11", -3500, "OVERDRAFT FEE", "f1")]); return [p.messages.filter(m => m.kind === "finding").length === 1 && p.suppressed.some(s => s.reason === "daily_budget"), JSON.stringify(p.suppressed)]; };
+  // K2 standing requests are cadence-exempt; this cap is for unsolicited findings.
+  ex["ALRT-012"] = async () => { const p = base([tx("2026-10-11", -89900, "BEST BUY 00123", "b1"), tx("2026-10-11", -3500, "OVERDRAFT FEE", "f1")]); return [p.messages.filter(m => m.kind === "finding" && m.cadence !== true).length === 1 && p.suppressed.some(s => s.reason === "daily_budget"), JSON.stringify(p.suppressed)]; };
   // The numbers in chat (agent-chat/_shared/money_answers.ts, the function the handler calls): each answer from the
   // fixture's own rows, ending with its source and as-of line.
   const money = (msg: string, re: RegExp): Ex => async () => {

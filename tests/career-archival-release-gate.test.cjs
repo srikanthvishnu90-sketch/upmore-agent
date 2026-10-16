@@ -11,4 +11,5 @@ test('original archival validations remain committed with their recorded hashes'
  const m=require('../docs/career/critical-repairs/ci-baseline/archive-preservation.json');assert.equal(m.generatedHistoricalRecords,0);assert.equal(m.archives.length,7);
  for(const x of m.archives)assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root,x.archive))).digest('hex'),x.archivedSha256,x.archive);
  const deploy=fs.readFileSync(path.join(root,'scripts/launch/go-live.sh'),'utf8');assert.ok(deploy.indexOf('archive-gate.cjs --require-complete')<deploy.indexOf('say "1. migrations'));assert.match(deploy,/archive-gate\.cjs --require-complete/);
+ const ci=fs.readFileSync(path.join(root,'.github/workflows/ci.yml'),'utf8');assert.match(ci,/archival_release_gate:/);assert.match(ci,/run: node scripts\/career\/critical-repairs\/archive-gate\.cjs --require-complete/);
 });

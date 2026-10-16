@@ -183,6 +183,15 @@ function fnDiscoverFields(includeHidden) {
   els.forEach((el, idx) => {
     const type = (el.getAttribute("type") || el.tagName).toLowerCase();
     if (type === "hidden" || type === "submit" || type === "button" || type === "image") return;
+    // BUG-237 (ported at the v224 combine; live liontree census,
+    // 2026-10-15): react-select keeps a hidden validation dummy (class
+    // *-requiredInput, type text, CSS-invisible but with layout rects)
+    // next to every widget. It is plumbing, never a fillable field —
+    // discovered as one, it mints a phantom def for the widget's
+    // question (the Degree widget gained a second, standard
+    // education_degree def that the drive then tried to fill by name,
+    // into an invisible input).
+    if (typeof el.className === "string" && /requiredInput/.test(el.className)) return;
     const visible = type === "file" ? true : (el.offsetParent !== null || el.getClientRects().length > 0);
     if (!visible && !includeHidden) return;
     const label = labelFor(el);
@@ -191,6 +200,7 @@ function fnDiscoverFields(includeHidden) {
       disabled: !!el.disabled, readOnly: !!el.readOnly,
       valid: !el.validity || el.validity.valid, validationMessage: clean(el.validationMessage || ""),
       inputType: type, name: el.getAttribute("name") || "", id: el.id || "", label,
+      cls: typeof el.className === "string" ? el.className.slice(0, 120) : "",
       required: !!el.required || el.getAttribute("aria-required") === "true" || /(\*|✱)\s*$/.test(label) || /required/i.test(el.getAttribute("aria-label") || ""),
     };
     // D9 (BUG-066): the card/group heading is carried for EVERY field,
@@ -337,7 +347,7 @@ const normOpt = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").re
 // "Prefer not to answer", "I don't wish to answer", "Do not wish to
 // disclose"...). Exact text matching made the §6.1 default unreliable;
 // decline-class equivalence is matched explicitly, nothing else is.
-const isDeclineText = (s) => /decline|prefer not|do not wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(normOpt(s));
+const isDeclineText = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(normOpt(s));
 function matchOption(options, value) {
   const v = normOpt(value);
   if (!v) return null;
@@ -354,54 +364,430 @@ function matchOption(options, value) {
   return hit || null;
 }
 
-async function cmdFill(board, cmd) {
-  const b = cmd.binding, value = cmd.value;
-  const refs = b.elementRefs;
+/* ---- v224 combine: R-1 (BUG-237/FR-395) fill semantics, ported onto
+ * the release line's ref/observation protocol ----
+ * A fill is not done when the fill call returns: the live boards'
+ * remount cycles replace filled DOM nodes and the value vanishes while
+ * the driver reports success (BUG-207, 2026-10-15: Arc kept 3/17
+ * values, Labelbox 2/8 on the armed run). So every fill here is
+ * FILL-THEN-READBACK per field — fill, let the board settle, read the
+ * value back the way the BOARD renders it, and re-fill on a mismatch
+ * (bounded attempts, growing settle). A field whose value will not
+ * persist returns { filled: false, reason: "value_did_not_persist" }.
+ * A STALE_OBSERVATION from the ref layer still propagates untouched:
+ * module 150 re-discovers and re-fills with fresh refs, which is the
+ * release protocol's own recovery for a replaced node. */
+const normPersist = (x) => String(x == null ? "" : x).replace(/\s+/g, " ").trim();
+function persistedMatches(got, expect, inputType) {
+  if (expect === "__absent__") return got === undefined;
+  if (inputType === "checkbox_group") {
+    if (!Array.isArray(got)) return false;
+    const g = got.map(normPersist).sort(), e = (expect || []).map(normPersist).sort();
+    return g.length === e.length && g.every((v, i) => v === e[i]);
+  }
+  if (expect === true) return got === true;
+  return got !== undefined && normPersist(got) === normPersist(expect);
+}
+/* The value a react-select widget carries, read the way the board
+ * renders it: the chosen single-value under the select CONTROL. The
+ * search box's text is not a value, and the current UI's first
+ * "-container" ancestor (.select__input-container) does NOT hold the
+ * single-value — climbing there read every landed pick as empty
+ * (BUG-237). Returns the rendered text or null. */
+function fnWidgetValue(sel) {
+  const el = document.querySelector(sel);
+  if (!el) return null;
+  const root = el.closest('[class*="select__control"]') || el.closest('[class*="select__container"], [class*="-container"]') || el.parentElement;
+  const sv = root && root.querySelector('[class*="select__single-value"], [class*="-singleValue"]');
+  const t = sv ? (sv.textContent || "").replace(/\s+/g, " ").trim() : "";
+  return t || null;
+}
+/* Read ONE binding's current value as the board renders it (undefined
+ * when the field carries no value). For a react-select widget that is
+ * the single-value under the control — never the search text. */
+async function readbackBinding(board, b) {
   const nodes = [];
-  for (const ref of refs) nodes.push(await connected(board, ref));
+  for (const ref of b.elementRefs || []) nodes.push(await connected(board, ref));
+  if (!nodes.length) return undefined;
+  let value;
+  if (b.widget === "react-select") {
+    value = await nodes[0].evaluate((el) => {
+      const root = el.closest('[class*="select__control"]') || el.closest('[class*="select__container"], [class*="-container"]') || el.parentElement;
+      const sv = root && root.querySelector('[class*="select__single-value"], [class*="-singleValue"]');
+      const t = sv ? (sv.textContent || "").replace(/\s+/g, " ").trim() : "";
+      return t || null;
+    });
+  }
+  else if (b.inputType === "name_pair") value = (await nodes[0].inputValue()) + " " + (await nodes[1].inputValue());
+  else if (b.inputType === "file") value = await nodes[0].evaluate(async (el) => {
+    const f = el.files && el.files[0]; if (!f) return null;
+    const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
+    return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
+  });
+  else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
+  else if (b.inputType === "checkbox") value = await nodes[0].isChecked();
+  else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
+    const chosen = [];
+    for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
+    value = b.inputType === "radio_group" ? chosen[0] : chosen;
+  } else value = await nodes[0].inputValue();
+  if (value === null || value === undefined || value === "" || /^select/i.test(String(value))) return undefined;
+  return value;
+}
+
+/* One handle-based fill attempt (the release protocol's fills).
+ * Returns { filled } plus, on success, `expect`: the value a readback
+ * must show for the fill to count as persisted. */
+async function fillOnceHandles(board, cmd) {
+  const b = cmd.binding, value = cmd.value;
+  const nodes = [];
+  for (const ref of b.elementRefs) nodes.push(await connected(board, ref));
   if (b.inputType === "name_pair") {
     const parts = String(value).trim().split(/\s+/);
     await nodes[0].fill(parts[0] || ""); await nodes[1].fill(parts.slice(1).join(" "));
-  } else if (b.inputType === "file") {
-    const bytes = fs.readFileSync(cmd.filePath);
-    if (crypto.createHash("sha256").update(bytes).digest("hex") !== value.sha256) throw Object.assign(new Error("resume bytes changed before upload"), { code: "RESUME_SHA_MISMATCH" });
-    await nodes[0].setInputFiles({ name: value.filename, mimeType: "application/octet-stream", buffer: bytes });
-  } else if (b.inputType === "select") {
+    return { filled: true, expect: [parts[0] || "", parts.slice(1).join(" ")].filter(Boolean).join(" ") };
+  }
+  if (b.inputType === "select") {
     const hit = matchOption(b.options || [], value);
-    if (!hit) return { filled: false, reason: "option_not_found" };
+    if (!hit) return { filled: false, reason: "option_not_found", wanted: String(value) };
     await nodes[0].selectOption({ value: hit.value });
-  } else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
+    return { filled: true, expect: hit.label };
+  }
+  if (["radio_group", "checkbox_group"].includes(b.inputType)) {
+    const hits = [];
     for (const desired of (Array.isArray(value) ? value : [value])) {
       const hit = matchOption(b.options || [], desired);
-      if (!hit) return { filled: false, reason: "option_not_found" };
+      if (!hit) return { filled: false, reason: "option_not_found", wanted: String(desired) };
       await (await connected(board, hit.ref)).check();
+      hits.push(hit.label);
     }
-  } else if (b.inputType === "checkbox") {
+    return { filled: true, expect: b.inputType === "radio_group" ? hits[0] : hits };
+  }
+  if (b.inputType === "checkbox") {
     if (value === true || value === "true") await nodes[0].check(); else await nodes[0].uncheck();
-  } else await nodes[0].fill(String(value));
-  return { filled: true };
+    return { filled: true, expect: value === true || value === "true" ? true : "__absent__" };
+  }
+  await nodes[0].fill(String(value));
+  return { filled: true, expect: String(value) };
+}
+
+/* The react-select widget drive (BUG-207/BUG-237, ported): the visible
+ * input is a search box — typed text is NOT a value. Type the value,
+ * wait for the option list (the board's option service can take
+ * seconds), and pick the option that names the same value with a real
+ * click (or, when React re-creates the option nodes between marking
+ * and clicking, an in-page pointer dispatch on a fresh node). The
+ * ladder inside ONE drive — full value → first segment → first word →
+ * cleared search — never retypes into a widget that is still loading
+ * (a retype restarts its search), and a pick that already landed is
+ * detected before any further typing so it is never overwritten. */
+async function driveWidget(board, cmd) {
+  const page = board.page;
+  const b = cmd.binding;
+  const wanted = String(cmd.value);
+  const tok = wanted.split(",")[0].trim().toLowerCase();
+  await page.click(b.selector, { timeout: 20000 }).catch(() => {});
+  await page.fill(b.selector, "", { timeout: 20000 }).catch(() => {});
+  await page.type(b.selector, wanted, { delay: 25, timeout: 20000 });
+  let chosen = null;
+  let retyped = false;
+  let wordRetyped = false;
+  let clearedSearch = false;
+  const widgetLoading = () => page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return false;
+    const control = el.closest('[class*="select__control"]');
+    const scope = (control && control.parentElement) || document;
+    return !!scope.querySelector('[class*="loading-indicator"], [class*="loadingIndicator"]');
+  }, b.selector).catch(() => false);
+  for (let i = 0; i < 34 && !chosen; i++) {
+    await page.waitForTimeout(500);
+    if (i > 0) {
+      const existing = await page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+      if (existing) {
+        const nGot = normPersist(existing), nWant = normPersist(wanted);
+        if (nGot === nWant || (nGot.length >= 4 && nWant.startsWith(nGot)) || nWant.endsWith(nGot)) {
+          return { expect: existing, chosenText: wanted, via: "widget_option_pick" };
+        }
+      }
+    }
+    if (i === 5) {
+      const expanded = await page.evaluate((sel) => { const el = document.querySelector(sel); return el ? el.getAttribute("aria-expanded") : null; }, b.selector).catch(() => null);
+      if (expanded !== "true") await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+      const seg = wanted.split(/\s+[-–—,]\s+/)[0].trim();
+      if (!retyped && seg && seg !== wanted && !(await widgetLoading())) {
+        retyped = true;
+        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
+        await page.type(b.selector, seg, { delay: 25, timeout: 20000 }).catch(() => {});
+      }
+    }
+    if (i === 10 && !wordRetyped) {
+      const word = wanted.split(/\s+/)[0].trim();
+      if (word && word.length >= 3 && word !== wanted && !(await widgetLoading())) {
+        wordRetyped = true;
+        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
+        await page.type(b.selector, word, { delay: 25, timeout: 20000 }).catch(() => {});
+      }
+    }
+    // When NO option shares a token with the wanted value, every
+    // filtered list is empty (the board's veteran decline "I don't
+    // wish to answer" shares no token with "Decline to self-identify"
+    // and filters itself out of its own menu). Clearing the search
+    // renders the FULL list, and the matcher judges that instead.
+    if (i === 16 && !clearedSearch) {
+      clearedSearch = true;
+      if (!(await widgetLoading())) {
+        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
+        await page.waitForTimeout(400);
+      }
+    }
+    chosen = await page.evaluate(({ tok, full }) => {
+      const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+      const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+      document.querySelectorAll("[data-upmore-opt]").forEach((e) => e.removeAttribute("data-upmore-opt"));
+      const pools = [".select__option", '[role="option"]', '[role="listbox"] *', ".pac-item", '[class*="suggestion"] *', '[class*="autocomplete"] *'];
+      // Match strength, strongest first: exact normalized; then the
+      // wanted value's own first segment; then decline-class (only
+      // when the WANTED value is itself decline-class — D8/BUG-067);
+      // then first-token containment; then an option that is a
+      // normalized PREFIX of the wanted value. Weaker hits are used
+      // only when nothing stronger exists anywhere in the list.
+      const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
+      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null;
+      const isDecline = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
+      const wantedDecline = isDecline(full);
+      for (const sel of pools) {
+        for (const el of Array.from(document.querySelectorAll(sel))) {
+          if (!vis(el)) continue;
+          const t = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+          if (!t || t.length >= 90) continue;
+          if (norm(t) === norm(full)) { el.setAttribute("data-upmore-opt", "1"); return t; }
+          if (!segHit && seg && norm(t) === norm(seg)) segHit = { el, t };
+          if (!declineHit && wantedDecline && isDecline(t)) declineHit = { el, t };
+          if (!tokenHit && t.toLowerCase().includes(tok)) tokenHit = { el, t };
+          if (!prefixHit && norm(t).length >= 4 && norm(full).startsWith(norm(t))) prefixHit = { el, t };
+        }
+      }
+      const hit = segHit || declineHit || tokenHit || prefixHit;
+      if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
+      return null;
+    }, { tok, full: wanted }).catch(() => null);
+    if (chosen) {
+      const clicked = await page.click('[data-upmore-opt="1"]', { timeout: 5000 }).then(() => true).catch(() => false);
+      if (!clicked) {
+        // React re-creates the option nodes between the marking
+        // evaluate and the click — the marked node is gone. Fall back
+        // to a pick executed in ONE evaluate turn: find the option
+        // fresh and dispatch the pointer sequence on it directly
+        // (react-select selects on mousedown).
+        await page.evaluate((t) => {
+          const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+          const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+          const pools = [".select__option", '[role="option"]', '[role="listbox"] *'];
+          for (const sel of pools) {
+            for (const el of Array.from(document.querySelectorAll(sel))) {
+              if (!vis(el)) continue;
+              const txt = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+              if (txt === t || norm(txt) === norm(t)) {
+                for (const type of ["mousedown", "mouseup", "click"]) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+                return true;
+              }
+            }
+          }
+          return false;
+        }, chosen).catch(() => false);
+      }
+      await page.waitForTimeout(300);
+      // The readback expectation is the widget's OWN rendering of the
+      // pick (the country widget renders only "+1" for the option
+      // whose menu text is "United States +1"). The single-value
+      // settles a beat after the pick, so poll briefly before judging.
+      let svText = null;
+      for (let svTry = 0; svTry < 4 && !svText; svTry++) {
+        svText = await page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+        if (!svText) await page.waitForTimeout(300);
+      }
+      if (!svText) { chosen = null; continue; } // the pick did not land — keep polling inside this one drive
+      return { expect: svText || chosen, chosenText: chosen, via: "widget_option_pick" };
+    }
+  }
+  // No option list arrived: close the widget's open menu before the
+  // plain fill stands as page state (an open menu overlaying the form
+  // degraded later fills on the live boards). The verification in
+  // cmdFill judges it — search text alone never counts as a value.
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.fill(b.selector, wanted, { timeout: 20000 });
+  return { expect: wanted, chosenText: null, via: undefined };
+}
+function widgetPersisted(got, driven) {
+  if (got === undefined || normPersist(got) === "") return false;
+  if (normPersist(got) === normPersist(driven.expect)) return true;
+  if (!driven.chosenText) return false;
+  return normPersist(got) === normPersist(driven.chosenText)
+    || normPersist(driven.chosenText).endsWith(normPersist(got))
+    || (normPersist(got).length >= 4 && normPersist(driven.chosenText).startsWith(normPersist(got)));
+}
+
+/* Re-discover the form's live file input and return a selector for
+ * it: prefer its id; otherwise mark the element itself — a positional
+ * selector breaks whenever the board remounts siblings around it. */
+async function rediscoverFileSelector(page) {
+  return await page.evaluate(() => {
+    const inp = document.querySelector('input[type="file"]');
+    if (!inp) return null;
+    if (inp.id) return "#" + inp.id;
+    inp.setAttribute("data-upmore-file", "1");
+    return '[data-upmore-file="1"]';
+  }).catch(() => null);
+}
+/* Page-level file attach for when the discovered handle cannot be
+ * used — the current boards mount their file inputs late, hide them
+ * behind a styled dropzone, lazy-mount them when the upload section
+ * nears the viewport, or mount them only once the board's own Attach
+ * control is engaged (BUG-207 addendum + BUG-237: file_input_not_
+ * mounted on 18 of 24 boards in Drive Pass 2). Engages the board's
+ * own controls, re-discovers the live input, and sets the files —
+ * through CDP when the standard call cannot complete (the same
+ * mechanism the browser's own file picker uses). Returns
+ * { ok, selectorUsed } — only a board that still shows no input after
+ * all of that earns a not-mounted report. */
+async function attachFilePageLevel(board, cmd) {
+  const page = board.page;
+  const b = cmd.binding;
+  let selector = b.selector;
+  await page.evaluate(() => {
+    const l = document.querySelector('[class*="file-upload"], label[for="resume"], [data-testid*="resume" i]');
+    if (l) l.scrollIntoView({ block: "center" });
+  }).catch(() => {});
+  await page.waitForTimeout(400);
+  let attached = await page.waitForSelector(selector, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
+  if (!attached) {
+    const fresh = await rediscoverFileSelector(page);
+    if (fresh && fresh !== selector) {
+      attached = await page.waitForSelector(fresh, { state: "attached", timeout: 5000 }).then(() => true).catch(() => false);
+      if (attached) selector = fresh;
+    }
+  }
+  if (!attached) {
+    const marked = await page.evaluate(() => {
+      const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+      const textOf = (el) => ((el.innerText || el.textContent || "") + " " + (el.getAttribute("aria-label") || "")).replace(/\s+/g, " ").trim();
+      const pools = ['button, label, [role="button"]', 'a, div, span'];
+      for (const pool of pools) {
+        const cand = Array.from(document.querySelectorAll(pool))
+          .find((el) => vis(el) && /attach|upload|add resume|add file|browse|choose file|drag/i.test(textOf(el)) && textOf(el).length < 90);
+        if (cand) { cand.setAttribute("data-upmore-attach", "1"); return true; }
+      }
+      return false;
+    }).catch(() => false);
+    if (marked) {
+      await page.click('[data-upmore-attach="1"]', { timeout: 8000 }).catch(() => {});
+      for (let t = 0; t < 10 && !attached; t++) {
+        await page.waitForTimeout(600);
+        const fresh2 = await rediscoverFileSelector(page);
+        if (fresh2) {
+          attached = await page.waitForSelector(fresh2, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
+          if (attached) selector = fresh2;
+        }
+      }
+    }
+  }
+  if (!attached) attached = await page.waitForSelector(b.selector, { state: "attached", timeout: 30000 }).then(() => true).catch(() => false);
+  if (!attached) return { ok: false, selectorUsed: selector };
+  try {
+    await page.setInputFiles(selector, cmd.filePath, { timeout: 20000 });
+  } catch (e) {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      const doc = await cdp.send("DOM.getDocument", { depth: 1 });
+      const node = await cdp.send("DOM.querySelector", { nodeId: doc.root.nodeId, selector });
+      if (!node || !node.nodeId) throw new Error("file input vanished before CDP attach");
+      await cdp.send("DOM.setFileInputFiles", { nodeId: node.nodeId, files: [cmd.filePath] });
+    } finally { await cdp.detach().catch(() => {}); }
+  }
+  return { ok: true, selectorUsed: selector };
+}
+
+async function cmdFill(board, cmd) {
+  const b = cmd.binding, value = cmd.value;
+  const settleMs = [450, 650, 1000];
+  if (b.widget === "react-select") {
+    // A widget fill is ONE complete drive (click, type, option poll,
+    // pick). Re-driving it verbatim when the board's option service
+    // never answered does not change the answer — and repeated drives
+    // degrade the page until later fields' inputs leave the DOM
+    // (probe-bisected 2026-10-15). Single drive; the readback verdict
+    // stands as reported.
+    const driven = await driveWidget(board, cmd);
+    await board.page.waitForTimeout(settleMs[0]);
+    const rendered = await board.page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+    if (widgetPersisted(rendered === null ? undefined : rendered, driven)) {
+      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined };
+    }
+    return { filled: false, reason: "value_did_not_persist", wanted: String(value) };
+  }
+  if (b.inputType === "file") {
+    const bytes = fs.readFileSync(cmd.filePath);
+    if (crypto.createHash("sha256").update(bytes).digest("hex") !== value.sha256) throw Object.assign(new Error("resume bytes changed before upload"), { code: "RESUME_SHA_MISMATCH" });
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      let attached = false;
+      let selectorUsed = b.selector;
+      try {
+        const nodes = [];
+        for (const ref of b.elementRefs) nodes.push(await connected(board, ref));
+        if (nodes.length) {
+          await nodes[0].setInputFiles({ name: value.filename, mimeType: "application/octet-stream", buffer: bytes });
+          attached = true;
+        }
+      } catch (e) { if (e.code !== "STALE_OBSERVATION") throw e; }
+      if (!attached) {
+        const rec = await attachFilePageLevel(board, cmd);
+        attached = rec.ok; selectorUsed = rec.selectorUsed;
+      }
+      if (!attached) {
+        if (attempt === 3) return { filled: false, reason: "file_input_not_mounted" };
+        await board.page.waitForTimeout(settleMs[attempt - 1]);
+        continue;
+      }
+      await board.page.waitForTimeout(settleMs[attempt - 1]);
+      // Verified = the live input still holds the file. When the
+      // discovered node is still the board's input, the handle
+      // readback (name + sha256 of the attached bytes) decides. When
+      // the board replaced the node (so the handle readback cannot
+      // speak), the file's presence under the selector the recovery
+      // actually used is the evidence — the bytes themselves were
+      // sha-verified above before any upload.
+      let got;
+      try { got = await readbackBinding(board, b); } catch (e) { got = undefined; }
+      if (got && got.sha256 === value.sha256) return { filled: true, verified: true, attempts: attempt };
+      if (got === undefined) {
+        const present = await board.page.evaluate((sel) => {
+          const el = document.querySelector(sel);
+          return !!(el && el.files && el.files.length > 0);
+        }, selectorUsed).catch(() => false);
+        if (present) return { filled: true, verified: true, attempts: attempt, via: "file_rediscovered" };
+      }
+    }
+    return { filled: false, reason: "value_did_not_persist", wanted: value.filename };
+  }
+  let last = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    last = await fillOnceHandles(board, cmd);
+    if (!last.filled) return last; // e.g. option_not_found — retrying cannot invent an option
+    await board.page.waitForTimeout(settleMs[attempt - 1]);
+    let got;
+    try { got = await readbackBinding(board, b); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
+    if (persistedMatches(got, last.expect, b.inputType)) {
+      return { filled: true, verified: true, attempts: attempt };
+    }
+  }
+  return { filled: false, reason: "value_did_not_persist", wanted: String(value && value.filename ? value.filename : value) };
 }
 async function cmdReadback(board, cmd) {
   const answers = {};
   for (const b of cmd.bindings) {
-    const nodes = [];
-    for (const ref of b.elementRefs || []) nodes.push(await connected(board, ref));
-    if (!nodes.length) continue;
-    let value;
-    if (b.inputType === "name_pair") value = (await nodes[0].inputValue()) + " " + (await nodes[1].inputValue());
-    else if (b.inputType === "file") value = await nodes[0].evaluate(async (el) => {
-      const f = el.files && el.files[0]; if (!f) return null;
-      const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
-      return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
-    });
-    else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
-    else if (b.inputType === "checkbox") value = await nodes[0].isChecked();
-    else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
-      const chosen = [];
-      for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
-      value = b.inputType === "radio_group" ? chosen[0] : chosen;
-    } else value = await nodes[0].inputValue();
-    if (value !== null && value !== undefined && value !== "" && !/^select/i.test(String(value))) answers[b.field_id] = value;
+    const value = await readbackBinding(board, b);
+    if (value !== undefined) answers[b.field_id] = value;
   }
   return { answers };
 }

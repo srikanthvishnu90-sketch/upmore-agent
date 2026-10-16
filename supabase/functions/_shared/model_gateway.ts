@@ -132,7 +132,7 @@ export function adminHealthSink(admin: any): HealthSink {
   return async (e) => { try { await admin.from("agent_provider_events").insert(e); } catch (_) { /* health logging never breaks a reply */ } };
 }
 
-export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink }
+export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink; requireUsageReceipt?: boolean }
 // The one call. Returns an Anthropic-shaped message; throws ModelUnavailableError (provider status, type and message,
 // never the key) when the provider refuses, fails or is not configured.
 export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions = {}): Promise<any> {
@@ -152,7 +152,18 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
   const raw = await res.text();
   if (raw.length > 200000) { const e = new ModelUnavailableError(502, "too_large", `${providerName(cfg)} response is too large`); meterAdd(o.meter, cfg, null, true); await report(false, 502, e.type, e.detail); throw e; }
   let out: any;
-  try { const body = JSON.parse(raw); out = cfg.provider === "openai" ? fromOpenAI(body) : body; }
+  try {
+    const body = JSON.parse(raw);
+    // Cash-bounded callers require actual integer receipts before the legacy
+    // translator's numeric defaults/coercion can turn unknown usage into zero.
+    // Existing callers retain their defaults; career coaching opts in.
+    if (o.requireUsageReceipt) {
+      const u = body.usage, prompt = u?.prompt_tokens, completion = u?.completion_tokens;
+      const cached = u?.prompt_tokens_details?.cached_tokens ?? 0;
+      if (cfg.provider !== 'openai' || ![prompt,completion,cached].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=10000000) || cached>prompt || (u.total_tokens!==undefined&&u.total_tokens!==prompt+completion)) throw new ModelUnavailableError(502,'invalid_usage','Provider usage receipt is missing or invalid');
+    }
+    out = cfg.provider === "openai" ? fromOpenAI(body) : body;
+  }
   catch (err) { const e = err instanceof ModelUnavailableError ? err : new ModelUnavailableError(502, "bad_response", `${providerName(cfg)} returned unreadable JSON`); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e; }
   meterAdd(o.meter, cfg, out.usage); await report(true, res.status, null, null);
   return out;

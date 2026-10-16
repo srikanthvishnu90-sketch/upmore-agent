@@ -142,6 +142,17 @@ const CareerHost = (() => {
     // this host's capability stays the module-level NOT_WIRED and
     // module 155's drives stop named BOARD_NOT_WIRED, exactly as before.
     const boardFor = deps && typeof deps.boardFor === "function" ? deps.boardFor : null;
+    // J10 (LOOP ACCEPTANCE — deployed-runtime transport): the
+    // composition root may install delegateBatch — batch execution
+    // delegated to the owned browser worker through committed batch
+    // intents (career_batch_intent/v1). Like boardFor it is RUNTIME
+    // wiring only: createTurnCtx attaches it as
+    // ctx.batchDeps.delegateBatch, batchDeps is not a STATE_KEYS
+    // entry, and no snapshot can carry or resurrect it. The flag does
+    // NOT change the portal_browser capability stamp: delegation is
+    // asynchronous worker execution, not a wired in-turn drive, and
+    // no WIRED claim is made for it.
+    const delegateBatch = !!(deps && deps.delegateBatch === true);
     const workerCapabilities = boardFor
       ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES, {
           portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
@@ -182,13 +193,16 @@ const CareerHost = (() => {
         if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
         else delete ctx.alertWatchState;
       }
-      if (o.batchDeps || boardFor) {
+      if (o.batchDeps || boardFor || delegateBatch) {
         // J8: per-turn batch deps (module 155's seam inputs — the
         // submissions log and attestations today). The composition
         // root's boardFor outranks any per-turn boardFor value; other
         // batchDeps keys pass through untouched. Without either input
         // no batchDeps object is attached, as before.
-        ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {});
+        // J10: the root's delegateBatch likewise outranks any per-turn
+        // value — the execution mode is the composition root's call,
+        // never a per-turn caller's.
+        ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {}, delegateBatch ? { delegateBatch: true } : {});
       }
       return ctx;
     }

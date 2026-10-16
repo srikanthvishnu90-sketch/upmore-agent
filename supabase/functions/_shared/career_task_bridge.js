@@ -123,6 +123,105 @@ export function createCareerBoardFor(provider) {
 // forbidden, gone, transport down) is cached on the board and
 // rethrown on later calls WITHOUT touching the wire — nothing is
 // retried blind at any layer.
+// ---------------------------------------------------------------------------
+// J10 (LOOP ACCEPTANCE — Leg 2, the deployed-runtime transport, Crew B
+// 2026-10-15; design of record: joins doc "J10 — THE DEPLOYED-RUNTIME
+// TRANSPORT: DESIGN"): batch intent planning, the career_task_intent/v1
+// pattern batch-sized. The drive stack is synchronous and this Edge
+// runtime has no synchronous transport, so the batch loop does NOT
+// drive inside a chat turn (this file's standing law). Instead:
+//
+//   ask turn    -> the router seam (delegate mode) creates the run
+//                  skeleton; planCareerBatchPrepare turns it into a
+//                  prepare intent the handler commits transactionally
+//                  with the reply.
+//   worker      -> the batch executor (workers/career-browser/
+//                  batch-executor.cjs) claims intents and runs module
+//                  155 in its own process, writing user-scoped batch
+//                  run records (career_batch_run/v1).
+//   status turn -> a structured career_batch status request reads the
+//                  worker-written record back (owner-scoped; a foreign
+//                  or unknown run id reads as nothing).
+//   yes turn    -> a structured career_batch approve request + the
+//                  exact message "Approve batch <runId>" commits an
+//                  approve intent carrying the card set hash; the
+//                  executor re-verifies it against the stored run
+//                  before anything executes.
+//
+// The chat layer never claims a state the worker has not written:
+// queued is queued, a prepared card is the worker's record, and a
+// submission exists only when the worker's final run record says so.
+const BATCH_VERSION = "career_batch_intent/v1";
+const BATCH_RUN_VERSION = "career_batch_run/v1";
+const batchRunIdOk = v => typeof v === "string" && /^batch-[A-Za-z0-9-]{4,96}$/.test(v);
+const cardHashOk = v => typeof v === "string" && (/^[a-f0-9]{64}$/.test(v) || /^fnv1a-[a-f0-9]{1,16}$/.test(v));
+const batchEventIdOk = v => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v);
+export function normalizeCareerBatchRequest(value) {
+  if (value == null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) return fail();
+  const fields = {
+    approve: ["action", "version", "eventId", "runId", "cardSha256"],
+    status: ["action", "version", "runId"],
+  }[value.action];
+  if (!fields || Object.keys(value).some(k => !fields.includes(k)) || (value.version && value.version !== BATCH_VERSION)) return fail();
+  const out = { version: BATCH_VERSION, action: value.action };
+  for (const key of fields) if (key !== "version" && value[key] !== undefined) out[key] = value[key];
+  if (!batchRunIdOk(out.runId)) return fail();
+  if (out.action === "approve" && (!batchEventIdOk(out.eventId) || !cardHashOk(out.cardSha256))) return fail();
+  return out;
+}
+async function batchIntentId(userId, threadId, turnKey, requestHash) {
+  const bytes = new TextEncoder().encode(JSON.stringify([BATCH_VERSION, userId, threadId, turnKey, requestHash]));
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+export async function planCareerBatchPrepare({ run, userId, threadId, turnKey, requestHash, accountVersion, account }) {
+  if (!run || typeof run !== "object" || !batchRunIdOk(run.id) || run.userId !== userId
+    || typeof run.familyText !== "string" || !run.familyText || !Number.isSafeInteger(run.requested) || run.requested < 1
+    || run.status !== "queued_prepare") return null;
+  const intent = { version: BATCH_VERSION, intent_id: await batchIntentId(userId, threadId, turnKey, requestHash), user_id: userId, thread_id: threadId, turn_key: turnKey,
+    request_hash: requestHash, action: "prepare", event_id: "prepare-" + run.id, run_id: run.id,
+    family_text: run.familyText, count: run.requested, run,
+    authority_account_version: accountVersion + 1, privacy_epoch: account.epoch || 0 };
+  const batch = { version: BATCH_VERSION, id: run.id, userId, status: "queued", kind: "pending_batch_intent",
+    intent_id: intent.intent_id, bindings: intent };
+  return { intent, batch };
+}
+export async function planCareerBatchIntent({ batchRequest, message, userId, threadId, turnKey, requestHash, ctx, accountVersion, account, persistence, summarizeRun }) {
+  const reply = (text, status, batch = null) => ({ reply: text, intent: "career_batch_apply", resultStatus: status,
+    contained: false, batch, capabilities: ctx.workerCapabilities, result: { batch, sends: 0 } });
+  if (batchRequest.action === "status") {
+    const record = await persistence.readBatchRun({ userId, runId: batchRequest.runId });
+    if (!record) return { intent: null, out: reply("No batch run is readable under that reference. A batch is only ever readable by its owner, and only once the browser worker has written it.", "awaiting_user") };
+    const batch = { version: BATCH_RUN_VERSION, id: record.runId, userId, status: record.status, kind: "batch_run", summary: record.summary || null };
+    let text = null;
+    if (typeof summarizeRun === "function") { try { text = summarizeRun(record.run); } catch (_) { text = null; } }
+    if (!text) text = `Batch ${record.runId}: status ${record.status}.`;
+    return { intent: null, out: reply(text, typeof record.status === "string" ? record.status : "awaiting_user", batch) };
+  }
+  // action === "approve": the structured request carries the yes for
+  // ONE named batch at ONE card hash; the message must name it too —
+  // a bare yes authorizes nothing (the task path's discipline).
+  if (message !== "Approve batch " + batchRequest.runId) {
+    return { intent: null, out: reply("Approve the specific batch explicitly from its card; a bare yes authorizes nothing.", "awaiting_user") };
+  }
+  const record = await persistence.readBatchRun({ userId, runId: batchRequest.runId });
+  if (!record || !record.run) {
+    return { intent: null, out: reply("That batch is not readable yet — the browser worker has not written a prepared run under that reference, so there is no card to approve.", "awaiting_user") };
+  }
+  if (record.status !== "awaiting_approval" || !record.run.cardSha256) {
+    return { intent: null, out: reply(`That batch is not waiting at a card (its status is ${record.status || "unknown"}) — ask for its status and approve only the card that is shown.`, "blocked") };
+  }
+  if (record.run.cardSha256 !== batchRequest.cardSha256) {
+    return { intent: null, out: reply("The batch changed since the card you approved (its set hash no longer matches) — nothing was queued. Ask for the batch status, review the current card, and approve that one.", "blocked") };
+  }
+  const intent = { version: BATCH_VERSION, intent_id: await batchIntentId(userId, threadId, turnKey, requestHash), user_id: userId, thread_id: threadId, turn_key: turnKey,
+    request_hash: requestHash, action: "approve", event_id: batchRequest.eventId, run_id: batchRequest.runId, card_sha256: batchRequest.cardSha256,
+    authority_account_version: accountVersion + 1, privacy_epoch: account.epoch || 0 };
+  const batch = { version: BATCH_VERSION, id: batchRequest.runId, userId, status: "queued", kind: "pending_batch_intent",
+    intent_id: intent.intent_id, bindings: intent };
+  return { intent, out: reply("Your yes is recorded for this batch exactly as carded — the browser worker will submit it under that approval and the results will read back here. This reply itself submitted nothing.", "queued", batch) };
+}
+
 export function createWorkerBoardProvider(opts) {
   const o = opts || {};
   const workerUrl = typeof o.workerUrl === "string" && o.workerUrl ? o.workerUrl : null;

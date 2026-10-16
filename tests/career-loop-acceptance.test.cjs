@@ -504,6 +504,148 @@ test("loop (J9): sessions expiring between approval and execution stop every app
   assert.ok(service.counters().refused.expired >= 1, "the service recorded the expiries it served");
 });
 
+// ---------------------------------------------------------------------------
+// LEG 1 — the approvalRef seam (Crew B, 2026-10-15; the defect the J9
+// build observed and filed for Crew A allocation): 155's execute path
+// minted approvals {approvedByUser, payloadSha256} with NO approvalRef,
+// so a REAL module-150 board could never arm through the batch path —
+// its submit throws REAL_SUBMIT_DISABLED and every real-board batch
+// submit died as a per-application EXECUTION_ERROR. Sandbox boards
+// have no arming wire, which is why every trajectory above passed
+// while the real path was dead. The double below is 150-faithful at
+// the wire that matters: armForSubmit arms ONLY on approvedByUser ===
+// true AND a non-empty approvalRef, and submit() throws
+// REAL_SUBMIT_DISABLED until armed. These cases are the permanent
+// guard: the batch path submits real boards only by carrying the
+// batch approvalRef (minted at the card's one yes, bound to the card
+// set hash) into submitDoorstep.
+// ---------------------------------------------------------------------------
+function realBoardDouble(base) {
+  const arm = { armed: false, approvalRef: null, armCalls: [], submits: 0 };
+  const board = Object.assign({}, base, {
+    kind: "browser", sandbox: false, browserDriver: true,
+    armForSubmit(ctx) {
+      arm.armCalls.push(ctx || {});
+      const ref = ctx && typeof ctx.approvalRef === "string" ? ctx.approvalRef.trim() : "";
+      if (ctx && ctx.approvedByUser === true && ref) {
+        arm.armed = true; arm.approvalRef = ref;
+        return { armed: true, approvalRef: ref };
+      }
+      return { armed: false, reason: "approval_ref_required" };
+    },
+    submit() {
+      if (!arm.armed) throw Object.assign(new Error("this browser board is not armed for submission — the doorstep is the end of the line until 149's approval gate arms it with the owner's batch approval reference"), { code: "REAL_SUBMIT_DISABLED" });
+      arm.submits += 1;
+      return base.submit();
+    },
+  });
+  board._arm = arm;
+  return board;
+}
+function realBoardFor(registry) {
+  return (p) => { const b = realBoardDouble(boardFor(p)); if (registry) registry.push({ posting: p, board: b }); return b; };
+}
+function loopRealFactory(registry) {
+  return (opts) => { const b = realBoardDouble(loopSandboxFactory(opts)); if (registry) registry.push(b); return b; };
+}
+
+test("leg1: REAL boards (arming wire present) submit through the batch path — armed by the batch approvalRef bound to the set hash", () => {
+  const registry = [];
+  const log = { records: [] };
+  const { deps } = makeDeps(log, { boardFor: realBoardFor(registry) });
+  const run = newRun();
+  Batch.prepareRun(run, deps);
+  assert.equal(run.summary.doorstep, 13);
+  const ap = Batch.approveRun(run, { approvedByUser: true });
+  assert.equal(ap.ok, true);
+  assert.equal(typeof run.approvalRef, "string", "the one yes minted an approvalRef on the run");
+  assert.ok(run.approvalRef.includes(run.id), "the ref names the run it approves");
+  assert.ok(run.approvalRef.includes(run.cardSha256), "the ref is bound to the card set hash");
+  assert.equal(ap.approvalRef, run.approvalRef, "approveRun reports the ref it minted");
+  const ex = Batch.executeRun(run, deps);
+  assert.equal(ex.ok, true);
+  assert.equal(run.summary.submitted, 13, "all 13 doorstep applications submitted on real boards");
+  const doorstepBoards = registry.filter((r) => r.board._arm.submits > 0 || r.board._arm.armCalls.length > 0);
+  assert.equal(doorstepBoards.length, 13, "exactly the 13 doorstep boards were armed");
+  for (const r of doorstepBoards) {
+    assert.equal(r.board._arm.armCalls.length, 1, "armed exactly once");
+    assert.equal(r.board._arm.approvalRef, run.approvalRef, "armed under the batch approvalRef");
+    assert.equal(r.board._arm.submits, 1, "submitted exactly once");
+  }
+  assert.equal(registry.reduce((n, r) => n + r.board._arm.submits, 0), 13, "no board outside the doorstep set ever submitted");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 13);
+});
+
+test("leg1: an approval in the pre-fix shape (hash only, NO approvalRef) still cannot arm a real board — every submit refuses", () => {
+  const registry = [];
+  const log = { records: [] };
+  const { deps } = makeDeps(log, { boardFor: realBoardFor(registry) });
+  const run = newRun();
+  Batch.prepareRun(run, deps);
+  assert.equal(run.summary.doorstep, 13);
+  // Hand-mint the approvals exactly as the pre-fix execute path did:
+  // per-application payload hashes, status approved, no ref anywhere.
+  run.approvals = {};
+  for (const k of run.selected) { const a = run.apps[k]; if (a && a.stage === "doorstep") run.approvals[k] = a.payloadSha256; }
+  run.status = "approved";
+  assert.ok(!run.approvalRef, "the run carries no approvalRef (the pre-fix shape)");
+  const ex = Batch.executeRun(run, deps);
+  assert.equal(ex.ok, true);
+  assert.equal(run.summary.submitted, 0, "nothing submitted — a hash-bound approval without a ref never arms a real board");
+  const stops = run.summary.stops.filter((x) => x.code === "EXECUTION_ERROR");
+  assert.equal(stops.length, 13, "every doorstep application stopped at execution");
+  assert.ok(stops.every((x) => /not armed for submission/.test(x.reason)), "each stop carries the board's REAL_SUBMIT_DISABLED refusal in its reason");
+  assert.equal(registry.reduce((n, r) => n + r.board._arm.submits, 0), 0, "no real board ever fired a submit");
+});
+
+test("leg1: a payload changed after the card stops at MI-116 BEFORE the arming wire — the tampered real board is never armed", () => {
+  const registry = [];
+  const log = { records: [] };
+  const { deps } = makeDeps(log, { boardFor: realBoardFor(registry) });
+  const run = newRun();
+  Batch.prepareRun(run, deps);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true }).ok, true);
+  Batch._runtime.delete(run.id); // sessions do not survive the invocation gap
+  const tampered = Object.assign({}, deps, {
+    profileFor: (p, base) => (p.id === "JOB-T-05"
+      ? Object.assign({}, base, { answers: Object.assign({}, base.answers, { sponsorship: { value: "Yes", confirmed: true } }) })
+      : base),
+  });
+  const ex = Batch.executeRun(run, tampered);
+  assert.equal(ex.ok, true);
+  assert.equal(run.summary.submitted, 12, "the untampered applications still submit on real boards");
+  const mismatch = run.summary.stops.find((x) => x.code === "APPROVAL_PAYLOAD_MISMATCH");
+  assert.ok(mismatch && mismatch.company === "TestCo 5");
+  const t5 = registry.filter((r) => r.posting.id === "JOB-T-05");
+  assert.ok(t5.length >= 1);
+  for (const r of t5) {
+    assert.equal(r.board._arm.armCalls.length, 0, "the tampered application's board was never armed — the mismatch stops before the wire");
+    assert.equal(r.board._arm.submits, 0);
+  }
+});
+
+test("leg1: the approvalRef crosses the worker wire — service-backed REAL boards arm under the batch ref and submit", () => {
+  const registry = [];
+  const service = loopBoardService({ boardFactory: loopRealFactory(registry) });
+  const boardForFn = Bridge.createCareerBoardFor(loopProvider(service, USER));
+  const log = { records: [] };
+  const { deps } = makeDeps(log, { boardFor: boardForFn });
+  const run = newRun();
+  Batch.prepareRun(run, deps);
+  assert.equal(run.summary.doorstep, 13);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true }).ok, true);
+  assert.ok(run.approvalRef, "the batch approval minted its ref");
+  const ex = Batch.executeRun(run, deps);
+  assert.equal(ex.ok, true);
+  assert.equal(run.summary.submitted, 13, "the batch submitted end-to-end with real boards behind the worker service");
+  const armed = registry.filter((b) => b._arm.armCalls.length > 0);
+  assert.equal(armed.length, 13, "13 worker-side boards were armed");
+  for (const b of armed) {
+    assert.equal(b._arm.approvalRef, run.approvalRef, "the ref that armed the worker board is the batch's own ref — it crossed the wire intact");
+    assert.equal(b._arm.submits, 1);
+  }
+});
+
 test("chat path: under the global pause the batch does NOT run (the pause gate keeps priority over the seam)", () => {
   const ctx = seam.createTurnCtx({ userId: USER, threadId: "thread-loop-paused", now: NOW, snapshot: null, profile: MASTER, postings: MARKET });
   ctx.globalPause = { set: true, at: new Date(NOW).toISOString(), source: "user" };

@@ -32,6 +32,14 @@
    - Caps are 149's (MI-110): enforced at doorstep time and re-checked
      at click time. This module defers what the cap stops; it never
      argues with the count.
+   - The batch approval carries an approvalRef (Leg 1, 2026-10-15):
+     approveRun mints it bound to the card set hash and executeRun
+     passes it into submitDoorstep, because 149's arming wire arms a
+     REAL board only under a ref — a hash-only approval left every
+     real-board batch submit at REAL_SUBMIT_DISABLED (sandbox boards
+     have no arming wire, which is why rehearsals never saw it). The
+     guard is the REAL-board-double trajectories in
+     tests/career-loop-acceptance.test.cjs.
 
    Cross-invocation design: the run object is PURE JSON (it survives
    the host snapshot via ctx.batchApplyState). Sessions are runtime
@@ -103,6 +111,9 @@ const CareerBatchApply = (() => {
       postings: {}, // postingKey -> posting (discovery data, JSON)
       apps: {}, // postingKey -> app state (below)
       approvals: {}, // postingKey -> payloadSha256 approved on the card
+      approvalRef: null, // minted by approveRun at the card's one yes,
+      // bound to the card set hash — 149's arming wire requires it
+      // before a REAL board (module 150) may fire (Leg 1 seam fix)
       card: null,
       cardSha256: null,
       events: [],
@@ -313,9 +324,19 @@ const CareerBatchApply = (() => {
       const app = run.apps[key];
       if (app && app.stage === "doorstep") run.approvals[key] = app.payloadSha256;
     }
+    // THE APPROVALREF (Leg 1): minted here, at the batch card's one
+    // yes, and bound to the card set hash that was just re-verified —
+    // the ref names THIS run's approval of THIS doorstep set. 149's
+    // arming wire (BUG-063/D3) arms a real board only with a non-empty
+    // approvalRef on top of approvedByUser; without one a browser
+    // board's submit() throws REAL_SUBMIT_DISABLED. Deterministic in
+    // (run.id, cardSha256): re-approving the identical set re-mints
+    // the identical ref, and a changed set can never reuse it (the
+    // set-hash check above refuses first).
+    run.approvalRef = `batch:${run.id}:${nowSha}`;
     run.status = "approved";
-    event(run, "approved", { count: Object.keys(run.approvals).length });
-    return { ok: true, approved: Object.keys(run.approvals).length };
+    event(run, "approved", { count: Object.keys(run.approvals).length, approvalRef: run.approvalRef });
+    return { ok: true, approved: Object.keys(run.approvals).length, approvalRef: run.approvalRef };
   }
 
   // ---------------- J4: the execution loop ----------------
@@ -347,7 +368,12 @@ const CareerBatchApply = (() => {
           const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha }, { log, now, posting });
+        // The approval carries the batch approvalRef minted at the
+        // card's yes (Leg 1): 149 reads approval.approvalRef (or
+        // ctx.approvalRef) at its arming wire — a real board arms
+        // only under it. A run approved in the pre-fix shape (hashes
+        // only, approvalRef null) still stops at the board, named.
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);
@@ -400,6 +426,7 @@ const CareerBatchApply = (() => {
     }
     return {
       runId: run.id, familyText: run.familyText, requested: run.requested, status: run.status,
+      approvalRef: run.approvalRef || null,
       found: run.found, duplicatesRemoved: run.duplicatesRemoved,
       screenedOut: run.screenedOut.slice(),
       eligible: run.eligible, selected: run.selected.length,

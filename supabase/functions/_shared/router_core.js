@@ -40697,7 +40697,11 @@ const CareerRouter = (() => {
   // pool; ctx.batchDeps may carry { postings, log, boardFor,
   // portalProfile (149-shaped), profileFor, attestations, track }.
   // Without a host-supplied boardFor, drives stop named BOARD_NOT_WIRED
-  // — honest, never faked. The run object rides ctx.batchApplyState
+  // — honest, never faked. With ctx.batchDeps.delegateBatch set (the
+  // J10 deployed composition), the ask instead creates the run
+  // skeleton and delegates preparation to the browser worker via a
+  // committed batch intent — see the delegate branch in
+  // handleBatchApply. The run object rides ctx.batchApplyState
   // (a host STATE_KEYS entry) so the approval turn resumes it in a
   // later invocation; sessions are rebuilt there, and MI-116's hash
   // verification inside 149 is what stops a payload changed since the
@@ -40760,8 +40764,26 @@ const CareerRouter = (() => {
     const ask = BatchApply.parseApplyAsk(text);
     if (!ask) return null;
     if (!c.profile) return null; // no profile yet: the onboarding routes own the turn
-    const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
     const run = BatchApply.createRun({ userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText: ask.familyText, count: ask.count, now: nowOf(c) });
+    if (depsIn.delegateBatch === true) {
+      // J10 DELEGATE MODE (the deployed-runtime composition): the host
+      // signals that batch execution belongs to the owned browser
+      // worker (committed batch intents — the chat turn performs no
+      // browser effect, the bridge's standing law). The seam creates
+      // the run skeleton and stops: the handler plans a prepare intent
+      // from it (career_task_bridge.planCareerBatchPrepare) and commits
+      // it with this reply; the worker executor runs prepareRun in its
+      // own process and the prepared run reads back on later turns.
+      // The skeleton rides batchApplyState only so the handler can
+      // find it after the turn — its status is "queued_prepare", never
+      // "awaiting_approval", so this snapshot seam's approval branch
+      // above can never mistake it for a prepared card.
+      run.status = "queued_prepare";
+      c.batchApplyState = BatchApply.serializeRun(run);
+      return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "prepare", runId: run.id }, sends: 0,
+        reply: `I've handed this batch to the browser worker to prepare: it will find ${ask.count} ${ask.familyText} roles, screen out the ones that don't fit, tailor each application, and bring the batch back here at the final review screen. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.` };
+    }
+    const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
     BatchApply.prepareRun(run, batchDepsFor(c, log, pool));
     c.batchApplyState = BatchApply.serializeRun(run);
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
@@ -45446,6 +45468,14 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerAssi
    - Caps are 149's (MI-110): enforced at doorstep time and re-checked
      at click time. This module defers what the cap stops; it never
      argues with the count.
+   - The batch approval carries an approvalRef (Leg 1, 2026-10-15):
+     approveRun mints it bound to the card set hash and executeRun
+     passes it into submitDoorstep, because 149's arming wire arms a
+     REAL board only under a ref — a hash-only approval left every
+     real-board batch submit at REAL_SUBMIT_DISABLED (sandbox boards
+     have no arming wire, which is why rehearsals never saw it). The
+     guard is the REAL-board-double trajectories in
+     tests/career-loop-acceptance.test.cjs.
 
    Cross-invocation design: the run object is PURE JSON (it survives
    the host snapshot via ctx.batchApplyState). Sessions are runtime
@@ -45517,6 +45547,9 @@ const CareerBatchApply = (() => {
       postings: {}, // postingKey -> posting (discovery data, JSON)
       apps: {}, // postingKey -> app state (below)
       approvals: {}, // postingKey -> payloadSha256 approved on the card
+      approvalRef: null, // minted by approveRun at the card's one yes,
+      // bound to the card set hash — 149's arming wire requires it
+      // before a REAL board (module 150) may fire (Leg 1 seam fix)
       card: null,
       cardSha256: null,
       events: [],
@@ -45727,9 +45760,19 @@ const CareerBatchApply = (() => {
       const app = run.apps[key];
       if (app && app.stage === "doorstep") run.approvals[key] = app.payloadSha256;
     }
+    // THE APPROVALREF (Leg 1): minted here, at the batch card's one
+    // yes, and bound to the card set hash that was just re-verified —
+    // the ref names THIS run's approval of THIS doorstep set. 149's
+    // arming wire (BUG-063/D3) arms a real board only with a non-empty
+    // approvalRef on top of approvedByUser; without one a browser
+    // board's submit() throws REAL_SUBMIT_DISABLED. Deterministic in
+    // (run.id, cardSha256): re-approving the identical set re-mints
+    // the identical ref, and a changed set can never reuse it (the
+    // set-hash check above refuses first).
+    run.approvalRef = `batch:${run.id}:${nowSha}`;
     run.status = "approved";
-    event(run, "approved", { count: Object.keys(run.approvals).length });
-    return { ok: true, approved: Object.keys(run.approvals).length };
+    event(run, "approved", { count: Object.keys(run.approvals).length, approvalRef: run.approvalRef });
+    return { ok: true, approved: Object.keys(run.approvals).length, approvalRef: run.approvalRef };
   }
 
   // ---------------- J4: the execution loop ----------------
@@ -45761,7 +45804,12 @@ const CareerBatchApply = (() => {
           const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha }, { log, now, posting });
+        // The approval carries the batch approvalRef minted at the
+        // card's yes (Leg 1): 149 reads approval.approvalRef (or
+        // ctx.approvalRef) at its arming wire — a real board arms
+        // only under it. A run approved in the pre-fix shape (hashes
+        // only, approvalRef null) still stops at the board, named.
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);
@@ -45814,6 +45862,7 @@ const CareerBatchApply = (() => {
     }
     return {
       runId: run.id, familyText: run.familyText, requested: run.requested, status: run.status,
+      approvalRef: run.approvalRef || null,
       found: run.found, duplicatesRemoved: run.duplicatesRemoved,
       screenedOut: run.screenedOut.slice(),
       eligible: run.eligible, selected: run.selected.length,

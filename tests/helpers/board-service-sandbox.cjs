@@ -15,7 +15,18 @@ const secret = process.argv[2] || "test-board-secret";
 function boardFactory(opts) {
   const url = (opts && opts.url) || "";
   const fam = /lever\.co/.test(url) ? "lever" : /ashbyhq\.com/.test(url) ? "ashby" : "greenhouse";
-  return Object.assign({}, Portal.createSandboxBoard({}), { atsFamily: fam });
+  // The loop suites' fixture-market variants, keyed by URL the same
+  // way the in-process factories key them: testco11 stages a captcha
+  // at open, testco7's form carries one extra required question.
+  let base;
+  if (/testco11/.test(url)) base = Portal.createSandboxBoard({ captchaAt: "open" });
+  else base = Portal.createSandboxBoard({});
+  const board = Object.assign({}, base, { atsFamily: fam });
+  if (/testco7/.test(url)) {
+    const origForm = board.form;
+    board.form = () => { const f = origForm(); f.fields = f.fields.concat([{ field_id: "start_date", label: "Earliest start date", kind: "screening", question_key: "start_date", required: true }]); return f; };
+  }
+  return board;
 }
 const { server } = startBoardService({
   port: 0, secret, boardFactory, sweepMs: 0,

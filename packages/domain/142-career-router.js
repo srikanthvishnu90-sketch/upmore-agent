@@ -6257,7 +6257,11 @@ const CareerRouter = (() => {
   // pool; ctx.batchDeps may carry { postings, log, boardFor,
   // portalProfile (149-shaped), profileFor, attestations, track }.
   // Without a host-supplied boardFor, drives stop named BOARD_NOT_WIRED
-  // — honest, never faked. The run object rides ctx.batchApplyState
+  // — honest, never faked. With ctx.batchDeps.delegateBatch set (the
+  // J10 deployed composition), the ask instead creates the run
+  // skeleton and delegates preparation to the browser worker via a
+  // committed batch intent — see the delegate branch in
+  // handleBatchApply. The run object rides ctx.batchApplyState
   // (a host STATE_KEYS entry) so the approval turn resumes it in a
   // later invocation; sessions are rebuilt there, and MI-116's hash
   // verification inside 149 is what stops a payload changed since the
@@ -6320,8 +6324,26 @@ const CareerRouter = (() => {
     const ask = BatchApply.parseApplyAsk(text);
     if (!ask) return null;
     if (!c.profile) return null; // no profile yet: the onboarding routes own the turn
-    const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
     const run = BatchApply.createRun({ userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText: ask.familyText, count: ask.count, now: nowOf(c) });
+    if (depsIn.delegateBatch === true) {
+      // J10 DELEGATE MODE (the deployed-runtime composition): the host
+      // signals that batch execution belongs to the owned browser
+      // worker (committed batch intents — the chat turn performs no
+      // browser effect, the bridge's standing law). The seam creates
+      // the run skeleton and stops: the handler plans a prepare intent
+      // from it (career_task_bridge.planCareerBatchPrepare) and commits
+      // it with this reply; the worker executor runs prepareRun in its
+      // own process and the prepared run reads back on later turns.
+      // The skeleton rides batchApplyState only so the handler can
+      // find it after the turn — its status is "queued_prepare", never
+      // "awaiting_approval", so this snapshot seam's approval branch
+      // above can never mistake it for a prepared card.
+      run.status = "queued_prepare";
+      c.batchApplyState = BatchApply.serializeRun(run);
+      return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "prepare", runId: run.id }, sends: 0,
+        reply: `I've handed this batch to the browser worker to prepare: it will find ${ask.count} ${ask.familyText} roles, screen out the ones that don't fit, tailor each application, and bring the batch back here at the final review screen. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.` };
+    }
+    const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
     BatchApply.prepareRun(run, batchDepsFor(c, log, pool));
     c.batchApplyState = BatchApply.serializeRun(run);
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };

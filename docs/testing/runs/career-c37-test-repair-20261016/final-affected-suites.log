@@ -1,0 +1,36 @@
+✔ R2A AP08: closure turn marks the role closed in the doorstep store and states nothing will be submitted; the later submit executes nothing (59.120854ms)
+✔ R2A AP08 variant: 'that role closed' in plain words is owned too (10.598658ms)
+✔ R2A AP18: cancel at the review screen records a cancelled state; a later approve executes nothing (4.910974ms)
+▶ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission
+  ✔ never mind — don't submit that application (3.1786ms)
+  ✔ hold off on this application, do not submit it (3.343047ms)
+  ✔ please cancel this application (3.310108ms)
+  ✔ stop, do not submit this (2.448301ms)
+✔ R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission (12.905467ms)
+✔ R2A AP17: 'cancel the queued batch' halts and persists the whole queue through 141's halt export (2.004494ms)
+✔ R2A NW18: cancel mid-queue preserves the landed send and reports it as landed, not 'nothing was sent' (1.826146ms)
+✔ R2A queue variant: 'hold off on the outreach queue' halts an in-memory queue state (1.106043ms)
+✔ R2A AP20: a prior manual application disclosure is recorded, no duplicate is prepared or submitted, and a tracking next step is offered (3.712072ms)
+✔ R2A AP23: a sponsorship correction is written through 130's path, the prepared packet is flagged invalid, and the stale answer never submits (4.737444ms)
+✔ R2A sensitive peer: 'I no longer need sponsorship' corrects the fact the other way (1.394527ms)
+✔ R2A SH03: 'is my previous application packet still approved and valid?' is ANSWERED with the invalidation — no new packet is prepared (2.172967ms)
+✔ R2A validity: with nothing on record, the answer is an honest unknown — never a fresh packet, never a stale-valid claim (1.214146ms)
+✔ R2A NW17: a relayed opt-out is recorded through 124's suppression, only that person's follow-ups stop, and the status question is answered (2.500951ms)
+✔ R2A NW13: a recipient change after the draft supersedes it — a new review for the new recipient, zero sends (6.698263ms)
+✔ R2A guard: C37 persists the halt, reports truthful counts and rejects late or duplicate events (2.640671ms)
+✔ R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141 (2.537085ms)
+✔ C03: 'use the new one' via chat updates the profile with precedence + audit, rebuilds dependents, and post-restart recall answers 2014 (3.295125ms)
+✔ C17: chat fills the Greenhouse-like replica to REVIEW, not submitted, with step log + payload snapshot + sink-armed dry validation (18.810356ms)
+✔ C17 seam: a profile with no phone surfaces phone as an ask instead of guessing it (1.680667ms)
+✔ C18: chat fill of the Ashby-like replica STOPS on the unresolved sensitive hidden default (1.128938ms)
+✔ C20: doorstep -> approve-and-submit -> timeout reported unknown -> 'did it go through?' reconciles BEFORE any retry, exactly one receipt (2.20079ms)
+✔ C37: 'stop everything' via chat halts the queue, PERSISTS across restart, and duplicate/out-of-order events revive nothing (1.639825ms)
+✔ C15: packet prep via chat binds the BACKEND resume.pdf by content hash (133 called, not edited) (24.184658ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 210.802411

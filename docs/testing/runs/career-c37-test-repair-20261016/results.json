@@ -1,0 +1,102 @@
+{
+  "version": "c37_test_only_repair/v1",
+  "at": "2026-10-16T21:44:03.688600+00:00",
+  "testedCommit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+  "productUnchangedFrom": "06b0999f287c99b71187eb5eeccc171b4e3b378a",
+  "affectedSuites": {
+    "tests": 27,
+    "pass": 27,
+    "fail": 0
+  },
+  "broaderCompatibilityPassed": 379,
+  "conversationChecksPassed": 969,
+  "conversationTurns": 165,
+  "negativeControlsKilled": 4,
+  "originalFailingBaselinePreserved": true,
+  "paidCalls": 0,
+  "actualModelQuality": "NOT_RUN",
+  "actualSemanticVerifierQuality": "NOT_RUN",
+  "browserOutcomes": 0,
+  "releaseGate": "NOT_READY: actual semantic/model quality, original shared allowance, browser outcomes and Muse integration/deploy remain unresolved. C37 stale assertion failure is repaired.",
+  "runs": [
+    {
+      "id": "c37-final-source",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "tests": 71,
+        "pass": 71,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/c37-final-source/metadata.json",
+      "metadataSha256": "218079ef9b3686d1260f37612f156146a6080d22a1e5e47060b77642e3506c54"
+    },
+    {
+      "id": "c37-final-postgres",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-flexible-grounding-20261016/c37-final-postgres/metadata.json",
+      "metadataSha256": "45796fc55fd6f3051b68d8e21d3727ab593ad72d5631af7becb78940b0699445"
+    },
+    {
+      "id": "c37-final-research-source",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/c37-final-research-source/metadata.json",
+      "metadataSha256": "0e9900fb044b891e96f57a696c54be9e1f11e0b556fadcee6d88c33830e59a07"
+    },
+    {
+      "id": "c37-final-research-pg",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "tests": 17,
+        "pass": 17,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/c37-final-research-pg/metadata.json",
+      "metadataSha256": "8b1c4269e6b47337ae672d8b407349142c8f5fef7e5b8b0b3f698bc0e9661b23"
+    },
+    {
+      "id": "c37-final-original",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "checks": 543,
+        "passed": 543,
+        "failed": 0,
+        "turns": 83
+      },
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/c37-final-original/metadata.json",
+      "metadataSha256": "2ffb80f00dedfeadca6b6643b60b78a7d80eec83a6eaa81e3c77ebafc747a92f"
+    },
+    {
+      "id": "c37-final-heldouts",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "checks": 426,
+        "passed": 426,
+        "failed": 0,
+        "turns": 82
+      },
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/c37-final-heldouts/metadata.json",
+      "metadataSha256": "f4bef1538d5fd13c5306645281cb25088433f0959c2e3426d9c1d6109bb34b31"
+    },
+    {
+      "id": "scoped",
+      "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+      "counts": {
+        "tests": 250,
+        "pass": 250,
+        "fail": 0
+      },
+      "metadata": "docs/testing/runs/career-c37-test-repair-20261016/scoped.json",
+      "metadataSha256": "2dd73ea2df0995cf328ecb15dfce836404d3962f79bf79e28bbb63fd5100e2fc"
+    }
+  ]
+}

@@ -56294,6 +56294,236 @@
    "limitations": [
     "Actual model/semantic-verifier quality and all browser tasks NOT_RUN; paid calls zero."
    ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:c37-final-source",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-flexible-grounding-20261016/c37-final-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 71,
+    "pass": 71,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/c37-final-source/metadata.json",
+   "log_sha256": "218079ef9b3686d1260f37612f156146a6080d22a1e5e47060b77642e3506c54",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:c37-final-postgres",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-flexible-grounding-20261016/c37-final-postgres/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 29,
+    "pass": 29,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-flexible-grounding-20261016/c37-final-postgres/metadata.json",
+   "log_sha256": "45796fc55fd6f3051b68d8e21d3727ab593ad72d5631af7becb78940b0699445",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:c37-final-research-source",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/research-conversation-review-20261016/c37-final-research-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/research-conversation-review-20261016/c37-final-research-source/metadata.json",
+   "log_sha256": "0e9900fb044b891e96f57a696c54be9e1f11e0b556fadcee6d88c33830e59a07",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:c37-final-research-pg",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/research-conversation-review-20261016/c37-final-research-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 17,
+    "pass": 17,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/research-conversation-review-20261016/c37-final-research-pg/metadata.json",
+   "log_sha256": "8b1c4269e6b47337ae672d8b407349142c8f5fef7e5b8b0b3f698bc0e9661b23",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:c37-final-original",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/conversation-recovery-20261016/c37-final-original/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 543,
+    "passed": 543,
+    "failed": 0,
+    "turns": 83
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/conversation-recovery-20261016/c37-final-original/metadata.json",
+   "log_sha256": "2ffb80f00dedfeadca6b6643b60b78a7d80eec83a6eaa81e3c77ebafc747a92f",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:c37-final-heldouts",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/conversation-recovery-20261016/c37-final-heldouts/metadata.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 426,
+    "passed": 426,
+    "failed": 0,
+    "turns": 82
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/conversation-recovery-20261016/c37-final-heldouts/metadata.json",
+   "log_sha256": "f4bef1538d5fd13c5306645281cb25088433f0959c2e3426d9c1d6109bb34b31",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:scoped",
+   "command": [
+    "see-metadata",
+    "docs/testing/runs/career-c37-test-repair-20261016/scoped.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 250,
+    "pass": 250,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_NATIVE_SQL_WHERE_MARKED",
+   "provider_mode": "scripted_or_disabled",
+   "log": "docs/testing/runs/career-c37-test-repair-20261016/scoped.json",
+   "log_sha256": "2dd73ea2df0995cf328ecb15dfce836404d3962f79bf79e28bbb63fd5100e2fc",
+   "screenshots": [],
+   "limitations": [
+    "No actual model/semantic-verifier quality, browser outcome or deployed result claim."
+   ]
+  },
+  {
+   "id": "career-c37-test-repair-20261016:affected-suites",
+   "command": [
+    "see-report",
+    "docs/testing/runs/career-c37-test-repair-20261016/final-affected-suites.log"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 27,
+    "pass": 27,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_TEST_ONLY_REPAIR",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-c37-test-repair-20261016/final-affected-suites.log",
+   "log_sha256": "748a29eb2460099b9a116458a1b87e5f330b34995f8e4481c17298123f8daf4d",
+   "screenshots": []
+  },
+  {
+   "id": "career-c37-test-repair-20261016:negative-controls",
+   "command": [
+    "see-report",
+    "docs/testing/runs/career-c37-test-repair-20261016/final-negative-controls/results.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "killed": 4,
+    "total": 4
+   },
+   "verification_level": "LOCAL_TEST_ONLY_REPAIR",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-c37-test-repair-20261016/final-negative-controls/results.json",
+   "log_sha256": "341ef712b2fafad5fb20a0e78bcba5c80f21da389679ef3fed9176e95fb8bc75",
+   "screenshots": []
+  },
+  {
+   "id": "career-c37-test-repair-20261016:product-preservation",
+   "command": [
+    "see-report",
+    "docs/testing/runs/career-c37-test-repair-20261016/product-preservation.json"
+   ],
+   "observed_at": "2026-10-16T21:44:03.688600+00:00",
+   "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "changedProductPaths": 0
+   },
+   "verification_level": "LOCAL_TEST_ONLY_REPAIR",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-c37-test-repair-20261016/product-preservation.json",
+   "log_sha256": "52966aec1426d4fe9d7900e7b07eef22171f863310025257785cc78cface34e4",
+   "screenshots": []
   }
  ],
  "limitations": [

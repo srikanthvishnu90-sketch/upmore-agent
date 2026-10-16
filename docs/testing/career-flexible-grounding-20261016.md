@@ -1,3 +1,5 @@
+> Local C37 update: the stale guard is repaired with no product changes. On 0689d160, R2A/R3 pass 27/27, four negative controls are killed, 379 compatibility cases and 969 conversation checks pass. [C37 handoff](career-c37-test-repair-20261016.md) supersedes the historical C37 blocker below; all actual-model, allowance, browser and Muse deployment gates remain.
+
 # Flexible grounded career conversation — isolated review
 
 Base: gateway boundary review **`2471747fd36118922d9bbbb107b498f788ac7bef`**. Local implementation branch: `codex/career-flexible-grounding-20261016`. Final tested implementation: **`a25b874ba4a065ecb9d722d9a6815c201311ff29`**. No shared release merge or deployment occurred. Muse owns integration, forward migration, original-cap reconciliation and deployment.

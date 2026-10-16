@@ -1,0 +1,20 @@
+✔ I04 canonical public URL gate includes multiply encoded restricted actions (3.179151ms)
+✔ I10 private, mapped and mixed DNS answers never create a request (36.100992ms)
+✔ I11-I12 DNS pins validated address, preserves TLS defaults and refuses redirects (5.809086ms)
+✔ I14 old and future captures are rejected rather than called current observations (25.970553ms)
+✔ I15 correlation binds task, intent, URL, navigation and source digest (9.945235ms)
+✔ I16 hashed PNG signatures and malformed chunks are not screenshots (5.820392ms)
+✔ I13-I21-I23 source instructions stay untrusted and research exposes no application operation (10.609364ms)
+✔ I20 uncertain read followed by repeated worker polling never reads twice (1.498453ms)
+✔ I22 retry publishes a locally captured artifact after an unconfirmed central finish without rereading (4.291203ms)
+✔ I25 source-size, type and status limits refuse dishonest captures (0.960534ms)
+✔ I22 supplementary: uncertain publication retries the exact already committed task receipt (2.432437ms)
+✔ I10 supplementary: compressed IPv6 cannot evade the tunnelling/special-range gate (0.496737ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 309.658158

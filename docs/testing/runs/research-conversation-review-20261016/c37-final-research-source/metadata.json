@@ -1,0 +1,39 @@
+{
+  "label": "c37-final-research-source",
+  "mode": "source",
+  "target": "/workspace/upmore-flexible-grounding",
+  "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+  "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+  "expectationSha256": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117",
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "a404ba94fd11ddd0ab1be7d6464604a22239859d4b2f4a6c0d3f6de3b915f249",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "workers/career-browser/service.cjs": "d3331535105c7fada8741f51fe734ed89dd173c8dc0ab9a587f17cabda6db0cf",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d",
+    "workers/career-browser/research-png.cjs": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+  },
+  "testSourceSha256": "315ad740163c9fa8706c80b0387316325cd75924ff54153796da6624f5ca6888",
+  "helperSha256": "1d65d8e93162d0bdfb78c9e4419847ebe46eff1743cf51e18dd3cc2810a1ef02",
+  "started": "2026-10-16T21:41:42.676Z",
+  "verification": "SOURCE_ONLY_SYNTHETIC_NETWORK_AND_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "finished": "2026-10-16T21:41:43.061Z",
+  "exitCode": 0,
+  "logSha256": "d7fe472d58ec0b11cc9015052fbbc5087ee82052ee4c58a8631f3b1d5bb9fe3e",
+  "transcriptSha256": null,
+  "result": "PASS_SOURCE_OR_FIXTURE_ONLY",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-flexible-grounding/tests/research-conversation-independent-source.test.cjs"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "commit": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-name-pattern=R2A guard: C37 persists",
+    "tests/career-gauntlet-r2a.test.cjs"
+  ],
+  "baseline": "PASS",
+  "verification": "DISPOSABLE_LOCAL_INTENTIONAL_DEFECTS_NO_EXTERNAL_TRANSPORT",
+  "paidCalls": 0,
+  "results": [
+    {
+      "id": "missing-persistence",
+      "sourceFile": "packages/domain/141-career-doorstep.js",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "halted-work-revived",
+      "sourceFile": "packages/domain/141-career-doorstep.js",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "duplicate-event-not-deduped",
+      "sourceFile": "packages/domain/141-career-doorstep.js",
+      "exitCode": 1,
+      "killed": true
+    },
+    {
+      "id": "prior-delivery-count-denied",
+      "sourceFile": "packages/domain/141-career-doorstep.js",
+      "exitCode": 1,
+      "killed": true
+    }
+  ]
+}

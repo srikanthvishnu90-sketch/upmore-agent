@@ -1,0 +1,12 @@
+{
+  "before": "06b0999f287c99b71187eb5eeccc171b4e3b378a",
+  "after": "0689d160c19ad3858ad7c4f6e50917f95fbc09d0",
+  "protectedRoots": [
+    "packages",
+    "supabase",
+    "workers",
+    "src"
+  ],
+  "changedProductPaths": [],
+  "gitTreeListingSha256": "93add70c4bd99ea7ca9f71e313ef952a9e2043c9b64532db8affd43c9dd62d15"
+}

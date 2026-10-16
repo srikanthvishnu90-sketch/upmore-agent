@@ -118,3 +118,7 @@ The replay/privacy check also treats any missing owner account-version stamp as 
 A synthetic inconsistent legacy snapshot exposed another read-projection issue: resolved education evidence could appear alongside stale graduation/year mirrors as active model evidence. The retained stale-education-before-fix.log records that contradiction. The projection now omits mirrors inconsistent with corrected education values and reports a value-free disputed status, without rewriting the profile or duplicating module 130's correction implementation.
 
 The handler's old pruning header still claimed ZERO finance code, although the optional shared gateway exports shelved financial helpers. Its comment now states the actual boundary: no financial routes or full domain bundle. This final comment-only correction changes no executed logic.
+
+### C37 legacy test expectation repaired without product change
+
+The current handoff still carried C37 as a routing blocker, but inspection on a25b874b proved two stale R2A assertions: handler ownership and literal reply copy. Explicit authorization now replaces only that guard with persisted halt, truthful accounting/no irreversible receipt, and late/duplicate-event checks. R2A/R3 pass 27/27; four deliberately broken persistence/event/count behaviors are rejected. Original failing evidence is retained, product bytes are unchanged from 06b0999f, and actual model/browser/allowance/deploy gates remain unresolved.

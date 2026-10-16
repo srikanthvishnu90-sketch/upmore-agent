@@ -54328,6 +54328,506 @@
     "No actual model response quality, real browser outcome or deployed authentication/RLS claim.",
     "Baseline privacy failures and inherited C37 failure are retained; see independent composition report."
    ]
+  },
+  {
+   "id": "career-model-gateway-20261016:recorded-contracts",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/career-model-gateway-20261016/recorded-contracts/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 31,
+    "pass": 31,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/career-model-gateway-20261016/recorded-contracts/test.log",
+   "log_sha256": "1cbc71f03250d23a6e0840e9ddfc94333f414ddd5cc4afd8efc174b2866bcf37",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:recorded-postgres",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/career-model-gateway-20261016/recorded-postgres/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 15,
+    "pass": 15,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/career-model-gateway-20261016/recorded-postgres/test.log",
+   "log_sha256": "a9b816ea9b2f8063fa4d58a6af9a1dcd70fd615eea87a7b9643337e92e7b43d6",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-authority-pg",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/model-gateway-authority-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 21,
+    "pass": 21,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-authority-pg/test.log",
+   "log_sha256": "8456305283e6522ff188feb0fb14cd9cbaafcf53f127eccac7b79d43c7cf7043",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-joint-pg",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/model-gateway-joint-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 2,
+    "pass": 2,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-joint-pg/test.log",
+   "log_sha256": "5f874fbc0fd64aee1ed095a1257caa1758a163a12dbe30c2f10f63a9539a4ba0",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-persistence-pg",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/model-gateway-persistence-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-persistence-pg/test.log",
+   "log_sha256": "7e8e8595ab238b373ee31074133f04fc73d35f95f66a0ebad6293441cff72cae",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-privacy-pg",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 7,
+    "pass": 7,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-pg/test.log",
+   "log_sha256": "c5437863661ed4cc665223efb8d14f51170a2b04f2ba0d2013d0b4f99d2513af",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-privacy-source",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 10,
+    "pass": 10,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-source/test.log",
+   "log_sha256": "3f7b25eba46c216bfb1b2ed8346dec4c0ef071d4136d872d17df987af98f9cc4",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-author-pg",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 7,
+    "pass": 7,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-pg/test.log",
+   "log_sha256": "3bed40665c322a6baf66c30c8475f4439ab8139f89c4388e3efce729feb2a162",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-author-source",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-source/test.log",
+   "log_sha256": "45c4436df187d6db5cc900d9ef5634fbc380dc599494592021e83d0a2ad9d362",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-research-pg",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-pg/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 17,
+    "pass": 17,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-pg/test.log",
+   "log_sha256": "b709bd63a336215c35b1509a4757c9f92eabf36d28da1037d04349785ec40c77",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-research-source",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-source/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-source/test.log",
+   "log_sha256": "d48e6f8658a119ae4eda9b14824a313f0ae88e4427ae5c9f26d1a39f30d4ed81",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-heldouts",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/conversation-recovery-20261016/model-gateway-heldouts/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 426,
+    "passed": 426,
+    "failed": 0,
+    "turns": 82
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/conversation-recovery-20261016/model-gateway-heldouts/metadata.json",
+   "log_sha256": "50b962868b0c0934a008e8cb4d5113a664f313732161066abab4bbcea0465e81",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:model-gateway-original",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/conversation-recovery-20261016/model-gateway-original/metadata.json"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "checks": 543,
+    "passed": 543,
+    "failed": 0,
+    "turns": 83
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/conversation-recovery-20261016/model-gateway-original/metadata.json",
+   "log_sha256": "ebee291ef7071d9284280e4b8025c5403cf67cbd1dc56a94cbc0c1fed1778418",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:scoped-regressions",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/career-model-gateway-20261016/scoped-regressions.log"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 250,
+    "pass": 250,
+    "fail": 0
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/career-model-gateway-20261016/scoped-regressions.log",
+   "log_sha256": "79ca6835a985f56598fbfa70db5066fcd5d692d3fa922d3815939214cfc52af4",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:legacy-gauntlet",
+   "command": [
+    "see-run-metadata",
+    "docs/testing/runs/career-model-gateway-20261016/legacy-gauntlet.log"
+   ],
+   "observed_at": "2026-10-16T04:33:11.768431+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "FAIL_RETAINED",
+   "exit_code": 1,
+   "reported_outcomes": {
+    "tests": 27,
+    "pass": 26,
+    "fail": 1
+   },
+   "verification_level": "LOCAL_STAGED_ENTRY_OR_SOURCE_ONLY",
+   "provider_mode": "injected_or_disabled_no_paid_calls",
+   "log": "docs/testing/runs/career-model-gateway-20261016/legacy-gauntlet.log",
+   "log_sha256": "b94c80d615b8a07faf7e1469cdd916192aac06b03954f3f1b47fe89c7178e6db",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality and all 15 browser outcomes NOT_RUN. Synthetic auth; no hosted deployment/RLS claim.",
+    "Original shared $5 remaining is unknown; source-only SQL creates no real allowance."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:final-context-contracts",
+   "command": [
+    "node",
+    "scripts/career/model-gateway/run.cjs",
+    "final-context-contracts",
+    "contracts"
+   ],
+   "observed_at": "2026-10-16T04:35:49.484495+00:00",
+   "commit": "131ec1205542d71d44b449ee91b5570834572bf0",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "tests": 32,
+    "pass": 32,
+    "fail": 0
+   },
+   "verification_level": "ACTUAL_LOCAL_STAGED_ENTRY_INJECTED_AUTH_DATABASE_PROVIDER",
+   "provider_mode": "synthetic",
+   "log": "docs/testing/runs/career-model-gateway-20261016/final-context-contracts/test.log",
+   "log_sha256": "2a1da40e4ad9656ec09b69efee841449713a74033d7e2e6707d2fbb3e21c9abc",
+   "screenshots": [],
+   "limitations": [
+    "Actual model quality NOT_RUN; zero paid calls; all 15 genuine browser outcomes NOT_RUN."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:typescript-final",
+   "command": [
+    "npx",
+    "--yes",
+    "--cache",
+    "/tmp/upmore-model-npm-cache",
+    "--package",
+    "typescript@5.9.3",
+    "tsc",
+    "--noEmit",
+    "--allowImportingTsExtensions",
+    "--target",
+    "es2022",
+    "--module",
+    "esnext",
+    "--moduleResolution",
+    "bundler",
+    "--lib",
+    "es2023,dom",
+    "supabase/functions/_shared/career_model_reply.ts"
+   ],
+   "observed_at": "2026-10-16T04:35:49.484495+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_TYPE_CHECK",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-model-gateway-20261016/typescript-final.log",
+   "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "screenshots": [],
+   "limitations": [
+    "No deployed/native Deno runtime or actual model quality claim."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:full-bundle",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T04:35:49.484495+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_TYPE_CHECK",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-model-gateway-20261016/full-bundle-check.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "screenshots": [],
+   "limitations": [
+    "No deployed/native Deno runtime or actual model quality claim."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:career-bundle",
+   "command": [
+    "python3",
+    "scripts/build-router-core.py",
+    "--career-only",
+    "--check"
+   ],
+   "observed_at": "2026-10-16T04:35:49.484495+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_TYPE_CHECK",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-model-gateway-20261016/career-bundle-check.log",
+   "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+   "screenshots": [],
+   "limitations": [
+    "No deployed/native Deno runtime or actual model quality claim."
+   ]
+  },
+  {
+   "id": "career-model-gateway-20261016:staging",
+   "command": [
+    "node",
+    "scripts/career/stage-career.cjs",
+    "/tmp/upmore-model-final-stage",
+    "--json"
+   ],
+   "observed_at": "2026-10-16T04:35:49.484495+00:00",
+   "commit": "c2b41b15145d72688987b71365197f1595253550",
+   "result": "PASS",
+   "exit_code": 0,
+   "verification_level": "LOCAL_STATIC_OR_TYPE_CHECK",
+   "provider_mode": "none",
+   "log": "docs/testing/runs/career-model-gateway-20261016/staged-artifact.json",
+   "log_sha256": "3921119246e85bf5770df7222a23733eac0720d00e3f9a187cf54415bb40a5e5",
+   "screenshots": [],
+   "limitations": [
+    "No deployed/native Deno runtime or actual model quality claim."
+   ]
   }
  ],
  "limitations": [

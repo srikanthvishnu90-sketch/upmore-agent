@@ -1,0 +1,81 @@
+(node:450993) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:450993) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ missing provider usage cannot become a zero or discounted bill (343.729837ms)
+✖ negative input provider usage cannot become a zero or discounted bill (199.687486ms)
+✖ coerced input provider usage cannot become a zero or discounted bill (184.711263ms)
+✖ impossible cache provider usage cannot become a zero or discounted bill (169.482955ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 993.079092
+
+✖ failing tests:
+
+test at tests/career-model-gateway.test.cjs:20:319
+✖ missing provider usage cannot become a zero or discounted bill (343.729837ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'generated'
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:20:461)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'generated',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:20:319
+✖ negative input provider usage cannot become a zero or discounted bill (199.687486ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'generated'
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:20:461)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'generated',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:20:319
+✖ coerced input provider usage cannot become a zero or discounted bill (184.711263ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'generated'
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:20:461)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'generated',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:20:319
+✖ impossible cache provider usage cannot become a zero or discounted bill (169.482955ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'generated'
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:20:461)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'generated',
+    expected: 'generated',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,231 @@
+{
+  "version": "career_model_gateway_review/v1",
+  "at": "2026-10-16T04:33:11.768431+00:00",
+  "base": "e66e39cf9e30044341773298c9896007fc12663c",
+  "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+  "runtimeSourceUnchangedSince": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+  "newModelContracts": 31,
+  "newModelPostgresCases": 15,
+  "existingTargetedTests": 368,
+  "totalTargetedPass": 414,
+  "conversationChecks": 969,
+  "conversationTurns": 165,
+  "legacyGauntlet": {
+    "pass": 26,
+    "fail": 1,
+    "failure": "C37 expected 141-career-doorstep.handleChat, actual 142-career-router.handleChat; same as base"
+  },
+  "actualProviderRequests": 0,
+  "paidCalls": 0,
+  "actualModelQuality": "NOT_RUN",
+  "browserOutcomes": 0,
+  "browserAcceptance": "15/15 NOT_RUN",
+  "originalSharedBudgetRemaining": "UNKNOWN_UNRECONCILED",
+  "releaseGate": "NOT_READY",
+  "runs": [
+    {
+      "id": "recorded-contracts",
+      "metadata": "docs/testing/runs/career-model-gateway-20261016/recorded-contracts/metadata.json",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "metadataSha256": "db3c6afeaf837f11bcc2e248b9898246e60353693b82fc37ecfc81035843d59d",
+      "exitCode": 0,
+      "counts": {
+        "tests": 31,
+        "pass": 31,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/career-model-gateway-20261016/recorded-contracts/test.log",
+      "logSha256": "1cbc71f03250d23a6e0840e9ddfc94333f414ddd5cc4afd8efc174b2866bcf37"
+    },
+    {
+      "id": "recorded-postgres",
+      "metadata": "docs/testing/runs/career-model-gateway-20261016/recorded-postgres/metadata.json",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "metadataSha256": "7856885048683bbb14cfbc81503f9ab776ba03857ae5f4c393502a469c8bc851",
+      "exitCode": 0,
+      "counts": {
+        "tests": 15,
+        "pass": 15,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/career-model-gateway-20261016/recorded-postgres/test.log",
+      "logSha256": "a9b816ea9b2f8063fa4d58a6af9a1dcd70fd615eea87a7b9643337e92e7b43d6"
+    },
+    {
+      "id": "model-gateway-authority-pg",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-authority-pg/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "00199aeef13046511941024857421b5d2c926b2b90df450bcbd4b7bc07a45977",
+      "exitCode": 0,
+      "counts": {
+        "tests": 21,
+        "pass": 21,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-authority-pg/test.log",
+      "logSha256": "8456305283e6522ff188feb0fb14cd9cbaafcf53f127eccac7b79d43c7cf7043"
+    },
+    {
+      "id": "model-gateway-joint-pg",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-joint-pg/metadata.json",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "metadataSha256": "8d07699dc663bafcfe97ce7270d0f5d5f884d445cea55afce0c1cf6cfdea557c",
+      "exitCode": 0,
+      "counts": {
+        "tests": 2,
+        "pass": 2,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-joint-pg/test.log",
+      "logSha256": "5f874fbc0fd64aee1ed095a1257caa1758a163a12dbe30c2f10f63a9539a4ba0"
+    },
+    {
+      "id": "model-gateway-persistence-pg",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-persistence-pg/metadata.json",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "metadataSha256": "9a22e75f01f86531f723ae883fc633f21c60dd6529a6e2207c1f90a6f8e7b40c",
+      "exitCode": 0,
+      "counts": {
+        "tests": 30,
+        "pass": 30,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-persistence-pg/test.log",
+      "logSha256": "7e8e8595ab238b373ee31074133f04fc73d35f95f66a0ebad6293441cff72cae"
+    },
+    {
+      "id": "model-gateway-privacy-pg",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-pg/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "e12e54de6258619d2419536e97a96868f4f2b6b1cd08adf03b4086d9dde6a314",
+      "exitCode": 0,
+      "counts": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-pg/test.log",
+      "logSha256": "c5437863661ed4cc665223efb8d14f51170a2b04f2ba0d2013d0b4f99d2513af"
+    },
+    {
+      "id": "model-gateway-privacy-source",
+      "metadata": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-source/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "34a0e1745265854cd3fdf864eed847427f06dac0ef352f8521a9be2af3d3a1a1",
+      "exitCode": 0,
+      "counts": {
+        "tests": 10,
+        "pass": 10,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/privacy-research-composition-20261016/model-gateway-privacy-source/test.log",
+      "logSha256": "3f7b25eba46c216bfb1b2ed8346dec4c0ef071d4136d872d17df987af98f9cc4"
+    },
+    {
+      "id": "model-gateway-author-pg",
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-pg/metadata.json",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "metadataSha256": "6a818b3d73ab8ff78bbdcc27f2b83ade65735bc3237705e309d2bbf9d149a3cf",
+      "exitCode": 0,
+      "counts": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-pg/test.log",
+      "logSha256": "3bed40665c322a6baf66c30c8475f4439ab8139f89c4388e3efce729feb2a162"
+    },
+    {
+      "id": "model-gateway-author-source",
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-source/metadata.json",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "metadataSha256": "9b35b247d4550c2a82a98668e3da4bf19ae1c1d14d2c21cf6858de260fe0176d",
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-author-source/test.log",
+      "logSha256": "45c4436df187d6db5cc900d9ef5634fbc380dc599494592021e83d0a2ad9d362"
+    },
+    {
+      "id": "model-gateway-research-pg",
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-pg/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "48e166c65c1d68c6213b16088489feb138a9ec908c16753e6a7885994bd41755",
+      "exitCode": 0,
+      "counts": {
+        "tests": 17,
+        "pass": 17,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-pg/test.log",
+      "logSha256": "b709bd63a336215c35b1509a4757c9f92eabf36d28da1037d04349785ec40c77"
+    },
+    {
+      "id": "model-gateway-research-source",
+      "metadata": "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-source/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "7b2d9396d5d6022a7f2c6fccd4d3c146d0268f6ab93c1ce624171e66f629610c",
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "log": "docs/testing/runs/research-conversation-review-20261016/model-gateway-research-source/test.log",
+      "logSha256": "d48e6f8658a119ae4eda9b14824a313f0ae88e4427ae5c9f26d1a39f30d4ed81"
+    },
+    {
+      "id": "model-gateway-heldouts",
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/model-gateway-heldouts/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "50b962868b0c0934a008e8cb4d5113a664f313732161066abab4bbcea0465e81",
+      "exitCode": 0,
+      "counts": {
+        "checks": 426,
+        "passed": 426,
+        "failed": 0,
+        "turns": 82
+      }
+    },
+    {
+      "id": "model-gateway-original",
+      "metadata": "docs/testing/runs/conversation-recovery-20261016/model-gateway-original/metadata.json",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "metadataSha256": "ebee291ef7071d9284280e4b8025c5403cf67cbd1dc56a94cbc0c1fed1778418",
+      "exitCode": 0,
+      "counts": {
+        "checks": 543,
+        "passed": 543,
+        "failed": 0,
+        "turns": 83
+      }
+    },
+    {
+      "id": "scoped-regressions",
+      "sourceCommit": "52911f3fd63e85d8a21f15ee0f6bd921359a04da",
+      "log": "docs/testing/runs/career-model-gateway-20261016/scoped-regressions.log",
+      "logSha256": "79ca6835a985f56598fbfa70db5066fcd5d692d3fa922d3815939214cfc52af4",
+      "exitCode": 0,
+      "counts": {
+        "tests": 250,
+        "pass": 250,
+        "fail": 0
+      }
+    },
+    {
+      "id": "legacy-gauntlet",
+      "sourceCommit": "c2b41b15145d72688987b71365197f1595253550",
+      "log": "docs/testing/runs/career-model-gateway-20261016/legacy-gauntlet.log",
+      "logSha256": "b94c80d615b8a07faf7e1469cdd916192aac06b03954f3f1b47fe89c7178e6db",
+      "exitCode": 1,
+      "counts": {
+        "tests": 27,
+        "pass": 26,
+        "fail": 1
+      }
+    }
+  ]
+}

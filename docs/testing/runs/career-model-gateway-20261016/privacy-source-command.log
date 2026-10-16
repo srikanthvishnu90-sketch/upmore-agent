@@ -1,0 +1,21 @@
+(node:462571) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:462571) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ staged two-owner default-id: failed A correction never contaminates B (1056.501024ms)
+✔ staged two-owner default-id: committed A correction never contaminates B (498.84228ms)
+✔ staged two-owner name: failed A correction never contaminates B (433.03704ms)
+✔ staged two-owner name: committed A correction never contaminates B (525.594206ms)
+✔ staged two-owner email: failed A correction never contaminates B (686.585491ms)
+✔ staged two-owner email: committed A correction never contaminates B (736.391765ms)
+✔ committed same-user correction survives fresh handler process and exact atomic replay (1408.030982ms)
+✔ legacy export never exposes profile correction data (2.548859ms)
+✔ legacy restore cannot import an ownerless correction snapshot (1.188213ms)
+✔ stale and erased profile loads cannot receive process-local correction replay (1.385556ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5670.41548

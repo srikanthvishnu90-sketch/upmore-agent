@@ -1,0 +1,24 @@
+✔ missing campaign denies without creating an allowance or reservation (643.248722ms)
+✔ unreconciled, expired, mismatched model/price and exhausted campaign refuse admission (1957.320322ms)
+✔ foreign owner, stale revision/version/epoch and malformed bounds are refused before reservation (1292.350159ms)
+(node:445827) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:445827) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ one global campaign serializes concurrent different-owner reservations (654.996077ms)
+✔ consume is one-use and STOP before consume revokes current context without spending (1018.81321ms)
+✔ unknown provider outcome retains the full bound and cannot be re-consumed/re-reserved (1117.20173ms)
+✔ recorded usage reconciles exactly once and altered receipt or foreign owner is refused (1334.872384ms)
+✔ epoch change after admitted call preserves its charge but marks context not current (1048.172915ms)
+✔ client roles cannot access campaign/reservation data or invoke model budget functions (889.815684ms)
+✔ actual entry and real SQL campaign -> gateway injection -> atomic grounded response -> free replay (3206.70306ms)
+✔ actual entry missing shared budget gives honest deterministic fallback with no provider request (1353.811054ms)
+✔ actual SQL save failure keeps all facts/messages atomic and never pays twice on same-key retry (3417.92805ms)
+✔ actual concurrent erase after inference admission prevents model delivery and retains charge (1974.561625ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20038.599686

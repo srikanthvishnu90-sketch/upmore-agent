@@ -1,0 +1,12 @@
+(node:524400) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:524400) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual correction and selective forgetting govern the next enabled and fresh model context (590.07464ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 748.26907

@@ -1,0 +1,219 @@
+(node:444743) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:444743) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ default-off career entry preserves deterministic path without budget/provider access (373.426363ms)
+✖ actual entry uses existing gateway once and commits grounded coaching atomically; exact replay is free (324.723616ms)
+✔ budgetDenied denies provider dispatch and preserves deterministic fallback (311.936338ms)
+✔ monthlyDenied denies provider dispatch and preserves deterministic fallback (188.376107ms)
+✔ consumeDenied denies provider dispatch and preserves deterministic fallback (183.833923ms)
+✔ noKey denies provider dispatch and preserves deterministic fallback (269.794155ms)
+✔ badTicket denies provider dispatch and preserves deterministic fallback (398.986487ms)
+✔ httpError gives truthful fallback, retains uncertainty and never retries inference (572.156035ms)
+✔ networkError gives truthful fallback, retains uncertainty and never retries inference (502.938566ms)
+✔ badUsage gives truthful fallback, retains uncertainty and never retries inference (393.951846ms)
+✔ usageFails gives truthful fallback, retains uncertainty and never retries inference (438.968764ms)
+✔ settleFails gives truthful fallback, retains uncertainty and never retries inference (538.529384ms)
+✔ toolCall gives truthful fallback, retains uncertainty and never retries inference (247.612042ms)
+✖ rejects extra-authority in model output without promoting it to facts (425.018165ms)
+✖ rejects unknown-fact in model output without promoting it to facts (230.920823ms)
+✖ rejects personal-claim in model output without promoting it to facts (202.439747ms)
+✖ rejects completion-claim in model output without promoting it to facts (254.348278ms)
+✖ rejects url in model output without promoting it to facts (422.789443ms)
+✖ rejects metric in model output without promoting it to facts (270.779896ms)
+✔ bounded context separates sources, unknown location and nonactual claims from current facts (225.522021ms)
+✔ colliding profiles in the same entry realm never put another owner facts into context (214.671933ms)
+✔ hypotheticals, factual correction, control and forgetting turns never use the model (1623.597308ms)
+✔ failed atomic commit cannot return model success or retain model question; stable-key retry does not infer twice (243.370468ms)
+✔ changed epoch/context after admitted inference refuses generated delivery (389.749423ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 17
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9425.325066
+
+✖ failing tests:
+
+test at tests/career-model-gateway.test.cjs:8:1
+✖ actual entry uses existing gateway once and commits grounded coaching atomically; exact replay is free (324.723616ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:8:419)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:11:106
+✖ rejects extra-authority in model output without promoting it to facts (425.018165ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:11:824)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:11:106
+✖ rejects unknown-fact in model output without promoting it to facts (230.920823ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:11:824)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:11:106
+✖ rejects personal-claim in model output without promoting it to facts (202.439747ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:11:824)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:11:106
+✖ rejects completion-claim in model output without promoting it to facts (254.348278ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:11:824)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:11:106
+✖ rejects url in model output without promoting it to facts (422.789443ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:11:824)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-model-gateway.test.cjs:11:106
+✖ rejects metric in model output without promoting it to facts (270.779896ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   _careerTrackStore: {
+  +     rows: []
+  +   },
+      basics: {
+        name: 'SYNTHETIC OWNER'
+      },
+      constraints: {
+        graduationDate: '2028'
+  
+      at TestContext.<anonymous> (/workspace/upmore-model-gateway/tests/career-model-gateway.test.cjs:11:824)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' }, _careerTrackStore: { rows: [] } },
+    expected: { id: 'profile-1', basics: { name: 'SYNTHETIC OWNER' }, facts: [ [Object] ], preferences: { locations: [Array] }, constraints: { graduationDate: '2028' } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

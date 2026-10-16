@@ -1,0 +1,43 @@
+(node:524486) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:524486) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ default-off career entry preserves deterministic path without budget/provider access (327.863396ms)
+✔ actual entry uses existing gateway once and commits grounded coaching atomically; exact replay is free (242.428934ms)
+✔ budgetDenied denies provider dispatch and preserves deterministic fallback (179.322311ms)
+✔ monthlyDenied denies provider dispatch and preserves deterministic fallback (334.426449ms)
+✔ consumeDenied denies provider dispatch and preserves deterministic fallback (189.957755ms)
+✔ noKey denies provider dispatch and preserves deterministic fallback (261.537253ms)
+✔ badTicket denies provider dispatch and preserves deterministic fallback (266.775221ms)
+✔ httpError gives truthful fallback, retains uncertainty and never retries inference (206.750316ms)
+✔ networkError gives truthful fallback, retains uncertainty and never retries inference (243.265218ms)
+✔ badUsage gives truthful fallback, retains uncertainty and never retries inference (195.93752ms)
+✔ usageFails gives truthful fallback, retains uncertainty and never retries inference (294.810637ms)
+✔ settleFails gives truthful fallback, retains uncertainty and never retries inference (218.344254ms)
+✔ toolCall gives truthful fallback, retains uncertainty and never retries inference (171.418412ms)
+✔ truncated gives truthful fallback, retains uncertainty and never retries inference (172.201127ms)
+✔ rejects extra-authority in model output without promoting it to facts (199.485111ms)
+✔ rejects unknown-fact in model output without promoting it to facts (309.46023ms)
+✔ rejects personal-claim in model output without promoting it to facts (244.067821ms)
+✔ rejects completion-claim in model output without promoting it to facts (176.705235ms)
+✔ rejects url in model output without promoting it to facts (174.960015ms)
+✔ rejects metric in model output without promoting it to facts (166.927609ms)
+✔ bounded context separates sources, unknown location and nonactual claims from current facts (173.980337ms)
+✔ colliding profiles in the same entry realm never put another owner facts into context (193.11652ms)
+✔ hypotheticals, factual correction, control and forgetting turns never use the model (893.287113ms)
+✔ failed atomic commit cannot return model success or retain model question; stable-key retry does not infer twice (168.271245ms)
+✔ changed epoch/context after admitted inference refuses generated delivery (170.026504ms)
+✔ current role constraints survive a full profile and unresolved education is not promoted (170.476437ms)
+✔ fresh entry loads only saved owned context and never reuses prior model prose as facts (384.930414ms)
+✔ missing provider usage cannot become a zero or discounted bill (172.192635ms)
+✔ negative input provider usage cannot become a zero or discounted bill (166.479675ms)
+✔ coerced input provider usage cannot become a zero or discounted bill (211.305507ms)
+✔ impossible cache provider usage cannot become a zero or discounted bill (217.581956ms)
+✔ actual correction and selective forgetting govern the next enabled and fresh model context (445.337859ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8057.628013

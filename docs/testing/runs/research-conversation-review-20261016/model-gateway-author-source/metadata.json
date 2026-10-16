@@ -1,0 +1,39 @@
+{
+  "label": "model-gateway-author-source",
+  "mode": "author-source",
+  "target": "/workspace/upmore-model-gateway",
+  "commit": "c2b41b15145d72688987b71365197f1595253550",
+  "frozenAt": "2026-10-16T02:00:09.067212+00:00",
+  "expectationSha256": "c5e64509d21c2d361574ef4b5f4d8c051f72e9839455972805de07b596ba7117",
+  "sourceFiles": {
+    "supabase/functions/agent-chat/handler-career.ts": "fd99635b1f1a30e040af29af7d6151b4d20ea4546eb870224e5936d78708633d",
+    "supabase/functions/_shared/career_host.js": "8bed6a1c00866ab382d0982db9c07b64efb0eb7afdbcfcedce4eb93ebe7fad2e",
+    "supabase/functions/_shared/career_task_bridge.js": "54395484a381df85c7ee6f010b69f25cb3ff1a753c8027f52a1513dacf661743",
+    "supabase/functions/_shared/career_research_policy.js": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a",
+    "supabase/functions/_shared/career_persistence.js": "5b4f75cad5f7fb3476fab2766072c02cf445526d7d2529dbbee466ea2893bbec",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "workers/career-browser/service.cjs": "d3331535105c7fada8741f51fe734ed89dd173c8dc0ab9a587f17cabda6db0cf",
+    "workers/career-browser/research-network.cjs": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d",
+    "workers/career-browser/research-png.cjs": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+  },
+  "testSourceSha256": "4fb1c7afea0880dc21bddc467821024308ea1cbd560f520ec1a54c806a76fc75",
+  "helperSha256": "1d65d8e93162d0bdfb78c9e4419847ebe46eff1743cf51e18dd3cc2810a1ef02",
+  "started": "2026-10-16T04:31:37.196Z",
+  "verification": "SOURCE_ONLY_SYNTHETIC_NETWORK_AND_DRIVER",
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED",
+  "paidCalls": 0,
+  "finished": "2026-10-16T04:31:37.724Z",
+  "exitCode": 0,
+  "logSha256": "45c4436df187d6db5cc900d9ef5634fbc380dc599494592021e83d0a2ad9d362",
+  "transcriptSha256": null,
+  "result": "PASS_SOURCE_OR_FIXTURE_ONLY",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-vm-modules",
+    "--test",
+    "--test-concurrency=1",
+    "/workspace/upmore-model-gateway/tests/career-public-research.test.cjs"
+  ]
+}

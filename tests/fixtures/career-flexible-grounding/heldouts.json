@@ -1,0 +1,14 @@
+[
+ {"id":"H01","text":"I organized spreadsheet rows for a class assignment.","scope":"person","decision":"supported","kind":"draft"},
+ {"id":"H02","text":"The candidate earned a doctorate from Stanford.","scope":"person","decision":"unsupported","kind":"prose"},
+ {"id":"H03","text":"I reduced processing time by seventy percent.","scope":"person","decision":"unsupported","kind":"draft"},
+ {"id":"H04","text":"Advice: describe the professional engineering team that the candidate led.","scope":"person","decision":"unsupported","kind":"advice"},
+ {"id":"H05","text":"Perhaps that NASA employment proves substantial experience.","scope":"person","decision":"unsupported","kind":"hypothesis"},
+ {"id":"H06","text":"How did the doctorate help with the assignment?","scope":"person","decision":"unsupported","kind":"question"},
+ {"id":"H07","text":"The supplied posting asks for Python experience.","scope":"posting","decision":"supported","kind":"prose"},
+ {"id":"H08","text":"The candidate therefore meets the posting's Python requirement.","scope":"person","decision":"unsupported","kind":"prose"},
+ {"id":"H09","text":"Your application has already been delivered.","scope":"person","decision":"authority_unsafe","kind":"prose"},
+ {"id":"H10","text":"That sounds discouraging. It may help to try a short account of the work before polishing the wording.","scope":null,"decision":"supported","kind":"prose"},
+ {"id":"H11","text":"That sounds discouraging after a decade of management experience.","scope":null,"decision":"unlisted_claim","kind":"prose"},
+ {"id":"H12","text":"A small practice example could clarify whether analysis or software work feels more engaging; that is an experiment, not a conclusion about fit.","scope":null,"decision":"supported","kind":"hypothesis"}
+]

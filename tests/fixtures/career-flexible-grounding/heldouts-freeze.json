@@ -1,0 +1,7 @@
+{
+  "version": "heldouts/v1",
+  "frozenBeforeExecution": true,
+  "sha256": "20b0950098f2ac9a7d5cbebd5280b4659ce3c7c0ad42851a38fdb221b7253aea",
+  "semanticDecisions": "SCRIPTED_ORACLE_ONLY_NOT_ACTUAL_ENTAILMENT",
+  "cases": 12
+}

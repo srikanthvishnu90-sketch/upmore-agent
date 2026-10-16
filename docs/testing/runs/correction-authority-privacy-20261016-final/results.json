@@ -1,0 +1,375 @@
+{
+  "schema_version": 1,
+  "label": "correction-authority-privacy-20261016-final",
+  "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+  "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+  "observed_at": "2026-10-16T03:07:28.186259+00:00",
+  "checks": [
+    {
+      "id": "correction-authority-privacy-20261016-final:privacy",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "tests/correction-authority-privacy.test.cjs"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/privacy.log",
+      "log_sha256": "95956a90e7a711fd5afdb8aa13cd0af8abe70464a10781b5d277bce33621d17d",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "staged two-owner default-id: failed A correction never contaminates B",
+        "staged two-owner default-id: committed A correction never contaminates B",
+        "staged two-owner name: failed A correction never contaminates B",
+        "staged two-owner name: committed A correction never contaminates B",
+        "staged two-owner email: failed A correction never contaminates B",
+        "staged two-owner email: committed A correction never contaminates B",
+        "committed same-user correction survives fresh handler process and exact atomic replay",
+        "legacy export never exposes profile correction data",
+        "legacy restore cannot import an ownerless correction snapshot",
+        "stale and erased profile loads cannot receive process-local correction replay"
+      ],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:postgres",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/correction-authority-postgres.test.cjs",
+        "tests/career-persistence-postgres.test.cjs"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/postgres.log",
+      "log_sha256": "06fb5f0b34c28b70ffa66313fa53e774d1bcf80de4318d8e480e1494369978bc",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "atomic turn pair, snapshot, receipt and exact replay",
+        "real SQL rollback on agent_messages:user",
+        "real SQL rollback on agent_messages:assistant",
+        "real SQL rollback on agent_flow_state:state",
+        "same request races create exactly one pair",
+        "different concurrent requests use revision fence",
+        "foreign thread and snapshot fail closed",
+        "malformed commits and reminder IDs fail closed",
+        "location correction crosses owned threads without rewriting facts or another tenant",
+        "chat watch becomes canonical user KV visible to scheduler and a fresh thread",
+        "legacy watch recovery refuses divergent profiles",
+        "STOP pauses owned threads and cancels pending work; resume does not revive it",
+        "erasure clears active state across owned threads, payloads and replay text, never another tenant",
+        "stale scheduler cannot restore erased or corrected context",
+        "scheduler compare-and-set detects concurrent chat correction",
+        "parallel inbox delivery claims one durable record",
+        "wrong lease, owner and altered provenance cannot acknowledge",
+        "lost committed acknowledgement is reconciled by owned readback",
+        "failed acknowledgement remains pending and same lease can reconcile after restart",
+        "expired lease becomes uncertain; explicit inbox reconciliation reuses it",
+        "external sinks and get/set-only adapters fail closed before any send",
+        "chat load consumes only own inbox and commit marks it seen atomically",
+        "client roles cannot access private tables or execute service RPCs",
+        "generic worker writes cannot alter account controls, receipts or another watch key",
+        "queued reminders cannot deliver after their interest is removed or globally paused",
+        "acknowledgement preserves fit provenance and attaches a database payload hash",
+        "real chat -> canonical watch -> seed/new posting -> inbox -> fresh thread; restart does not duplicate",
+        "queue remains intact when durable transfer fails; restart transfers before drain",
+        "scheduler checkpoint rolls back snapshots and queue if outbox transfer fails",
+        "actual staged HTTP handler -> real PostgreSQL: save/replay, rollback, owner boundary, STOP and erasure",
+        "real SQL rollback at agent_messages:user: failed A correction cannot reach B or A's next turn",
+        "real SQL rollback at agent_messages:assistant: failed A correction cannot reach B or A's next turn",
+        "real SQL rollback at agent_flow_state:state: failed A correction cannot reach B or A's next turn",
+        "real SQL committed correction, owner boundary, restart and exact reply replay",
+        "real SQL stale correction loses revision race and cannot leak its uncommitted facts",
+        "real SQL failed correction can retry the same key and commit exactly once",
+        "real SQL erase epoch rejects old receipts and stale commits; reused profile identity cannot revive corrections"
+      ],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:regressions",
+      "command": [
+        "node",
+        "--test",
+        "tests/career-onboarding.test.cjs",
+        "tests/career-w11-ext.test.cjs",
+        "tests/career-gauntlet-r2.test.cjs",
+        "tests/career-gauntlet-r2a.test.cjs",
+        "tests/career-gauntlet-r2b.test.cjs",
+        "tests/career-gauntlet-r2-integration.test.cjs",
+        "tests/career-gauntlet-r3.test.cjs",
+        "tests/career-finisher-f.test.cjs",
+        "tests/career-http-host.test.cjs",
+        "tests/career-bundle-reachability.test.cjs",
+        "tests/router-bundle.test.cjs"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "FAIL",
+      "reported_outcomes": null,
+      "exit_code": 1,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/regressions.log",
+      "log_sha256": "5320c2cf51b0bd93f31ab008e6dec0e203c5816dbe86564a40e63a1dbcab9b8e",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "staged career entry regressions in an ESM-only realm",
+        "FIN-E-001/012/010 replay: harness cards render as labeled rows, one action, readable CSS, no raw JSON",
+        "FIN-E-004 replay: honest status contains zero finance-domain tokens",
+        "FIN-E-005 replay: batchCard dedupes, normalizes names, trims titles, words missing fit",
+        "FIN-E-013 replay: weeklyDigest next actions never list the same follow-up twice",
+        "FIN-E-006/007 replay: user prose from 125/127/130/132/133/136 carries no internal vocabulary",
+        "FIN-E-006 replay: prose lint catches banned tokens and passes clean prose",
+        "bridge: router-shape role closure arms the job_closed guard; submit writes nothing",
+        "bridge: router-shape prior-application disclosure arms the duplicate guard; submit writes nothing",
+        "bridge: router-shape cancel arms the approval_cancelled guard; submit writes nothing",
+        "bridge: router-shape fact-correction invalidation arms the approval_invalidated guard",
+        "bridge control: no invalidation state \u2014 the same submit still executes exactly once",
+        "R2 baseline probe: raw domain modules still throw / return null unwrapped (wrapper is additive, modules untouched)",
+        "R2 C38 leg i (unit): a throwing handler turn is contained \u2014 fallback bubble + failure record, no silence",
+        "R2 U12 (unit): a null-route turn is contained \u2014 unmatched fallback + failure record",
+        "R2: empty results are contained \u2014 {}, empty/whitespace reply, empty string, empty bubbles",
+        "R2: a valid reply passes through untouched and writes no record; handler fall-through is not a failure",
+        "R2: if the composer's fallback itself is unusable, a lint-clean last-resort bubble is still delivered",
+        "R2 C38 leg i (integrated, staging turn entry): corrupt profile turn delivers the error fallback and writes a durable record file",
+        "R2 U12 (integrated, staging turn entry): no leg is silent; legs no route answers are contained with records (coordinator integration update: R1's router now answers legs 1-3 substantively \u2014 the invariant is no-silence, asserted per leg)",
+        "R2 C37 spot-check (integrated): the stop turn receives an honest bubble \u2014 R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs)",
+        "R2 delivery seam (integrated): a throw at the harness delivery step is contained, recorded, and the fallback is delivered instead",
+        "R2A AP08: closure turn marks the role closed in the doorstep store and states nothing will be submitted; the later submit executes nothing",
+        "R2A AP08 variant: 'that role closed' in plain words is owned too",
+        "R2A AP18: cancel at the review screen records a cancelled state; a later approve executes nothing",
+        "R2A AP18 variants: cancel in ordinary wordings (not one exact sentence) halts the prepared submission",
+        "R2A AP17: 'cancel the queued batch' halts and persists the whole queue through 141's halt export",
+        "R2A NW18: cancel mid-queue preserves the landed send and reports it as landed, not 'nothing was sent'",
+        "R2A queue variant: 'hold off on the outreach queue' halts an in-memory queue state",
+        "R2A AP20: a prior manual application disclosure is recorded, no duplicate is prepared or submitted, and a tracking next step is offered",
+        "R2A AP23: a sponsorship correction is written through 130's path, the prepared packet is flagged invalid, and the stale answer never submits",
+        "R2A sensitive peer: 'I no longer need sponsorship' corrects the fact the other way",
+        "R2A SH03: 'is my previous application packet still approved and valid?' is ANSWERED with the invalidation \u2014 no new packet is prepared",
+        "R2A validity: with nothing on record, the answer is an honest unknown \u2014 never a fresh packet, never a stale-valid claim",
+        "R2A NW17: a relayed opt-out is recorded through 124's suppression, only that person's follow-ups stop, and the status question is answered",
+        "R2A NW13: a recipient change after the draft supersedes it \u2014 a new review for the new recipient, zero sends",
+        "R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply",
+        "R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141",
+        "AP22: status re-reads the destination \u2014 receipt removed after an accepted submit, status is UNCERTAIN, never a confirmation",
+        "AP22 positive control: receipt still at the destination \u2014 the same status path confirms from the re-read",
+        "AP20: a recorded manual-apply disclosure refuses the submit as a duplicate \u2014 zero sink writes",
+        "AP20: a disclosure on record before the fill stops the duplicate at preparation too",
+        "AP23: a fact correction through 130's write path after packet prep refuses the submit as stale",
+        "AP23 (hash leg): a direct constraints edit with no version bump is still caught by the bound fact hash",
+        "AP08: role closed in state \u2014 a bare 'approve and submit' is refused at execution time, zero sink writes",
+        "AP18: approval cancelled in state \u2014 a bare 'approve and submit' cannot revive it, zero sink writes",
+        "invalidated approval in state \u2014 submit refused as invalidated, zero sink writes",
+        "binding: fill stamps the doorstep + packet prep stamps its binding with the profile fact version/hash",
+        "recorders: Lane A's state mutations exist as 141 exports and the guards honor what they write",
+        "DD-10: halt reply never claims 'nothing was sent' when an item already went out",
+        "C03: 'use the new one' via chat updates the profile with precedence + audit, rebuilds dependents, and post-restart recall answers 2014",
+        "C17: chat fills the Greenhouse-like replica to REVIEW, not submitted, with step log + payload snapshot + sink-armed dry validation",
+        "C17 seam: a profile with no phone surfaces phone as an ask instead of guessing it",
+        "C18: chat fill of the Ashby-like replica STOPS on the unresolved sensitive hidden default",
+        "C20: doorstep -> approve-and-submit -> timeout reported unknown -> 'did it go through?' reconciles BEFORE any retry, exactly one receipt",
+        "C37: 'stop everything' via chat halts the queue, PERSISTS across restart, and duplicate/out-of-order events revive nothing",
+        "C15: packet prep via chat binds the BACKEND resume.pdf by content hash (133 called, not edited)",
+        "host creates and a networking ask is answered by the career path",
+        "apply ask with an empty live pool fabricates no roles",
+        "tracking ask gets a career answer, never the finance product",
+        "kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx",
+        "a finance ask is NOT served as the finance product",
+        "garbage input never throws and still returns a reply",
+        "onboarding interview: one question at a time, answers stored, known steps never re-asked",
+        "ask-once memory: graduation answered from stored profile; missing facts are asked once, not guessed",
+        "sensitive answer: saved value shown verbatim for confirmation; audit record only after a yes",
+        "profile export: facts, connections, tokens by name only; delete path offered; no value-shaped field",
+        "capability status: buckets counted from the rows passed in \u2014 proven-live never invented",
+        "reauth dedupe: same source + same expiry sends once however often re-planned; a new expiry sends again",
+        "BUG-002/003/004 regressions: ledger phrasings route in 120 handleChat",
+        "BUG-005 regression: gmail + calendar blocked by the SAME dead career grant produce ONE re-auth message",
+        "130 chat glue: onboarding start, capability status, stored-about-me all answer",
+        "BUG-141 adapter: pivot CIRs (dict screening_signals) compose via 127",
+        "SC-201 researchTalkPrep: arc from supplied record only; gaps named",
+        "SC-202 teachingDemoPrep: blocks sum near lesson length; no institution claimed",
+        "SC-205 barRaiserPrep: no CIR claimed; hardest questions present",
+        "SC-212 belowFloor: gap math vs floor; above-range honesty",
+        "SC-213 equityScenarios: letter-valued grant gets hypothetical scenarios; options stay unvalued",
+        "SC-214 signingBonusPivot: ask closes the named gap; card gated, not sent",
+        "SC-215 returnOfferConversion: sourced figure cited WITH its level context (BUG-142 guard)",
+        "SC-216 compExpectationAnswer: sourced range quoted; no-figure CIR gets fallback, no number",
+        "SC-217 pressurePlan: hours computed from stored expiry; sequence is same-day",
+        "SC-218 leverageScript: refuses without a real competing offer; uses stored facts when real",
+        "SC-220 referralOut: tax/legal triggers refer out unanswered; ordinary questions do not",
+        "supabase/functions/_shared/router_core.js is current with packages/domain and the registry",
+        "the bundle loads as an ES module and exports the career seam modules and the reference JSON consts",
+        "the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored"
+      ],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:bundle",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--check"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/bundle.log",
+      "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:career-bundle",
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--career-only",
+        "--check"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/career-bundle.log",
+      "log_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:rerun-syntax",
+      "command": [
+        "node",
+        "--check",
+        "scripts/career/gauntlet/run-rerun.cjs"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/rerun-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:deepdive-syntax",
+      "command": [
+        "node",
+        "--check",
+        "scripts/career/gauntlet/run-deepdive.cjs"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/deepdive-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "correction-authority-privacy-20261016-final:diff-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "observed_at": "2026-10-16T03:07:28.186259+00:00",
+      "commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+      "source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+      "environment": {
+        "os": "Linux-6.18.44-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/correction-authority-privacy-20261016-final/diff-whitespace.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    }
+  ],
+  "not_run": [
+    "Deno runtime/type checks: Deno unavailable in this executor.",
+    "Production JWT/RLS transport and production migration/deployment.",
+    "Paid/actual-model quality evaluation and the 15 live browser tasks.",
+    "Production profile data audit or repair."
+  ]
+}

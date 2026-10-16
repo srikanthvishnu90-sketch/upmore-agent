@@ -47,3 +47,30 @@ The newly exposed receipt mismatch is fixed by retaining the confirmed immutable
 Fixture closure on source 1b413229: original author 12+7, independent 12+17, producer-fault 6, authority 21 and scoped 244 tests all pass (319 total). Both unmodified SQL lock races ran using loopback-only IO::Select transport into the network-none container; earlier wire precondition is resolved. README links the new closure report and preserves historical failed reports. Read-only audit of 132 published heads finds no new module-130 owner repair; owner branch module blob remains identical to release. All 15 live browser outcomes and actual model quality remain unverified.
 
 Execution-readiness inspection at 2d29c27b: current career deploy entry is deterministic and excludes the provider gateway; archived paid memory-audit evidence is a different historical full-handler route, not present-day career-model quality. Shared campaign ledger and local audit summaries are absent in this fresh environment; its historical status/health path would create a zero-spend ledger if called, so none was invoked. Product model governor limits monthly calls, not the owner shared $5. Browser runtime candidate is deferred and not exposed; installed Chromium helper ownership is still incompatible, and default bundled Chromium is absent. Added a small non-secret readiness checklist identifying exact owner/platform prerequisites; no tests rerun or execution/security/credential setup performed.
+
+
+# Playbook drift — 2026-10-16
+
+## Module 130 correction persistence
+
+The old module comment claimed corrections should also live in an identity-keyed
+process store, and the C03/SH03 harness restart setup discarded the saved profile
+then depended on that store. This confused a stale source import with committed
+profile persistence and allowed one user's correction to enter another user's
+profile, even after a rolled-back save.
+
+Source of truth: the existing `handler-career.ts` and `career_persistence.js`
+commit the corrected profile JSON and reply atomically through
+`career_host_commit`. New staged HTTP tests against real local PostgreSQL prove
+that path, including SQL rollback, exact replay, revision races and erase epochs.
+Module 130 now keeps no global correction authority; compatibility APIs are inert.
+C03/SH03 restart setups round-trip saved profile JSON and explicitly label that
+simulation. Historical reports of correction-store replay are evidence of the
+old behavior, not a supported current persistence contract.
+
+See `docs/career/correction-authority-privacy-20261016.md` and the failed baseline
+and final logs under `docs/testing/runs/correction-authority-privacy-20261016/`.
+No new persistence infrastructure or production migration is part of this fix.
+
+
+Independent privacy composition: preserve both dated drift histories. Owner repair is published at 382b6e37 and merged here without a module-130 conflict; combined privacy/conversation/research verification remains pending.

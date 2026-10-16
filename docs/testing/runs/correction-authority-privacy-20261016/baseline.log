@@ -1,0 +1,209 @@
+(node:2500) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2500) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ staged two-owner default-id: failed A correction never contaminates B (323.858252ms)
+✖ staged two-owner default-id: committed A correction never contaminates B (336.617204ms)
+✖ staged two-owner name: failed A correction never contaminates B (207.103917ms)
+✖ staged two-owner name: committed A correction never contaminates B (199.747445ms)
+✖ staged two-owner email: failed A correction never contaminates B (238.342148ms)
+✖ staged two-owner email: committed A correction never contaminates B (208.751118ms)
+✔ committed same-user correction survives fresh handler process and exact atomic replay (378.689034ms)
+✖ legacy export never exposes profile correction data (2.453685ms)
+✖ legacy restore cannot import an ownerless correction snapshot (0.844666ms)
+✖ stale and erased profile loads cannot receive process-local correction replay (0.947135ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 1
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1999.887281
+
+✖ failing tests:
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:46:7
+✖ staged two-owner default-id: failed A correction never contaminates B (323.858252ms)
+  AssertionError [ERR_ASSERTION]: B must recall B2031, never A2028
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:56:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:46:7
+✖ staged two-owner default-id: committed A correction never contaminates B (336.617204ms)
+  AssertionError [ERR_ASSERTION]: B must recall B2031, never A2028
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:56:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:46:7
+✖ staged two-owner name: failed A correction never contaminates B (207.103917ms)
+  AssertionError [ERR_ASSERTION]: B must recall B2031, never A2028
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:56:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:46:7
+✖ staged two-owner name: committed A correction never contaminates B (199.747445ms)
+  AssertionError [ERR_ASSERTION]: B must recall B2031, never A2028
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:56:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:46:7
+✖ staged two-owner email: failed A correction never contaminates B (238.342148ms)
+  AssertionError [ERR_ASSERTION]: B must recall B2031, never A2028
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:56:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:46:7
+✖ staged two-owner email: committed A correction never contaminates B (208.751118ms)
+  AssertionError [ERR_ASSERTION]: B must recall B2031, never A2028
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:56:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: "Your graduation date is 2028. Tell me what you'd like to do next.",
+    expected: /2031/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:80:3
+✖ legacy export never exposes profile correction data (2.453685ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   {
+  +     audit: [
+  +       {
+  +         at: null,
+  +         changes: [
+  +           {
+  +             fact_id: 'SYNTHETIC-GRAD',
+  +             field: 'graduation_date',
+  +             from: '2027',
+  +             source: 'resume-new.txt',
+  +             to: '2028'
+  +           }
+  +         ],
+  +         instruction: "use the new one, old resume's wrong",
+  +         outcome: 'user-directed correction',
+  +         precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +         source: 'resume-new.txt'
+  +       }
+  +     ],
+  +     changes: [
+  +       {
+  +         fact_id: 'SYNTHETIC-GRAD',
+  +         field: 'graduation_date',
+  +         from: '2027',
+  +         source: 'resume-new.txt',
+  +         to: '2028'
+  +       }
+  +     ],
+  +     graduationDate: '2028',
+  +     key: 'profile-1',
+  +     resume_sources: {
+  +       active: 'resume-new.txt',
+  +       precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted",
+  +       status: 'active_new_wins'
+  +     }
+  +   }
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:82:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { key: 'profile-1', audit: [Array], changes: [Array], graduationDate: '2028', resume_sources: [Object] } ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:84:3
+✖ legacy restore cannot import an ownerless correction snapshot (0.844666ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:86:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:92:3
+✖ stale and erased profile loads cannot receive process-local correction replay (0.947135ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/workspace/upmore-privacy-baseline/tests/correction-authority-privacy.test.cjs:96:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

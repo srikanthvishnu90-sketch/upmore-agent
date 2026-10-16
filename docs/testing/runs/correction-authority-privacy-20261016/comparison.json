@@ -1,0 +1,81 @@
+{
+  "baseline_commit": "f67db048599db308f2691a7be7feada841143da5",
+  "repair_source_commit": "dfd22d769c20b6b84ac9f72428843f8879ccaf11",
+  "repair_source_digest": "2054a7d868c93d1bb80dc9f8553d232a576b5f02d196f96851b8a4c652b018d7",
+  "node_version": "v24.19.0",
+  "postgres_image": "postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+  "postgres_client": "pg@8.16.3",
+  "database": "127.0.0.1:55439/career_test_privacy",
+  "new_fixture": "synthetic only; actual default profile-1; no personal fixture files",
+  "baseline_new_suite_files_sha256": {
+    "tests/correction-authority-privacy.test.cjs": "82ed6a18bf680b5d7b39ebd46780b77624132131bb94daf50adb1eb75f55b50b",
+    "tests/correction-authority-postgres.test.cjs": "86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4",
+    "tests/helpers/correction-privacy-fixture.cjs": "c9879c2dd2f5eac730c41603aa0eda3e473adea5f5e557a401c9ad67822a169b"
+  },
+  "baseline_logs": {
+    "baseline.log": {
+      "sha256": "2c90f3be6bb032725fb0b5b650d077f9c767d012ab8c9ab4a93f6a3164c9c3b0",
+      "expected_exit_code": 1
+    },
+    "postgres-baseline.log": {
+      "sha256": "4285b73a0a9ecc60e447756b1e88cbc58df338db9e653df20d36895e65419a16",
+      "expected_exit_code": 1
+    },
+    "regressions-baseline.log": {
+      "sha256": "d020944d14080f105dd9da57f3b777653a56fea955b8f579f4fa75f6ab98612d",
+      "expected_exit_code": 1
+    }
+  },
+  "final_record": "docs/testing/runs/correction-authority-privacy-20261016-final/results.json",
+  "comparisons": {
+    "staged_privacy": {
+      "baseline": {
+        "pass": 1,
+        "fail": 9
+      },
+      "after": {
+        "pass": 10,
+        "fail": 0
+      }
+    },
+    "postgres_privacy": {
+      "baseline": {
+        "pass": 1,
+        "fail": 6
+      },
+      "after": {
+        "pass": 7,
+        "fail": 0
+      }
+    },
+    "existing_postgres": {
+      "after": {
+        "pass": 30,
+        "fail": 0
+      }
+    },
+    "related_regressions": {
+      "baseline": {
+        "pass": 89,
+        "fail": 2
+      },
+      "after": {
+        "pass": 89,
+        "fail": 2
+      }
+    }
+  },
+  "inherited_failures": [
+    "R2 C37 spot-check (integrated)",
+    "R2A guard: C37 exact wording still belongs to 141"
+  ],
+  "limitations": [
+    "No deploy, production migration, production data audit, credential transmission, live browser or paid model calls.",
+    "Deno unavailable; exact staged graph executed by Node VM/type stripping.",
+    "Saved profile JSON is authoritative; legacy ownerless correction snapshots are discarded."
+  ],
+  "staged_files_changed": [
+    "_shared/router_core.career.js"
+  ],
+  "baseline_source_digest_with_new_suites": "3548aff02587252ef92cb22799314e4860d8d8b1d72253ea8538037dfbb3d524"
+}

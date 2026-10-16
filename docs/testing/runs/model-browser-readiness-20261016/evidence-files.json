@@ -1,0 +1,8 @@
+{
+  "reportSha256": "01c57f7c9439b9266a2d0e67d6a5f5b933bd35692d4d3a210b8b8be7cc898fc4",
+  "files": {
+    "docs/testing/runs/model-browser-readiness-20261016/privacy-publication-update.json": "fc06a8c3b60b3b996fd044a1eb40c1f148060d36b22ef4bca387ab9c79978c20",
+    "docs/testing/runs/model-browser-readiness-20261016/source-findings.json": "552767a2b37ad4535a77854ecc3db9e83d2ddca3ea7667bdd5e151677975eb26",
+    "docs/testing/runs/model-browser-readiness-20261016/inventory.json": "7a7d779268c67741aef0d180db3180d1abaf1bdbe59af901ff3df838aaf3b1ed"
+  }
+}

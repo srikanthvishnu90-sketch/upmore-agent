@@ -1,0 +1,27 @@
+{
+  "localSourceHashes": {
+    "supabase/functions/agent-chat/index-career.ts": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7",
+    "supabase/functions/agent-chat/handler-career.ts": "f55aa50f5e9e3007f731457b470634223c0a8168a8ccaa2a7d744e765f49f4c7",
+    "scripts/career/stage-career.cjs": "6c82197a5e0e9293a423621fa317472fcd1056a374df68fac778a7c88d46620f",
+    "supabase/functions/_shared/model_gateway.ts": "cb1bd978654358c9ca608187e22c7b62bd5e1c90780a44712b74ecc091143292",
+    "supabase/functions/_shared/model_calls.ts": "13c144f240f310f1c076dbbcd9ee83dcc8435a802b2c967e613fb0d8d40ef91d",
+    "supabase/migrations/20261010110000_model_call_budget.sql": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9",
+    "scripts/career/portal-browser-helper.cjs": "3aa06f29e54cd19777ed974f07d9504cd8ce3fd1633884fe40ad1aa97e514e1d"
+  },
+  "historicalAuditSource": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+  "historicalAuditHashes": {
+    "tests/memory-audit/budget.ts": "5f4c61a14dc16c86c1a1ef4f3450e1e0f9d2e0d49f3d23c1f34596e5e325c026",
+    "tests/memory-audit/handler-world.ts": "05643c9788ca31e1d1faff6fb4f8a72ab1a1fdeefb40d2205a1ccd5c601a16cb",
+    "docs/testing/memory-capability-audit/paid-campaign.md": "cdb624a969862fab7c9aad88fc3bc1d709af00d67095f357a929153d0fa72b58"
+  },
+  "historicalFirstConversationCostUsd": 0.000502,
+  "historicalFirstCostIsNotTotalOrRemainingBalance": true,
+  "historicalPricingIsNotBudgetReconciliation": true,
+  "providerGateCurrentCareerEntry": "No provider gateway import or model call; staged career entry deterministic",
+  "genericProductionGovernor": "900 calls per user/month, not a shared USD 5 campaign ceiling",
+  "primaryDocumentation": [
+    "https://developers.openai.com/api/docs/models/gpt-5-nano",
+    "https://playwright.dev/docs/docker"
+  ],
+  "currentDocsGpt5NanoLabel": "Deprecated; actual account access not probed; no model substitution authorized"
+}

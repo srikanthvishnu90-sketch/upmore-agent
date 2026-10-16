@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-16T03:09:03.398276+00:00",
+  "source": "2d29c27bee16d3d943840ef87e9e7e95ad25d307",
+  "inspectionOnly": true,
+  "environmentPresenceOnly": {
+    "UPMORE_AUDIT_MODEL_KEY": false,
+    "OPENAI_API_KEY": false,
+    "ANTHROPIC_API_KEY": false,
+    "MODEL_PROVIDER": false,
+    "OPENAI_MODEL": false,
+    "UPMORE_CHAT_URL": false,
+    "UPMORE_TEST_JWT": false,
+    "SUPABASE_URL": false,
+    "SUPABASE_ANON_KEY": false,
+    "SUPABASE_SERVICE_ROLE_KEY": false,
+    "UPMORE_PLAYWRIGHT_PATH": false,
+    "UPMORE_CHROMIUM_PATH": false,
+    "BROWSER_MANAGEMENT_SOCKET_PATH": true
+  },
+  "browserActivationDeferred": true,
+  "executables": {
+    "node": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "deno": null,
+    "chromium": "/usr/bin/chromium",
+    "docker": "/usr/local/bin/docker"
+  },
+  "budget": {
+    "ownerSharedCapUsd": 5,
+    "authoritativeLedgerPath": "/workspace/.upmore-tools/audit-budget/budget.json",
+    "ledgerExists": false,
+    "localAuditBudgetSummariesFound": 0,
+    "verifiedSpentUsd": null,
+    "verifiedRemainingUsd": null,
+    "paidRequestsAllowedByThisReadinessCheck": false,
+    "missingLedgerAutoInitializationObservedInHistoricalSource": true,
+    "statusOrHealthMethodNotInvoked": true
+  },
+  "browser": {
+    "installedChromium": "/usr/bin/chromium",
+    "sandboxHelperUid": 65534,
+    "sandboxHelperGid": 65534,
+    "sandboxHelperMode": "0o4755",
+    "normalLaunchEvidence": "docs/testing/runs/research-conversation-review-20261016/executor-health.json",
+    "normalLaunchErrorEvidence": "docs/testing/runs/research-conversation-review-20261016/normal-sandbox-launch-error.log",
+    "normalLaunchState": "NOT_RUN: failed before page navigation",
+    "playwrightVersion": "1.57.0",
+    "playwrightBundledChromiumExists": false,
+    "managedRuntimeCLIInstalled": true,
+    "managedRuntimeShowExitCode": 1,
+    "managedRuntimeShowStdoutBytes": 0,
+    "managedRuntimeShowStderrBytes": 104,
+    "managedRuntimeOutputDiscarded": true,
+    "callableBrowserToolsExposed": false,
+    "selectedExecutionEnvironments": [
+      "workspace"
+    ],
+    "runtimeActivated": false,
+    "newBrowserLaunches": 0,
+    "securitySettingsChanged": false
+  },
+  "paidCalls": 0,
+  "providerRequests": 0,
+  "externalSends": 0,
+  "productionMutations": 0,
+  "credentialConfigurationChanges": 0,
+  "secretValuesPrintedOrCopied": false,
+  "completedSuitesRerun": 0,
+  "browserOutcomes": 0,
+  "modelQuality": "NOT_EVALUATED"
+}

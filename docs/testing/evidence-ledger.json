@@ -53109,6 +53109,57 @@
     "No live browser, production or model-response-quality evidence.",
     "Failed corrected-fixture receipt and first wire-attempt runs are retained and triaged in the closure report."
    ]
+  },
+  {
+   "id": "model-browser-readiness-20261016:source-route-audit",
+   "command": [
+    "read-only configuration/source inspection; see sanitized inventory"
+   ],
+   "observed_at": "2026-10-16T03:11:24.753695+00:00",
+   "commit": "2d29c27bee16d3d943840ef87e9e7e95ad25d307",
+   "result": "PASS",
+   "reported_outcomes": null,
+   "verification_level": "STATIC_READ_ONLY",
+   "log": "docs/testing/runs/model-browser-readiness-20261016/inventory.json",
+   "log_sha256": "7a7d779268c67741aef0d180db3180d1abaf1bdbe59af901ff3df838aaf3b1ed",
+   "limitations": [
+    "Static inspection: current career deploy graph contains no model call; not a model quality pass.",
+    "No provider call, credential output/configuration, production mutation or external send."
+   ]
+  },
+  {
+   "id": "model-browser-readiness-20261016:shared-budget-readiness",
+   "command": [
+    "read-only configuration/source inspection; see sanitized inventory"
+   ],
+   "observed_at": "2026-10-16T03:11:24.753695+00:00",
+   "commit": "2d29c27bee16d3d943840ef87e9e7e95ad25d307",
+   "result": "NOT_RUN",
+   "reported_outcomes": null,
+   "verification_level": "STATIC_READ_ONLY",
+   "log": "docs/testing/runs/model-browser-readiness-20261016/inventory.json",
+   "log_sha256": "7a7d779268c67741aef0d180db3180d1abaf1bdbe59af901ff3df838aaf3b1ed",
+   "limitations": [
+    "Authoritative shared ledger absent; spent and remaining unknown. No paid request or zero-ledger initialization.",
+    "No provider call, credential output/configuration, production mutation or external send."
+   ]
+  },
+  {
+   "id": "model-browser-readiness-20261016:normal-sandbox-readiness",
+   "command": [
+    "read-only configuration/source inspection; see sanitized inventory"
+   ],
+   "observed_at": "2026-10-16T03:11:24.753695+00:00",
+   "commit": "2d29c27bee16d3d943840ef87e9e7e95ad25d307",
+   "result": "NOT_RUN",
+   "reported_outcomes": null,
+   "verification_level": "STATIC_READ_ONLY",
+   "log": "docs/testing/runs/model-browser-readiness-20261016/inventory.json",
+   "log_sha256": "7a7d779268c67741aef0d180db3180d1abaf1bdbe59af901ff3df838aaf3b1ed",
+   "limitations": [
+    "Installed helper ownership incompatible; bundled executable absent; managed runtime deferred/not exposed. No launch or security change.",
+    "No provider call, credential output/configuration, production mutation or external send."
+   ]
   }
  ],
  "limitations": [

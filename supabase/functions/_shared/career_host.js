@@ -62,6 +62,37 @@ const CareerHost = (() => {
     return JSON.parse(JSON.stringify(v));
   }
 
+  // DEPTH LANE A (MI-013): cross-thread stated facts. The account
+  // record carries a `stated_facts` key ({facts, offer, updated_at})
+  // written only from the user's own assertions (the router's
+  // capture discipline is the only producer) and read back here at
+  // turn start, so a fact stated in one thread is on the record in
+  // every later thread. Merge rule mirrors module 142's
+  // FACT_SINGLE_KINDS: single-value kinds are replaced by the
+  // thread's own (fresher) statement; multi-value kinds union
+  // without duplicates. The account is the base — a brand-new
+  // thread starts from everything the user has ever stated.
+  const ACCOUNT_SINGLE_FACT_KINDS = ["year", "geography", "target_firm", "level", "tone", "school", "majors"];
+  function mergeStatedFacts(accountFacts, threadFacts) {
+    const out = [];
+    const seen = new Set();
+    const keyOf = (f) => `${f && f.kind}:${String((f && f.value) || "").toLowerCase()}`;
+    for (const f of Array.isArray(accountFacts) ? accountFacts : []) {
+      if (!f || !f.kind || !f.value) continue;
+      if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) { if (!seen.has(`kind:${f.kind}`)) { out.push(cloneJson(f)); seen.add(`kind:${f.kind}`); seen.add(keyOf(f)); } }
+      else if (!seen.has(keyOf(f))) { out.push(cloneJson(f)); seen.add(keyOf(f)); }
+    }
+    for (const f of Array.isArray(threadFacts) ? threadFacts : []) {
+      if (!f || !f.kind || !f.value) continue;
+      if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) {
+        const i = out.findIndex((x) => x.kind === f.kind);
+        if (i >= 0) out[i] = cloneJson(f); else out.push(cloneJson(f));
+        seen.add(`kind:${f.kind}`); seen.add(keyOf(f));
+      } else if (!seen.has(keyOf(f))) { out.push(cloneJson(f)); seen.add(keyOf(f)); }
+    }
+    return out;
+  }
+
   // §1b ensure-ending — copied verbatim from pilot-lib.cjs (the harness
   // seam that guarantees H-12's last-sentence requirement for 120/130/141
   // results; 142 guarantees its own endings and is NOT passed through here).
@@ -157,6 +188,34 @@ const CareerHost = (() => {
         if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
         else delete ctx.alertWatchState;
       }
+      // DEPTH LANE A (MI-013): seed the account's stated facts into
+      // the turn. The thread's own record (restored above from its
+      // snapshot) wins per single-value kind; the account supplies
+      // everything the thread has not restated. The offer record
+      // seeds the negotiation thread only when the thread does not
+      // already carry one (its own mirror record included).
+      const acctFacts = o.account && o.account.stated_facts && typeof o.account.stated_facts === "object" ? o.account.stated_facts : null;
+      if (acctFacts) {
+        try {
+          ctx._accountStatedFacts = cloneJson(acctFacts);
+          const threadFacts = ctx.statedFacts && Array.isArray(ctx.statedFacts.facts) ? ctx.statedFacts.facts : [];
+          const merged = mergeStatedFacts(acctFacts.facts || [], threadFacts);
+          if (merged.length) ctx.statedFacts = { facts: merged, updatedAt: (ctx.statedFacts && ctx.statedFacts.updatedAt) || acctFacts.updated_at || null };
+          const offer = acctFacts.offer && typeof acctFacts.offer === "object" ? acctFacts.offer : null;
+          if (offer && (offer.firm || offer.amount || offer.deadline)) {
+            const mirrorNeg = ctx.trackStore && ctx.trackStore._careerThread && typeof ctx.trackStore._careerThread === "object" ? ctx.trackStore._careerThread.negotiation : null;
+            const own = (ctx.negotiationThread && typeof ctx.negotiationThread === "object") ? ctx.negotiationThread : (mirrorNeg && typeof mirrorNeg === "object" ? mirrorNeg : null);
+            if (!own || !(own.firm || own.amount || own.deadline)) {
+              ctx.negotiationThread = { firm: offer.firm || null, amount: offer.amount || null, deadline: offer.deadline || null, role: offer.role || null, fromAccount: true };
+            }
+            if (!ctx.offer || typeof ctx.offer !== "object") {
+              ctx.offer = {};
+              if (offer.firm) ctx.offer.company = offer.firm;
+              if (offer.amount) ctx.offer.base_salary = offer.amount;
+            }
+          }
+        } catch { /* account seeding must never break a turn */ }
+      }
       return ctx;
     }
 
@@ -227,6 +286,30 @@ const CareerHost = (() => {
         if (ctx && ctx[key] !== undefined) {
           try { stores[key] = cloneJson(ctx[key]); } catch { /* skip */ }
         }
+      }
+      // DEPTH LANE A (MI-013): write the turn's stated-facts record
+      // back to the ACCOUNT patch, so it survives into new threads.
+      // The record written is the turn's merged record (account base
+      // + this thread's statements and corrections, thread winning
+      // per kind). It is written only when it actually changed
+      // against what the account held at turn start — an unchanged
+      // record must not churn the account row every turn — and never
+      // on an erase turn (the erase rebuild owns the account then).
+      if (ctx && ctx.accountPersistence && !(ctx._hostPatch && ctx._hostPatch.erase === true)) {
+        try {
+          const facts = ctx.statedFacts && Array.isArray(ctx.statedFacts.facts) ? ctx.statedFacts.facts : [];
+          const mirrorNeg = ctx.trackStore && ctx.trackStore._careerThread && typeof ctx.trackStore._careerThread === "object" ? ctx.trackStore._careerThread.negotiation : null;
+          const th = (ctx.negotiationThread && typeof ctx.negotiationThread === "object") ? ctx.negotiationThread : (mirrorNeg && typeof mirrorNeg === "object" ? mirrorNeg : null);
+          const offer = th && (th.firm || th.amount || th.deadline) ? { firm: th.firm || null, amount: th.amount || null, deadline: th.deadline || null, role: th.role || null } : null;
+          if (facts.length || offer) {
+            const before = ctx._accountStatedFacts || null;
+            const changed = !before || JSON.stringify({ facts: before.facts || [], offer: before.offer || null }) !== JSON.stringify({ facts, offer });
+            if (changed) {
+              const record = { facts: cloneJson(facts).slice(0, 40), offer, updated_at: new Date(ctx.now || Date.now()).toISOString() };
+              ctx._hostPatch = Object.assign({}, ctx._hostPatch || {}, { stated_facts: record });
+            }
+          }
+        } catch { /* a failed write-back loses one turn's carry, never the turn */ }
       }
       return { v: 1, scope: { userId: ctx.userId }, stores };
     }

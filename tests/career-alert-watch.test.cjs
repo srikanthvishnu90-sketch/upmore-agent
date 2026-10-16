@@ -55,12 +55,14 @@ function makeWorld() {
     lever: [],
     leverThrows: false,
     leverHangs: false,
+    leverBodyHangs: false,
   };
   const fetchImpl = async (url) => {
     if (url.includes("greenhouse")) return { status: 200, json: async () => state.gh };
     if (url.includes("lever")) {
       if (state.leverThrows) throw new Error("lever boom");
       if (state.leverHangs) return new Promise(() => {}); // drip-feed: never resolves (G7)
+      if (state.leverBodyHangs) return { status: 200, json: () => new Promise(() => {}) };
       return { status: 200, json: async () => state.lever };
     }
     throw new Error("unexpected url " + url);
@@ -212,4 +214,17 @@ test("cycle result is typed and complete", async () => {
     assert.ok(k in r, `cycle result missing ${k}`);
   assert.ok(Array.isArray(r.errors));
   assert.equal(typeof r.polled, "number");
+});
+
+// Same actual watch API, but headers arrive and its body never settles.
+test("G7 body deadline keeps an awaited Node22 cycle live until its bounded failure", async () => {
+  const w = makeWorld();
+  await w.cycle(T0);
+  w.state.leverBodyHangs = true;
+  const started = Date.now();
+  const r = await w.cycle(T0 + 15 * MIN, { boardDeadlineMs: 60 });
+  assert.ok(Date.now() - started < 10000, "the body read must not hang");
+  assert.equal(r.errors.length, 1);
+  assert.equal(r.errors[0].board, "otherco");
+  assert.match(r.errors[0].error, /deadline/i);
 });

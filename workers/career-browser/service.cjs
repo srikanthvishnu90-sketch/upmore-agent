@@ -7,16 +7,21 @@ const canonical = value => Array.isArray(value) ? value.map(canonical) : value &
 const bindingHash = value => hash(canonical(value));
 
 // Receive -> Equip -> Execute -> Check. No model/provider call. Production
-// execution is deliberately disabled: this slice permits registered, local
-// controlled portals only. Authentication and equipment are host injections.
-function createWorker({ store, resolveEquipment, authority, controlledPortals = [], boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, maxActions = 120, timeoutMs = 30000 }) {
-  if (!store || typeof resolveEquipment !== "function") throw fail("WORKER_NOT_WIRED");
+// employer execution remains disabled. Applications use registered loopback
+// portals; public research has a separate read-only origin policy.
+function createWorker({ store, resolveEquipment, authority, controlledPortals = [], researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, maxActions = 120, timeoutMs = 30000 }) {
+  if (!store || (controlledPortals.length && typeof resolveEquipment !== "function")) throw fail("WORKER_NOT_WIRED");
   for (const method of ["current", "claim", "begin", "consume", "settle", "finish", "pending"]) if (typeof authority?.[method] !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
   if (!Number.isInteger(maxActions) || maxActions < 1 || maxActions > 1000 || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) throw fail("BUDGET_CONFIGURATION_INVALID");
   const portals = new Map(controlledPortals.map((p) => {
     const u = new URL(p.url), submit = new URL(p.submitUrl);
     if (u.protocol !== "http:" || !["localhost", "127.0.0.1"].includes(u.hostname) || submit.origin !== u.origin) throw fail("CONTROLLED_LOCAL_PORTAL_REQUIRED");
     return [u.href, { url: u.href, submitUrl: submit.href, seatKey: p.canonicalKey || u.href }];
+  }));
+  const {publicResearchURL,normalizeResearchRequest} = require('../../supabase/functions/_shared/career_research_policy.js');
+  const publicOrigins = new Set(researchOrigins.map(origin => {
+    if (new URL(publicResearchURL(origin + '/')).origin !== origin) throw fail('RESEARCH_ORIGIN_CONFIGURATION_INVALID');
+    return origin;
   }));
   const save = (t, phase, detail = {}) => {
     t.phase = phase;
@@ -66,13 +71,14 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     }
   }
   function publicTask(t) {
-    return clone({ version: "career_task/v1", id: t.id, userId: t.userId, status: t.status, phase: t.phase, revision: t.revision,
+    return clone({ version: "career_task/v1", kind: t.kind || "career_application", id: t.id, userId: t.userId, status: t.status, phase: t.phase, revision: t.revision,
       review: t.review || null, result: t.result || null, asks: t.asks || [],
       blocker: t.blocker || null, budget: t.budget,
       authority: t.authority ? { intentId: t.authority.intentId, accountVersion: t.authority.accountVersion, privacyEpoch: t.authority.privacyEpoch } : null,
-      capabilities: { browser: "CONTROLLED_LOCAL_ONLY", employer_submission: "NOT_WIRED" } });
+      capabilities: { browser: t.kind === "public_research/v1" ? "PUBLIC_READ_ONLY" : "CONTROLLED_LOCAL_ONLY", employer_submission: "NOT_WIRED" } });
   }
   function receive(userId, input) {
+    if (input?.action === "research") return receiveResearch(userId, input);
     if (typeof userId !== "string" || !userId || userId.length > 160 || !input
       || typeof input.eventId !== "string" || !input.eventId || input.eventId.length > 200
       || typeof input.posting?.canonicalKey !== "string" || !input.posting.canonicalKey || input.posting.canonicalKey.length > 500
@@ -103,8 +109,50 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       return publicTask(t);
     });
   }
+  function receiveResearch(userId, input) {
+    if (typeof userId !== 'string' || !userId || userId.length > 160 || !/^[A-Za-z0-9_-]{1,128}$/.test(input.eventId || '') || Object.keys(input).some(k => !['action','eventId','intentId','url','question'].includes(k))) throw fail('TASK_INPUT_REQUIRED');
+    const spec = normalizeResearchRequest(input);
+    if (!publicOrigins.has(new URL(spec.url).origin)) throw fail('RESEARCH_ORIGIN_NOT_REGISTERED');
+    const id = hash([userId, 'public_research/v1', input.intentId]).slice(0,32);
+    return store.withLock(id, () => {
+      const existing = store.get(id);
+      if (existing) { checkAuthority(existing,true); if(existing.specHash!==bindingHash(spec))throw fail('TASK_SPEC_CONFLICT'); return publicTask(existing); }
+      const grant = authority.claim({userId,intentId:input.intentId,taskId:id,expected:{action:'research',event_id:input.eventId,destination:spec.url}});
+      if (bindingHash(grant.binding.research) !== bindingHash(spec) || bindingHash(grant.request?.research) !== bindingHash(spec)) throw fail('TASK_AUTHORITY_BINDING_MISMATCH');
+      const t={id,userId,kind:'public_research/v1',spec,specHash:bindingHash(spec),authority:grant,privacyEpoch:grant.privacyEpoch,status:'queued',revision:0,checkpoints:[],approvals:[],budget:{limitActions:maxActions,spentActions:0,reservedActions:0,spendCents:0}};
+      save(t,'receive');return publicTask(t);
+    });
+  }
+  function research(userId,id) {
+    return store.withLock(id,()=>{
+      const t=owned(id,userId);let board;
+      if(t.kind!=='public_research/v1')throw fail('TASK_KIND_MISMATCH');
+      try {
+        checkAuthority(t);
+        if(t.result || t.status!=='queued')return publicTask(t);
+        if(!publicOrigins.has(new URL(t.spec.url).origin))throw fail('RESEARCH_ORIGIN_NOT_REGISTERED');
+        t.status='reading';save(t,'execute');
+        board=researchBoardFactory({taskId:t.id,intentId:t.authority.intentId,commandTimeoutMs:timeoutMs,deadlineMs:now()+timeoutMs});
+        t.budget.reservedActions++;save(t,'execute',{action:'read_public_page',actionState:'reserved'});
+        let capture;try { capture=effect(t,'read_public_page',()=>board.readPage(t.spec.url)); }
+        finally {t.budget.reservedActions--;t.budget.spentActions++;save(t,'check',{action:'read_public_page',actionState:'settled'});}
+        if(capture?.then || capture?.version!=='public_research_capture/v1' || capture.provenance!=='owned_chromium_dom' || capture.taskId!==t.id || capture.intentId!==t.authority.intentId || capture.url!==t.spec.url || capture.untrusted!==true || !/^[a-f0-9]{64}$/.test(capture.sourceSha256||'') || !capture.sessionId || !Array.isArray(capture.navigation) || !capture.navigation.some(e=>e.status==='read'&&e.url===t.spec.url&&e.method==='GET'&&e.httpStatus===200&&e.sourceSha256===capture.sourceSha256) || !capture.screenshot?.base64)throw fail('RESEARCH_EVIDENCE_INVALID');
+        const png=Buffer.from(capture.screenshot.base64,'base64');
+        if(png.length!==capture.screenshot.bytes || hash(png)!==capture.screenshot.sha256 || png.length>500000 || png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')throw fail('RESEARCH_EVIDENCE_INVALID');
+        if(typeof capture.text!=='string' || capture.text.length>24000 || typeof capture.capturedAt!=='string' || !Number.isFinite(Date.parse(capture.capturedAt)))throw fail('RESEARCH_EVIDENCE_INVALID');
+        const artifact={version:'public_research_artifact/v1',taskId:t.id,intentId:t.authority.intentId,question:t.spec.question,provenance:{threadId:t.authority.binding.thread_id,turnKey:t.authority.binding.turn_key,requestHash:t.authority.binding.request_hash},source:{url:capture.url,title:capture.title,capturedAt:capture.capturedAt,sourceSha256:capture.sourceSha256},capture,trust:'untrusted_source_data',objectiveStatus:'requires_review',claim:'Source capture only. The research question is not marked answered or verified.'};
+        t.status=capture.blocked?'blocked':capture.text.trim()?'evidence_ready':'insufficient_evidence';t.blocker=capture.blocked||null;
+        t.result={kind:'public_research_result',status:t.status,artifact,artifactSha256:bindingHash(artifact),artifactEncoding:"sorted-json/v1",browserOutcome:'observed',sends:0,submissions:0};save(t,'check');
+      } catch(e) {
+        t.status=/REVOKED/.test(e.code||'')?'cancelled':'blocked';t.blocker=e.code||'RESEARCH_RUNTIME_UNAVAILABLE';
+        t.result=null;save(t,'check');
+      } finally {try{board?.close();}catch(_){}}
+      return finish(t);
+    });
+  }
   function equip(t) {
     checkAuthority(t);
+    if (typeof resolveEquipment !== "function") throw fail("WORKER_NOT_WIRED");
     const e = resolveEquipment(t.userId, t.spec.artifactId);
     if (!e || e.userId !== t.userId || !e.profile || !e.resumePath) throw fail("EQUIPMENT_OWNER_MISMATCH");
     if (e.privacyEpoch !== t.privacyEpoch || e.accountVersion !== t.authority.accountVersion) throw fail("STALE_EQUIPMENT_AUTHORITY");
@@ -222,6 +270,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   function prepare(userId, id) {
     return store.withLock(id, () => {
       const t = owned(id, userId);
+      if(t.kind==="public_research/v1")throw fail("RESEARCH_ACTION_REFUSED");
       try { checkAuthority(t); } catch (_) { return publicTask(t); }
       if (t.attempt || t.status === "completed") return publicTask(t);
       // A crashed read/fill reservation consumes budget; it is never free.
@@ -233,6 +282,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     return store.withLock(id, () => {
       const t = owned(id, userId);
       checkAuthority(t, true);
+      if(t.kind==="public_research/v1")throw fail("RESEARCH_ACTION_REFUSED");
       if (typeof approval?.approvalRef !== "string" || !approval.approvalRef.trim() || approval.approvalRef.length > 200 || approval.approvedByUser !== true) throw fail("APPROVAL_REQUIRED");
       if (t.approvals.includes(approval.approvalRef)) return publicTask(t);
       if (t.attempt) throw fail("RECONCILE_REQUIRED");
@@ -251,6 +301,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     return store.withLock(id, () => {
       const t = owned(id, userId);
       checkAuthority(t, true);
+      if(t.kind==="public_research/v1")throw fail("RESEARCH_ACTION_REFUSED");
       if (!t.attempt || t.status === "completed") return publicTask(t);
       t.authority = authority.claim({ userId, intentId: options.intentId, taskId: id, expected: { action: "reconcile", task_id: id } });
       t.budget.spentActions += t.budget.reservedActions; t.budget.reservedActions = 0;
@@ -263,18 +314,19 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       save(t, "check"); return finish(t);
     });
   }
-  return { receive, prepare, approve, reconcile, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;}return publicTask(t); },
+  return { receive, prepare, approve, reconcile, research, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;}return publicTask(t); },
     runPending: () => {
       const results=[];
       for(const intent of authority.pending()) {
         try {
           const b=intent.binding;
-          if(b.action==="prepare") { const task=receive(intent.userId,{...intent.request,intentId:intent.intentId});results.push(prepare(intent.userId,task.id)); }
+          if(b.action==="research") { const task=receive(intent.userId,{action:"research",eventId:b.event_id,...b.research,intentId:intent.intentId});results.push(research(intent.userId,task.id)); }
+          else if(b.action==="prepare") { const task=receive(intent.userId,{...intent.request,intentId:intent.intentId});results.push(prepare(intent.userId,task.id)); }
           else if(b.action==="approve") results.push(approve(intent.userId,b.task_id,{approvedByUser:true,approvalRef:b.event_id,intentId:intent.intentId,payloadSha256:b.payload_sha256,resumeSha256:b.resume_sha256,destination:b.destination,profileSha256:b.profile_sha256}));
           else if(b.action==="reconcile") results.push(reconcile(intent.userId,b.task_id,{intentId:intent.intentId}));
         } catch(e) { results.push({intentId:intent.intentId,status:"blocked",blocker:e.code||"TASK_AUTHORITY_UNAVAILABLE"}); }
       }
-      for(const id of store.list()) {const t=store.get(id);if(t.status==="queued")results.push(prepare(t.userId,id));}
+      for(const id of store.list()) {const t=store.get(id);if(t.status==="queued")results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
       return results;
     } };
 }

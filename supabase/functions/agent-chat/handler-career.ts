@@ -1,3 +1,4 @@
+import { researchCommand } from "../_shared/career_research_policy.js";
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
 // Owner decision 2026-10-15: "Prune the shelved finance half from the
@@ -162,7 +163,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // "career" key, mirroring the flow router's own use of that table.
     const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
     let careerTask;
-    try { careerTask = normalizeCareerTaskRequest(body.career_task); }
+    try { careerTask = normalizeCareerTaskRequest(body.career_task ?? researchCommand(message, turnKey)); }
     catch (_) { return json(cors, { error: "invalid_career_task", action: null, turn_key: turnKey }, 400); }
     const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask);
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -171,9 +172,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
-      let out = host.runTurn(message, ctx);
+      const publicResearch = careerTask && ["research", "research_status"].includes(careerTask.action);
+      let out = publicResearch ? (host.runTaskGate(message, ctx) || { handler: "CareerPublicResearch" }) : host.runTurn(message, ctx);
       let taskIntent = null;
-      const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
+      const pausedReadback = careerTask && ["status", "research_status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
       if (careerTask && (out.handler !== "CareerHostControl" || pausedReadback)) {
         const plan = await planCareerTaskIntent({ taskRequest: careerTask, message, userId: user.id, threadId: tid,
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence });
@@ -181,9 +183,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
-      const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
+      const researchObservation = careerTask?.action === "research_status" && !ctx._hostPatch && out.intent === "career_browser_task";
+      const reminders = !researchObservation && Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
       const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
+      // Observation cannot revoke its own queued research by bumping the
+      // shared account version. It creates no turn receipt or memory write.
+      if (researchObservation) { flowCtx.note = null; return json(cors, { ...response, read_only: true }, 200); }
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent });
       flowCtx.note = null;
       return json(cors, saved.response, 200);

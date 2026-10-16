@@ -593,6 +593,16 @@ const CareerPortalBrowser = (() => {
     return board;
   }
 
-  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, shutdownAll };
+  // Reuse the owned helper, IPC, deadlines and sandbox for a separate typed
+  // read surface. It exposes no portal form, fill, arm or submit methods.
+  function createResearchBoard(opts) {
+    const boardId = `research-${++boardSeq}`;
+    commandLimits.set(boardId, { timeoutMs: opts.commandTimeoutMs || 30000, deadlineMs: opts.deadlineMs });
+    return {
+      readPage(url) { return call(boardId, { type: 'read_public_page', url, scope: { mode: 'public_read_only', origin: new URL(url).origin, taskId: opts.taskId, intentId: opts.intentId } }); },
+      close() { try { if (helperProc) call(boardId, { type: 'close' }, 5000); } finally { commandLimits.delete(boardId); } },
+    };
+  }
+  return { createBrowserBoard, createResearchBoard, classifyFields, hostAllowed, finalUrlGate, shutdownAll };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalBrowser;

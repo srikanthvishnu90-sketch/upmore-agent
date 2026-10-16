@@ -11,6 +11,12 @@ The combined release also remains blocked on Crew A’s independent module-130
 correction-cache privacy/rollback/epoch repair. That module is untouched here.
 Local authority checks do not establish overall release readiness.
 
+A separate source-only public research route now extends the worker; see
+[public-research/README.md](public-research/README.md). Its explicitly registered
+public origins admit only a read operation; the loopback restriction below
+continues to govern application preparation/submission. This is not a claim
+of a deployed research worker or completed live research outcomes.
+
 ## Runtime blocker
 
 The selected executor has Chromium and Playwright, but cannot start a

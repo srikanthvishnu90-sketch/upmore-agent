@@ -28,6 +28,9 @@ test('actual Upmore text command -> atomic outbox -> separate MOCK board -> pers
  try{
   const message='Research '+url+' — '+question,queued=await app.request(T,message,'public-research');assert.equal(queued.status,200,JSON.stringify(queued));assert.equal(queued.body.task.bindings.action,'research');assert.equal(queued.body.task.id,null);assert.equal(f.reads(),0);assert.match(queued.body.reply,/No browser outcome is claimed yet/);
   assert.deepEqual(await app.request(T,message,'public-research'),queued);assert.equal(f.reads(),0);
+  const version=authority.current(U).version;
+  const early=await app.request(T,'Research status '+queued.body.task.intent_id,'early-status');assert.equal(early.status,200);assert.equal(early.body.read_only,true);assert.equal(authority.current(U).version,version);assert.equal(db.sql('select count(*) from agent_messages;'),'2');assert.equal(authority.pending().length,1);
+  assert.equal((await app.request(T,'Research status '+queued.body.task.intent_id,'early-status-2')).body.read_only,true);assert.equal(authority.current(U).version,version);
   const captured=f.worker.runPending()[0];assert.equal(captured.status,'evidence_ready',JSON.stringify(captured));assert.equal(f.reads(),1);assert.equal(captured.result.artifact.intentId,queued.body.task.intent_id);assert.equal(captured.result.artifact.objectiveStatus,'requires_review');assert.equal(captured.result.submissions,0);
   const observed=await app.request(T,'Research status '+queued.body.task.intent_id,'public-status');assert.equal(observed.status,200,JSON.stringify(observed));assert.deepEqual(observed.body.task,captured);assert.match(observed.body.reply,/question still requires review/);assert.match(observed.body.reply,/https:\/\/www.janestreet.com/);
   assert.equal((await app.request(T,'Research '+url+' — Altered question','public-research')).status,409);assert.equal(f.reads(),1);

@@ -160,12 +160,9 @@ const CareerHost = (() => {
       return ctx;
     }
 
-    // Run one chat turn through the career chain, in harness order, inside
-    // module 143's containment. Never throws: a chain crash is contained to
-    // module 140's honest fallback text, and the failure record is kept on
-    // ctx.containmentRecords for the handler to log.
-    function runTurn(text, ctx) {
-      let handler = null;
+    // Research uses the account controls without presenting public-source
+    // questions to onboarding/profile or career-action handlers.
+    function runTaskGate(text, ctx) {
       const controls = applyHostControl(text, ctx);
       if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
       // Combine repair (2026-10-15, Codex defect): the blanket gate below
@@ -176,6 +173,17 @@ const CareerHost = (() => {
       // router pauses fall through to dispatch, where 142's ownership-layer
       // pause control + action-only gate enforce them.
       if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: WORKER_CAPABILITIES };
+      return null;
+    }
+
+    // Run one chat turn through the career chain, in harness order, inside
+    // module 143's containment. Never throws: a chain crash is contained to
+    // module 140's honest fallback text, and the failure record is kept on
+    // ctx.containmentRecords for the handler to log.
+    function runTurn(text, ctx) {
+      let handler = null;
+      const gate = runTaskGate(text, ctx);
+      if (gate) return gate;
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }
@@ -231,7 +239,7 @@ const CareerHost = (() => {
       return { v: 1, scope: { userId: ctx.userId }, stores };
     }
 
-    return { createTurnCtx, runTurn, extractSnapshot, STATE_KEYS: STATE_KEYS.slice() };
+    return { createTurnCtx, runTurn, runTaskGate, extractSnapshot, STATE_KEYS: STATE_KEYS.slice() };
   }
 
   return { createCareerHost, STATE_KEYS: STATE_KEYS.slice() };

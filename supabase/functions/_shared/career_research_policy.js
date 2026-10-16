@@ -17,7 +17,7 @@ export function normalizeResearchRequest(value) {
 }
 export function researchCommand(message, eventId) {
   const status = typeof message === 'string' && message.match(/^Research status ([a-f0-9]{32}|[a-f0-9]{64})$/);
-  if (status) return { action: 'status', [status[1].length === 32 ? 'taskId' : 'intentId']: status[1] };
+  if (status) return { action: 'research_status', [status[1].length === 32 ? 'taskId' : 'intentId']: status[1] };
   const match = typeof message === 'string' && message.match(/^Research (https:\/\/\S+)\s+—\s+(.+)$/);
   return match ? { action: 'research', eventId, ...normalizeResearchRequest({ url: match[1], question: match[2] }) } : null;
 }

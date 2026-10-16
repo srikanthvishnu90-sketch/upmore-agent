@@ -12,17 +12,18 @@ export function normalizeCareerTaskRequest(value) {
     research: ["action", "version", "eventId", "url", "question"],
     prepare: ["action", "version", "eventId", "artifactId", "resumeSha256"],
     approve: ["action", "version", "eventId", "taskId", "payloadSha256", "resumeSha256", "profileSha256", "destination"],
+    research_status: ["action", "version", "taskId", "intentId"],
     status: ["action", "version", "taskId", "intentId"],
     reconcile: ["action", "version", "eventId", "taskId"],
   }[value.action];
   if (!fields || Object.keys(value).some(k => !fields.includes(k)) || (value.version && value.version !== VERSION)) return fail();
   const out = { version: VERSION, action: value.action };
   for (const key of fields) if (key !== "version" && value[key] !== undefined) out[key] = value[key];
-  if (out.action !== "status" && (typeof out.eventId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(out.eventId))) return fail();
+  if (!["status", "research_status"].includes(out.action) && (typeof out.eventId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(out.eventId))) return fail();
   if (out.action === "research") Object.assign(out, normalizeResearchRequest(out));
   if (out.action === "prepare" && (!/^[A-Za-z0-9_-]{1,160}$/.test(out.artifactId || "") || !hash64(out.resumeSha256))) return fail();
   if (["approve", "reconcile"].includes(out.action) && !id32(out.taskId)) return fail();
-  if (out.action === "status" && ((!id32(out.taskId) && !hash64(out.intentId)) || (out.taskId && out.intentId))) return fail();
+  if (["status", "research_status"].includes(out.action) && ((!id32(out.taskId) && !hash64(out.intentId)) || (out.taskId && out.intentId))) return fail();
   if (out.action === "approve") {
     if (!hash64(out.payloadSha256) || !hash64(out.resumeSha256) || (out.profileSha256 != null && !hash64(out.profileSha256))) return fail();
     let url; try { url = new URL(out.destination); } catch (_) { return fail(); }
@@ -33,7 +34,7 @@ export function normalizeCareerTaskRequest(value) {
 export async function planCareerTaskIntent({ taskRequest, message, userId, threadId, turnKey, requestHash, ctx, accountVersion, account, persistence }) {
   const reply = (text, status, task = null) => ({ reply: text, intent: "career_browser_task", resultStatus: status,
     contained: false, task, capabilities: ctx.workerCapabilities, result: { task, sends: 0 } });
-  if (taskRequest.action === "status") {
+  if (["status", "research_status"].includes(taskRequest.action)) {
     const task = await persistence.readTask({ userId, taskId: taskRequest.taskId || null, intentId: taskRequest.intentId || null });
     if (task?.result?.kind === "public_research_result") {
       const a = task.result.artifact, source = a.source;

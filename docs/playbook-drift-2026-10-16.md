@@ -16,3 +16,10 @@ remain intact. No deployed capability or acceptance count is raised.
 The forward SQL is a proposal because CLI migration scaffolding is blocked in
 this executor. The public-research README records the exact failure, integration
 step, normal Chromium blocker, supported scope and 15-case acceptance manifest.
+
+An ordinary chat status commit advances the shared account version and can
+therefore revoke queued research. The new `research_status` observation avoids
+that write and returns `read_only: true`; it creates no turn pair, receipt or
+memory update. Existing application status and account authority are unchanged.
+Real PostgreSQL entry tests verify repeated early observations keep the intent
+claimable, while an actual STOP still revokes it.

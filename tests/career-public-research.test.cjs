@@ -16,6 +16,14 @@ test('explicit conversation command and typed research request normalize identic
   assert.equal(researchCommand('Prepare an application','event'),null);
   for(const k of ['script','selector','cookies','userId','submitUrl'])assert.throws(()=>normalizeCareerTaskRequest({...r,[k]:'arbitrary'}));
 });
+test('research host gate enforces account controls without invoking onboarding or career actions',()=>{
+  const {CareerHost}=require('../supabase/functions/_shared/career_host.js');let calls=0;
+  const domain={handleChat(){calls++;throw Error('research must not enter a career domain');}};
+  const host=CareerHost.createCareerHost({CareerAccess:domain,CareerOnboarding:domain,CareerRouter:domain,CareerDoorstep:domain,CareerReply:{},CareerContainment:{createContainment(){},extractReplyText(){}}});
+  const ctx=host.createTurnCtx({userId:'test-user',profile:{basics:{graduationYear:2031}}});
+  assert.equal(host.runTaskGate('Research '+URL1+' — Read a posting for graduates in 2028.',ctx),null);assert.equal(calls,0);assert.equal(ctx.profile.basics.graduationYear,2031);
+  assert.equal(host.runTaskGate('STOP',ctx).intent,'career_paused');assert.equal(ctx._hostPatch.paused,true);assert.equal(calls,0);
+});
 test('public URL gate rejects private hosts, unsafe protocols, credentials, actions and query credentials',()=>{
   assert.equal(publicResearchURL(URL1),URL1);
   for(const url of ['http://example.com/','https://localhost/','https://127.0.0.1/','https://2130706433/','https://[::1]/','https://metadata.google.internal/','https://user:pass@example.com/','https://example.com:8443/','https://example.com/apply/','https://example.com/%61pply/','https://example.com/login','https://example.com/?token=private','https://example.com/#instruction','file:///tmp/a'])assert.throws(()=>publicResearchURL(url),{code:'PUBLIC_RESEARCH_URL_REFUSED'});

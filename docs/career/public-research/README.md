@@ -30,14 +30,19 @@ The equivalent optional request is:
 
 The entry returns a queued immutable intent reference. It starts no network or
 browser operation. After the separate worker runs, send `Research status
-<intent_id>` (or the returned task ID), or use the existing typed status action.
+<intent_id>` (or the returned task ID), or use the typed `research_status` action.
+The dedicated `research_status` observation reads evidence without committing
+another conversation/account turn, so polling cannot stale or revoke a queued
+research intent. Existing application `status` semantics are unchanged.
 The response includes saved source evidence, a short explicitly untrusted
 excerpt, source URL/time, task/intent correlation and canonical artifact hash.
 Keep `turn_key` stable for retries. Changed question/URL under that key conflicts;
 an old event cannot be made fresh by changing the key.
 
 No applicant profile, posting, resume or equipment resolver is needed for
-research. Research never calls the applicant equipment resolver. Account STOP,
+research. Research never calls the applicant equipment resolver. The shared
+host control-only gate still handles STOP/erase/pause, while research questions
+never enter onboarding/profile intake or career-action dispatch. Account STOP,
 privacy epoch, owner checks and version fences still apply. The worker requires
 the existing trusted authority adapter and an explicit operator-owned
 `researchOrigins` list. It is empty by default. No production origin was enabled.

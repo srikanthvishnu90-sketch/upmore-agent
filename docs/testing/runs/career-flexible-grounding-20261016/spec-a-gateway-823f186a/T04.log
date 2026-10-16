@@ -1,0 +1,37 @@
+TAP version 13
+# (node:320914) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:320914) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: T04 unlisted assertions in advice and hypotheses require whole-response coverage
+not ok 1 - T04 unlisted assertions in advice and hypotheses require whole-response coverage
+  ---
+  duration_ms: 263.590263
+  type: 'test'
+  location: '/tmp/upmore-grounded-mutations-9oz571/repo/tests/career-flexible-grounding.test.cjs:9:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'generated'
+    - 'semantic_or_contract_rejected'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'semantic_or_contract_rejected'
+  actual: 'generated'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-grounded-mutations-9oz571/repo/tests/career-flexible-grounding.test.cjs:9:408)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 316.092067

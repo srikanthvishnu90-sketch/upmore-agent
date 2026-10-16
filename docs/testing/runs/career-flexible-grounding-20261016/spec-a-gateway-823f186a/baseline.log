@@ -1,0 +1,325 @@
+TAP version 13
+# (node:320257) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:320257) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: T01 flexible prose, original questions and a factual draft exceed the selector without profile writes
+ok 1 - T01 flexible prose, original questions and a factual draft exceed the selector without profile writes
+  ---
+  duration_ms: 225.114347
+  type: 'test'
+  ...
+# Subtest: T02 unavailable verifier refuses before generation or cash admission
+ok 2 - T02 unavailable verifier refuses before generation or cash admission
+  ---
+  duration_ms: 387.637726
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier throw
+ok 3 - T02 fail closed on semantic verifier throw
+  ---
+  duration_ms: 122.044914
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier timeout
+ok 4 - T02 fail closed on semantic verifier timeout
+  ---
+  duration_ms: 2125.937475
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier missing
+ok 5 - T02 fail closed on semantic verifier missing
+  ---
+  duration_ms: 123.720839
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier stale-context
+ok 6 - T02 fail closed on semantic verifier stale-context
+  ---
+  duration_ms: 126.221973
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier stale-response
+ok 7 - T02 fail closed on semantic verifier stale-response
+  ---
+  duration_ms: 127.198903
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier wrong-verifier
+ok 8 - T02 fail closed on semantic verifier wrong-verifier
+  ---
+  duration_ms: 119.154378
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier partial-coverage
+ok 9 - T02 fail closed on semantic verifier partial-coverage
+  ---
+  duration_ms: 117.138426
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier unlisted
+ok 10 - T02 fail closed on semantic verifier unlisted
+  ---
+  duration_ms: 121.276638
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier authority
+ok 11 - T02 fail closed on semantic verifier authority
+  ---
+  duration_ms: 116.48942
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier claim-rejected
+ok 12 - T02 fail closed on semantic verifier claim-rejected
+  ---
+  duration_ms: 122.589883
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier missing-claim
+ok 13 - T02 fail closed on semantic verifier missing-claim
+  ---
+  duration_ms: 118.775057
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier changed-evidence
+ok 14 - T02 fail closed on semantic verifier changed-evidence
+  ---
+  duration_ms: 120.012524
+  type: 'test'
+  ...
+# Subtest: T02 fail closed on semantic verifier duplicate-claim
+ok 15 - T02 fail closed on semantic verifier duplicate-claim
+  ---
+  duration_ms: 122.308498
+  type: 'test'
+  ...
+# Subtest: T03 known IDs are insufficient: semantic rejection of a degree claim with a valid project ID
+ok 16 - T03 known IDs are insufficient: semantic rejection of a degree claim with a valid project ID
+  ---
+  duration_ms: 124.474375
+  type: 'test'
+  ...
+# Subtest: T04 unlisted assertions in advice and hypotheses require whole-response coverage
+ok 17 - T04 unlisted assertions in advice and hypotheses require whole-response coverage
+  ---
+  duration_ms: 124.175887
+  type: 'test'
+  ...
+# Subtest: T05 reject model action authority before verification
+ok 18 - T05 reject model action authority before verification
+  ---
+  duration_ms: 116.55046
+  type: 'test'
+  ...
+# Subtest: T05 reject model memory_patch authority before verification
+ok 19 - T05 reject model memory_patch authority before verification
+  ---
+  duration_ms: 130.833247
+  type: 'test'
+  ...
+# Subtest: T05 reject model approval authority before verification
+ok 20 - T05 reject model approval authority before verification
+  ---
+  duration_ms: 126.702967
+  type: 'test'
+  ...
+# Subtest: T05 reject model completion_receipt authority before verification
+ok 21 - T05 reject model completion_receipt authority before verification
+  ---
+  duration_ms: 119.019233
+  type: 'test'
+  ...
+# Subtest: T05 reject model tools authority before verification
+ok 22 - T05 reject model tools authority before verification
+  ---
+  duration_ms: 117.420849
+  type: 'test'
+  ...
+# Subtest: T05 tool calls and authority-unsafe prose never execute an effect
+ok 23 - T05 tool calls and authority-unsafe prose never execute an effect
+  ---
+  duration_ms: 120.475242
+  type: 'test'
+  ...
+# Subtest: T06 owned context and semantic receipt bind exact revision, epoch and immutable whole response
+ok 24 - T06 owned context and semantic receipt bind exact revision, epoch and immutable whole response
+  ---
+  duration_ms: 247.435925
+  type: 'test'
+  ...
+# Subtest: T07 recent dialogue comes from committed owned receipts and remains noncanonical
+ok 25 - T07 recent dialogue comes from committed owned receipts and remains noncanonical
+  ---
+  duration_ms: 144.78655
+  type: 'test'
+  ...
+# Subtest: T08 correction and withdrawal barriers cut prior dialogue/drafts in a fresh entry
+ok 26 - T08 correction and withdrawal barriers cut prior dialogue/drafts in a fresh entry
+  ---
+  duration_ms: 274.717359
+  type: 'test'
+  ...
+# Subtest: T09 current sourced facts carry corrected/disputed status without reviving superseded text
+ok 27 - T09 current sourced facts carry corrected/disputed status without reviving superseded text
+  ---
+  duration_ms: 127.613816
+  type: 'test'
+  ...
+# Subtest: T10 current draft revision, goals and pending asks are bounded advisory context; projection is read-only
+ok 28 - T10 current draft revision, goals and pending asks are bounded advisory context; projection is read-only
+  ---
+  duration_ms: 250.250758
+  type: 'test'
+  ...
+# Subtest: T11 jd_text stays untrusted posting evidence and cannot support a personal qualification
+ok 29 - T11 jd_text stays untrusted posting evidence and cannot support a personal qualification
+  ---
+  duration_ms: 119.72273
+  type: 'test'
+  ...
+# Subtest: T12 request JSON and headers cannot inject a semantic verifier into the default server handler
+ok 30 - T12 request JSON and headers cannot inject a semantic verifier into the default server handler
+  ---
+  duration_ms: 112.930757
+  type: 'test'
+  ...
+# Subtest: T13 shared budget denial and failed consume prevent both generation and semantic inference
+ok 31 - T13 shared budget denial and failed consume prevent both generation and semantic inference
+  ---
+  duration_ms: 353.319991
+  type: 'test'
+  ...
+# Subtest: T14 assistant/draft commit is atomic and replay or failed-save retry never infers twice
+ok 32 - T14 assistant/draft commit is atomic and replay or failed-save retry never infers twice
+  ---
+  duration_ms: 232.8419
+  type: 'test'
+  ...
+# Subtest: T15 held-out fixture remains frozen and is explicitly a scripted semantic oracle
+ok 33 - T15 held-out fixture remains frozen and is explicitly a scripted semantic oracle
+  ---
+  duration_ms: 0.659822
+  type: 'test'
+  ...
+# Subtest: T15 held-out H01 supported
+ok 34 - T15 held-out H01 supported
+  ---
+  duration_ms: 116.239112
+  type: 'test'
+  ...
+# Subtest: T15 held-out H02 unsupported
+ok 35 - T15 held-out H02 unsupported
+  ---
+  duration_ms: 124.451051
+  type: 'test'
+  ...
+# Subtest: T15 held-out H03 unsupported
+ok 36 - T15 held-out H03 unsupported
+  ---
+  duration_ms: 119.197
+  type: 'test'
+  ...
+# Subtest: T15 held-out H04 unsupported
+ok 37 - T15 held-out H04 unsupported
+  ---
+  duration_ms: 119.332452
+  type: 'test'
+  ...
+# Subtest: T15 held-out H05 unsupported
+ok 38 - T15 held-out H05 unsupported
+  ---
+  duration_ms: 114.982517
+  type: 'test'
+  ...
+# Subtest: T15 held-out H06 unsupported
+ok 39 - T15 held-out H06 unsupported
+  ---
+  duration_ms: 165.269335
+  type: 'test'
+  ...
+# Subtest: T15 held-out H07 supported
+ok 40 - T15 held-out H07 supported
+  ---
+  duration_ms: 125.850605
+  type: 'test'
+  ...
+# Subtest: T15 held-out H08 unsupported
+ok 41 - T15 held-out H08 unsupported
+  ---
+  duration_ms: 123.058668
+  type: 'test'
+  ...
+# Subtest: T15 held-out H09 authority_unsafe
+ok 42 - T15 held-out H09 authority_unsafe
+  ---
+  duration_ms: 114.975486
+  type: 'test'
+  ...
+# Subtest: T15 held-out H10 supported
+ok 43 - T15 held-out H10 supported
+  ---
+  duration_ms: 119.902513
+  type: 'test'
+  ...
+# Subtest: T15 held-out H11 unlisted_claim
+ok 44 - T15 held-out H11 unlisted_claim
+  ---
+  duration_ms: 178.439794
+  type: 'test'
+  ...
+# Subtest: T15 held-out H12 supported
+ok 45 - T15 held-out H12 supported
+  ---
+  duration_ms: 128.045254
+  type: 'test'
+  ...
+# Subtest: T01 throw and empty-result containment never enters generation
+ok 46 - T01 throw and empty-result containment never enters generation
+  ---
+  duration_ms: 113.968473
+  type: 'test'
+  ...
+# Subtest: T15 generated metadata explicitly withholds actual verifier/model quality certification
+ok 47 - T15 generated metadata explicitly withholds actual verifier/model quality certification
+  ---
+  duration_ms: 123.780689
+  type: 'test'
+  ...
+# Subtest: T08 barrier suppresses undated legacy goals/drafts and newer generated draft wins over legacy text
+ok 48 - T08 barrier suppresses undated legacy goals/drafts and newer generated draft wins over legacy text
+  ---
+  duration_ms: 127.945965
+  type: 'test'
+  ...
+# Subtest: T08 correction/forget barrier revokes older cached generated replay without a second inference
+ok 49 - T08 correction/forget barrier revokes older cached generated replay without a second inference
+  ---
+  duration_ms: 134.513849
+  type: 'test'
+  ...
+# Subtest: T08 unstamped generation-disabled turns form a conservative barrier on re-enable
+ok 50 - T08 unstamped generation-disabled turns form a conservative barrier on re-enable
+  ---
+  duration_ms: 377.676538
+  type: 'test'
+  ...
+# Subtest: T06 unavailable or mismatched read projection fails closed before generation
+ok 51 - T06 unavailable or mismatched read projection fails closed before generation
+  ---
+  duration_ms: 736.802513
+  type: 'test'
+  ...
+# Subtest: T09 corrected education source cannot coexist with stale graduation mirrors as active evidence
+ok 52 - T09 corrected education source cannot coexist with stale graduation mirrors as active evidence
+  ---
+  duration_ms: 127.607466
+  type: 'test'
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 52
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10417.21672

@@ -24,3 +24,10 @@ This is a prerequisite only. It does not implement paired accounting,
 production semantic checking, context v3 or interview registration. Actual
 provider quality and 15 live-browser outcomes remain NOT_RUN. Shared release,
 production, account credentials and paid allowances remain untouched.
+
+The unchanged 52-case flexible baseline and all 15 intentional defects were
+rerun against runtime `823f186a828440fd0e205ada51b58c2a4d14430a`; 52/52 passed
+and 15/15 were killed. Logs are retained at
+`docs/testing/runs/career-flexible-grounding-20261016/spec-a-gateway-823f186a/`.
+The three common mutation report/anchor checks also pass. The next commit
+adds only these result/evidence bytes and changes no runtime or test oracle.

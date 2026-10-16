@@ -201,7 +201,9 @@ test("§8.3 timeout with no receipt: reconcile says not submitted; only then may
   assert.equal(rec.resultStatus, "unknown_outcome");
   assert.equal(rec.submission.onBoard, false);
   board.setSubmitOutcome("accepted");
-  const retry = Portal.submitDoorstep(session, { approvedByUser: true });
+  // the fresh approval binds the doorstep payload it retries (MI-116 caller
+  // contract) — the retry submits the SAME answers that timed out, proven by hash
+  const retry = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: session.doorstep.payloadSha256 });
   assert.equal(retry.resultStatus, "completed");
   assert.equal(board.calls.submit, 2, "one timed-out attempt + one reconciled retry");
 });
@@ -239,11 +241,12 @@ test("§6.4 quality gate: a cover note naming the wrong company blocks the run b
   assert.equal(board.calls.submit, 0);
 });
 
-// ---------- caps are reported, never presumed (Spec 2 §6.4 is [DECISION]-pending) ----------
-test("§6.4 caps: the run reports cap state marked decision-pending instead of silently presuming the owner's numbers", () => {
+// ---------- caps are the owner's DECIDED numbers, enforced (MI-110; was report-only) ----------
+test("§6.4 caps: the run reports cap state as decided + enforced (MI-110 supersedes the report-only pin)", () => {
   const { session } = sandboxSession();
   const r = Portal.runApply(session, baseRun());
   assert.ok(r.capReport, "cap state is surfaced");
-  assert.equal(r.capReport.decisionPending, true);
+  assert.equal(r.capReport.decisionPending, false);
+  assert.equal(r.capReport.enforced, true);
   assert.equal(typeof r.capReport.submittedToday, "number");
 });

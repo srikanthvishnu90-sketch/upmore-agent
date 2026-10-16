@@ -43537,6 +43537,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    (approval.approvalRef) on top of approvedByUser — approval alone, or
    a board constructed armed for the test lane, are the only other
    paths, and an unarmed board's submit() throws REAL_SUBMIT_DISABLED.
+   Since MI-116 the approval must also carry the doorstep's payload
+   hash (approval.payloadSha256): submitDoorstep re-builds the
+   would-submit payload from the board's CURRENT answers and refuses
+   APPROVAL_PAYLOAD_MISMATCH before arming if any value changed, any
+   field gained an answer, or any answer was cleared since approval
+   (Spec 2 §10 — changing a payload after approval invalidates it).
    The §6.3 host gate is enforced on EVERY navigation hop (BUG-060 /
    D1): a redirect off the allowlist surfaces from the driver as a typed
    HOST_REDIRECT_REFUSED stop, and a board exposing zero fillable fields
@@ -43546,9 +43552,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
    (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
    owner-gated work — see docs/career/board-automation-map.md.
-   Caps (§6.4) are REPORTED, marked decision-pending: the numbers are the
-   owner's §15 call, so nothing here presumes them; the never-twice-to-
-   the-same-job rule (§8.3) IS enforced, as already-graded law.
+   Caps (§6.4) are the owner's DECIDED numbers (15/day locked 2026-10-12;
+   5/vendor/day; 1/company/30 days) and are ENFORCED here (MI-110): a run
+   or submit that would exceed one stops CAP_REACHED naming the cap and
+   the count, counted from the submissions ledger this module writes;
+   the never-twice-to-the-same-job rule (§8.3) is enforced alongside.
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
@@ -43562,7 +43570,7 @@ const CareerPortalApply = (() => {
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
-  // Spec 2 §6.4 recommended defaults — REPORT ONLY until the owner rules (§15).
+  // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
@@ -43685,15 +43693,68 @@ const CareerPortalApply = (() => {
     }));
   }
 
-  function capReport(log, userId, posting, now) {
+  // ---------- §6.4 caps: decided numbers, enforced (MI-110 / BUG-233) ----------
+  // Counts come from the submissions ledger (log.records, status
+  // "submitted") — the same records submitDoorstep writes, so the ledger
+  // is the per-user record across threads wherever the host persists it.
+  function tsMs(ts) {
+    if (typeof ts === "number" && Number.isFinite(ts)) return ts;
+    const ms = Date.parse(String(ts == null ? "" : ts));
+    return Number.isFinite(ms) ? ms : NaN;
+  }
+  function daySlice(ts) {
+    if (typeof ts === "number" && Number.isFinite(ts)) return new Date(ts).toISOString().slice(0, 10);
+    return String(ts == null ? "" : ts).slice(0, 10);
+  }
+  function vendorOf(r) {
+    if (!r) return null;
+    if (r.vendor) return r.vendor;
+    if (r.url) return classifyTarget(r.url).atsFamily || null;
+    return null;
+  }
+  function capCheck(log, userId, posting, now, board) {
+    const p = posting || {};
+    const recs = ((log && log.records) || []).filter((r) => r.userId === userId && r.status === "submitted");
+    const day = daySlice(now);
+    const vendor = p.vendor || vendorOf(p) || (board && board.atsFamily) || null;
+    const company = p.company || null;
+    const companyKey = company ? normName(company) : "";
+    const nowMs = tsMs(now);
+    const WINDOW30 = 30 * 24 * 3600 * 1000;
+    let perDay = 0, perVendorPerDay = 0, perCompanyPer30Days = 0;
+    for (const r of recs) {
+      if (day && daySlice(r.timestamp) === day) {
+        perDay += 1;
+        if (vendor && vendorOf(r) === vendor) perVendorPerDay += 1;
+      }
+      if (companyKey && r.company && normName(r.company) === companyKey) {
+        const ms = tsMs(r.timestamp);
+        if (Number.isFinite(ms) && Number.isFinite(nowMs) && ms <= nowMs && nowMs - ms < WINDOW30) perCompanyPer30Days += 1;
+      }
+    }
+    const counts = { perDay, perVendorPerDay, perCompanyPer30Days };
+    const stops = [];
+    if (perDay >= SPEC_CAPS.perDay) stops.push({ cap: "perDay", count: perDay, limit: SPEC_CAPS.perDay });
+    if (vendor && perVendorPerDay >= SPEC_CAPS.perVendorPerDay) stops.push({ cap: "perVendorPerDay", count: perVendorPerDay, limit: SPEC_CAPS.perVendorPerDay, vendor });
+    if (companyKey && perCompanyPer30Days >= SPEC_CAPS.perCompanyPer30Days) stops.push({ cap: "perCompanyPer30Days", count: perCompanyPer30Days, limit: SPEC_CAPS.perCompanyPer30Days, company });
+    return { ok: stops.length === 0, stops, counts, vendor, company };
+  }
+
+  function capReport(log, userId, posting, now, board) {
     const recs = (log && log.records) || [];
-    const mine = recs.filter((r) => r.userId === userId && r.status === "submitted");
-    const day = String(now || "").slice(0, 10);
+    const chk = capCheck(log, userId, posting, now, board);
     return {
-      decisionPending: true, // §6.4 numbers are the owner's §15 ruling; reported, not enforced
+      decisionPending: false, enforced: true, // §6.4 numbers are the owner's decided caps (MI-110)
       specDefaults: Object.assign({}, SPEC_CAPS),
-      submittedToday: mine.filter((r) => String(r.timestamp || "").slice(0, 10) === day).length,
-      submittedThisPosting: mine.filter((r) => r.canonicalKey === posting.canonicalKey).length,
+      submittedToday: chk.counts.perDay,
+      counts: chk.counts,
+      remaining: {
+        perDay: Math.max(0, SPEC_CAPS.perDay - chk.counts.perDay),
+        perVendorPerDay: Math.max(0, SPEC_CAPS.perVendorPerDay - chk.counts.perVendorPerDay),
+        perCompanyPer30Days: Math.max(0, SPEC_CAPS.perCompanyPer30Days - chk.counts.perCompanyPer30Days),
+      },
+      wouldStop: chk.stops,
+      submittedThisPosting: recs.filter((r) => r.userId === userId && r.status === "submitted" && posting && r.canonicalKey === posting.canonicalKey).length,
     };
   }
 
@@ -43715,6 +43776,38 @@ const CareerPortalApply = (() => {
     return hits;
   }
 
+  // ---------- the exact would-submit payload, from the board's CURRENT answers ----------
+  // One builder for both hash moments (MI-116): runApply hashes its
+  // output at the doorstep; submitDoorstep re-builds and re-hashes at
+  // click time. Same construction, same string — comparable by design.
+  // Combine composition (2026-10-15): the answer/field sources are the
+  // union of the board's live readback and the session's preparation
+  // accumulation (Codex's multi-round prepareRound records answers from
+  // earlier form rounds in preparationPayload/preparationFields; a live
+  // readback at the final review may only expose the current round's
+  // elements). Live answers win on conflict — the same precedence the
+  // worker branch's inline construction used.
+  function buildPayload(board, session) {
+    const formDef = board.form();
+    const boardAnswers = Object.assign({}, (session && session.preparationPayload) || {}, board.answers());
+    const fields = [];
+    const seenFields = new Set();
+    for (const f of [...(formDef.fields || []), ...((session && session.preparationFields) || [])]) {
+      if (!f || seenFields.has(f.field_id)) continue;
+      seenFields.add(f.field_id);
+      fields.push(f);
+    }
+    const payload = {};
+    for (const f of fields) {
+      if (boardAnswers[f.field_id] === undefined) continue;
+      payload[f.field_id] = f.field_id === "resume"
+        ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
+        : boardAnswers[f.field_id];
+    }
+    if (boardAnswers.resume && boardAnswers.resume.sha256) payload.resume_sha256 = boardAnswers.resume.sha256;
+    return payload;
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
@@ -43729,7 +43822,7 @@ const CareerPortalApply = (() => {
     const log = inp.log || { records: [] };
     const stepLog = priorSteps;
     const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
-    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now) });
+    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
     const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
 
     // session binding: a session serves exactly its own user (§6.3 isolation)
@@ -43871,6 +43964,18 @@ const CareerPortalApply = (() => {
       return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis });
     }
 
+    // §6.4 caps (MI-110): the decided caps are enforced, not reported —
+    // a run that would exceed one stops here and never presents a
+    // doorstep that cannot submit. submitDoorstep re-checks at click
+    // time (counts can change between doorstep and click).
+    const caps = capCheck(log, session.userId, posting, inp.now, board);
+    if (!caps.ok) {
+      const s = caps.stops[0];
+      logStep("cap_reached_stop", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops });
+      return blocked("CAP_REACHED", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
+        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` });
+    }
+
     // the doorstep: final review, exact payload snapshot, STOP (§6.1 step 5/6 boundary)
     const review = board.atReview();
     // §6.3 hop gate at review too (BUG-060 / D1): a Next/Continue click
@@ -43888,14 +43993,7 @@ const CareerPortalApply = (() => {
       return prepareRound(session, inp, true, round + 1, stepLog);
     }
     if (review.atFinalReview === false) return blocked("FINAL_REVIEW_NOT_OBSERVED");
-    const boardAnswers = Object.assign({}, session.preparationPayload, board.answers());
-    const payload = {};
-    for (const f of session.preparationFields) {
-      if (boardAnswers[f.field_id] === undefined) continue;
-      payload[f.field_id] = f.field_id === "resume"
-        ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
-        : boardAnswers[f.field_id];
-    }
+    const payload = buildPayload(board, session);
     // D2 second half (BUG-061): a payload with no actual answers in it
     // (every fill failed or read back empty) is hollow even when the
     // form had fields — it must never be spoken as a doorstep.
@@ -43903,16 +44001,21 @@ const CareerPortalApply = (() => {
       logStep("empty_form_stop", { fieldCount: formDef.fields.length, filledCount: 0 });
       return blocked("EMPTY_FORM", { reason: "no field value landed on the board — the would-submit payload would carry nothing but the resume hash; this is a stop, not a doorstep", formAnalysis, asks });
     }
-    if (profile.resume) payload.resume_sha256 = profile.resume.sha256;
     const payloadSha256 = sha256(JSON.stringify(payload));
-    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, atFinalReview: true };
+    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true };
     logStep("doorstep_reached", { payloadSha256 });
     const prepared = Object.assign(base(), {
       resultStatus: "prepared", asks, formAnalysis,
       doorstep: { atFinalReview: true, payload, payloadSha256 },
     });
-    // step 6: submit only on the explicit approval carried in this run
+    // step 6: submit only on the explicit approval carried in this run.
+    // MI-116 binding: an approval exercised in the same run that built
+    // the payload binds to THIS payload — the step log records the
+    // binding, and submitDoorstep verifies it at click time like any
+    // other bound approval.
     if (inp.approval && inp.approval.approvedByUser === true) {
+      inp.approval.payloadSha256 = payloadSha256;
+      logStep("approval_bound", { payloadSha256 });
       return submitDoorstep(session, inp.approval, { log, now: inp.now, posting });
     }
     return prepared;
@@ -43936,6 +44039,45 @@ const CareerPortalApply = (() => {
       return { resultStatus: "blocked", code: "NO_DOORSTEP", reason: "no prepared doorstep payload in this session" };
     }
     const board = session.board;
+    // §6.4 caps re-check (MI-110): counts can change between doorstep
+    // and click — the gate that fires is the gate that counts. The cap
+    // stop lands BEFORE the arming wire: a capped submit never arms.
+    const caps = capCheck(log, session.userId, {
+      canonicalKey: session.doorstep.postingKey,
+      vendor: session.doorstep.vendor || null,
+      company: session.doorstep.company || (c.posting && c.posting.company) || null,
+      url: (c.posting && c.posting.url) || null,
+    }, c.now, board);
+    if (!caps.ok) {
+      const s = caps.stops[0];
+      return { resultStatus: "blocked", code: "CAP_REACHED", cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
+        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` };
+    }
+    // §10 payload binding (MI-116 / BUG-234): the approval binds to the
+    // EXACT payload, not the job. Rebuild the would-submit payload from
+    // the board's CURRENT answers and compare hashes — a value changed,
+    // a field answered, or a field cleared since approval invalidates
+    // the approval (Spec 2 §10). The stop lands BEFORE the arming wire:
+    // a mismatched payload never arms and never clicks. An approval
+    // carrying no payload hash no longer fires against a doorstep.
+    const approvedHash = approval.payloadSha256 || null;
+    const livePayload = buildPayload(board, session);
+    const liveHash = sha256(JSON.stringify(livePayload));
+    if (!approvedHash || approvedHash !== liveHash) {
+      const approvedPayload = session.doorstep.payload || {};
+      const changedFields = [], addedFields = [], removedFields = [];
+      for (const k of Object.keys(livePayload)) {
+        if (!(k in approvedPayload)) addedFields.push(k);
+        else if (JSON.stringify(livePayload[k]) !== JSON.stringify(approvedPayload[k])) changedFields.push(k);
+      }
+      for (const k of Object.keys(approvedPayload)) if (!(k in livePayload)) removedFields.push(k);
+      return { resultStatus: "blocked", code: "APPROVAL_PAYLOAD_MISMATCH",
+        approvedPayloadSha256: approvedHash, livePayloadSha256: liveHash,
+        changedFields, addedFields, removedFields,
+        reason: !approvedHash
+          ? "the approval does not bind the exact payload it approves (no payload hash) — re-approve the shown doorstep so the approval carries its payload hash (§10)"
+          : `the filled payload changed after approval, so the approval is invalidated (§10) — changed: [${changedFields.join(", ")}], added: [${addedFields.join(", ")}], removed: [${removedFields.join(", ")}]; re-approve the current doorstep to submit` };
+    }
     // THE ARMING WIRE (BUG-063 / D3): this approval gate is the ONLY
     // place a board gets armed for a real submit. Arming requires BOTH
     // (a) this gate's pass (approvedByUser === true, checked above) AND
@@ -43951,9 +44093,9 @@ const CareerPortalApply = (() => {
     }
     const out = board.submit();
     if (out.outcome === "accepted") {
-      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef,
+      session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
-      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId });
+      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
@@ -43988,7 +44130,106 @@ const CareerPortalApply = (() => {
       reason: "the board holds no submission for this session — a retry needs a fresh approval, and the earlier attempt stays on record as an uncertain outcome" };
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, profileValue, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  // ---------- MI-115 / BUG-235: unknown_outcome is not terminal — the resolver ----------
+  // A bounded sweep over application records still at unknown_outcome.
+  // It READS destination state (employer-side status readers) and
+  // records every attempt on the record; it NEVER submits anything —
+  // there is no submit path in this function. Design note (contract
+  // mi-115): Spec 2 §8.3 says check the user's email first, but the
+  // inbox half is NOT_WIRED — Gmail is not connected in-product
+  // (MI-074 / CA-08b). An `inboxScan` seam is accepted; when it is
+  // absent the attempt RECORDS inbox_unavailable instead of pretending
+  // to have checked. A "submitted" claim counts only with the
+  // employer's own confirmation ID attached (the BUG-208 lesson: an
+  // ID-less claim is not proof). Anything unproven stays unknown and
+  // gains a named userQuestion — re-presented, never silently dropped.
+  function resolveUnknownOutcomes(input) {
+    const inp = input || {};
+    const records = inp.records || [];
+    const nowMs = tsMs(inp.now);
+    const minAgeMs = (inp.minAgeHours != null ? inp.minAgeHours : 24) * 3600 * 1000;
+    const maxPerPass = inp.maxPerPass != null ? inp.maxPerPass : 20;
+    const recId = (r) => r.appId || r.canonicalKey || null;
+    const report = { attempted: 0, resolved: [], stillUnknown: [], skipped: [] };
+    if (!Number.isFinite(nowMs)) {
+      for (const r of records) if (r && r.status === "unknown_outcome") report.skipped.push({ id: recId(r), reason: "no_clock" });
+      return report;
+    }
+    const eligible = records
+      .filter((r) => r && r.status === "unknown_outcome")
+      .sort((a, b) => (tsMs(a.timestamp) || 0) - (tsMs(b.timestamp) || 0));
+    const readerFor = (rec) => {
+      if (typeof inp.readers === "function") return inp.readers;
+      if (inp.readers && typeof inp.readers === "object") {
+        const hit = inp.readers[rec.canonicalKey] || inp.readers[rec.appId];
+        if (typeof hit === "function") return hit;
+        if (hit && typeof hit === "object") return () => hit;
+      }
+      return null;
+    };
+    for (const rec of eligible) {
+      if (report.attempted >= maxPerPass) { report.skipped.push({ id: recId(rec), reason: "pass_bound" }); continue; }
+      const ageMs = nowMs - tsMs(rec.timestamp);
+      if (!Number.isFinite(ageMs) || ageMs < minAgeMs) { report.skipped.push({ id: recId(rec), reason: "too_young" }); continue; }
+      const prior = rec.resolutionAttempts || [];
+      const last = prior[prior.length - 1];
+      if (last && Number.isFinite(tsMs(last.at)) && nowMs - tsMs(last.at) < minAgeMs) {
+        report.skipped.push({ id: recId(rec), reason: "attempt_throttled" }); continue;
+      }
+      report.attempted += 1;
+      const methodsTried = [];
+      let outcome = null, method = "none_available";
+      if (typeof inp.inboxScan === "function") {
+        methodsTried.push("inbox_scan");
+        let inboxRes = null;
+        try { inboxRes = inp.inboxScan(rec); } catch (e) { inboxRes = null; }
+        if (inboxRes && inboxRes.state === "submitted" && inboxRes.confirmationId) { outcome = inboxRes; method = "inbox_scan"; }
+      } else {
+        methodsTried.push("inbox_unavailable");
+      }
+      if (!outcome) {
+        const reader = readerFor(rec);
+        if (reader) {
+          methodsTried.push("employer_status_read");
+          let readerRes = null;
+          try { readerRes = reader(rec); } catch (e) { readerRes = { state: "unverifiable", reason: `reader_error: ${(e && e.message) || e}` }; }
+          if (readerRes) { outcome = readerRes; method = "employer_status_read"; }
+        }
+      }
+      const attempt = { at: inp.now, method, methodsTried, result: null };
+      if (methodsTried.includes("inbox_unavailable")) {
+        attempt.notes = "inbox_unavailable (MI-074: Gmail not connected in-product — employer-side check only)";
+      }
+      if (outcome && outcome.state === "submitted" && outcome.confirmationId) {
+        rec.status = "submitted";
+        rec.resolvedBy = method === "inbox_scan" ? "inbox_confirmed" : "employer_confirmed";
+        rec.confirmationId = outcome.confirmationId;
+        rec.stillUnknown = false;
+        delete rec.userQuestion;
+        attempt.result = "resolved_submitted";
+        report.resolved.push({ id: recId(rec), to: "submitted", resolvedBy: rec.resolvedBy, confirmationId: outcome.confirmationId });
+      } else if (outcome && outcome.state === "not_submitted") {
+        rec.status = "not_submitted";
+        rec.resolvedBy = "employer_verified_absent";
+        rec.stillUnknown = false;
+        delete rec.userQuestion;
+        attempt.result = "resolved_not_submitted";
+        report.resolved.push({ id: recId(rec), to: "not_submitted", resolvedBy: rec.resolvedBy });
+      } else {
+        rec.stillUnknown = true;
+        rec.userQuestion = `Did a confirmation email arrive for ${rec.company || "this application"}? The employer's board cannot prove whether the application landed, and it has stayed unknown since ${rec.timestamp || "submission"}.`;
+        attempt.result = "still_unknown";
+        if (outcome && outcome.state === "submitted" && !outcome.confirmationId) attempt.detail = "reader claimed submitted without a confirmation ID — not proof";
+        else if (outcome && outcome.reason) attempt.detail = outcome.reason;
+        report.stillUnknown.push({ id: recId(rec), userQuestion: rec.userQuestion });
+      }
+      if (!rec.resolutionAttempts) rec.resolutionAttempts = [];
+      rec.resolutionAttempts.push(attempt);
+    }
+    return report;
+  }
+
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

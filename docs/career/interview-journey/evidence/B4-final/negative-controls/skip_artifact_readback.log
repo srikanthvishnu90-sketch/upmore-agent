@@ -1,0 +1,43 @@
+TAP version 13
+# Subtest: artifact cannot complete on assembly, fake receipt, or hash-only readback
+not ok 1 - artifact cannot complete on assembly, fake receipt, or hash-only readback
+  ---
+  duration_ms: 46.900408
+  type: 'test'
+  location: '/tmp/interview-negative-pgTtiG/tests/career-interview-journey/boundaries.test.cjs:19:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Got unwanted exception.
+    Actual message: "completed journey requires verified non-partial artifact readback"
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'completed journey requires verified non-partial artifact readback'
+  stack: |-
+    Object.assert (/tmp/interview-negative-pgTtiG/packages/career-interview-journey/adapters/context.js:4:58)
+    validateState (/tmp/interview-negative-pgTtiG/packages/domain/interview-journey/index.js:19:7)
+    Object.planInterviewTurn (/tmp/interview-negative-pgTtiG/packages/domain/interview-journey/index.js:212:37)
+    Object.turn (/tmp/interview-negative-pgTtiG/tests/career-interview-journey/scripted-host.cjs:12:133)
+    /tmp/interview-negative-pgTtiG/tests/career-interview-journey/boundaries.test.cjs:19:150
+    getActual (node:assert:609:5)
+    Function.doesNotThrow (node:assert:777:32)
+    TestContext.<anonymous> (/tmp/interview-negative-pgTtiG/tests/career-interview-journey/boundaries.test.cjs:19:128)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  operator: 'doesNotThrow'
+  stack: |-
+    TestContext.<anonymous> (/tmp/interview-negative-pgTtiG/tests/career-interview-journey/boundaries.test.cjs:19:128)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 152.242121

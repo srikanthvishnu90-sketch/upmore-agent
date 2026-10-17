@@ -1,0 +1,167 @@
+{
+  "status": "FAIL",
+  "producer_ref": "3a41cd456cbdbe53639275ae83096b9fb91aa33d",
+  "artifact_sha256": {
+    "packages/career-contracts/journey-contract-v1.schema.json": "e9d67853dc0476391c49b7d5140031a04e64a5a47f69f9fe073f5f013b93b022",
+    "packages/career-contracts/journey-contract-v1.ts": "146b3de3d875062256c5e2995e3b8a485df748a409d7a0e97c2e28d98325b04c",
+    "packages/career-contracts/fixtures/journey-contract-v1/freeze.json": "367c77f3abba65dbcf5836165ba654e729d07973a815b4b1dd90f64863558bf5",
+    "packages/career-contracts/fixtures/journey-contract-v1/valid.json": "77d875b428eb4780fb9b978089028c3762fc1849513e6f8ab5f6c55cce5d98c7",
+    "packages/career-contracts/fixtures/journey-contract-v1/invalid.json": "f71d72ecd96d3163869f233440c27fe32975b51c776b9d0bb4fc18c2bb3b470a"
+  },
+  "A_fixture_validation": {
+    "pass": 12,
+    "total": 12,
+    "valid_examples": 3,
+    "invalid_examples": 9,
+    "checks": [
+      {
+        "id": "CareerContextSnapshotV1-0",
+        "type": "CareerContextSnapshotV1",
+        "expected": "ACCEPT",
+        "structural_ok": true,
+        "native_ok": true,
+        "pass": true,
+        "native_errors": []
+      },
+      {
+        "id": "CareerActionProposalV1-1",
+        "type": "CareerActionProposalV1",
+        "expected": "ACCEPT",
+        "structural_ok": true,
+        "native_ok": true,
+        "pass": true,
+        "native_errors": []
+      },
+      {
+        "id": "JourneyTransitionV1-2",
+        "type": "JourneyTransitionV1",
+        "expected": "ACCEPT",
+        "structural_ok": true,
+        "native_ok": true,
+        "pass": true,
+        "native_errors": []
+      },
+      {
+        "id": "foreign_owner_fact",
+        "type": "CareerContextSnapshotV1",
+        "expected": "REJECT",
+        "structural_ok": true,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "foreign_item_scope"
+        ]
+      },
+      {
+        "id": "withdrawn_value_present",
+        "type": "CareerContextSnapshotV1",
+        "expected": "REJECT",
+        "structural_ok": true,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "revoked_value_in_snapshot"
+        ]
+      },
+      {
+        "id": "extra_authority_channel",
+        "type": "CareerContextSnapshotV1",
+        "expected": "REJECT",
+        "structural_ok": false,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "$.tool_executor: extra"
+        ]
+      },
+      {
+        "id": "unsupported_send",
+        "type": "CareerActionProposalV1",
+        "expected": "REJECT",
+        "structural_ok": false,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "$: oneOf"
+        ]
+      },
+      {
+        "id": "client_downgrades_approval",
+        "type": "CareerActionProposalV1",
+        "expected": "REJECT",
+        "structural_ok": false,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "$: oneOf"
+        ]
+      },
+      {
+        "id": "action_laundering",
+        "type": "CareerActionProposalV1",
+        "expected": "REJECT",
+        "structural_ok": false,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "$: oneOf"
+        ]
+      },
+      {
+        "id": "foreign_binding",
+        "type": "CareerActionProposalV1",
+        "expected": "REJECT",
+        "structural_ok": true,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "foreign_expected_binding"
+        ]
+      },
+      {
+        "id": "unchanged_journey_revision",
+        "type": "JourneyTransitionV1",
+        "expected": "REJECT",
+        "structural_ok": true,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "journey_revision_conflict"
+        ]
+      },
+      {
+        "id": "unproven_artifact_success",
+        "type": "CareerActionResultV1",
+        "expected": "REJECT",
+        "structural_ok": true,
+        "native_ok": false,
+        "pass": true,
+        "native_errors": [
+          "artifact_readback_required"
+        ]
+      }
+    ]
+  },
+  "B_context_consumption": {
+    "pass": 0,
+    "total": 1,
+    "checks": [
+      {
+        "id": "B-consumes-0",
+        "type": "CareerContextSnapshotV1",
+        "status": "FAIL",
+        "error": "foreign evidence owner/scope",
+        "input_sha256": "a1b093c8f39039a26807b9cad766e445b25fba4cb94a2acb86713e35a505e32e"
+      }
+    ]
+  },
+  "canonical_cases_executed": 12,
+  "B_canonical_transitions_executed": 0,
+  "remaining_gate": "Explicit versioned DTO/action/event/receipt adapter and genuine A producer journey cases are required before registration.",
+  "no_B_fixture_substitution": true,
+  "provider_calls": 0,
+  "quality": "NOT_RUN",
+  "actual_entry": "NOT_RUN"
+}
+(node:41160) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

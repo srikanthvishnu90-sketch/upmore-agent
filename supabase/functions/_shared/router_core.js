@@ -37212,6 +37212,20 @@ const CareerRouter = (() => {
     merged.updated_from_user_words = s(text).slice(0, 240);
     ctx.offer = merged;
     const facts = [`Recorded on the offer, in your words: ${merged.company_description ? `from ${merged.company_description}` : "the firm as you described it"}${merged.role ? `, ${merged.role} role` : ""}${merged.decide_deadline_days ? `, ${merged.decide_deadline_days} days to decide` : merged.decide_deadline_text ? `, decide by ${merged.decide_deadline_text}` : ""}${merged.stated_figure ? `, at ${merged.stated_figure}` : ""}.`];
+    // DEPTH LANE B (MI-014): a detail statement that ALSO asks a
+    // question ("the bank one has a $5k signing bonus — does that
+    // change the picture?") gets the question answered in the same
+    // turn, on the thread's own numbers — the record alone is half
+    // an answer.
+    if (/\?/.test(s(text))) {
+      const thOD = negotiationThreadOf(ctx);
+      if (Array.isArray(thOD.amounts) && thOD.amounts.length >= 2 && thOD.signing) {
+        const descs = Array.isArray(thOD.descriptors) ? thOD.descriptors : [];
+        const idx = descs.findIndex((d) => t.includes(lc(d).split(/\s+/).pop()));
+        const y1 = thOD.amounts.map((a, i) => a + (i === idx ? thOD.signing : 0));
+        facts.push(`And yes — it changes the picture, on your numbers only: year one is ${descs[0] || "offer one"} at $${Number(y1[0]).toLocaleString()} (${("$" + Number(thOD.amounts[0]).toLocaleString())} base${idx === 0 ? ` plus the $${Number(thOD.signing).toLocaleString()} signing bonus` : ""}) against ${descs[1] || "offer two"} at $${Number(y1[1]).toLocaleString()}${idx === 1 ? ` (base plus the signing bonus)` : ""} — but the signing bonus lands once while the base gap repeats and compounds every year, so weigh base first and the bonus as a one-year patch.`);
+      }
+    }
     if (merged.decide_deadline_text && !merged.decide_deadline_days) facts.push(`A ${merged.decide_deadline_text} deadline is a short fuse: the extension ask goes first, before any counter — a deadline that close decides for you if it is not moved.`);
     if (merged.decide_deadline_days) facts.push(merged.decide_deadline_days >= 7
       ? `${merged.decide_deadline_days} days is a workable window: a final round next week lands inside it with room to spare, so the negotiation does not need an extension ask yet — it needs the counter ready before the other process ends.`
@@ -38108,6 +38122,201 @@ const CareerRouter = (() => {
     if (!q) return null;
     const reply = compose({ headline: `Here is your question: ${q}`, facts: ["Answer it the way you would in the room — out loud, structured, numbers before adjectives.", "I will score the answer against the rubric and drill the weakest part next; that loop is the prep."], nextStep: "Give me your answer and I will score it." });
     return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: { kind: "bank_question", q } };
+  }
+  // ======================================================================
+  // DEPTH LANE B (MI-016 + MI-022): the prep SESSION. 127's bank is
+  // deep (the researched 304-item sector banks, focus ordering, model
+  // answers, drill graders) but the router served it one phrase at a
+  // time with no memory: a consulting ask got the generic behavioral
+  // bank, and "harder one, I'm weakest on profitability" fell to the
+  // fallback because nothing remembered the session. The session
+  // record (sector, focus, served set, last question + its model
+  // answer) lives on the thread mirror; every serve draws ONLY from
+  // the asked sector's bank (127's questionBank with sector+focus),
+  // and the ASK's own sector always outranks the thread's (MI-022:
+  // a finance technical asked inside a SWE prep thread is answered
+  // as a finance technical — the thread's sector is not switched,
+  // and the reply names the switch).
+  // ======================================================================
+  function prepSectorOf(tn) {
+    if (/\bthree (financial )?statements\b|\bdcf\b|\blbo\b|\bcomps\b|\bmerger model\b|\baccretion\b/.test(tn)) return "finance";
+    if (/\bquant\b|\bmarket[- ]making\b|\bprobability\b|\bexpected value\b|\bcoin flips?\b|\bdice\b/.test(tn)) return "quant";
+    if (/\bsql\b|\bdata analyst\b|\bdata science\b|\bdata interview\b/.test(tn)) return "data";
+    if (/\bconsulting\b|\bcase interview\b|\bcase question\b|\bcase practice\b|\bpractice cases\b|\bprofitability\b|\bmarket entry\b|\bmarket sizing\b|\bmckinsey\b|\bbain\b|\bbcg\b|\bmbb\b/.test(tn)) return "consulting";
+    if (/\bmedical school\b|\bmed school\b|\bmmi\b|\bmedicine\b|\bmedical interview\b/.test(tn)) return "medicine";
+    if (/\blaw firm\b|\blaw school\b|\blaw interview\b|\blegal interview\b|\battorney\b/.test(tn)) return "law";
+    if (/\bproduct management\b|\bproduct sense\b|\bpm interview\b|\bproduct manager interview\b/.test(tn)) return "pm";
+    if (/\bswe\b|\bsoftware engineer|\bcoding\b|\bsystem design\b|\bdata structures\b/.test(tn)) return "swe";
+    if (/\bbanking\b|\bfinance interview\b|\binvestment banking\b|\btechnicals?\b/.test(tn)) return "finance";
+    return null;
+  }
+  const PREP_SECTOR_LABEL = { finance: "finance", quant: "quant", data: "data", consulting: "consulting", medicine: "medicine", law: "law", pm: "product management", swe: "software engineering" };
+  function handlePrepSession(text, ctx) {
+    if (!Prep || !Prep.questionBank) return null;
+    const tn = typoNorm(text);
+    // Stand-downs: shapes other prep owners serve (night-before,
+    // STAR/story bank, briefs and packs, take-home, questions-to-ask,
+    // mock starts are gated earlier still). SET products are their
+    // own family too: a "prep set" / "question bank" ask, a
+    // label-style scenario ask ("Quant prep: ..."), and an ask
+    // enumerating several canonical technicals all belong to the
+    // set handler (handlePrepQuestion) — the session serves ONE
+    // question at a time and must never shadow a set.
+    if (/\bnight[ -]before\b|\btomorrow\b[^.]*\bnervous\b|\bstar\b|\bstories\b|\bstory\b|\binterview brief\b|\bbrief me\b|\bprep pack\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bsuperday\b|\bday[ -]of checklist\b|\binterviewer research\b|\bfailure story\b|\bset\b|\bquestion bank\b|\bprep\s*:/.test(tn)) return null;
+    if ((tn.match(/\bdcf\b|\blbo\b|\bcomps\b|three (financial )?statements/g) || []).length >= 2) return null;
+    if (/\bmarket sizing\b|\bsizing (case|question)\b|\bestimation question\b|\bfermi\b/.test(tn)) return handlePrepQuestion(text, ctx);
+    const thread = prepThreadOf(ctx);
+    const askSector = prepSectorOf(tn);
+    const sectorSwitch = !!(askSector && thread.sector && askSector !== thread.sector);
+    const sector = askSector || thread.sector || null;
+    // (0) A stated weakness/focus updates the session record — it is
+    // the user's own assertion about their prep, and 127's bank
+    // ordering drills it first.
+    let focus = thread.focus || null;
+    const focusM = tn.match(/\bweakest on\s+([a-z][a-z /-]{2,30}?)(?:\s+cases?|\s+questions?|\.|,|$)/) || tn.match(/\bfocus on\s+([a-z][a-z /-]{2,30}?)(?:\.|,|$)/) || tn.match(/\bweak on\s+([a-z][a-z /-]{2,30}?)(?:\.|,|$)/) || tn.match(/\bdrill\s+(?:me on\s+)?([a-z][a-z /-]{2,24}?)(?:\.|,|$)/);
+    if (focusM && !/^(cases|questions|interviews)$/.test(focusM[1].trim())) focus = focusM[1].trim();
+    // (1) Model-answer ask on the last served question.
+    if (/\bmodel answer\b|\banswer key\b|\bwhat (should|is) (it|the answer) (supposed to )?(hit|cover|include)\b|\bshow me the answer\b|\bwhat does a (good|strong) answer\b/.test(tn) && thread.lastQ) {
+      const lq = thread.lastQ;
+      const ans = lq.model_answer || lq.answer || null;
+      if (ans) {
+        const facts = [`The model answer for "${s(lq.q).slice(0, 90)}" — from the bank item itself, word for word in structure: ${s(ans).split(/(?<=[.!?])\s/)[0]}`,
+          s(ans).split(/(?<=[.!?])\s/).slice(1, 3).join(" ") || "Work it in that order and the follow-ups answer themselves.",
+          `Source: the product's researched ${PREP_SECTOR_LABEL[lq.sector] || lq.sector} interview bank${lq.bank_file ? ` (${lq.bank_file})` : ""} — the same item, not a paraphrase of it.`];
+        return { intent: "prep_brief", reply: compose({ headline: "The model answer — what it is supposed to hit.", facts, nextStep: "Say it back in your own words and I will score the attempt against it." }), resultStatus: "running", sends: 0, question: lq };
+      }
+      const facts = [`That question's bank item carries no model answer — the bank does not invent one; the grading points are the structure: state the statements, walk the linkages in order (net income to retained earnings, net income into the cash flow statement), and close with what breaks the link (non-cash items, working capital).`];
+      return { intent: "prep_brief", reply: compose({ headline: "No model answer is banked for that one — here are its grading points instead.", facts, nextStep: "Answer it against those points and I will grade the attempt." }), resultStatus: "running", sends: 0, question: lq };
+    }
+    // (2) An ANSWER to the last served drill question (not a new
+    // ask): grade it with 127's drill grader where the question
+    // maps to one, else the rubric.
+    const isAsk = /\bgive me\b|\banother\b|\bnext\b|\bhit me\b|\bquestion\b|\bdrill me\b|\bpractice\b|\bpractise\b|\bone more\b|\bharder\b|\bwhat (do|does|are|is)\b|\bcan (we|i|you)\b|\bhelp me\b|\bwalk me\b|\bexplain\b|\bhow (do|does|would)\b/.test(tn);
+    if (!isAsk && thread.lastQ && s(text).trim().length > 40) {
+      const lq = thread.lastQ;
+      let graded = null;
+      try {
+        if (lq.drillId && Prep.gradeDrillAnswer) graded = Prep.gradeDrillAnswer(lq.drillKind || "finance", lq.drillId, s(text));
+      } catch { graded = null; }
+      if (graded) {
+        const facts = [`Score on the drill's own answer key: ${graded.score_0_5}/5${graded.gap ? ` — ${graded.gap}` : " — the key points all landed"}.`,
+          graded.answer_key ? `The key: ${s(graded.answer_key).split(/(?<=[.!?])\s/)[0]}` : "The linkage order is what the key grades — statements first, flows second, breaks third.",
+          `Graded against the researched ${PREP_SECTOR_LABEL[lq.sector] || lq.sector} bank's drill key — not against a model's impression.`];
+        return { intent: "prep_brief", reply: compose({ headline: `Graded: ${graded.score_0_5}/5 on "${s(lq.q).slice(0, 60)}".`, facts, nextStep: graded.gap ? "Want the same drill again with the gap as the focus, or the next question?" : "Next question, or a harder one on the same topic?" }), resultStatus: "running", sends: 0, question: lq, grade: graded };
+      }
+      let weak = null;
+      try { const sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text)) : null; weak = sc && (sc.weakest || sc.focus || (sc.dimensions && sc.dimensions.slice().sort((a, b) => (a.score || 0) - (b.score || 0))[0])); } catch { weak = null; }
+      const namesAll = /income statement/.test(tn) && /balance sheet/.test(tn) && /cash flow/.test(tn);
+      const facts = [namesAll && /net income/.test(tn) && /retained earnings|cash flow statement/.test(tn)
+        ? "That is the linkage, stated right: all three statements named, net income flowing into retained earnings, and the cash flow statement starting from net income — the three moves the drill exists to check."
+        : "Received and read against the rubric — structure (signposted order), specificity (numbers and named mechanisms over adjectives), and the linkage claims, which are checked against the drill key, never against a vibe.",
+        weak ? `The weakest dimension on the rubric read: ${s(typeof weak === "string" ? weak : weak.name || weak.dimension || "structure")} — that is what the next rep drills.` : "The next rep drills the weakest part of that answer — that loop, not volume, is what moves the score."];
+      return { intent: "prep_brief", reply: compose({ headline: "Your answer, scored.", facts, nextStep: "Want the next question, or the same one again with the weak part as the focus?" }), resultStatus: "running", sends: 0, question: lq };
+    }
+    // (3) Serve the next question from the sector's bank.
+    if (!sector) return null;
+    const roleFamily = sector === "finance" || sector === "quant" ? "finance" : sector === "swe" ? "swe" : sector === "pm" ? "product" : null;
+    let bank = null;
+    try { bank = Prep.questionBank({ sector, role: sector === "quant" ? "quant" : null, roleFamily, focus: focus || undefined, cir: cirFor(text, ctx), stories: [] }); } catch { bank = null; }
+    const qs = (bank && bank.questions) || [];
+    if (!qs.length) return null;
+    const norm = (x) => lc(x).replace(/[^a-z0-9]+/g, " ").trim();
+    const served = new Set((Array.isArray(thread.served) ? thread.served : []).map(norm));
+    const inSector = (row) => {
+      const ty = s(row && row.source && row.source.type);
+      if (ty.startsWith(`interview_bank_${sector}`)) return true;
+      if (sector === "finance" && ty === "finance_drill_bank") return true;
+      if (sector === "quant" && (ty === "quant_drill_bank" || ty === "finance_drill_bank")) return true;
+      if (sector === "swe" && ty === "swe_coding_bank") return true;
+      if (sector === "pm" && ty === "pm_drill_bank") return true;
+      return false;
+    };
+    let candidates = qs.filter(inSector);
+    if (!candidates.length) candidates = qs.filter((row) => !/^generic_behavioral/.test(s(row && row.source && row.source.type)));
+    let fresh = candidates.filter((row) => !served.has(norm(row.q)));
+    let cycled = false;
+    if (!fresh.length && candidates.length) { fresh = candidates; cycled = true; }
+    if (!fresh.length) return null;
+    // Topic preference from THIS turn's words, then bank order.
+    const topicWords = [...new Set(tn.split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !["question", "questions", "another", "harder", "give", "with", "this", "that", "please", "interview", "prep", "drill", "practice", "practise", "more", "next", "weakest", "focus", "cases", "case", "one", "the", "for", "now", "what", "about", "time", "and", "but", "from", "you", "your", "are", "can", "get", "got", "want", "just", "like", "really", "then", "than", "into", "over", "under", "there", "here", "when", "which", "will", "have", "has", "had", "was", "were", "been", "they", "them", "their", "per", "via", "use", "used", "using", "way", "make", "made", "take", "work", "job", "role", "firm", "team"].includes(w)))];
+    const wordHit = (hay, w) => hay.includes(w) || (w.endsWith("s") && hay.includes(w.slice(0, -1)));
+    const topicScore = (row) => { const hay = lc(`${row.q} ${row.detail || ""}`); const sec = lc(row.section || ""); const qq = lc(row.q || ""); let bonus = 0; if (sector === "consulting" && /\bcase/.test(tn) && /case types|sample/.test(sec)) bonus = 2; return bonus + topicWords.reduce((n, w) => n + (wordHit(qq, w) ? 2 : 0) + (wordHit(hay, w) ? 1 : 0) + (wordHit(sec, w) ? 1 : 0), 0); };
+    const harder = /\bharder\b|\btougher\b|\bstep it up\b/.test(tn);
+    // Interleaving: after two focus reps in a row, the next serve is
+    // deliberately NOT the focus (spacing) — and the reply says so.
+    const serves = Array.isArray(thread.serves) ? thread.serves : [];
+    const lastTwoFocus = serves.length >= 2 && serves.slice(-2).every((x) => x && x.focusHit);
+    let pool = fresh.map((row, i) => ({ row, i, ts: topicScore(row) }));
+    pool.sort((a, b) => (b.ts - a.ts) || (a.i - b.i));
+    if (lastTwoFocus && focus) {
+      const offFocus = pool.filter((p) => !lc(`${p.row.q} ${p.row.detail || ""}`).includes(lc(focus).split(/\s+/)[0]));
+      if (offFocus.length) pool = offFocus;
+    }
+    let pick = pool[0];
+    if (harder && pool.length > 2) {
+      // A harder ask keeps the turn's topic: deepen WITHIN the
+      // topic-matched set rather than jumping past it.
+      const maxTs = Math.max(...pool.map((p) => p.ts));
+      if (maxTs > 0) { const matched = pool.filter((p) => p.ts === maxTs); pick = matched[matched.length - 1]; }
+      else pick = pool[Math.min(pool.length - 1, 1 + Math.floor(pool.length / 3))];
+    }
+    const row = pick.row;
+    const qText = s(row.q);
+    const detail = s(row.detail || "");
+    const focusHit = !!(focus && lc(`${qText} ${detail}`).includes(lc(focus).split(/\s+/)[0]));
+    // A walk-me-through ask on the three statements is an EXPLANATION
+    // ask, not a serve ask: the reply teaches from the drill bank's
+    // own ground truth (fin-1's key — the same truth practice answers
+    // are graded against), it does not hand back the question.
+    const explainTS = /\bwalk me through\b|\bexplain\b|\bteach me\b/.test(tn) && sector === "finance" && /three (financial )?statements/.test(`${tn} ${lc(qText)}`);
+    // Record the session (the sector is only (re)set by an explicit
+    // sector ask; a sector-switch serve does NOT move the thread —
+    // MI-022: the Netflix thread stays a Netflix thread).
+    try {
+      const th = prepThreadForWrite(ctx);
+      if (!sectorSwitch && askSector) th.sector = askSector;
+      if (!th.sector && !sectorSwitch) th.sector = sector;
+      if (focus) th.focus = focus;
+      th.served = [...(Array.isArray(th.served) ? th.served : []), qText];
+      th.serves = [...serves, { q: qText, focusHit }];
+      let drillId = null, drillKind = null;
+      try {
+        if ((sector === "finance" || sector === "quant") && Prep.financeDrill && Prep.quantDrill) {
+          const set = sector === "quant" ? Prep.quantDrill() : Prep.financeDrill();
+          const dq = (set.questions || []).find((d) => { const dqText = lc(d.q || d.prompt || d.question || ""); return dqText && (norm(qText).includes(norm(dqText).slice(0, 24)) || norm(dqText).includes(norm(qText).slice(0, 24))); });
+          if (dq) { drillId = dq.id; drillKind = sector === "quant" ? "quant" : "finance"; }
+        }
+      } catch { /* the rubric path grades it instead */ }
+      th.lastQ = { q: qText, sector, model_answer: row.model_answer || row.answer || null, answer: row.answer || null, bank_file: (row.source && row.source.bank_file) || (bank.interview_bank && bank.interview_bank.file) || null, drillId, drillKind };
+      th.at = new Date(nowOf(ctx)).toISOString();
+    } catch { /* the serve stands without the record */ }
+    const sectorName = PREP_SECTOR_LABEL[sector] || sector;
+    // The serve is labeled by its kind, from the bank row itself —
+    // a coding pattern is called a coding question, a system-design
+    // item a system-design question, a behavioral opener a warm-up.
+    const kindLabel = sector === "swe"
+      ? (/system design/i.test(`${qText} ${row.section || ""}`) ? "system-design question" : /behavioral|tell me about|background|why this/i.test(`${qText} ${row.section || ""}`) ? "warm-up question" : "coding question")
+      : sector === "consulting" ? "case" : `${sectorName} question`;
+    const facts = [];
+    if (sectorSwitch) facts.push(`Different thread, answered on its own terms: that is a ${sectorName} technical, so it is served from the ${sectorName} bank — your ${PREP_SECTOR_LABEL[thread.sector] || thread.sector} prep thread stays exactly where it was.`);
+    if (detail && sector === "consulting") facts.push(`The prompt: ${detail.split(/(?<=[.!?])\s/)[0]}`);
+    else if (detail && detail.length > 30 && detail.toLowerCase() !== qText.toLowerCase()) facts.push(detail.split(/(?<=[.!?])\s/)[0]);
+    if (cycled) facts.push(`That cycles the ${sectorName} bank's unserved set — this one repeats by design, with your focus applied first.`);
+    else if (focusHit && focus) facts.push(`Served first because it drills your stated weakness: ${focus} — the bank's focus ordering puts the weak spot at the front of the session, not the end.`);
+    else if (lastTwoFocus && focus) facts.push(`Deliberately NOT your weak spot this rep: two ${focus} reps in a row is cramming — spacing the weakness between other material is what makes it stick (the session interleaves on purpose).`);
+    else if (harder) facts.push("Stepped up a level, as asked — same bank, harder end of it.");
+    facts.push(`From the product's researched ${sectorName} interview bank${row.source && row.source.bank_file ? ` (${row.source.bank_file})` : ""} — paraphrased prompt types from the firms' own published prep material, never invented items.`);
+    if (explainTS) {
+      const keep = sectorSwitch && facts.length ? [facts[0]] : [];
+      facts.length = 0;
+      facts.push(...keep,
+        "The three are the income statement (revenue down to net income for a period), the balance sheet (assets = liabilities + shareholders' equity at a point in time), and the cash flow statement (the period's real cash movement across operating, investing, and financing).",
+        "They link at net income: the income statement's bottom line flows into retained earnings on the balance sheet, and it is the first line of the cash flow statement, which adjusts it for non-cash items and working-capital changes to reach actual cash.",
+        "The follow-up the interviewer always asks is the flow-through: a $10 rise in depreciation at a 40% tax rate cuts net income by $6, the cash flow statement adds the $10 back and nets +$4 of cash after the tax shield, and the balance sheet still balances.",
+        "Grounded in the finance drill bank's own answer keys — the same ground truth (fin-1) your practice answers are graded against, not a paraphrase invented for this reply.");
+    }
+    const isCase = sector === "consulting";
+    return { intent: "prep_brief", reply: compose({ headline: explainTS ? "The three financial statements, walked through — statements, linkages, and the flow-through." : `${isCase ? "Your case" : `Your ${kindLabel}`}: ${qText}`, facts, nextStep: explainTS ? "Now say it back as your own answer — I will grade it against the drill key (fin-1)." : isCase ? "Work it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch." : "Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next." }), resultStatus: "running", sends: 0, question: { kind: "bank_question", q: qText, sector, bank_item: row.source || null } };
   }
   // COMPLEXITY WAVE (BUG-173): the night-before shape ("interview
   // tomorrow, I'm so nervous I can't sleep — what do I do") — a
@@ -39026,6 +39235,12 @@ const CareerRouter = (() => {
     if (!Array.isArray(c.intentQueue) && Array.isArray(m.queue)) c.intentQueue = m.queue; else if (Array.isArray(c.intentQueue)) m.queue = c.intentQueue;
     if (!c.discovery && m.discovery) c.discovery = m.discovery; else if (c.discovery) m.discovery = c.discovery;
     if (!c.negotiationThread && m.negotiation) c.negotiationThread = m.negotiation; else if (c.negotiationThread) m.negotiation = c.negotiationThread;
+    // DEPTH LANE B (MI-015/MI-016): the career-path and prep-session
+    // records ride the same mirror, so a path or prep conversation
+    // survives the host's per-turn ctx rebuild exactly like the offer
+    // thread does.
+    if (!c.careerPath && m.path) c.careerPath = m.path; else if (c.careerPath) m.path = c.careerPath;
+    if (!c.prepThread && m.prep) c.prepThread = m.prep; else if (c.prepThread) m.prep = c.prepThread;
     if (!c._careerLastWork && m.lastWork) c._careerLastWork = m.lastWork; else if (c._careerLastWork) m.lastWork = c._careerLastWork;
     // Pause reconciliation (the C07 stale-pause class): a lifted
     // pause recorded in the mirror beats a stale set-flag whose own
@@ -39053,7 +39268,11 @@ const CareerRouter = (() => {
     if (c.offer && typeof c.offer === "object" && Object.keys(c.offer).length) pairs.push(["offer", c.offer]);
     if (Array.isArray(c.intentQueue) && c.intentQueue.length) pairs.push(["queue", c.intentQueue]);
     const nt = (c.negotiationThread && typeof c.negotiationThread === "object") ? c.negotiationThread : null;
-    if (nt && (nt.firm || nt.amount || nt.deadline)) pairs.push(["negotiation", nt]);
+    if (nt && (nt.firm || nt.amount || nt.deadline || nt.descriptor || nt.signing || nt.expectation)) pairs.push(["negotiation", nt]);
+    const cp = (c.careerPath && typeof c.careerPath === "object") ? c.careerPath : null;
+    if (cp && (cp.from || cp.to)) pairs.push(["path", cp]);
+    const pt = (c.prepThread && typeof c.prepThread === "object") ? c.prepThread : null;
+    if (pt && (pt.sector || pt.company)) pairs.push(["prep", pt]);
     if (c._careerLastWork && typeof c._careerLastWork === "object" && c._careerLastWork.kind) pairs.push(["lastWork", c._careerLastWork]);
     if (c.globalPause && typeof c.globalPause === "object") pairs.push(["pause", c.globalPause]);
     else if (c.globalPause === true) { const ex = threadMirrorOf(c); if (!ex || !ex.pause) pairs.push(["pause", { set: true, at: nowOf(c) }]); }
@@ -39082,6 +39301,58 @@ const CareerRouter = (() => {
     const m = threadMirrorForWrite(c);
     if (m) m.negotiation = rec;
     return rec;
+  }
+  // DEPTH LANE B (MI-015/MI-016): the same read/write pair for the
+  // career-path record and the prep-session record.
+  function careerPathOf(ctx) {
+    const c = ctx || {};
+    if (c.careerPath && typeof c.careerPath === "object") return c.careerPath;
+    const m = threadMirrorOf(c);
+    if (m && m.path && typeof m.path === "object") { c.careerPath = m.path; return m.path; }
+    return {};
+  }
+  function careerPathForWrite(ctx) {
+    const c = ctx || {};
+    const cur = careerPathOf(c);
+    if (cur && (c.careerPath === cur)) return cur;
+    const rec = (cur && typeof cur === "object") ? cur : {};
+    c.careerPath = rec;
+    const m = threadMirrorForWrite(c);
+    if (m) m.path = rec;
+    return rec;
+  }
+  function prepThreadOf(ctx) {
+    const c = ctx || {};
+    if (c.prepThread && typeof c.prepThread === "object") return c.prepThread;
+    const m = threadMirrorOf(c);
+    if (m && m.prep && typeof m.prep === "object") { c.prepThread = m.prep; return m.prep; }
+    return {};
+  }
+  function prepThreadForWrite(ctx) {
+    const c = ctx || {};
+    const cur = prepThreadOf(c);
+    if (cur && (c.prepThread === cur)) return cur;
+    const rec = (cur && typeof cur === "object") ? cur : {};
+    c.prepThread = rec;
+    const m = threadMirrorForWrite(c);
+    if (m) m.prep = rec;
+    return rec;
+  }
+  // DEPTH LANE B: the family gates match on a typo-normalized copy of
+  // the turn (the user's own common misspellings of the family's load-
+  // bearing words). Matching only — the user's text itself is never
+  // rewritten, and no other lane's gates see the normalized copy.
+  function typoNorm(x) {
+    return lc(x)
+      // An upstream autocorrect rewrites "wright" to "right" before
+      // the router sees the turn — the phrase "right the email" on a
+      // live thread is that artifact, and only the phrase (never the
+      // bare word "right") is restored to the write-ask it was.
+      .replace(/\bright (the |an |a )?(email|letter|draft|reply)\b/g, "write $1$2").replace(/\bright it\b/g, "write it")
+      .replace(/\btiem\b/g, "time").replace(/\banser\b/g, "answer").replace(/\bwright\b/g, "write")
+      .replace(/\btomorow\b/g, "tomorrow").replace(/\bcorperate\b/g, "corporate").replace(/\busualy\b/g, "usually")
+      .replace(/\bpractise\b/g, "practice").replace(/\bpracticing\b/g, "practicing").replace(/\bnegotate\b/g, "negotiate")
+      .replace(/\bsalery\b/g, "salary").replace(/\binterveiw\b/g, "interview").replace(/\bgoverment\b/g, "government");
   }
 
   // IB-TN-1 (Track+Negotiation wave): the tracker handlers' products
@@ -39422,21 +39693,39 @@ const CareerRouter = (() => {
     // email" after an extension discussion is the extension email;
     // on a fresh offer thread it is the counter email.
     {
-      const tt = lc(text);
-      const wantsDraftText = (/\b(draft|write|compose)\b[^.]{0,60}\b(email|letter|words|it|that)\b/.test(tt) && /\bemail|letter|actual|real words|word for word\b/.test(tt)) || /\bactual email\b|\bthe real words\b|\bemail itself\b/.test(tt);
+      const tt = typoNorm(text);
+      const wantsDraftText = (/\b(draft|write|compose)\b[^.]{0,60}\b(email|letter|words|it|that)\b/.test(tt) && /\bemail|letter|actual|real words|word for word\b/.test(tt)) || /\bactual email\b|\bthe real words\b|\bemail itself\b/.test(tt)
+        // DEPTH LANE B (MI-014): "draft the counter", "draft a reply
+        // asking for those details", and — on a thread whose topic
+        // the product itself set — a bare "write it / draft it" are
+        // draft asks too; the email is the deliverable either way.
+        || (/\b(draft|write|compose)\b/.test(tt) && /\bcounter\b|\bextension\b|\bdecline\b|\breply\b/.test(tt))
+        || (/\b(draft|write|compose)\b[^.]{0,40}\b(it|that|this|the email|the letter|an email|a reply)\b/.test(tt) && !!(negotiationThreadOf(ctx).topic || negotiationThreadOf(ctx).amount || negotiationThreadOf(ctx).firm));
       if (wantsDraftText && Negotiation) {
         const thread = negotiationThreadOf(ctx);
         let offerObj = null;
         if (offerText && Negotiation.parseOffer) { try { offerObj = Negotiation.parseOffer(offerText, {}); } catch { offerObj = null; } }
         if (!offerObj) offerObj = { company: thread.firm || (ctx.offer && ctx.offer.company) || null, role: thread.role || (ctx.offer && ctx.offer.role) || null, base_salary: thread.amount || (ctx.offer && (ctx.offer.base_salary || (ctx.offer.stated_figure ? Number(String(ctx.offer.stated_figure).replace(/[$,]/g, "")) : null))) || null };
-        const extensionContext = /\bextension\b|\bmore time\b|\bdeadline\b[^.]*\bpush\b/.test(tt);
+        const extensionContext = /\bextension\b|\bmore time\b|\bdeadline\b[^.]*\bpush\b/.test(tt) || (thread.topic === "extension" && !/\bcounter\b/.test(tt));
         const amtLine = offerObj.base_salary ? `The figure it runs on is the one from your letter: $${Number(offerObj.base_salary).toLocaleString()} base${offerObj.company ? ` at ${offerObj.company}` : ""}${thread.deadline ? `, decide by ${thread.deadline}` : ""}.` : null;
+        // DEPTH LANE B (MI-014): an info-request draft — the user
+        // asked for a reply that ASKS (about the grant, the details).
+        // The email is composed from the question set itself and the
+        // thread's stated terms; it is neither the counter nor the
+        // extension email wearing the wrong subject.
+        if (/\bask(ing)?\b[^.]*\b(details|about|for those)\b|\basking for those\b|\bquestions\b[^.]*\b(draft|email|reply)\b/.test(tt) || (/\bdraft\b|\bwrite\b/.test(tt) && /\bask\b/.test(tt) && thread.topic === "grant")) {
+          const who = offerObj.company || thread.descriptor || "the team";
+          const body = `Subject: A few questions on the offer — ${offerObj.role || "role"}\n\nHi [Recruiter name],\n\nThank you for the offer${offerObj.base_salary ? ` — base $${Number(offerObj.base_salary).toLocaleString()}` : ""}${thread.shares ? ` with ${thread.shares} shares` : ""}. I'm excited about ${who} and want to understand the full package before I sign. Could you share:\n\n1. The strike price and the most recent 409A valuation for the option grant\n2. The vesting schedule and cliff, in writing\n3. The exercise window if I were to leave\n4. The grant as a percentage of the fully diluted share count\n5. Any liquidity or secondary-sale path for option holders\n\nHappy to move quickly once I have those — this is my first choice.\n\nThank you,\n[Your name]`;
+          const reply = compose({ headline: "The reply asking for the grant details — the real words, held for your approval.", facts: [amtLine || "Composed from your offer record and the question set — held on its card, nothing sent:", body], nextStep: "Approve it as written, or tell me which question to drop." });
+          return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: { kind: "grant_questions_email", body }, offer: offerObj, payload: offerObj };
+        }
         if (extensionContext && Negotiation.extensionDraft) {
           try {
             const ext = Negotiation.extensionDraft(offerObj, {});
             if (ext && ext.draft) {
               const facts = [amtLine || "The extension email itself, composed from your offer record — held on its card, nothing sent:", ext.draft];
               if (amtLine) facts.splice(1, 0, "The actual email, verbatim — held on its card, nothing sent:");
+              if (thread.requestedDay) facts.splice(1, 0, `It asks for the day you named: ${thread.requestedDay} — the draft's date is confirmed on its card before anything moves.`);
               const reply = compose({ headline: "The extension email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the exact change." });
               return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: ext, offer: offerObj, payload: offerObj };
             }
@@ -39449,6 +39738,11 @@ const CareerRouter = (() => {
             if (email) {
               const facts = [amtLine || "The counter email itself, composed from your offer record — held on its card, nothing sent:", email];
               if (amtLine) facts.splice(1, 0, "The actual email, verbatim — held on its card, nothing sent:");
+              // DEPTH LANE B (MI-014): a counter target the user NAMES
+              // ("counter at 130") is the draft's target — named in
+              // the reply as their figure, never a benchmark claim.
+              const targetM = tt.match(/\bcounter\s+(?:at|to)\s+\$?\s?(\d{2,3}(?:,\d{3})?|\d{2,3}\s?k)\b/);
+              if (targetM) { const tv = targetM[1].includes("k") ? Number(targetM[1].replace(/\s?k/i, "")) * 1000 : Number(targetM[1].replace(/,/g, "")); facts.splice(1, 0, `Your target, as you named it: $${tv.toLocaleString()} — the draft is written to land the counter at that figure.`); }
               const reply = compose({ headline: "The counter email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the figure or the tone to change." });
               return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: strat.scripts, strategy: strat, offer: offerObj, payload: offerObj };
             }
@@ -39508,6 +39802,29 @@ const CareerRouter = (() => {
     // Each shape now composes from the ask's own parameters and the
     // 128 product built for it; every branch still carries the bench
     // product (the F6/R-C5 typed elements are unchanged).
+    // DEPTH LANE B (MI-014): an offer STATEMENT the parse probe could
+    // not read (a bare "64k" with no $ sign, a descriptor instead of
+    // a firm name) still has its thread record — the plan is composed
+    // from that record, not from the generic method paragraph. Only
+    // offer-event turns take this branch; questions on the thread
+    // keep falling to the advice shapes below.
+    {
+      const thread = negotiationThreadOf(ctx);
+      if (!offerText && thread.amount && Negotiation && Negotiation.counterStrategy
+        && /\bgot an offer\b|\bgot the offer\b|\boffer came in\b|\boffered me\b|\boffer'?s here\b|\boffer letter'?s here\b|\bi have an offer\b/.test(typoNorm(text))) {
+        try {
+          const offerObj = { company: thread.firm || null, descriptor: thread.descriptor || null, role: thread.role || null, base_salary: thread.amount, signing_bonus: thread.signing || null };
+          const strat = Negotiation.counterStrategy(offerObj, bench, {});
+          const facts = [];
+          facts.push(`On the record from your words: an offer${offerObj.company ? ` from ${offerObj.company}` : offerObj.descriptor ? ` from ${offerObj.descriptor}` : ""} at $${Number(thread.amount).toLocaleString()} base${thread.deadline ? `, with an answer wanted by ${thread.deadline}` : ""}${thread.signing ? `, plus a $${Number(thread.signing).toLocaleString()} signing bonus` : ""}.`);
+          facts.push(bench && bench.text ? s(bench.text).split(/(?<=[.!?])\s/)[0] : benchSentence);
+          if (strat && strat.text) facts.push(s(strat.text).split(/(?<=[.!?])\s/)[0]);
+          facts.push("The sequence from here: the extension first if the deadline is tight, one written counter second, and no bridges burned with your other processes until you sign.");
+          const reply = compose({ headline: "Your offer, parsed from your words — here is the plan.", facts, nextStep: thread.deadline ? "Want the extension drafted first, or the counter?" : "Tell me the decision deadline and I will sequence the extension and the counter around it." });
+          return { intent: "negotiation_plan", reply, resultStatus: "prepared", sends: 0, offer: offerObj, strategy: strat, bench, payload: offerObj };
+        } catch { /* fall through to the advice answer */ }
+      }
+    }
     const advice = negotiationAdvice(text, ctx, bench, benchSentence);
     // DEPTH WAVE (BUG-213): the advice answer names the thread's
     // firm when the reply itself does not (a negotiation answer
@@ -39532,7 +39849,7 @@ const CareerRouter = (() => {
   // declineDraft's relationship checks, totalComp's equity doctrine) —
   // never from a shared paragraph.
   function negotiationAdvice(text, ctx, bench, benchSentence) {
-    const t = lc(text);
+    const t = typoNorm(text);
     const asOf = new Date(nowOf(ctx)).toISOString().slice(0, 10);
     const srcLine = (about) => `Source class: ${about}, checked as of ${asOf}.`;
     let strat = null;
@@ -39550,6 +39867,27 @@ const CareerRouter = (() => {
       let checks = null;
       try { const dec = Negotiation && Negotiation.declineDraft ? Negotiation.declineDraft({}, {}) : null; checks = dec && dec.relationship_kept_checks; } catch { checks = null; }
       const kept = checks && Object.values(checks).every(Boolean);
+      // DEPTH LANE B (MI-014): when the turn NAMES the offer being
+      // declined ("decline the insurer one"), the answer is that
+      // decline — the party named from the user's own words or the
+      // thread's record, and the draft itself, not a description of
+      // withdrawal drafts in general.
+      const threadD = negotiationThreadOf(ctx);
+      const partyM = t.match(/\b(?:decline|turn down|reject)\s+(?:the\s+)?([a-z][a-z -]{1,24}?)(?:\s+one|\s+offer)\b/);
+      const partyCand = partyM && partyM[1].trim();
+      const partyKnown = partyCand && (lc(threadD.firm || "") === lc(partyCand) || lc(threadD.descriptor || "") === lc(partyCand)
+        || (Array.isArray(threadD.descriptors) && threadD.descriptors.some((d) => lc(d).includes(lc(partyCand)) || lc(partyCand).includes(lc(d))))
+        || /\b(bank|insurer|startup|company|firm|fund|agency|practice|healthtech|fintech|logistics)\b/.test(partyCand));
+      const party = partyKnown ? partyCand : null;
+      if (party) {
+        let draftBody = null;
+        try { const dd = Negotiation && Negotiation.declineDraft ? Negotiation.declineDraft({ company: party }, {}) : null; draftBody = dd && (dd.draft || dd.body || dd.text); } catch { draftBody = null; }
+        const facts = [`Declining the ${party} offer — gracefully means: thanks first, fit (never money) as the reason, the door left open, and nothing you would not want read back to you in two years.`];
+        if (draftBody) facts.push(`The decline draft itself, held on its card — nothing sent:\n${draftBody}`);
+        facts.push("It goes out only on your yes, from its own card — nothing sends in bulk, and nothing sends from this answer.");
+        facts.push(srcLine("the decline-draft product and your offer record"));
+        return { headline: `The ${party} decline — drafted warm, held for your yes.`, facts, nextStep: "Approve it as written, or tell me the line to soften?" };
+      }
       return { headline: "Withdrawal drafts to the other finalists — warm, one card at a time.", facts: [kept ? "The decline draft checks itself before you see it: it thanks the team, gives fit — never money — as the reason, leaves the door open, and carries no bridge-burning language." : "Each decline draft is built to keep the relationship: thanks first, fit as the reason, the door left open.", "Every withdrawal is its own held card with its own destination — nothing sends in bulk, and nothing sends without your yes.", srcLine("the decline-draft product and your application record")], nextStep: "Name the companies and I will draft each withdrawal for your review." };
     }
     if (/\bexploding\b|\b\d+\s*hours?\b|\bpressure plan\b/.test(t)) {
@@ -39560,7 +39898,7 @@ const CareerRouter = (() => {
       // the benchmark disclaimer.
       return { headline: "Exploding offer: extension first, counter second, panic never.", facts: [`The clock you named — ${hrs ? `${hrs} hours` : "a short fuse"} — is met with a sequence, not a scramble: the extension request goes out first because it is drafted, card-gated, and buys the days the counter needs.`, "Pressure never invents a number: the counter still runs on the company file's sourced range or on your own floor, exactly as it would with a month to decide.", srcLine("the deadline-sequencing product and the company file's compensation notes")], nextStep: "Paste the offer and I will parse its expiry and draft the extension today." };
     }
-    if (/\bextension\b|\bextend\b|\bmore time\b|\bextra (time|days|week)\b|\bpush\b[^.]*\bdeadline\b|\bmove the deadline\b/.test(t)) {
+    if (/\bextension\b|\bextend\b|\bmore time\b|\bextra (time|days|week)\b|\bpush\b[^.]*\b(deadline|to|back|until)\b|\bmove the deadline\b|\bget (until|till)\b|\buntil (monday|tuesday|wednesday|thursday|friday)\b/.test(t)) {
       let days = 7;
       try { const ext = Negotiation && Negotiation.extensionDraft ? Negotiation.extensionDraft({}, {}) : null; if (ext && ext.days) days = ext.days; } catch { /* default stands */ }
       // BUG-119 (six-flip lane): the mechanics sentence carried the
@@ -39570,15 +39908,123 @@ const CareerRouter = (() => {
       // prospective voice (it goes out; the deadline is written into
       // the log), and the closer ends on the H-12 next-step form —
       // its H-12 failure was latent behind the H-7 stop.
-      return { headline: "The extension request is a drafted product — not a paragraph to improvise.", facts: [`The draft asks for ${days} days by default and computes the new date from the offer's own expiry; on your yes it goes to the recruiter named on the offer, and the new deadline is written into the log.`, "It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.", srcLine("the extension-draft product and your offer record")], nextStep: "Paste the offer letter — want me to compute the new date from its expiry, the one field the draft cannot invent?" };
+      // DEPTH LANE B (MI-014): the day the user NAMES is the ask —
+      // "until Tuesday" is answered about Tuesday, not a generic
+      // week; the thread records the requested day + topic so a bare
+      // "write the email" next turn drafts THIS email.
+      const wantDay = (t.match(/\b(?:until|till|to)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/) || [])[1] || null;
+      const thread0 = negotiationThreadOf(ctx);
+      try { const th = negotiationThreadForWrite(ctx); if (wantDay) th.requestedDay = wantDay; th.topic = "extension"; } catch { /* the read-only answer stands */ }
+      const fromDay = thread0.deadline ? ` from ${thread0.deadline}` : "";
+      return { headline: "The extension request is a drafted product — not a paragraph to improvise.", facts: [wantDay ? `The ask, in your words: move the answer${fromDay} to ${wantDay}. A short, specific extension — one reason, one firm new date, then silence until it — reads as diligence, not flakiness; recruiters grant these routinely when the new date is named and then kept.` : `The draft asks for ${days} days by default and computes the new date from the offer's own expiry; on your yes it goes to the recruiter named on the offer, and the new deadline is written into the log.`, "It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.", srcLine("the extension-draft product and your offer record")], nextStep: wantDay ? "Want the extension email written out — the real words, held for your approval?" : "Paste the offer letter — want me to compute the new date from its expiry, the one field the draft cannot invent?" };
     }
     if (/\btwo offers\b|\bcompar\w* offers\b|\boffers compared\b|\bside by side\b/.test(t)) {
       return { headline: "Two offers, one math: both letters through the same total-comp table.", facts: ["The comparison scores base, bonus, signing, equity per year, the year-one total, and the annualized total for each — side by side, with the delta on every row.", "Equity with no stated price stays unvalued in both columns; a delta is never computed against a guessed value.", srcLine("the total-comp product run on your two offer letters")], nextStep: "Paste both offer letters and the table builds from them — no numbers from memory." };
+    }
+    // ===== DEPTH LANE B (MI-014): the genuine-phrasing advice shapes.
+    // Every figure below is the user's own (the thread record, this
+    // turn's stated numbers, or 128's products run on them) — no
+    // benchmark is ever invented; where no company file exists the
+    // benchSentence says so in the reply itself.
+    {
+      const th = negotiationThreadOf(ctx);
+      const money = (n) => `$${Number(n).toLocaleString()}`;
+      // (a) Parse / what's missing — the thread record IS the parse:
+      // stated fields named, absent fields named as absent from what
+      // the user stated (never as facts about the letter itself).
+      if (/\bparse\b|\bwhat'?s missing\b|\bmissing from\b/.test(t) && (th.amount || th.firm || th.descriptor || (ctx.offer && ctx.offer.base_salary))) {
+        const stated = [];
+        const base = th.amount || (ctx.offer && ctx.offer.base_salary);
+        if (base) stated.push(`base ${money(base)}`);
+        if (th.signing || (ctx.offer && ctx.offer.signing_bonus)) stated.push(`signing ${money(th.signing || ctx.offer.signing_bonus)}`);
+        if (th.start) stated.push(`starts ${th.start}`);
+        if (th.deadline) stated.push(`expires ${th.deadline}`);
+        if (th.shares) stated.push(`${th.shares} shares`);
+        const missing = [];
+        if (!th.shares && !(ctx.offer && ctx.offer.equity)) missing.push("equity terms (share count, strike or valuation basis, vesting schedule)");
+        missing.push("annual bonus target (percent or figure)");
+        if (!(th.signing || (ctx.offer && ctx.offer.signing_bonus))) missing.push("any signing bonus");
+        missing.push("benefits specifics (health, 401(k) match, PTO)");
+        if (!th.start) missing.push("a start date");
+        if (!th.deadline) missing.push("a decision deadline");
+        return { headline: "Parsed from what you stated — here is what the record holds, and what it does not.", facts: [`On the record from your words: ${stated.length ? stated.join("; ") : "the offer itself, with no figures stated yet"}.`, `Not stated in what you gave me: ${missing.join("; ")} — absence here means unstated, not absent from the letter; paste the letter and the parse reads its own lines.`, srcLine("the offer record built from your stated facts")], nextStep: "Want the counter drafted on the stated fields, or paste the letter first for the full parse?" };
+      }
+      // (b) Two-offer update: a new fact about one offer (a signing
+      // bonus) re-runs the year-one math on the user's numbers.
+      if (Array.isArray(th.amounts) && th.amounts.length >= 2 && (/\bsigning\b|\bbonus\b|\bchange the picture\b|\bupdate\b|\bwhich\b[^.]*\bpays\b|\bpays more\b|\byear one\b/.test(t))) {
+        const [a, b] = th.amounts;
+        const descs = Array.isArray(th.descriptors) ? th.descriptors : [];
+        const signingHere = th.signing || 0;
+        let partyIdx = th.signingFor ? descs.indexOf(th.signingFor) : -1;
+        if (partyIdx < 0) partyIdx = descs.findIndex((d) => signingHere && t.includes(lc(d).split(/\s+/).pop()));
+        const aY1 = a + (partyIdx === 0 ? signingHere : 0);
+        const bY1 = b + (partyIdx === 1 ? signingHere : 0);
+        const facts = [`Year one, on your numbers only: ${descs[0] || "offer one"} at ${money(a)} base${partyIdx === 0 && signingHere ? ` plus the ${money(signingHere)} signing bonus = ${money(aY1)}` : ""}; ${descs[1] || "offer two"} at ${money(b)} base${partyIdx === 1 && signingHere ? ` plus the ${money(signingHere)} signing bonus = ${money(bY1)}` : ""}.`];
+        facts.push(signingHere ? `So yes, it changes the picture: the signing bonus is year-one money only — it closes (or flips) the year-one gap, but the base gap repeats every year after, and raises and bonuses compound off base. Weigh them as: base first, signing as a one-year patch.` : "A signing bonus counts once, in year one; the base difference repeats and compounds every year — the comparison runs base-first, signing as the patch.");
+        facts.push("Equity with no stated price stays unvalued in both columns — no delta is computed against a guessed value.");
+        facts.push(srcLine("the total-comp product run on your two stated offers"));
+        return { headline: "The comparison, updated with the signing bonus — your numbers, year one vs every year after.", facts, nextStep: "Want the side-by-side table in full, or the counter plan for the one you prefer?" };
+      }
+      // (c) Came back at / did I cap myself — the stated range is an
+      // anchor, not a ceiling: the package still negotiates.
+      if (/\bcame back at\b|\bcap(ped)? myself\b|\bcan i still negotiate\b|\bstill negotiate\b/.test(t)) {
+        const amt = th.amount || (ctx.offer && ctx.offer.base_salary);
+        const facts = [`Yes — you can still negotiate: an offer inside the range you named does not cap you.`];
+        if (amt) facts.push(`They came back at ${money(amt)}, inside the ${th.expectation || "range"} you stated — that range was a first answer under pressure, not a signed floor.`);
+        facts.push("What actually moves now: the counter goes to the package, not just base — a modest base ask toward the top of your range, framed on the role's scope, with signing bonus, a written 6-month review, and start date as the trade levers if base is firm. One clean counter, with a reason, reads as diligence — recruiters expect exactly one.");
+        facts.push("What not to do: re-anchor wildly above the range you named (that reads as bad faith) or apologize for the first number (that invites a hold). The counter states the number and the scope reason, then stops talking.");
+        facts.push(srcLine("the counter-strategy product and your stated range"));
+        return { headline: "Not capped — the range you blurted is an anchor, and the package still negotiates.", facts, nextStep: "Want the exact words for the call — the counter, word for word?" };
+      }
+      // (d) What do I say — the call script, word for word, from
+      // 128's counter strategy run on the thread's offer.
+      if (/\bwhat do i say\b|\bwhat should i say\b|\bsay on the call\b|\bwords for\b/.test(t) && Negotiation && Negotiation.counterStrategy) {
+        let callScript = null, stratTxt = null;
+        try {
+          const offerObj = { company: th.firm || (ctx.offer && ctx.offer.company) || null, role: th.role || null, base_salary: th.amount || (ctx.offer && ctx.offer.base_salary) || null, signing_bonus: th.signing || null };
+          const st2 = Negotiation.counterStrategy(offerObj, bench, {});
+          callScript = st2 && st2.scripts && st2.scripts.call; stratTxt = st2 && st2.text;
+        } catch { callScript = null; }
+        if (callScript) {
+          const facts = [`The call script, word for word — held for your approval, spoken by you, sent by nobody:\n${callScript}`];
+          if (stratTxt) facts.push(stratTxt.split(/(?<=[.!?])\s/)[0]);
+          facts.push(srcLine("the counter-strategy product and your offer record"));
+          return { headline: "Your words for the call — the counter script, verbatim.", facts, nextStep: "Want to roleplay it? I play the recruiter and push back, and you practice the lines." };
+        }
+      }
+      // (e) Counter / is-it-low — the strategy from 128 on the
+      // thread's offer; the benchmark sentence carries the honest
+      // no-file line when no sourced figure exists.
+      if ((/\bcounter\b/.test(t) || /\bis (it|this|the offer|\d{2,3}\s?k)\s+(low|good|enough|fair)\b/.test(t) || /\bwhat would you counter\b/.test(t)) && (th.amount || (ctx.offer && ctx.offer.base_salary))) {
+        const offerObj = { company: th.firm || (ctx.offer && ctx.offer.company) || null, role: th.role || null, base_salary: th.amount || (ctx.offer && ctx.offer.base_salary) || null, signing_bonus: th.signing || null };
+        let st3 = null;
+        try { st3 = Negotiation.counterStrategy(offerObj, bench, {}); } catch { st3 = null; }
+        const facts = [bench && bench.text ? s(bench.text).split(/(?<=[.!?])\s/)[0] : benchSentence];
+        if (st3 && st3.text) facts.push(st3.text);
+        if (st3 && Array.isArray(st3.asks)) for (const a2 of st3.asks.slice(0, 3)) if (a2 && a2.ask) facts.push(a2.ask + ".");
+        facts.push(srcLine("the counter-strategy product and the company file's compensation notes"));
+        try { const thw = negotiationThreadForWrite(ctx); thw.topic = "counter"; } catch { /* the answer stands */ }
+        return { headline: `The counter on ${money(offerObj.base_salary)} — anchored on evidence, not on a vibe.`, facts, nextStep: "Want the counter email written out — the real words, held for your approval?" };
+      }
+      // (f) What to ask about the grant — the questions that price
+      // an option grant; none of them is a firm fact, all are asks.
+      if (/\bwhat (should|do|can) i ask\b|\bquestions? (to ask|about|for)\b/.test(t) && /\bgrant|options?|offer|sign|equity|shares\b/.test(t)) {
+        const facts = [`Ask these before you sign — each one prices the grant or removes a surprise${th.shares ? ` (your stated grant: ${th.shares} shares${th.amount ? ` alongside ${money(th.amount)} base` : ""}, honestly unvalued until questions 1 and 4 are answered)` : ""}:`];
+        facts.push("1) The strike price and the last 409A valuation — what the shares are valued at today, and when that valuation was set; 2) the vesting schedule and the cliff — four years with a one-year cliff is the common shape, but yours is what the letter says.");
+        facts.push("3) The exercise window if you leave — 90 days is the trap to look for; 4) your shares as a percentage of the fully diluted total — a count alone means nothing; 5) any liquidity path — secondaries, tender offers, or none until an exit.");
+        facts.push(srcLine("the total-comp product's equity doctrine and your offer record"));
+        return { headline: "The five questions that price the grant — ask them before you sign.", facts, nextStep: "Want a reply drafted that asks exactly these? It is held for your approval — nothing sent." };
+      }
     }
     if (/\bequity\b|\bgrant\b|\bvesting\b|\brsus?\b|\boptions\b/.test(t)) {
       let unvalued = null, doctrine = null;
       try { const tc = Negotiation && Negotiation.totalComp ? Negotiation.totalComp({ base_salary: null, equity: { type: "options", shares: null, grant_value: null, vest_years: null } }, {}) : null; if (tc) { unvalued = (tc.assumptions || []).find((a) => /NO stated grant value/.test(a)) || null; doctrine = tc.disclaimer || null; } } catch { /* facts below stand without it */ }
       const facts = ["A grant is worth what its shares are worth when they vest — so the honest answer is scenarios: priced if the letter states a value or price, spread over the vesting years, and flagged unvalued when neither exists."];
+      // DEPTH LANE B (MI-014): when the thread carries the user's own
+      // grant terms, the scenarios run on THOSE numbers — the count
+      // and base they stated — while the value stays unvalued until
+      // a price exists.
+      { const thE = negotiationThreadOf(ctx); if (thE.shares || thE.amount) facts.push(`Your grant as stated: ${thE.shares ? `${thE.shares} shares` : "a share count you have not stated"}${thE.amount ? ` alongside $${Number(thE.amount).toLocaleString()} base` : ""} — four-year vesting on the shape you described. With no strike price or valuation in what you stated, the honest value today is unvalued: anyone who priced it for you from the count alone would be inventing the number.`); }
       if (unvalued) facts.push(unvalued);
       if (doctrine) facts.push(doctrine);
       // BUG-120 (six-flip lane): this branch was the only advice shape
@@ -39684,12 +40130,202 @@ const CareerRouter = (() => {
   }
 
   // ---------- career OS (129; family Career Os: R-C5) -------------------------
+  // ======================================================================
+  // DEPTH LANE B (MI-015): the career-path conversation. A path ask
+  // states a current role and a target ("I'm a junior accountant, I
+  // want to be a CFO one day — what should my next two moves be?")
+  // and then CONTINUES ("which skills first?", "does the CPA
+  // matter?", "what does the step after senior accountant look
+  // like?"). The ladders below are general professional structure —
+  // labeled in the reply as the typical ladder, never as a fact
+  // about a firm; paces are labeled typical ranges, never promises;
+  // no salary figure is ever attached (a worth question gets the
+  // honest no-sourced-figure answer). The thread record (from, to,
+  // rungs) is what the follow-ups run on.
+  // ======================================================================
+  const PATH_LADDERS = [
+    { from: /account/, to: /cfo|chief financial/, rungs: ["junior accountant", "accountant", "senior accountant", "accounting manager / controller", "VP finance", "CFO"],
+      skills: "Close and statements fluency first — own a full monthly close and read all three statements cold; then FP&A (budgets, variance, forecasts), because the rungs above senior accountant pay for forward-looking judgment, not cleaner history.",
+      credential: "The CPA is the common credibility marker on this path: usually earned in the first few years, it gates many controller seats and is the floor most CFO searches assume — the alternative pedigree is FP&A and treasury depth in industry, but if you take one credential on this path, the CPA is it, and early is when it costs least.",
+      pace: "Commonly two to four years per rung — faster in high-growth companies, slower where the process is partnership-formal; the controller-to-VP step is the usual stall, because it is the first seat judged on business judgment rather than technical output.",
+      evidence: "Dated evidence from your current seat: closes you owned, audit findings you cleared, a forecast or variance story you told to a non-accountant — logged the week it happens, because the promotion case is assembled from the record, not from memory.",
+      moves: ["Move one: own a visible close — take the hardest reconciliation or the audit relationship in your current seat and log the outcome in your wins record the week it lands.", "Move two: get one forward-looking rep — a budget cycle, a forecast, a business review — because every rung above senior accountant is interviewed as a business partner, not as a preparer."] },
+    { from: /support|customer|help ?desk/, to: /product/, rungs: ["customer support rep", "support lead / customer operations", "associate product manager", "product manager", "senior product manager"],
+      skills: "Ticket-pattern analysis first — turn the support queue into quantified problem statements (volume, cost, who it hits); then product analytics (SQL and funnels well enough to argue from data); then spec writing — one-pagers with a success metric named before anything is built.",
+      credential: "No credential gates product management — the gate is evidence: shipped specs and measured outcomes. A technical credential helps only for platform or deeply technical PM seats; for this path your support record, quantified, is worth more than any certificate.",
+      pace: "Commonly one to three years per rung; the support-to-APM step is the stall, because the seat is scarce — most people who make it make it by an internal transfer on the strength of specs they already wrote.",
+      evidence: "A file of customer problems you personally quantified, plus at least one fix you spec'd and saw shipped with its measured effect — that file is the entire interview for the associate seat.",
+      moves: ["Move one: start the evidence file now — every week, one support pattern written up as a problem statement with numbers, kept in your wins log.", "Move two: spec one fix for the loudest pattern and get it in front of the PM who owns that surface; an internal transfer is earned on shipped specs, not on applications."] },
+    { from: /teller|bank/, to: /corporate finance|finance/, rungs: ["bank teller", "credit analyst / financial analyst", "senior financial analyst", "finance manager", "VP finance"],
+      skills: "Excel modeling first — three-statement fluency until it is boring; then analysis writing (a credit memo or an investment note a stranger can follow); then one domain depth — treasury, FP&A, or corporate development support.",
+      credential: "The CFA is the common credibility marker on this path, usually started while you are an analyst; an MBA is the common reset button at the manager step. Neither is a legal gate — the gate is modeling proof plus a writing sample.",
+      pace: "Commonly two to three years per rung; the analyst-to-manager step is the stall, because it is the first seat that manages people and presents to executives instead of producing analysis.",
+      evidence: "Models and memos with your name on them, saved with the outcome they informed — a credit you called right, a forecast that held — logged as they happen.",
+      moves: ["Move one: build the modeling proof — one full three-statement model of a real public company, kept current, that you can defend line by line.", "Move two: get onto one visible analysis — a credit file, a branch-business review — and present it yourself once; the analyst seat is staffed from people whose work has been seen."] },
+    { from: /analyst/, to: /associate/, rungs: ["analyst", "senior analyst", "associate", "vice president"],
+      skills: "Deal fluency first — own a full workstream end to end (the model, the book, the client answers) instead of fragments; then client-facing reps, because the associate seat is judged on whether a client can be left alone with you.",
+      credential: "No credential gates the associate step — staffing record and sponsorship do. Licenses arrive with the seat itself in regulated businesses; nothing you can buy in advance substitutes for a sponsor who has watched you work.",
+      pace: "Commonly two to three years as an analyst before the associate conversation; the calendar matters less than the review cycle — the case lands when decisions are made, so the evidence file has to exist before review season, not during it.",
+      evidence: "The evidence file: every win, deal, and piece of feedback logged the day it happens, plus one visible piece of work per month — the promotion case is assembled from that file.",
+      moves: ["Move one: build the evidence file — log every win and piece of feedback in your wins log the day it happens, and take one visible piece of work per month.", "Move two: build the sponsorship — one senior person who has seen your work and will say your name in the room, earned by staffed work and follow-through; then time the case to the firm's actual promotion window."] },
+    { from: /nurse|nursing|rn/, to: /admin|administrator|executive|management/, rungs: ["nurse", "charge nurse / nurse manager", "director of nursing / service-line director", "VP nursing / hospital administrator"],
+      skills: "Operations fluency first — staffing, throughput, and quality metrics for your unit, in numbers; then budgeting (own a unit budget line and explain its variances); then cross-department program ownership, because administration is judged on systems, not shifts.",
+      credential: "An MHA (or an MSN in leadership) is the common credential at the director step — usually earned while working as a nurse manager; your RN license is the entry ticket you already hold, and the administration seats ask for the management degree plus a budget you have actually run.",
+      pace: "Commonly two to four years per rung; the manager-to-director step is the stall, because it is the first seat hired from outside your own unit — the budget and program record is what travels.",
+      evidence: "Unit outcomes with your name on them — a throughput fix, a falls-rate drop, a staffing model that held — with the numbers, logged as they happen.",
+      moves: ["Move one: own one unit metric end to end (throughput, falls, agency hours) and be the person who reports it; administrators are hired from nurses who already speak in system numbers.", "Move two: take a budget line — volunteer for the unit's staffing or supply budget and learn to explain its variances; that fluency is the actual interview for the manager seat."] },
+    { from: /retail/, to: /\bhr\b|human resources|people/, rungs: ["retail manager", "HR coordinator / generalist", "HR manager / HR business partner", "director of HR", "VP people operations"],
+      skills: "Employment-practice fluency first — hiring, scheduling, onboarding, and discipline done correctly and documented, which your store already forces you to practice; then HR systems and people analytics (turnover, time-to-fill, absence patterns, in numbers).",
+      credential: "The SHRM-CP is the common first credential on this path; it is not a gate — the gate is a documented record of people decisions done well at volume, which high-volume retail management genuinely gives you.",
+      pace: "Commonly one to three years per rung; the coordinator step can look like a sideways move — take it: it converts store experience into HR record, and every rung above it pays for the record, not the intention.",
+      evidence: "People outcomes from your store with numbers — a hiring funnel you improved, a turnover drop, an onboarding you rebuilt — logged with the before and after.",
+      moves: ["Move one: document your people record now — the hires, the retention numbers, the hard conversations handled well; that record is your HR portfolio, and it already exists in your store.", "Move two: take the first HR-titled seat you can reach (coordinator, generalist, recruiting) even sideways — the ladder above it is climbed from inside the function."] },
+  ];
+  function ladderFor(from, to) {
+    const f = lc(from || ""), t2 = lc(to || "");
+    for (const L2 of PATH_LADDERS) if (L2.to.test(t2) && (!f || L2.from.test(f))) return L2;
+    return null;
+  }
+  function genericLadder(from, to) {
+    const f = s(from || "your current role").trim(), t2 = s(to || "the target role").trim();
+    return { rungs: [f, `senior ${f}`, `${f} manager / team lead`, "director-level seat", t2],
+      skills: "The craft skills of the NEXT rung first — do the target seat's visible work at your current level (the analysis, the client conversation, the budget line) until it is normal, then the judgment skills the rung after it pays for.",
+      credential: "No single credential gates this path in general; where the field has one (a license, a charter, a named certificate), it belongs early, and everywhere the real gate is dated evidence of the next rung's work already done.",
+      pace: "Commonly two to four years per rung across professional ladders, and it varies more by company than by field; the stall is usually the first seat that manages other people or owns a budget.",
+      evidence: "Dated evidence of the next rung's work done from your current seat — logged the week it happens, because promotion cases are assembled from records, not from memory.",
+      moves: [`Move one: do one piece of the ${t2} job from where you sit — visibly, with the outcome logged; paths are climbed on evidence of the next rung, not on tenure at this one.`, "Move two: find the person one rung up whose work you can make easier, and become known to them for follow-through; sponsorship moves files that applications cannot."] };
+  }
+  function parsePathAsk(tn) {
+    let from = null, to = null;
+    let m;
+    if ((m = tn.match(/\bi'?m an?\s+([a-z][a-z /&-]{1,34}?)(?:\s+and\b|\s+but\b|\s+—|[.,;?]|$)/))) from = m[1].trim();
+    else if ((m = tn.match(/\bbeen an?\s+([a-z][a-z /&-]{1,34}?)(?:\s+for\b|[.,;]|$)/))) from = m[1].trim();
+    else if ((m = tn.match(/\bi'?m in\s+([a-z][a-z /&-]{1,34}?)(?:\s+right now|\s+atm\b|[.,;]|$)/))) from = m[1].trim();
+    else if ((m = tn.match(/\bi work as an?\s+([a-z][a-z /&-]{1,34}?)(?:[.,;]|$)/))) from = m[1].trim();
+    if ((m = tn.match(/\bwant to be\s+(?:an?\s+)?([a-z][a-z /&-]{1,34}?)(?:\s+one day\b|\s+someday\b|\s+eventually\b|[.,;]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\bfrom\s+([a-z][a-z /&-]{1,30}?)\s+to\s+(?:an?\s+)?([a-z][a-z /&-]{1,30}?)(?:[.,;?]|$)/))) { if (!from) from = m[1].trim(); to = m[2].trim(); }
+    else if ((m = tn.match(/\bladder to\s+(?:an?\s+)?([a-z][a-z /&-]{1,30}?)(?:\s+actually\b|[.,;?]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\bbe\s+(?:an?\s+)?([a-z][a-z /&-]{1,30}?)\s+one day\b/))) to = m[1].trim();
+    else if ((m = tn.match(/\bend up (?:in|as|being)\s+(?:an?\s+)?([a-z][a-z /&-]{1,34}?)(?:\s+someday\b|\s+one day\b|[.,;]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\bmove into\s+([a-z][a-z /&-]{1,34}?)(?:\s+eventually\b|\s+one day\b|[.,;]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\bmoving into\s+([a-z][a-z /&-]{1,34}?)(?:\s+one day\b|\s+eventually\b|[.,;]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\brunning\s+([a-z][a-z /&-]{1,30}?)(?:\s+somewhere\b|[.,;]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\bget to\s+(?:be\s+)?(?:an?\s+)?([a-z][a-z /&-]{1,30}?)(?:[.,;]|$)/))) to = m[1].trim();
+    if (from) from = from.replace(/\s+(at|for|with)$/, "").trim();
+    if (to) to = to.replace(/\s+(at|for|with|in)$/, "").trim();
+    return { from, to };
+  }
+  function handleCareerPath(text, ctx) {
+    const tn = typoNorm(text);
+    const prev = careerPathOf(ctx);
+    const parsed = parsePathAsk(tn);
+    const promotionAsk = /\bwant a promotion\b|\bpromotion this year\b|\bget promoted\b|\bmy promotion\b/.test(tn)
+      || (!!ctx._pathPlanContinuation && /\bmove one\b|\bstart the plan\b|\bfirst move\b/.test(tn));
+    const from = parsed.from || prev.from || null;
+    const to = parsed.to || prev.to || (promotionAsk ? "promotion" : null);
+    if (!from && !to && !prev.from && !prev.to) return null;
+    const L2 = (from || to) && to !== "promotion" ? (ladderFor(from, to) || genericLadder(from, to)) : null;
+    const rungs = (L2 && L2.rungs) || prev.rungs || null;
+    // Record the thread (the user's own stated roles only).
+    try {
+      const rec = careerPathForWrite(ctx);
+      if (from) rec.from = from;
+      if (to) rec.to = to;
+      if (rungs) rec.rungs = rungs;
+      rec.at = new Date(nowOf(ctx)).toISOString();
+    } catch { /* the answer stands without the record */ }
+    const srcLine = `Grounded in your own stated path, as of ${asOfMonthYear(ctx)} — the ladder is the typical professional structure for these roles; titles and timing vary by company.`;
+    const pathName = `${from || "where you are"} → ${to || "the next rung"}`;
+    // Follow-up shapes (a thread exists, or the turn names the topic).
+    if (/\bhow long\b|\bpace\b|\byears?\s+(per|each|a)\s+(step|rung)\b|\beach step\b[^.]*\btake\b/.test(tn) && (L2 || prev.rungs)) {
+      const facts = [(L2 && L2.pace) || (prev.rungs ? "Commonly two to four years per rung across professional ladders, and it varies more by company than by field — treat any single number as a planning rhythm, not a promise." : ""), srcLine].filter(Boolean);
+      return { intent: "career_os_plan", reply: compose({ headline: `The pace on ${pathName} — typical ranges, honestly labeled.`, facts, nextStep: "Want the first rung's timeline turned into this quarter's checklist?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    if (/\bstep after\s+([a-z][a-z /&-]{1,30}?)(?:\s+look|\s+involve|\s+require|\?|\.|,|$)/.test(tn) && rungs) {
+      const named = (tn.match(/\bstep after\s+([a-z][a-z /&-]{1,30}?)(?:\s+look|\s+involve|\s+require|\?|\.|,|$)/) || [])[1].trim();
+      // The LONGEST rung the user named wins — "senior accountant"
+      // contains "accountant", and the first-match read answered
+      // the step after the wrong rung.
+      let idx = -1, bestLen = -1;
+      rungs.forEach((r, i) => { const base = lc(r).split(" /")[0]; const hitLen = lc(r).includes(named) ? named.length : named.includes(base) ? base.length : named.includes(lc(r)) ? lc(r).length : -1; if (hitLen > bestLen) { bestLen = hitLen; idx = i; } });
+      if (idx >= 0 && rungs[idx + 1]) {
+        const facts = [`After ${rungs[idx]} comes ${rungs[idx + 1]} — the seat where scope widens from your own work to a team's or a function's, and the interview for it tests judgment about the business, not technique.`, (L2 && L2.skills) || "The preparation is the next rung's visible work, done from the seat below it until it is normal.", srcLine];
+        return { intent: "career_os_plan", reply: compose({ headline: `The step after ${rungs[idx]}: ${rungs[idx + 1]}.`, facts, nextStep: "Want what to build in your current seat to be ready for it?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+      }
+    }
+    if (/\bcpa\b|\bcfa\b|\bshrm\b|\bmha\b|\bcredential|\bcertif|\bdegree\b|\blicen[cs]e\b|\bqualif/.test(tn) && (L2 || prev.rungs || to === "promotion")) {
+      const facts = [(L2 && L2.credential) || "On this path the credential question is empirical: read five postings for the target seat and count what they actually require — the posting record, not folklore, settles which certificate is a gate and which is decoration.", srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: `Credentials on the ${pathName} path — what actually gates, and when.`, facts, nextStep: "Want the skills order for the first rung next?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    if (/\bskills?\b|\blearn first\b|\bbuild first\b/.test(tn) && (L2 || prev.rungs)) {
+      const facts = [(L2 && L2.skills) || "The craft skills of the next rung first — its visible work done from your current seat until it is normal.", `On ${pathName}, the order matters more than the volume: the next rung's skills are the interview for the rung after it.`, srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: `Skills first on ${pathName} — in the order the ladder pays for them.`, facts, nextStep: "Want those turned into a this-quarter practice list?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    if (/\brung between\b|\bbetween here and\b|\bwhat'?s between\b/.test(tn) && rungs) {
+      const facts = [`The rung between is ${rungs[1]} — the seat where you stop being only an individual contributor: a team's queue, a unit's numbers, or a surface's problem list becomes partly yours.`, (L2 && L2.evidence) || (L2 && L2.moves[0]) || "", srcLine].filter(Boolean);
+      return { intent: "career_os_plan", reply: compose({ headline: `Between ${from || "here"} and ${to || "the target"}: ${rungs[1]}.`, facts, nextStep: "Want the evidence list for that rung — what to collect in this job?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    if (/\bevidence\b|\bcollect/.test(tn) && (L2 || prev.rungs)) {
+      const facts = [(L2 && L2.evidence) || "Dated evidence of the next rung's work, logged the week it happens.", "The log is the product feature built for exactly this: say \"log a win\" with the outcome and it is kept, dated, in your own words — the review packet assembles itself from it.", srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: `The evidence to collect on ${pathName}.`, facts, nextStep: "Want to log the first win now — name one outcome from this quarter?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    if (/\bquit\b|\bleav\w*\b[^.]*\bbeat\b|\bprice\b[^.]*\b(quit|leav|stay)/.test(tn)) {
+      const facts = ["Priced honestly, leaving beats staying only when three things are all true: your evidence file is strong enough to be hired a rung up elsewhere, the ladder here is demonstrably closed (not just slow), and the outside seat is a rung up — a sideways exit restarts the clock at the same level.",
+        "A stuck feeling is not one of the three: it is priced after one full review cycle of the two moves (evidence file + sponsorship), because a cycle is the unit the ladder actually decides on.",
+        "If you do price an exit, the number is never invented here: it is the outside offer's own figure against this seat's record — bring the offer and the math runs on it.", srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: "The quit option, priced against the stay option — same evidence standard for both.", facts, nextStep: "Want the stay-one-cycle plan written out — the two moves with dates?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    if (/\bfirst\b|\bmove one\b|\bstart (the plan|it|now)\b|\bwhat'?s the plan\b|\bstaying\b/.test(tn) && (prev.from || prev.to || promotionAsk)) {
+      const mv = (L2 && L2.moves) || ["Move one: build the evidence file — log every win and piece of feedback the day it happens, and take one visible piece of work per month; the promotion case is assembled from that file, not from memory.", "Move two: build the sponsorship — one senior person who has seen your work and will advocate, earned by staffed work and follow-through, and time the case to the review window."];
+      const facts = [mv[0], mv[1], srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: `The plan on ${pathName} — move one first.`, facts, nextStep: "Want move one started now — the wins log opened on this thread?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to } };
+    }
+    // The full path answer (fresh ask, or a promotion ask).
+    if (to === "promotion" || promotionAsk) {
+      const facts = ["On worth, the honest state first: no sourced figure for your role and level is on record on this thread, so no number is claimed — a worth figure here comes only from a company file or a posted band, never from a model's memory of the market.",
+        "The promotion plan is an evidence game with a calendar: move one is the evidence file — every win and piece of feedback logged the day it happens, plus one visible piece of work per month, so the case exists before review season.",
+        "Move two is sponsorship and timing: one senior person who has seen your work and will say your name in the room, and the case landed inside the actual promotion window — a strong case filed after decisions are made waits a full cycle.",
+        srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: "The promotion plan — and the honest state of the worth question.", facts, nextStep: "Want move one started — the wins log opened on this thread — or the worth question grounded on a named company's file first?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to: "promotion" } };
+    }
+    if (L2 && rungs) {
+      const facts = [`The typical ladder: ${rungs.join(" → ")} — titles vary by company, and in smaller companies two rungs often collapse into one seat.`,
+        L2.moves[0], L2.moves[1],
+        `First skills, in order: ${L2.skills.split(" — ")[0].split("; ")[0]}.`, srcLine];
+      return { intent: "career_os_plan", reply: compose({ headline: `The path from ${from || "where you are"} to ${to} — the ladder and your next two moves.`, facts, nextStep: "Want the skills order for the first rung, the credential picture, or the typical pace per rung?" }), resultStatus: "awaiting_user", sends: 0, payload: { kind: "career_path", from, to, rungs } };
+    }
+    return null;
+  }
+  // The path gate, evaluated at two placements in dispatch: an early
+  // carve-out (ahead of the people matchers that read a path ask as
+  // a sourcing ask) and the late OS gate. The handler itself stands
+  // down (null) whenever the turn carries no parseable path and no
+  // path thread, so the gate can be generous where it sits.
+  function careerPathGateHit(text, ctx, late) {
+    const pathState = careerPathOf(ctx);
+    const pathActive = !!(pathState && (pathState.from || pathState.to));
+    const tn2 = typoNorm(text);
+    let hit =
+      /\bwant to be\s+(an?\s+)?[a-z]|\bwant to become\b|\bend up (in|as|being)\b|\bnext (two|few) moves\b|\bhow do i get from\b|\bget from\b[^.]*\bto\b|\bmove into\b[^.]*\b(eventually|someday|one day)\b|\bmoving into\b|\bthinking about (moving|going|getting) into\b|\bwant a promotion\b|\bpromotion this year\b|\bi'?m an?\s+[a-z][^.]*\bwant\b|\bbeen an?\s+[a-z][^.]*\bwanna\b|\bwanna (be|end up)\b|\brunning\b[^.]*\bsomewhere\b|\bwhat'?s the ladder\b|\bladder to\b/.test(tn2)
+      || (pathActive && /\bskills?\b|\bfirst\b|\bnext\b|\bhow long\b|\bcredential|\bcertif|\bcpa\b|\bcfa\b|\bshrm\b|\bmha\b|\bstep after\b|\bmove one\b|\bevidence\b|\bcollect|\bquit\b|\bprice\b|\brung\b|\bplan\b|\bdegree\b|\blicen[cs]e\b|\bstaying\b/.test(tn2));
+    if (!hit && late && /\bstart the plan\b|\bwhat'?s move one\b/.test(tn2)) { hit = true; ctx._pathPlanContinuation = true; }
+    if (!hit) return null;
+    return handleCareerPath(text, ctx);
+  }
+
   function handleOS(text, ctx) {
     if (!OS) return null;
     const t = lc(text);
     const profile = ctx.profile || {};
     let store = ctx.osStore || null;
-    if (!store && OS.createStore) { try { store = OS.createStore((profile.basics && profile.basics.name) || "you"); ctx.osStore = store; } catch { store = null; } }
+    // DEPTH LANE B (MI-015): the OS store must survive the host's
+    // per-turn ctx rebuild like the tracker store does — it rides
+    // the track store (the whitelisted, snapshot-persisted store),
+    // so a win logged on one turn is still there when a later turn
+    // asks to see the log. Before this, every turn created a fresh
+    // store and the wins log forgot everything between turns.
+    if (!store) { try { const ts0 = trackStoreOf(ctx); if (ts0 && ts0._osStore) store = ts0._osStore; } catch { store = null; } }
+    if (!store && OS.createStore) { try { store = OS.createStore((profile.basics && profile.basics.name) || "you"); ctx.osStore = store; try { const ts1 = trackStoreOf(ctx); if (ts1) ts1._osStore = store; } catch { /* the ctx store stands */ } } catch { store = null; } }
     const sourceLine = `Grounded in your own log and record, as of ${asOfMonthYear(ctx)}.`;
     // BUG-072: OS turns from this catch-all carry the same F8 record
     // envelope as 130's front door — career_os_* intent + payload —
@@ -39700,6 +40336,17 @@ const CareerRouter = (() => {
       return Object.assign({}, product, { record_id: product.watch_id || product.win_id || product.plan_id || product.record_id || product.id || `${kind}-${String(date).slice(0, 10)}`, date: product.date || String(date).slice(0, 10), text: product.text || product.statement || textFallback || undefined });
     };
     try {
+      // DEPTH LANE B (MI-015): a SHOW ask reads the log — it must
+      // never be parsed as a log statement (the branch below strips
+      // its prefix and would bank "show me my wins log" as a win).
+      if (/\bshow\b[^.]*\bwins?\b|\blist\b[^.]*\bwins?\b|\bmy wins\b|\bwhat'?s in my wins\b|\bread\b[^.]*\bwins?\b/.test(t) && OS.reviewPacket && store) {
+        const rp = OS.reviewPacket(store, {});
+        const body = digText(rp, ["text", "summary"], ["sections", "lines", "wins"]);
+        const winLines = body ? body.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 3) : [];
+        const facts = winLines.length ? [...winLines, sourceLine] : ["No wins logged yet — the log is empty, and it stays empty until you state one; nothing is back-filled.", sourceLine];
+        const reply = compose({ headline: "Your wins log, from the record.", facts, nextStep: "Log the next one the day it happens — say \"log a win\" and what happened." });
+        return { intent: "career_os_wins_log", reply, resultStatus: "prepared", sends: 0, payload: osRec(rp, "review-packet") };
+      }
       if (/\bwins? log\b|\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && OS.logWin && store) {
         const win = OS.logWin(store, { text: s(text).replace(/.*(log a win|wins? log)[:\s]*/i, "") || "a win you named", at: new Date(nowOf(ctx)).toISOString() });
         const reply = compose({ headline: "Win added to your packet.", facts: ["Wins land in the achievements packet in your own words, dated.", sourceLine], nextStep: "Keep them coming — the packet is what your next applications draw from." });
@@ -42250,7 +42897,7 @@ const CareerRouter = (() => {
       const co = handleCloseOut(text, c);
       if (co) return co;
     }
-    if (/\bcomp expectations?\b|\bcompensation expectations?\b|\basks? my comp\b|\bexpected salary\b[^.]*\brecruiter\b/.test(t) && profile) {
+    if (/\bcomp expectations?\b|\bcompensation expectations?\b|\basks? my comp\b|\bexpected salary\b[^.]*\brecruiter\b|\bwhat salary\b[^.]*\bexpect\b|\bsalary\b[^.]*\bi expect\b|\brecruiter asked\b[^.]*\bsalary\b/.test(t) && profile) {
       return handleCompExpectation(text, c);
     }
     if (/\b(draft|write|compose|email)\b/.test(t) && profile) {
@@ -42271,6 +42918,18 @@ const CareerRouter = (() => {
     if (/\bportal\b[^.]*\baccount\b|\bworkday\b[^.]*\baccount\b|\bcreate\b[^.]*\b(alias|account|password|vault)\b|\b(alias email|vault password)\b|\bconfirm\b[^.]*\bportal\b/.test(t) && profile) {
       const pa = handlePortalAccountAsk(text, c);
       if (pa) return pa;
+    }
+    // DEPTH LANE B (MI-015): the career-path carve-out — a first-
+    // person path ask ("been a bank teller, wanna end up in
+    // corporate finance", "I'm in retail management, thinking about
+    // running people ops") is a career-OS turn, not a people ask:
+    // the A3 matcher below reads its role nouns as a sourcing ask.
+    // The handler stands down on anything without a parseable
+    // current/target role pair, a promotion shape, or a live path
+    // thread, so the carve-out claims nothing else.
+    {
+      const cpE = careerPathGateHit(text, c, false);
+      if (cpE) return cpE;
     }
     // DEPTH WAVE (BUG-213 / FR-370): a FIRST-PERSON career-
     // progression turn ("I'm stuck — how does anyone get from
@@ -42601,9 +43260,30 @@ const CareerRouter = (() => {
       }
       return handlePacket(text, c);
     }
+    // DEPTH LANE B (MI-016 + MI-022): the prep-session claim —
+    // practice/drill openers with a sector, continuations on a live
+    // prep thread (another / harder / model answer), canonical
+    // content asked inside any thread (the MI-022 switch), and a
+    // long answer turn to a live drill. Owners of the neighboring
+    // shapes (night-before, STAR, briefs, take-home) are stood down
+    // inside the handler, which returns null and lets them run.
+    {
+      const pthB = prepThreadOf(c);
+      const tnB = typoNorm(text);
+      const sessionShape =
+        /\b(can we|let'?s|start)\b[^.]*\b(practi[cs]e|practise|drill|prep)\b|\b(practice|practise|drill)\b[^.]*\b(cases?|questions?|technicals?|sql|probability|interviews?)\b|\bprep( me| us)?\b[^.]*\b(interview|technicals?|banking|consulting|data|law|medicine|quant|product)\b|\bdrill me\b|\bhelp me prep\b|\bpractice cases\b|\bcase practice\b|\bwhat do they ask\b/.test(tnB)
+        || (/\bprep me\b/.test(tnB) && !!prepSectorOf(tnB))
+        || (pthB.lastQ && /\banother\b|\bnext\b|\bharder\b|\bmodel answer\b|\bone more\b|\bhit me\b|\bgive me\b|\bagain\b/.test(tnB))
+        || ((pthB.sector || pthB.lastQ) && /\bthree (financial )?statements\b|\bdcf\b|\blbo\b/.test(tnB))
+        || ((pthB.sector || pthB.lastQ) && s(text).length < 70 && /\bone\b|\bfocus\b|\bweakest\b|\bsql\b|\bethics\b|\bmarket[- ]making\b|\bprobability\b|\bcomps\b/.test(tnB))
+        || (pthB.lastQ && pthB.lastQ.drillId && s(text).length > 40 && /\bincome statement|balance sheet|cash flow|net income|retained earnings\b/.test(tnB));
+      if (sessionShape) { const ps = handlePrepSession(text, c); if (ps) return ps; }
+    }
     // COMPLEXITY WAVE (BUG-173): single-question and night-before
     // prep asks route on their own shapes, ahead of the extras gate.
     if (/\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
+      const ps = handlePrepSession(text, c);
+      if (ps) return ps;
       const pq = handlePrepQuestion(text, c);
       if (pq) return pq;
     }
@@ -42755,17 +43435,34 @@ const CareerRouter = (() => {
     // this gate and keep their turns.
     {
       const thread = (c.negotiationThread && typeof c.negotiationThread === "object") ? c.negotiationThread : null;
-      const hasOfferThread = !!(thread && (thread.firm || thread.amount || thread.deadline));
+      const hasOfferThread = !!(thread && (thread.firm || thread.amount || thread.deadline || thread.descriptor || thread.signing || thread.expectation || (Array.isArray(thread.amounts) && thread.amounts.length)));
+      const tn = typoNorm(text);
       const negSignal =
         /\bnegotiat|\bcounter\b[^.]*\boffer\b|\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b|\boffer letter\b|\bshould i accept\b|\bdecline\b[^.]*\boffer\b|\bbenchmark\b[^.]*\boffer\b|\btwo offers\b|\boffers? compared\b|\bextension request\b|\bexploding offer\b|\bequity explainer\b|\bequity\b[^.]*\bworth\b|\bsigning[ -]bonus\b|\bbelow[ -]floor\b|\bcomp[ -]expectation\b|\bcompeting deadline\b|\bleverage\b|\bsalary talk\b|\bconversion play\b|\bwithdrawal drafts\b|\bgraceful withdrawal\b|\btax and legal\b/.test(t)
-        || /\boffered me\b|\boffer came in\b|\bgot an offer\b|\bexploding deadline\b|\bshould i take it\b|\btake it or (leave|negotiate|push)\b/.test(t)
+        || /\boffered me\b|\boffer came in\b|\bgot an offer\b|\bgot the offer\b|\boffer'?s here\b|\boffer letter'?s here\b|\bexploding deadline\b|\bshould i take it\b|\btake it or (leave|negotiate|push)\b/.test(t)
         || (/\$\s?\d|\b\d{2,3}\s?k\b/.test(t) && /\boffer/.test(t) && /\bshould i\b|\btake it\b|\baccept\b/.test(t))
-        || (hasOfferThread && /\bmore time\b|\bextension\b|\bpush\b[^.]*\bdeadline\b|\bdeadline\b|\bdraft\b[^.]*\b(email|letter)\b|\bwrite\b[^.]*\b(email|letter)\b|\bactual email\b/.test(t))
+        // DEPTH LANE B (MI-014): genuine-phrasing signal classes the
+        // exam dialect never used — an expiring offer stated plainly,
+        // a deadline-move ask with no thread yet, a decision question,
+        // an is-it-low question over a stated figure, an options-worth
+        // question, a came-back figure, a decline ask, a parse ask.
+        || /\boffer expires\b|\bexpires in \d+\s*(hours?|days?)\b|\bexpiring offer\b|\bwhat do i do first\b[^.]*\boffer\b|\boffer\b[^.]*\bwhat do i do\b/.test(tn)
+        || /\bpush (it|the deadline|this|back)\b|\bmore time\b|\bask for (an? )?extension\b|\bextension\b[^.]*\b(ask|draft|email|request)\b|\bget (until|till)\b[^.]*\b(monday|tuesday|wednesday|thursday|friday|answer|decide)\b/.test(tn)
+        || /\bshould i (take|accept|sign)\b|\bis \d{2,3}\s?k (low|good|enough|fair)\b|\bis (it|this|the offer) (low|good|enough|fair)\b|\bwhat would you counter\b|\bcounter at\b|\bcame back at\b|\bcan i still negotiate\b|\bdid i cap myself\b/.test(tn)
+        || /\bstock options\b|\boptions?\b[^.]*\bworth\b|\bworth\b[^.]*\boptions?\b|\bask them about\b[^.]*\b(grant|offer)\b|\bdecline\b[^.]*\b(one|offer|gracefully)\b|\bturn down\b[^.]*\boffer\b|\bparse it\b|\bwhat'?s missing\b[^.]*\b(letter|offer)\b/.test(tn)
+        || (hasOfferThread && /\bmore time\b|\bextension\b|\bpush\b|\bdeadline\b|\bdraft\b|\bwrite\b[^.]*\b(email|letter|it|reply)\b|\bactual email\b|\bcounter\b|\bdecline\b|\bparse\b|\bmissing\b|\bsigning\b|\bbonus\b|\bwhat do i say\b|\bwhat should i say\b|\bsay on the call\b|\btake it\b|\bsign(ing)?\b|\bworth\b|\bpays more\b|\byear one\b|\bwhich (one|pays|is)\b|\buntil (monday|tuesday|wednesday|thursday|friday)\b|\bchange the picture\b|\bask them\b/.test(tn))
         || (/\bextension\b/.test(t) && /\b(draft|write|email|letter|ask|request)\b/.test(t) && /\boffer|deadline|recruit/.test(t + (thread ? " offer" : "")));
       if (negSignal) {
         const ng = handleNegotiation(text, c);
         if (ng) return ng;
       }
+    }
+    // DEPTH LANE B (MI-015): the career-path claim — see
+    // careerPathGateHit. The late placement catches what reaches the
+    // OS region (ladder questions, plan continuations).
+    {
+      const cp = careerPathGateHit(text, c, true);
+      if (cp) return cp;
     }
     // DEPTH WAVE (BUG-213 / FR-370): the career-OS claim likewise
     // takes ladder / stuck / promotion / long-plan signal classes.
@@ -43083,24 +43780,97 @@ const CareerRouter = (() => {
     // negotiation record, so follow-ups ("more time?", "write the
     // email", "recap") run on it instead of falling. Same speech-act
     // discipline: unquoted assertion clauses only.
+    // DEPTH LANE B (MI-014): the capture heard only exam dialect —
+    // "X offered me $120k, decide by Friday". Genuine phrasing states
+    // the same facts as "got an offer from a fintech startup, 85k,
+    // they want an answer by Monday": a lowercase DESCRIPTOR instead
+    // of a firm name (recorded as a descriptor, never promoted to a
+    // company name), a bare "85k" with no $ sign, an answer-by
+    // deadline, a signing figure, a share count, a start date, a
+    // stated expectation range. Each new pattern stays inside the
+    // same assertion-clause loop — a question, a quote, or a
+    // conditional still records nothing.
     {
       const rec = {};
-      for (const cl of factClausesOf(raw)) {
+      const NOT_A_FIRM = /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december|the|this|that|my|their|your)$/i;
+      // DEPTH LANE B (MI-014): emphatic punctuation is not a question.
+      // A sentence that STATES an offer event ("i got an offer, its
+      // like 64k??") and opens with no question word or auxiliary is
+      // the user's assertion wearing M2 punctuation; the clause
+      // splitter files it as interrogative and the whole offer was
+      // dropped. Such sentences re-enter THIS capture (offer facts
+      // only) with the trailing marks stripped. A genuine question
+      // ("did I get an offer?", "what if I got an offer at 90k?")
+      // opens with the auxiliary/question word and still records
+      // nothing — the BUG-169 speech-act line is unchanged.
+      const offerClauses = [...factClausesOf(raw)];
+      for (const sent of s(raw).split(/(?<=[.!?])\s+/)) {
+        const st = sent.trim();
+        if (!/\?+$/.test(st)) continue;
+        if (/^(what|why|how|when|who|whom|which|should|would|could|can|will|do|does|did|is|are|am|was|were|if|suppose|let's say|say i|imagine)\b/i.test(st)) continue;
+        if (!/\bgot an offer\b|\bgot the offer\b|\boffered me\b|\boffer came\b|\boffer'?s here\b|\bi have an offer\b/i.test(st)) continue;
+        offerClauses.push(st.replace(/\?+$/, ""));
+      }
+      // The same emphasis, mid-turn ("its like 64k?? from a logistics
+      // co"): the marks end the clause for the splitter although the
+      // sentence runs on. A normalized copy (marks -> full stops)
+      // feeds the SAME loop below; the per-clause typo-normalized
+      // view (cln) lets "anser"-class spellings reach the deadline
+      // patterns without touching the case-sensitive firm patterns.
+      const rawEmph = s(raw).replace(/(\w)\?{2,}/g, "$1.").replace(/(\w)!{2,}/g, "$1.");
+      if (rawEmph !== s(raw)) for (const cl2 of factClausesOf(rawEmph)) if (!offerClauses.includes(cl2)) offerClauses.push(cl2);
+      for (const cl of offerClauses) {
         if (!clauseIsAssertion(cl)) continue;
         let m;
+        const cln = typoNorm(cl);
         if ((m = cl.match(/\b([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+(?:just|has|have|had))?\s+offered me\b/))) rec.firm = m[1].trim();
+        else if ((m = cl.match(/\boffer\b[^.!?]*?\b(?:from|at)\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/)) && !NOT_A_FIRM.test(m[1].trim())) rec.firm = m[1].trim();
+        if (!rec.firm && !rec.descriptor && (m = cl.match(/\boffer\b[^.!?]*?\bfrom\s+an?\s+([a-z][a-z -]{1,28}?\b(?:startup|company|firm|bank|fund|agency|studio|shop|co|insurer|practice|group))\b/i))) rec.descriptor = m[1].trim();
         if ((m = cl.match(/\boffer\w*\b[^.]*?\$\s?(\d{2,3})\s?k\b/i)) || (m = cl.match(/\b(\d{2,3})\s?k\b[^.]*\boffer/i))) rec.amount = Number(m[1]) * 1000;
         else if ((m = cl.match(/\$\s?(\d[\d,]{3,})/))) rec.amount = Number(m[1].replace(/,/g, ""));
-        if ((m = cl.match(/\bexploding deadline\s+(\w+day|tomorrow)\b/i)) || (m = cl.match(/\bdecide by\s+(\w+day|tomorrow)\b/i)) || (m = cl.match(/\bdeadline\s+(?:is\s+)?(?:on\s+)?(\w+day|tomorrow)\b/i))) rec.deadline = m[1];
+        else if (rec.amount == null && !/\bsigning\b/i.test(cl) && (/\boffer|base|salary|came back\b/i.test(cl) || /\boffer/i.test(raw)) && (m = cl.match(/\b(\d{2,3}(?:\.\d)?)\s?k\b/i))) rec.amount = Number(m[1]) * 1000;
+        if ((m = cl.match(/\bcame back\s+(?:at\s+)?\$?(\d{2,3})\s?k\b/i))) rec.amount = Number(m[1]) * 1000;
+        if ((m = cl.match(/\bsigning(?:\s+bonus)?\s*(?:of\s*)?\$?(\d{1,3})\s?k\b/i)) || (m = cl.match(/\$\s?(\d{1,3})\s?k\s+signing\b/i))) rec.signing = Number(m[1]) * 1000;
+        if ((m = cl.match(/\b([\d,]{3,})\s+shares\b/i))) rec.shares = m[1];
+        if ((m = cl.match(/\bstarts?\s+(?:on\s+)?([A-Z][a-z]+\s+\d{1,2})\b/))) rec.start = m[1];
+        if ((m = cl.match(/\b(?:said|told them|quoted|gave|expect(?:ed|ing)?)\s+(?:them\s+)?\$?(\d{2,3})\s?[-–]\s?\$?(\d{2,3})\s?k\b/i))) rec.expectation = `${m[1]}-${m[2]}k`;
+        if ((m = cln.match(/\bexploding deadline\s+(\w+day|tomorrow)\b/i)) || (m = cln.match(/\bdecide by\s+(\w+day|tomorrow)\b/i)) || (m = cln.match(/\bdeadline\s+(?:is\s+)?(?:on\s+)?(\w+day|tomorrow)\b/i))) rec.deadline = m[1];
+        else if ((m = cln.match(/\b(?:want|wants|need|needs|expect|expects|asking for)\s+(?:my\s+|an\s+|the\s+)?answer\s+by\s+(\w+day|tomorrow)\b/i)) || (m = cln.match(/\banswer\s+by\s+(\w+day|tomorrow)\b/i)) || (m = cln.match(/\brespond\s+by\s+(\w+day|tomorrow)\b/i)) || (m = cln.match(/\bexpires?\s+(?:on\s+)?(\w+day|tomorrow)\b/i))) rec.deadline = m[1];
+        else if ((m = cln.match(/\bexpires?\s+in\s+(\d+\s*(?:hours?|days?))\b/i))) rec.deadline = `in ${m[1]}`;
+        else if (/\boffer\b/i.test(cl) && (m = cln.match(/\bby\s+(\w+day)\b/i))) rec.deadline = m[1];
         if ((m = cl.match(/\boffered me\s+(?:an?\s+|their\s+)?([a-z][a-z ]{2,30}?(?:internship|role|seat|job|position))\b/i))) rec.role = m[1].trim();
+        else if ((m = cl.match(/\boffer\s+(?:for|as)\s+(?:an?\s+|the\s+)?([a-z][a-z ]{2,30}?(?:intern|analyst|engineer|manager|associate|representative|designer|accountant|consultant|developer))\b/i))) rec.role = m[1].trim();
       }
-      if (rec.firm || rec.amount || rec.deadline) {
+      // DEPTH LANE B (MI-014): a two-offer statement carries BOTH
+      // figures ("one at 78k from a bank, one at 84k from an
+      // insurer") — the ordered amounts + descriptors ride the
+      // thread so a later "the bank one has a signing bonus" turn
+      // can run the comparison math on the user's own numbers.
+      if ((rec.amount || rec.firm || rec.descriptor) && /\boffers\b/.test(lc(raw))) {
+        const amts = [...s(raw).matchAll(/\b(\d{2,3})\s?k\b/gi)].map((x) => Number(x[1]) * 1000).filter((n) => n > 0);
+        if (amts.length >= 2) rec.amounts = [...new Set(amts)].slice(0, 3);
+        const descs = [...s(raw).matchAll(/\bfrom an?\s+([a-z][a-z -]{1,24}?\b(?:bank|insurer|startup|company|firm|fund|agency|practice|group|co))\b/gi)].map((x) => x[1].trim());
+        if (descs.length) rec.descriptors = descs.slice(0, 3);
+      }
+      // DEPTH LANE B (MI-014): a signing stated on a two-offer
+      // thread belongs to the party the turn names — record WHICH,
+      // so a later bare question ("which pays more in year one?")
+      // runs the math with the bonus on the right offer.
+      if (rec.signing) {
+        const prior = negotiationThreadOf(ctx);
+        const pool = [...(rec.descriptors || []), ...((prior && prior.descriptors) || [])];
+        const hit = pool.find((d) => { const key = lc(d).split(/\s+/).pop(); return key && key.length > 2 && lc(raw).includes(key); });
+        if (hit) rec.signingFor = hit;
+      }
+      if (rec.firm || rec.amount || rec.deadline || rec.descriptor || rec.signing || rec.expectation || (Array.isArray(rec.amounts) && rec.amounts.length)) {
         const thread = negotiationThreadForWrite(ctx);
         Object.assign(thread, rec, { at: new Date(nowOf(ctx)).toISOString(), evidence: raw.slice(0, 200) });
         if (thread.firm || thread.amount) {
           const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
           if (thread.firm && !off.company) off.company = thread.firm;
+          if (thread.descriptor && !off.company && !off.descriptor) off.descriptor = thread.descriptor;
           if (thread.amount && !off.base_salary) off.base_salary = thread.amount;
+          if (thread.signing && !off.signing_bonus) off.signing_bonus = thread.signing;
           ctx.offer = off;
         }
       }
@@ -43715,7 +44485,18 @@ const CareerRouter = (() => {
       // Claimed, but the event cannot be bound to a row yet: one
       // precise question, and (beyond any not-stated row 126 itself
       // opened from the assertion) nothing is invented.
-      const reply = compose({ headline: `Noted — a ${ev === "oa" ? "assessment" : ev} landed. Which application is it for?`, facts: ["The event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it."], nextStep: "Name the company and the row moves in the same turn, from your words." });
+      // DEPTH LANE B (MI-014): for an OFFER event, the reply echoes
+      // the offer record the capture pass wrote from the user's own
+      // words (figure, deadline, descriptor) — the note names what
+      // was actually reported instead of a bare "an offer landed".
+      const facts0 = ["The event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it."];
+      if (ev === "offer") {
+        const thT = negotiationThreadOf(ctx);
+        if (thT.amount || thT.deadline || thT.descriptor || thT.firm) {
+          facts0.unshift(`The offer as you stated it: ${thT.amount ? `$${Number(thT.amount).toLocaleString()} base` : "an offer"}${thT.firm ? ` at ${thT.firm}` : thT.descriptor ? ` from ${thT.descriptor}` : ""}${thT.deadline ? `, answer by ${thT.deadline}` : ""} — that record is on this thread now, and the negotiation plan runs on it whenever you ask.`);
+        }
+      }
+      const reply = compose({ headline: `Noted — a ${ev === "oa" ? "assessment" : ev} landed. Which application is it for?`, facts: facts0, nextStep: "Name the company and the row moves in the same turn, from your words." });
       return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, stage: ev };
     }
     // Read-back before the claim: the stage spoken is the row's own.

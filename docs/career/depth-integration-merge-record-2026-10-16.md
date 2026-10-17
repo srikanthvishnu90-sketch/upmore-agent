@@ -168,7 +168,7 @@ tests/career-integration-perfection.test.cjs (8 tests):
 | Tree | Tests | Pass | Fail | Skipped |
 |---|---|---|---|---|
 | Baseline c259cf6 (pristine worktree) | 4,295 | 4,244 | 3 | 48 |
-| Merged final tree (997da38 + docs, run with `UPMORE_CHROMIUM_SANDBOX=off`) | 4,387 | 4,344 | 2 | 41 |
+| Merged final tree (997da38 + docs, run with `UPMORE_CHROMIUM_SANDBOX=off`) | 4,377 | 4,334 | 2 | 41 |
 
 The merged tree's only 2 fails are the tolerated SC-300 stale pins
 (R2 C37 spot-check, R2A C37 guard — both also failing at baseline).
@@ -183,7 +183,7 @@ submit-integrity suite passes **18/18** and the final sweep above is
 the clean number. The S3 claims-register test
 fails at BASELINE and PASSES merged (a flip in our favor). The
 42-battery (tests/career-complexity-battery.test.cjs) passes inside
-the sweep. New in the sweep vs baseline: +92 tests, all lane guards
+the sweep. New in the sweep vs baseline: +82 tests, all lane guards
 plus the 8 integration replays.
 
 ### 5.2 External FULL-300 grader (gauntlet grand-fresh)

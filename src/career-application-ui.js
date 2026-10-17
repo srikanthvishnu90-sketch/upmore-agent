@@ -42,6 +42,7 @@ function renderCareerApplications(){
   appButton(panel,'Confirm exactly these facts',()=>applicationChat.confirmFacts(),locked||Date.parse(d.expiresAt)<=Date.now());const edit=appElement('details',undefined,panel);appElement('summary','Edit or renew this facts review',edit);applicationFactsForm(edit,{...v,data:{factDefaults:d.fields}});return;
  }
  if(d.status==='profile_confirmed'){appElement('p','Your explicitly confirmed application facts are saved.',panel);appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;}
+ if(d.status==='needs_search_clarification'){appElement('p',d.question,panel);appElement('p','Clarify the complete search request below before searching. The current request has not fetched or selected any roles.',panel);const form=appElement('form',undefined,panel),label=appElement('label','Updated complete search request',form),input=appElement('input',undefined,label);input.type='text';input.required=true;input.value=d.originalAsk||v.lastSearch;const submit=appElement('button','Search with the clarified request',form);submit.type='submit';submit.disabled=locked;form.onsubmit=e=>{e.preventDefault();if(!form.reportValidity())return;if(!applicationChat.accepts(input.value)){toast('Include the internship role and your clarified constraint.');return;}applicationAction(()=>applicationChat.send(input.value));};return;}
  if(d.status==='no_batch'){appElement('p','Start with a sourced internship shortlist.',panel);appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;}
  if(['shortlist','shortlist_expired'].includes(d.status)){
   appElement('p',d.matched+' of '+d.requested+' requested roles have sourced fit evidence. '+(d.status==='shortlist_expired'?'Refresh the source snapshot before preparing.':''),panel);
@@ -71,6 +72,7 @@ function renderCareerApplications(){
    if(role.status==='unknown_outcome')appButton(card,'Check receipt without resending',()=>applicationChat.reconcile(role.taskId),locked);
   }
  }
+ appButton(panel,'Refresh posting sources and prepare a new review',()=>applicationChat.refresh(),locked);
  appButton(panel,'Refresh batch status',()=>applicationChat.status(),locked);appButton(panel,'Review ready roles',()=>applicationChat.review(),locked);
 }
 function openCareerApplications(){if(!session){toast('Sign in to view your application records.');return;}$('careerApplicationsSheet').hidden=false;renderCareerApplications();if(!applicationChat.view().data)applicationAction(()=>applicationChat.status());}

@@ -4,7 +4,7 @@ globalThis.UpmoreApplicationChat=function({capture,getToken,request,adopt=()=>fa
  const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,HASH=/^[a-f0-9]{64}$/;
  let ticket,revision=0,pending=null,data=null,busy=false,state='idle',lastSearch='Find 10 investment internships';
  const clone=x=>JSON.parse(JSON.stringify(x));
- const accepts=text=>typeof text==='string'&&(/\b(?:find|show|search|look for|want|need|recommend)\b.*\b(?:investment|private equity|equity research)\b.*\b(?:intern|internships?|summer analyst)/i.test(text)||/^(?:(?:Approve|Review) (?:my |the )?(?:application )?batch|(?:Show|Check|Refresh|Status(?: of)?) (?:my |the )?(?:application )?batch|Reconcile batch role|Confirm application facts)\b/i.test(text));
+ const accepts=text=>typeof text==='string'&&((/\b(?:find|show|search|look(?:ing)? for|want|need|recommend)\b/i.test(text)&&/\b(?:investment|private equity|equity research)\b/i.test(text)&&/\b(?:intern(?:ship)?s?|summer analyst)\b/i.test(text))||/^(?:(?:Approve|Review) (?:my |the )?(?:application )?batch|(?:Show|Check|Refresh|Status(?: of)?) (?:my |the )?(?:application )?batch|Reconcile batch role|Confirm application facts)\b/i.test(text)||/^(?:(?:show|check|refresh) my applications|(?:what(?:'s| is) the status of|how are) my applications(?: doing)?)[.!?]?$/i.test(text));
  function reset(){revision++;ticket=undefined;pending=data=null;busy=false;state='idle';lastSearch='Find 10 investment internships';onChange();}
  function current(){return !!ticket?.current();}
  function view(){if(ticket&&!current())reset();return {state,busy,pending:!!pending,data:data?clone(data):null,lastSearch};}
@@ -33,6 +33,7 @@ globalThis.UpmoreApplicationChat=function({capture,getToken,request,adopt=()=>fa
   confirmFacts:()=>data?.status==='facts_review'&&HASH.test(data.reviewHash||'')?send(data.confirmationPhrase,{action:'facts_confirm',input:{reviewHash:data.reviewHash}}):Promise.resolve(null),
   prepare:taskIds=>data?.status==='shortlist'?send('Prepare selected applications',{action:'prepare',input:{searchId:data.searchId,taskIds}}):Promise.resolve(null),
   status:()=>send('Show my application batch',batch()?{action:'status',input:{batchId:batch()}}:undefined),
+  refresh:()=>batch()?send('Refresh application sources',{action:'refresh',input:{batchId:batch()}}):Promise.resolve(null),
   review:()=>send('Review my application batch',batch()?{action:'review',input:{batchId:batch()}}:undefined),
   approve:()=>data?.status==='batch_review'&&HASH.test(data.batch?.reviewHash||'')?send(data.batch.approvalPhrase,{action:'approve',input:{batchId:batch(),reviewHash:data.batch.reviewHash}}):Promise.resolve(null),
   answers:(taskId,answers)=>{const r=data?.batch?.roles?.find(r=>r.taskId===taskId);return r?.status==='awaiting_user'&&HASH.test(r.task?.questionsSha256||'')?send('Confirm answers for '+taskId+' '+r.task.questionsSha256,{action:'answers',input:{batchId:batch(),taskId,questionsHash:r.task.questionsSha256,answers}}):Promise.resolve(null);},

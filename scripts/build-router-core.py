@@ -18,6 +18,7 @@ bundle, so the deployed function's module graph never resolves the finance pipel
     python3 scripts/build-router-core.py --career-only --check  fail if it is stale
 """
 import argparse
+from collections import Counter
 import json
 from pathlib import Path
 
@@ -71,9 +72,32 @@ content += "const MANUAL_PLAYBOOKS_JSON = " + json.dumps(json.loads((root / "pac
 # (124) and the company-file library (142's cirListOf). In the Deno bundle there
 # is no packages/career-data directory, so both readers silently degraded to
 # empty; the data is embedded here and read lazily at call time by the modules.
-CAREER_FIRM_SETS_LINE = "const CAREER_FIRM_SETS_JSON = " + json.dumps(json.loads((root / "packages/career-data/firm-sets.json").read_text()), separators=(",", ":")) + ";\n"
+# Lossless string interning keeps the complete career data under the existing
+# staged artifact ceiling. Restore exactly the original objects; no facts dropped.
+def career_data_const(name, value):
+    strings = []
+    def scan(v):
+        if isinstance(v, str): strings.append(v)
+        elif isinstance(v, list):
+            for x in v: scan(x)
+        elif isinstance(v, dict):
+            assert "$careerString" not in v
+            for x in v.values(): scan(x)
+    scan(value)
+    counts = Counter(strings)
+    pool = sorted(s for s, n in counts.items() if n > 1 and len(s) > 64)
+    ids = {s:i for i,s in enumerate(pool)}
+    def pack(v):
+        if isinstance(v,str) and v in ids: return {"$careerString":ids[v]}
+        if isinstance(v,list): return [pack(x) for x in v]
+        if isinstance(v,dict): return {k:pack(x) for k,x in v.items()}
+        return v
+    dump=lambda v:json.dumps(v,separators=(",",":"),ensure_ascii=False)
+    return "const " + name + " = ((p,v)=>{const r=x=>Array.isArray(x)?x.map(r):x&&typeof x==='object'?(Object.keys(x).length===1&&Object.hasOwn(x,'$careerString')?p[x.$careerString]:Object.fromEntries(Object.entries(x).map(([k,v])=>[k,r(v)]))):x;return r(v);})("+dump(pool)+","+dump(pack(value))+");\n"
+
+CAREER_FIRM_SETS_LINE = career_data_const("CAREER_FIRM_SETS_JSON", json.loads((root / "packages/career-data/firm-sets.json").read_text()))
 _cir_files = sorted((root / "packages/career-data/cirs").glob("*.json"))
-CAREER_CIRS_LINE = "const CAREER_CIRS_JSON = " + json.dumps([json.loads(f.read_text()) for f in _cir_files], separators=(",", ":")) + ";\n"
+CAREER_CIRS_LINE = career_data_const("CAREER_CIRS_JSON", [json.loads(f.read_text()) for f in _cir_files])
 content += CAREER_FIRM_SETS_LINE
 content += CAREER_CIRS_LINE
 # Depth wave (BUG-217/220): the interview banks (127) and the knowledge-base
@@ -82,8 +106,8 @@ content += CAREER_CIRS_LINE
 # named lines like the two above so the career-only variant below appends
 # every career data const its modules read.
 _bank_files = sorted((root / "packages/career-data/interview-banks").glob("*.md"))
-CAREER_INTERVIEW_BANKS_LINE = "const CAREER_INTERVIEW_BANKS_JSON = " + json.dumps({f.stem: f.read_text() for f in _bank_files}, separators=(",", ":")) + ";\n"
-CAREER_KB_LINE = "const CAREER_KB_JSON = " + json.dumps(json.loads((root / "packages/career-data/kb-aggregates.json").read_text()), separators=(",", ":")) + ";\n"
+CAREER_INTERVIEW_BANKS_LINE = career_data_const("CAREER_INTERVIEW_BANKS_JSON", {f.stem: f.read_text() for f in _bank_files})
+CAREER_KB_LINE = career_data_const("CAREER_KB_JSON", json.loads((root / "packages/career-data/kb-aggregates.json").read_text()))
 content += CAREER_INTERVIEW_BANKS_LINE
 content += CAREER_KB_LINE
 # The connector matrix without its research text and sources (those stay in packages/connectors/platforms.json).

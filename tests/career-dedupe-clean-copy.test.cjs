@@ -10,13 +10,13 @@ const assert = require("node:assert/strict");
 const J = require("../packages/domain/121-career-jobs.js");
 
 const GH_OLD = { name: "CarePoint Health", jobs: [
-  { id: 9001, title: "Registered Nurse", location: { name: "Chicago, IL" }, absolute_url: "https://boards.greenhouse.io/carepoint/jobs/9001", updated_at: "2026-09-12T00:00:00Z", requisition_id: "GH-9", departments: [{ name: "Nursing" }], content: "RN role, Chicago. BSN preferred, rotating shifts, benefits listed in full on the board page for this opening." },
+  { id: 9001, title: "Registered Nurse", location: { name: "Chicago, IL" }, absolute_url: "https://boards.greenhouse.io/carepoint/jobs/9001", first_published: "2026-09-12T00:00:00Z", updated_at: "2026-09-12T00:00:00Z", requisition_id: "GH-9", departments: [{ name: "Nursing" }], content: "RN role, Chicago. BSN preferred, rotating shifts, benefits listed in full on the board page for this opening." },
 ]};
 const LEVER_NEW = [
   { id: "S16B-1057", text: "Registered Nurse", categories: { location: "Chicago, IL", team: "Nursing" }, hostedUrl: "https://jobs.lever.co/carepoint-health/S16B-1057", createdAt: Date.parse("2026-10-12T00:00:00Z"), descriptionPlain: "RN role, Chicago. New opening on the med-surg unit; BSN preferred, rotating shifts." },
 ];
 const GH_FRESH = { name: "CarePoint Health", jobs: [
-  { id: 9002, title: "Registered Nurse", location: { name: "Chicago, IL" }, absolute_url: "https://boards.greenhouse.io/carepoint/jobs/9002", updated_at: "2026-10-10T00:00:00Z", requisition_id: "GH-10", departments: [{ name: "Nursing" }], content: "RN role, Chicago. BSN preferred, rotating shifts, benefits listed in full on the board page for this opening." },
+  { id: 9002, title: "Registered Nurse", location: { name: "Chicago, IL" }, absolute_url: "https://boards.greenhouse.io/carepoint/jobs/9002", first_published: "2026-10-10T00:00:00Z", updated_at: "2026-10-10T00:00:00Z", requisition_id: "GH-10", departments: [{ name: "Nursing" }], content: "RN role, Chicago. BSN preferred, rotating shifts, benefits listed in full on the board page for this opening." },
 ]};
 
 test("BUG-228: LA-0016 replay — a posting 30 days newer than its twin is a distinct opening and diffNew fires", () => {

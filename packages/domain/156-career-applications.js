@@ -16,9 +16,9 @@ const CareerApplications=(()=>{
   if((r=/^Confirm application facts ([a-f0-9]{64})$/.exec(m)))return {action:'facts_confirm',reviewHash:r[1]};
   if(/^(?:Approve batch|Reconcile batch role|Confirm application facts)\b/i.test(m))return {action:'invalid',code:'EXACT_APPLICATION_CONFIRMATION_REQUIRED'};
   if(/^(?:review|prepare (?:a |the )?review (?:of|for)) (?:my |the )?(?:application )?batch[.!]?$/i.test(m))return {action:'review'};
-  if(/^(?:show|check|refresh|status(?: of)?) (?:my |the )?(?:application )?batch(?: status)?[.!]?$/i.test(m))return {action:'status'};
-  if(!/\b(?:find|show|search|look for|want|need|recommend)\b/i.test(m)||!(/\b(?:investment|private equity|equity research)\b/i.test(m))||!(/\b(?:intern(?:ship)?s?|summer analyst)\b/i.test(m)))return null;
-  const n=/\b(\d{1,3}|ten|hundred)\b/i.exec(m),limit=n?(n[1].toLowerCase()==='ten'?10:n[1].toLowerCase()==='hundred'?100:Number(n[1])):10;
+  if(/^(?:(?:show|check|refresh|status(?: of)?) (?:my |the )?(?:application )?batch(?: status)?|(?:show|check|refresh) my applications|(?:what(?:'s| is) the status of|how are) my applications(?: doing)?)[.!?]?$/i.test(m))return {action:'status'};
+  if(!/\b(?:find|show|search|look(?:ing)? for|want|need|recommend)\b/i.test(m)||!(/\b(?:investment|private equity|equity research)\b/i.test(m))||!(/\b(?:intern(?:ship)?s?|summer analyst)\b/i.test(m)))return null;
+  const counts={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,twenty:20,hundred:100},n=/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\s+(?:(?:investment(?: banking)?|private equity|equity research|summer)\s+)*(?:intern(?:ship)?s?|analyst(?:s| roles)?)/i.exec(m),limit=n?(counts[n[1].toLowerCase()]||Number(n[1])):10;
   if(limit<1||limit>100)return {action:'invalid',code:'APPLICATION_COUNT_RANGE'};
   return {action:'discover',limit,ask:m};
  }
@@ -31,10 +31,33 @@ const CareerApplications=(()=>{
   const loc=text(posting.location);if(/\b(?:USA|United States|US)\b/.test(loc)||Jobs.profileResidence({residence:loc}).states.length)return 'US';
   if(/\b(?:UK|United Kingdom|England|Scotland|Wales|Northern Ireland)\b/i.test(loc))return 'GB';if(/\bCanada\b/i.test(loc))return 'CA';return null;
  }
- function interests(ask,profile){
+ function searchConstraints(ask,now=Date.now()){
+  const a=text(ask),c={locations:[],remote:'any',publishedSince:null,clarification:null};
+  if(/\b(?:remote only|only remote|fully remote)\b/i.test(a))c.remote='only';
+  else if(/\b(?:no remote|onsite only|on-site only|only onsite|only on-site)\b/i.test(a))c.remote='exclude';
+  else if(/\bremote\b/i.test(a))c.clarification='Should remote work be required, excluded, or allowed alongside onsite roles?';
+  const city=/\b(?:city\s*:\s*|(?:in|near|based in|located in)\s+)([a-z][a-z .'-]*?)(?=,|;|[!?]|\s+(?:in|near|remote|posted|published|since|after|before|for|starting|with|and)\b|$)/ig;let hit;
+  while((hit=city.exec(a))){const state=/^,\s*([A-Z]{2})(?=,|;|\s|$)/.exec(a.slice(city.lastIndex)),v=hit[1].trim().replace(/\.$/,'')+(state?', '+state[1]:'');if(!/^(?:investment banking|private equity|equity research)$/i.test(v))c.locations.push(v);}
+  const iso=/\b(?:posted|published)\s+(?:since|after)\s+(\d{4}-\d{2}-\d{2})\b/i.exec(a),days=/\b(?:posted|published)\s+(?:in\s+)?(?:the\s+)?last\s+(\d{1,3})\s+days?\b/i.exec(a);
+  if(iso){const at=Date.parse(iso[1]+'T00:00:00Z');if(Number.isFinite(at)&&new Date(at).toISOString().slice(0,10)===iso[1]&&at<=now)c.publishedSince=iso[1]+'T00:00:00.000Z';else c.clarification='What valid past first-publication date should I use (YYYY-MM-DD)?';}
+  else if(days&&+days[1]>0)c.publishedSince=new Date(now-Number(days[1])*86400000).toISOString();
+  else if(/\b(?:recent(?:ly)?|fresh|newly|new openings|posted|published)\b/i.test(a))c.clarification='What first-publication cutoff should I use: for example, posted in the last 7 days or posted since YYYY-MM-DD?';
+  const dateWords=a.replace(iso?.[0]||'','').replace(days?.[0]||'','');
+  if(/\b(?:20\d\d|summer\s+20\d\d|20\d\d\s+summer|starting|start date|between|by\s+\d|before\s+\d|after\s+\d|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+20\d\d)\b/i.test(dateWords))c.clarification='Does your date refer to the internship start period or the posting publication date? I cannot infer an employer start date from a publication timestamp.';
+  if(/\b(?:within|around|hybrid|except|outside)\b/i.test(a))c.clarification='Please clarify the exact city and whether remote, onsite or hybrid work is required. I cannot silently broaden a location or work-mode restriction.';
+  return c;
+ }
+ function constraintsMatch(posting,c){
+  if(c?.clarification)return false;
+  if(c?.remote==='only'&&posting.remote!=='remote')return false;if(c?.remote==='exclude'&&posting.remote==='remote')return false;
+  if(c?.locations?.length&&!c.locations.some(x=>text(posting.location).toLowerCase().includes(x.toLowerCase())))return false;
+  if(c?.publishedSince){const at=Date.parse(posting.posted_at);if(!Number.isFinite(at)||at<Date.parse(c.publishedSince)||at>Date.now())return false;}return true;
+ }
+ function interests(ask,profile,now=Date.now()){
+  const expressed=searchConstraints(ask,now);
   const precise=/investment banking/i.test(ask)?[SPLITS[0]]:/private equity/i.test(ask)?[SPLITS[1]]:/equity research/i.test(ask)?[SPLITS[2]]:SPLITS;
-  const locations=Array.isArray(profile?.preferences?.locations)?profile.preferences.locations.filter(x=>typeof x==='string'&&x):[];
-  return precise.map((split,i)=>({interest_id:'application_intern_'+i,role:Assign.roleSpecFor({split}),filters:{bands:['intern'],locations,remote_ok:locations.length?profile?.preferences?.remote!==false:false}}));
+  const locations=expressed.locations.length?expressed.locations:Array.isArray(profile?.preferences?.locations)?profile.preferences.locations.filter(x=>typeof x==='string'&&x):[];
+  return precise.map((split,i)=>({interest_id:'application_intern_'+i,role:Assign.roleSpecFor({split}),filters:{bands:['intern'],locations,remote_ok:expressed.remote==='only'?true:expressed.remote==='exclude'?false:locations.length?false:false,applicationConstraints:expressed}}));
  }
  function scoringProfile(profile){
   const p=profile||{},c=p.constraints||{},facts=(p.facts||[]).filter(f=>f.status==='confirmed'&&!f.needs_confirmation),education=facts.find(f=>f.kind==='education');
@@ -63,6 +86,7 @@ const CareerApplications=(()=>{
  function assess(posting,careerProfile,scoring,roleInterests,log){
   const families=scoring?.preferences?.role_families;
   if(!Array.isArray(roleInterests)||!roleInterests.length||!Array.isArray(families)||!families.length)return {status:'blocked',code:'ROLE_INTEREST_CONTEXT_REQUIRED'};
+  if(roleInterests.some(i=>!constraintsMatch(posting,i?.filters?.applicationConstraints)))return {status:'blocked',code:'EXPRESSED_SEARCH_CONSTRAINT_MISMATCH'};
   const matched=roleInterests.filter(i=>i?.role&&Array.isArray(i.filters?.bands)&&i.filters.bands.length&&Assign.matchInterest(posting,i,null).matched);
   if(!families.includes(posting.role_family)||!matched.length)return {status:'blocked',code:'ROLE_TARGET_MISMATCH'};
   const row=Apply.triageBatch([posting],{profile:careerProfile,scoringProfile:scoring,log})[0];
@@ -72,6 +96,6 @@ const CareerApplications=(()=>{
   if(fit.bucket==='Reach')return {status:'blocked',code:'MEANINGFUL_FIT_REQUIRED',reasons:fit.reasons,gaps:fit.gaps};
   return {status:'eligible',roleInterests:matched.map(i=>({id:i.interest_id,role:i.role,filters:i.filters})),fit:{score:fit.score,bucket:fit.bucket,reasons:fit.reasons,gaps:fit.gaps,fitLines:cited.fit_lines,factIds:cited.matched_fact_ids}};
  }
- return {command,workCountry,postingCountry,interests,scoringProfile,missingFacts,confirmedProfile,factDefaults,assess};
+ return {command,workCountry,postingCountry,searchConstraints,constraintsMatch,interests,scoringProfile,missingFacts,confirmedProfile,factDefaults,assess};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=CareerApplications;

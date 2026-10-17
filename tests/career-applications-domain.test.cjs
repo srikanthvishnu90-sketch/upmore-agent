@@ -15,3 +15,12 @@ test('Greenhouse edits cannot masquerade as publication or make an old opening n
  const missing=J.normalizeGreenhouse({name:'SYNTHETIC',jobs:[{...base,updated_at:'2026-10-17T10:00:00Z',created_at:'2026-01-01T10:00:00Z'}]})[0];assert.equal(missing.posted_at,null);
  const old=J.normalizeGreenhouse({name:'SYNTHETIC',jobs:[{...base,first_published:'2026-01-01T10:00:00Z',updated_at:'2026-10-17T10:00:00Z'}]})[0];assert.equal(old.posted_at,'2026-01-01T10:00:00.000Z');assert.equal(J.qualityFlags(old,{now:Date.parse('2026-10-17T12:00:00Z')}).lower_odds,true);
 });
+
+test('ordinary word order and common counts preserve search intent; natural status stays read-only',()=>{
+ for(const [message,limit]of [["Could you recommend five internships in investment banking?",5],["I am looking for ten summer analyst roles in private equity",10],["Find 10 investment internships for graduation in 2028",10]])assert.equal(A.command(message).limit,limit,message);
+ assert.equal(A.command('Find 1000 investment internships').action,'invalid');for(const message of ["How are my applications doing?","What's the status of my applications?",'Show my applications'])assert.deepEqual(A.command(message),{action:'status'});assert.equal(A.command('Should I buy investment funds?'),null);
+});
+test('expressed city, remote and publication constraints are bound without inventing start dates',()=>{
+ const now=Date.parse('2026-10-17T12:00:00Z'),ask='Find five internships in investment banking in Chicago, remote only, posted in the last 7 days',c=A.searchConstraints(ask,now);assert.deepEqual(c.locations,['Chicago']);assert.equal(c.remote,'only');assert.equal(c.publishedSince,'2026-10-10T12:00:00.000Z');assert.equal(c.clarification,null);
+ const p={location:'Chicago, IL',remote:'remote',posted_at:'2026-10-16T12:00:00Z'};assert.equal(A.constraintsMatch(p,c),true);for(const patch of [{location:'New York, NY'},{remote:'onsite'},{posted_at:null},{posted_at:'2026-09-01T12:00:00Z'}])assert.equal(A.constraintsMatch({...p,...patch},c),false);assert.match(A.searchConstraints('Find investment internships for summer 2027',now).clarification,/start period/);assert.match(A.searchConstraints('Find recently posted investment internships',now).clarification,/cutoff/);
+});

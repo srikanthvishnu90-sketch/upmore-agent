@@ -300,7 +300,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
         answerBindings:(e.batchAnswers||[]).map(a=>({fieldId:a.fieldId,questionSha256:a.questionSha256,source:a.source})),
         observation: run.board.lastObservation || null,
         payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256,
-        observedAt: new Date(now()).toISOString(), expiresAt: new Date(now() + 600000).toISOString() };
+        observedAt: new Date(now()).toISOString(), expiresAt: new Date(Math.min(now() + 600000,eligibility?.observedAt?Date.parse(eligibility.observedAt)+300000:Infinity)).toISOString() };
       t.status = "review_ready"; t.blocker = null; t.asks = [];
       save(t, "check", { reviewSha256: t.review.payloadSha256 });
       if (!approval) return publicTask(t);

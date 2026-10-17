@@ -1,0 +1,3 @@
+(node:1761246) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+testing agent: GREEN 10/10 91/91; critical 0, failed 0; gaps 3; not run 3; p95 3 ms; 2 s

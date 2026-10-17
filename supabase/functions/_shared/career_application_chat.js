@@ -20,9 +20,10 @@ function searchView(s,now){
  const all=s.results||[],ready=all.filter(r=>r.eligibility?.status==='eligible'),held=all.filter(r=>r.eligibility?.status==='awaiting_user'),synthetic=all.some(r=>r.source?.provenance==='synthetic_fixture/v1');
  return {version:'career_application_chat/v1',status:Date.parse(s.expires_at)<=now&&!s.selected_batch?'shortlist_expired':'shortlist',searchId:s.search_id,requested:s.requested,matched:ready.length,shortlist:ready,held,sourceHealth:s.source_health||[],expiresAt:s.expires_at,observedAt:s.created_at,synthetic,originalAsk:s.ask};
 }
-export async function collectApplicationSources({ask,limit,userId,profile,config={},now}){
- const interests=Apps.interests(ask,profile),scoring=Apps.scoringProfile(profile),country=Apps.workCountry(profile),metadata=new Map(),health=[],candidates=[];
- const feeds=(config.feeds||Discover.discoveryPlan().feeds).filter(f=>f.status!=='dead'&&!/demo|test fixture/i.test(f.company||'')).slice(0,16),urls=new Set(feeds.map(f=>f.url));
+export function applicationFeeds(feeds){const finance=/\b(?:capital|financial|investments?|securities|bank|equity|jane street|robinhood|coinbase|gemini|ramp)\b/i;return feeds.filter(f=>f.status!=='dead'&&!/demo|test fixture/i.test(f.company||'')).map((f,n)=>({f,n,rank:finance.test(f.company||'')?0:1})).sort((a,b)=>a.rank-b.rank||a.n-b.n).slice(0,16).map(x=>x.f);}
+export async function collectApplicationSources({ask,limit,userId,profile,config={},now,interests:providedInterests}){
+ const interests=providedInterests||Apps.interests(ask,profile,now),scoring=Apps.scoringProfile(profile),country=Apps.workCountry(profile),metadata=new Map(),health=[],candidates=[];
+ const feeds=applicationFeeds(config.feeds||Discover.discoveryPlan().feeds),urls=new Set(feeds.map(f=>f.url));
  const fixtureOrigins=new Set(config.fixtureOrigins||[]),fetcher=config.fetch||fetch;
  async function read(url){
   if(!urls.has(url)||new URL(url).protocol!=='https:')throw Error('UNTRUSTED_APPLICATION_SOURCE');const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
@@ -53,12 +54,12 @@ export async function collectApplicationSources({ask,limit,userId,profile,config
 }
 // Called only after the existing handler authenticates/owns the thread. Server
 // dependencies may inject labeled source fixtures; request JSON cannot do so.
-export async function applicationConversation({admin,userId,threadId,turnKey,message,raw,images=[],config={},now=Date.now()}){
+export async function applicationConversation({admin,userId,threadId,turnKey,message,raw,images=/** @type {unknown[]} */([]),config={},now=Date.now()}){
  const parsed=raw===undefined?Apps.command(message):null;if(raw===undefined&&!parsed)return null;
  const response=(status,reply,application,extra={})=>({status,body:{thread_id:threadId,turn_key:turnKey,reply,action:null,reminders:[],application,...extra}});
  try{
   if(images.length)throw err('APPLICATION_TEXT_REQUIRED',400);
-  if(raw!==undefined&&(!keys(raw,['action','input'])||!['facts_review','facts_confirm','prepare','review','status','approve','answers','reconcile'].includes(raw.action)||!object(raw.input)))throw err('INVALID_APPLICATION_COMMAND',400);
+  if(raw!==undefined&&(!keys(raw,['action','input'])||!['facts_review','facts_confirm','prepare','review','status','approve','answers','reconcile','refresh'].includes(raw.action)||!object(raw.input)))throw err('INVALID_APPLICATION_COMMAND',400);
   const command=raw||parsed;if(command.action==='invalid')throw err(command.code,400);
   const requestHash=await applicantRequestHash({version:'career_application_turn/v1',threadId,message,command}),nonce='chat_'+(await applicantRequestHash({threadId,turnKey}));
   async function rpc(name,args){let r;try{r=await admin.rpc(name,args);}catch(_){throw err('APPLICATION_STORAGE_UNCERTAIN',503);}if(r?.error){const m=r.error.message||'';throw err(/conflict/.test(m)?'APPLICATION_COMMAND_CONFLICT':/revoked|owned.*missing/.test(m)?'APPLICATION_CONTEXT_REVOKED':/expired|changed/.test(m)?'APPLICATION_REVIEW_CHANGED':/invalid/.test(m)?'INVALID_APPLICATION_COMMAND':'APPLICATION_STORAGE_UNAVAILABLE',/revoked|owned.*missing/.test(m)?403:/invalid/.test(m)?400:/conflict|expired|changed|required/.test(m)?409:503);}if(!object(r?.data))throw err('APPLICATION_STORAGE_UNAVAILABLE',503);if(r.data.error)throw err(r.data.error,/revoked|owned_thread_missing/.test(r.data.error)?403:/conflict|changed|required/.test(r.data.error)?409:503);return r.data;}
@@ -75,10 +76,11 @@ export async function applicationConversation({admin,userId,threadId,turnKey,mes
    const saved=await rpc('career_application_profile_confirm_v1',{p_base:{p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash},p_review:reviewHash,p_message:message});if(!saved.response)throw err('APPLICATION_STORAGE_UNCERTAIN',503);return {status:200,body:saved.response};
   }
   if(command.action==='discover'){
+   const interests=Apps.interests(command.ask,profile,now),scope=await rpc('career_application_search_scope_v1',{p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash,p_version:version,p_epoch:epoch,p_interests:interests});const clarification=interests[0]?.filters?.applicationConstraints?.clarification;if(clarification)return response(200,clarification,{version:'career_application_chat/v1',status:'needs_search_clarification',originalAsk:command.ask,question:clarification});
    if(!context.resume)return response(200,'Add or confirm your original resume before preparing applications. I also need your confirmed career facts to judge fit.',{version:'career_application_chat/v1',status:'needs_resume',originalAsk:command.ask,missingFacts:Apps.missingFacts(profile),factDefaults:Apps.factDefaults(profile)});
    const missing=Apps.missingFacts(profile);if(missing.length)return response(200,'I need '+missing.join(', ')+' before I can call these suitable matches. Review your actual facts below; nothing has been invented.',{version:'career_application_chat/v1',status:'needs_facts',originalAsk:command.ask,missingFacts:missing,factDefaults:Apps.factDefaults(profile)});
    if(context.searchReplay){const view=searchView(context.searchReplay,now);return response(200,view.matched+' of '+view.requested+' requested internships have sourced fit evidence. The source timestamps and any held rows are below.',view);}
-   const found=await collectApplicationSources({ask:command.ask,limit:command.limit,userId,profile,config,now}),saved=await rpc('career_application_search_store_v1',{p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash,p_version:version,p_epoch:epoch,p_ask:command.ask,p_limit:command.limit,p_results:found.results,p_health:found.health,p_interests:found.interests}),view=searchView(saved,now);
+   const found=await collectApplicationSources({ask:command.ask,limit:command.limit,userId,profile,config,now,interests:scope.interests}),saved=await rpc('career_application_search_store_v1',{p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash,p_version:version,p_epoch:epoch,p_ask:command.ask,p_limit:command.limit,p_results:found.results,p_health:found.health,p_interests:found.interests}),view=searchView(saved,now);
    return response(200,view.matched+' of '+view.requested+' requested internships have sourced fit evidence. '+(view.matched<view.requested?'I did not pad the list. ':'')+'Review the source links and fit citations before preparing the selected roles.',view);
   }
   if(command.action==='prepare'){
@@ -89,6 +91,11 @@ export async function applicationConversation({admin,userId,threadId,turnKey,mes
   const reviewHash=input.reviewHash||command.reviewHash,taskId=input.taskId||command.taskId;
   if(!batchId){const lookup=await rpc('career_application_batch_lookup_v1',{p_user:userId,p_thread:threadId,p_review:reviewHash||null,p_task:taskId||null});batchId=lookup.batchId;}
   if(!batchId)return response(200,'This chat has no application batch in the current confirmed context.',{version:'career_application_chat/v1',status:'no_batch'});
+  if(command.action==='refresh'){
+   if(!keys(input,['batchId']))throw err('INVALID_APPLICATION_COMMAND',400);
+   const before=await rpc('career_application_source_refresh_context_v1',{p_user:userId,p_thread:threadId,p_batch:batchId,p_key:nonce,p_hash:requestHash});if(before.replay)return response(200,'Recovered acknowledgement of the earlier source refresh. Refresh batch status for current progress; submission still requires a fresh exact review.',{version:'career_application_chat/v1',status:'batch',batch:before.replay});
+   const found=await collectApplicationSources({ask:before.search.ask,limit:100,userId,profile,config,now,interests:before.search.role_interests}),batch=await rpc('career_application_source_refresh_v1',{p_user:userId,p_thread:threadId,p_batch:batchId,p_key:nonce,p_hash:requestHash,p_results:found.results,p_health:found.health});return response(200,'Current sources were checked. Unchanged, unattempted roles are queued for fresh preparation and exact review. Changed or missing postings are held; existing outcomes grant no resend.',{version:'career_application_chat/v1',status:'batch',batch});
+  }
   let args={batchId};
   if(command.action==='approve'){if(!keys(input,['batchId','reviewHash'])||!HASH.test(reviewHash||'')||message!=='Approve batch '+reviewHash)throw err('EXACT_BATCH_REVIEW_REQUIRED');args={batchId,reviewHash,message};}
   else if(command.action==='reconcile'){if(!keys(input,['batchId','taskId'])||!TASK.test(taskId||'')||message!=='Reconcile batch role '+taskId)throw err('EXACT_ROLE_READBACK_REQUIRED');args={batchId,taskId,message};}

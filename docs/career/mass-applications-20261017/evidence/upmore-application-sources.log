@@ -1,0 +1,12 @@
+(node:1738657) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1738657) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ bounded source planning prioritizes registered finance boards and first-publication constraints never pad a shortlist (350.046058ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 434.578387

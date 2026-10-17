@@ -1,0 +1,6 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+test('size reduction restores every original career data value and Unicode character exactly',()=>{
+ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8'),banks='packages/career-data/interview-banks',cirs='packages/career-data/cirs',expected={FIRM_SETS:JSON.parse(read('packages/career-data/firm-sets.json')),CIRS:fs.readdirSync(path.join(root,cirs)).filter(n=>n.endsWith('.json')).sort().map(n=>JSON.parse(read(cirs+'/'+n))),INTERVIEW_BANKS:Object.fromEntries(fs.readdirSync(path.join(root,banks)).filter(n=>n.endsWith('.md')).sort().map(n=>[n.slice(0,-3),read(banks+'/'+n)])),KB:JSON.parse(read('packages/career-data/kb-aggregates.json'))};
+ for(const bundle of ['router_core.js','router_core.career.js'])for(const [key,value]of Object.entries(expected)){const name='CAREER_'+key+'_JSON',line=read('supabase/functions/_shared/'+bundle).split('\n').find(l=>l.startsWith('const '+name+' = '));assert.ok(line,name);const restored=vm.runInNewContext(line+'JSON.stringify('+name+')');assert.deepEqual(JSON.parse(restored),value,bundle+':'+name);}
+});

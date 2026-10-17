@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-jkPf0Dtps+qozmwEK5P3Q0BO2hEFsK8Y5nWQk9yGijw=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-3Xu9Hb929rzM4ld+b+NF6jj51FZUdojw77DsXsPiszE=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -8462,7 +8462,7 @@ globalThis.UpmoreApplicationChat=function({capture,getToken,request,adopt=()=>fa
  const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,HASH=/^[a-f0-9]{64}$/;
  let ticket,revision=0,pending=null,data=null,busy=false,state='idle',lastSearch='Find 10 investment internships';
  const clone=x=>JSON.parse(JSON.stringify(x));
- const accepts=text=>typeof text==='string'&&(/\b(?:find|show|search|look for|want|need|recommend)\b.*\b(?:investment|private equity|equity research)\b.*\b(?:intern|internships?|summer analyst)/i.test(text)||/^(?:(?:Approve|Review) (?:my |the )?(?:application )?batch|(?:Show|Check|Refresh|Status(?: of)?) (?:my |the )?(?:application )?batch|Reconcile batch role|Confirm application facts)\b/i.test(text));
+ const accepts=text=>typeof text==='string'&&((/\b(?:find|show|search|look(?:ing)? for|want|need|recommend)\b/i.test(text)&&/\b(?:investment|private equity|equity research)\b/i.test(text)&&/\b(?:intern(?:ship)?s?|summer analyst)\b/i.test(text))||/^(?:(?:Approve|Review) (?:my |the )?(?:application )?batch|(?:Show|Check|Refresh|Status(?: of)?) (?:my |the )?(?:application )?batch|Reconcile batch role|Confirm application facts)\b/i.test(text)||/^(?:(?:show|check|refresh) my applications|(?:what(?:'s| is) the status of|how are) my applications(?: doing)?)[.!?]?$/i.test(text));
  function reset(){revision++;ticket=undefined;pending=data=null;busy=false;state='idle';lastSearch='Find 10 investment internships';onChange();}
  function current(){return !!ticket?.current();}
  function view(){if(ticket&&!current())reset();return {state,busy,pending:!!pending,data:data?clone(data):null,lastSearch};}
@@ -8491,6 +8491,7 @@ globalThis.UpmoreApplicationChat=function({capture,getToken,request,adopt=()=>fa
   confirmFacts:()=>data?.status==='facts_review'&&HASH.test(data.reviewHash||'')?send(data.confirmationPhrase,{action:'facts_confirm',input:{reviewHash:data.reviewHash}}):Promise.resolve(null),
   prepare:taskIds=>data?.status==='shortlist'?send('Prepare selected applications',{action:'prepare',input:{searchId:data.searchId,taskIds}}):Promise.resolve(null),
   status:()=>send('Show my application batch',batch()?{action:'status',input:{batchId:batch()}}:undefined),
+  refresh:()=>batch()?send('Refresh application sources',{action:'refresh',input:{batchId:batch()}}):Promise.resolve(null),
   review:()=>send('Review my application batch',batch()?{action:'review',input:{batchId:batch()}}:undefined),
   approve:()=>data?.status==='batch_review'&&HASH.test(data.batch?.reviewHash||'')?send(data.batch.approvalPhrase,{action:'approve',input:{batchId:batch(),reviewHash:data.batch.reviewHash}}):Promise.resolve(null),
   answers:(taskId,answers)=>{const r=data?.batch?.roles?.find(r=>r.taskId===taskId);return r?.status==='awaiting_user'&&HASH.test(r.task?.questionsSha256||'')?send('Confirm answers for '+taskId+' '+r.task.questionsSha256,{action:'answers',input:{batchId:batch(),taskId,questionsHash:r.task.questionsSha256,answers}}):Promise.resolve(null);},
@@ -8542,6 +8543,7 @@ function renderCareerApplications(){
   appButton(panel,'Confirm exactly these facts',()=>applicationChat.confirmFacts(),locked||Date.parse(d.expiresAt)<=Date.now());const edit=appElement('details',undefined,panel);appElement('summary','Edit or renew this facts review',edit);applicationFactsForm(edit,{...v,data:{factDefaults:d.fields}});return;
  }
  if(d.status==='profile_confirmed'){appElement('p','Your explicitly confirmed application facts are saved.',panel);appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;}
+ if(d.status==='needs_search_clarification'){appElement('p',d.question,panel);appElement('p','Clarify the complete search request below before searching. The current request has not fetched or selected any roles.',panel);const form=appElement('form',undefined,panel),label=appElement('label','Updated complete search request',form),input=appElement('input',undefined,label);input.type='text';input.required=true;input.value=d.originalAsk||v.lastSearch;const submit=appElement('button','Search with the clarified request',form);submit.type='submit';submit.disabled=locked;form.onsubmit=e=>{e.preventDefault();if(!form.reportValidity())return;if(!applicationChat.accepts(input.value)){toast('Include the internship role and your clarified constraint.');return;}applicationAction(()=>applicationChat.send(input.value));};return;}
  if(d.status==='no_batch'){appElement('p','Start with a sourced internship shortlist.',panel);appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;}
  if(['shortlist','shortlist_expired'].includes(d.status)){
   appElement('p',d.matched+' of '+d.requested+' requested roles have sourced fit evidence. '+(d.status==='shortlist_expired'?'Refresh the source snapshot before preparing.':''),panel);
@@ -8571,6 +8573,7 @@ function renderCareerApplications(){
    if(role.status==='unknown_outcome')appButton(card,'Check receipt without resending',()=>applicationChat.reconcile(role.taskId),locked);
   }
  }
+ appButton(panel,'Refresh posting sources and prepare a new review',()=>applicationChat.refresh(),locked);
  appButton(panel,'Refresh batch status',()=>applicationChat.status(),locked);appButton(panel,'Review ready roles',()=>applicationChat.review(),locked);
 }
 function openCareerApplications(){if(!session){toast('Sign in to view your application records.');return;}$('careerApplicationsSheet').hidden=false;renderCareerApplications();if(!applicationChat.view().data)applicationAction(()=>applicationChat.status());}

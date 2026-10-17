@@ -11,11 +11,16 @@ function start(config) {
   if(config.mode === "pull_only" && typeof process.getuid === "function" && process.getuid()===0)throw new Error("PULL_WORKER_REQUIRES_UNPRIVILEGED_USER");
   const store=createFileTaskStore(config.storeRoot);
   const worker = createWorker({ ...config, store });
+  let resourcesClosed=false;
+  function closeResources(immediate=false){
+    try{if(!resourcesClosed){resourcesClosed=true;try{require("../../packages/domain/150-career-portal-browser.js").shutdownAll();}finally{config.close?.();}}}
+    finally{worker.releaseEvidence({immediate});}
+  }
   if(config.mode === "pull_only") {
     const runner=createPullRunner({...config.runner,worker,store,
       emit:config.emit || (event=>console.log(JSON.stringify(event))),
-      onStop:()=>{require("../../packages/domain/150-career-portal-browser.js").shutdownAll();config.close?.();worker.releaseEvidence();}});
-    runner.start();return {worker,runner,stop:()=>{runner.stop();worker.releaseEvidence({immediate:true});}};
+      onStop:()=>closeResources()});
+    runner.start();return {worker,runner,stop:()=>{try{runner.stop();}finally{closeResources(true);}}};
   }
   const handle = createHttpHandler({ worker, authenticate: config.authenticate });
   const server = http.createServer(async (req, res) => {
@@ -33,7 +38,7 @@ function start(config) {
     res.end(await response.text());
   });
   const tick = setInterval(() => { try { worker.runPending(); } catch (e) { console.error("career worker:", e.code || "worker_error"); } }, 1000);
-  server.on("close", () => clearInterval(tick));
+  server.on("close", () => {clearInterval(tick);closeResources(true);});
   server.listen(config.port || 0, "127.0.0.1");
   return { server, worker };
 }

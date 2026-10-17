@@ -42,3 +42,10 @@ test('direct reads enforce an expired private deadline before RPC, even without 
  const f=fixture(root,{retentionClock:()=>clock}),q=f.worker.receive('user-a',f.input);assert.equal(f.worker.prepare('user-a',q.id).status,'review_ready');clock+=900001;f.authority.current=()=>{throw Error('No RPC after the private deadline');};
  const result=f.worker.get('user-a',q.id);assert.equal(result.review,null);assert.equal(result.result,null);assert.equal(result.blocker,'PRIVATE_RETENTION_EXPIRED');assert.equal(result.status,'cancelled');assert.equal(f.store.get(q.id).spec,null);assert.equal(f.count().clicks,0);
 });
+test('explicit legacy HTTP worker close purges private JSON and closes resources once',async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'MOCK-legacy-worker-close-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));let closed=0;
+ const storeRoot=path.join(root,'tasks'),authority=require('./fixtures/owned-worker-authority.cjs').mockAuthority(root),running=require('../workers/career-browser/run.cjs').start({storeRoot,authority,authenticate:()=>null,close:()=>closed++});
+ await require('node:events').once(running.server,'listening');const store=require('../workers/career-browser/store.cjs').createFileTaskStore(storeRoot),id='a'.repeat(32);
+ store.put({id,userId:'MOCK-user',status:'completed',spec:{private:'SYNTHETIC-PRIVATE'},result:{private:'SYNTHETIC-PRIVATE'},checkpoints:[]});
+ await new Promise(resolve=>running.server.close(resolve));assert.equal(closed,1);assert.equal(store.get(id).spec,null);assert.equal(store.get(id).result,null);assert.equal(store.get(id).status,'completed');
+});

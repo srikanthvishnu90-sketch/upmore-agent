@@ -62870,6 +62870,30 @@
     "Source working-tree hashes recorded; not deployed.",
     "No employer or live-model quality outcome."
    ]
+  },
+  {
+   "id": "mass-entry-full-source-20261017",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--source-only"
+   ],
+   "commit": "686bd05b",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 4761,
+    "failed": 0,
+    "skipped": 40
+   },
+   "exit_code": 0,
+   "log": "docs/career/mass-applications-20261017/evidence/source-after-app-repair.log",
+   "log_sha256": "891a2a922218c5846c4bd2eb62e35acfb217b3c96095fb8c4749873c2719e358",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No employer or paid provider call.",
+    "PostgreSQL resume chain is separately recorded."
+   ]
   }
  ],
  "limitations": [

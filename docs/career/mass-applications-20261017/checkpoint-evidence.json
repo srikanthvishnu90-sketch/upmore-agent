@@ -21,7 +21,13 @@
     "resumeClientToActualIngressAndLocalSQL": "1/1 PASS",
     "agent100": "103/103 synthetic dry PASS",
     "generatedAppInlineScripts": "6 blocks, existing all-inline CSP test passes",
-    "fullSource": "IN_PROGRESS",
+    "fullSource": {
+      "commit": "686bd05b",
+      "pass": 4761,
+      "fail": 0,
+      "skip": 40,
+      "log": "evidence/source-after-app-repair.log"
+    },
     "requiredOriginalArchives": "FAIL: unavailable originals; not waived",
     "actualBrowserUI": "NOT_VERIFIED: normal-sandbox probe ended without a retained successful result; no sandbox changes or alternate route attempted",
     "firstFullSource": {

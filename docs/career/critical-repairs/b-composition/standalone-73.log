@@ -1,0 +1,448 @@
+TAP version 13
+# Subtest: portable SHA-256 matches native crypto including Unicode and canonical reordering
+ok 1 - portable SHA-256 matches native crypto including Unicode and canonical reordering
+  ---
+  duration_ms: 22.905282
+  type: 'test'
+  ...
+# Subtest: full exact answer, rubric, source refs and side question enter one bounded request
+ok 2 - full exact answer, rubric, source refs and side question enter one bounded request
+  ---
+  duration_ms: 26.357004
+  type: 'test'
+  ...
+# Subtest: oversized answer is retained whole and no provider proposal is emitted
+ok 3 - oversized answer is retained whole and no provider proposal is emitted
+  ---
+  duration_ms: 53.119489
+  type: 'test'
+  ...
+# Subtest: untrusted candidate cannot self-certify a checker receipt or post-hoc answer hash
+ok 4 - untrusted candidate cannot self-certify a checker receipt or post-hoc answer hash
+  ---
+  duration_ms: 20.428918
+  type: 'test'
+  ...
+# Subtest: invalid span, missing rationale, invented fact and repeated transfer are refused
+ok 5 - invalid span, missing rationale, invented fact and repeated transfer are refused
+  ---
+  duration_ms: 34.760951
+  type: 'test'
+  ...
+# Subtest: not_assessed stays distinct from zero and aggregate mastery is forbidden
+ok 6 - not_assessed stays distinct from zero and aggregate mastery is forbidden
+  ---
+  duration_ms: 20.455838
+  type: 'test'
+  ...
+# Subtest: keyword-stuffed wrong answer has no deterministic score and no acceptance without checker proof
+ok 7 - keyword-stuffed wrong answer has no deterministic score and no acceptance without checker proof
+  ---
+  duration_ms: 12.6188
+  type: 'test'
+  ...
+# Subtest: unwired coaching returns explicit state and preserves the immutable attempt
+ok 8 - unwired coaching returns explicit state and preserves the immutable attempt
+  ---
+  duration_ms: 5.914346
+  type: 'test'
+  ...
+# Subtest: same event id with changed body conflicts rather than generating another assessment
+ok 9 - same event id with changed body conflicts rather than generating another assessment
+  ---
+  duration_ms: 4.875984
+  type: 'test'
+  ...
+# Subtest: raw benign words neither erase context nor accidentally become a graded answer
+ok 10 - raw benign words neither erase context nor accidentally become a graded answer
+  ---
+  duration_ms: 2.643366
+  type: 'test'
+  ...
+# Subtest: pause cancels inflight candidate, persists question, and resume does not restart intake
+ok 11 - pause cancels inflight candidate, persists question, and resume does not restart intake
+  ---
+  duration_ms: 9.827832
+  type: 'test'
+  ...
+# Subtest: time intervention changes future allocations without rewriting attempts or interview date
+ok 12 - time intervention changes future allocations without rewriting attempts or interview date
+  ---
+  duration_ms: 5.590309
+  type: 'test'
+  ...
+# Subtest: missing company or time permits project practice with explicit unknowns
+ok 13 - missing company or time permits project practice with explicit unknowns
+  ---
+  duration_ms: 0.906123
+  type: 'test'
+  ...
+# Subtest: artifact cannot complete on assembly, fake receipt, or hash-only readback
+ok 14 - artifact cannot complete on assembly, fake receipt, or hash-only readback
+  ---
+  duration_ms: 8.170149
+  type: 'test'
+  ...
+# Subtest: readable partial pack stays partial and stale pack after time change is rejected
+ok 15 - readable partial pack stays partial and stale pack after time change is rejected
+  ---
+  duration_ms: 12.103886
+  type: 'test'
+  ...
+# Subtest: supply of executable or credential objects cannot enter the read-only snapshot
+ok 16 - supply of executable or credential objects cannot enter the read-only snapshot
+  ---
+  duration_ms: 0.313512
+  type: 'test'
+  ...
+# Subtest: changing an answer after grading cannot retain an active assessment even if checksums are rewritten
+ok 17 - changing an answer after grading cannot retain an active assessment even if checksums are rewritten
+  ---
+  duration_ms: 15.451933
+  type: 'test'
+  ...
+# Subtest: pure start chooses one representative project question within the actual time budget
+ok 18 - pure start chooses one representative project question within the actual time budget
+  ---
+  duration_ms: 25.441978
+  type: 'test'
+  ...
+# Subtest: pause and serialization preserve checkpoint and same-key retry is deterministic
+ok 19 - pause and serialization preserve checkpoint and same-key retry is deterministic
+  ---
+  duration_ms: 42.624844
+  type: 'test'
+  ...
+# Subtest: foreign snapshot and unsupported external actions never acquire authority
+ok 20 - foreign snapshot and unsupported external actions never acquire authority
+  ---
+  duration_ms: 3.133673
+  type: 'test'
+  ...
+# Subtest: ownership correction invalidates only dependent feedback/drafts; independent research and time survive
+ok 21 - ownership correction invalidates only dependent feedback/drafts; independent research and time survive
+  ---
+  duration_ms: 65.863797
+  type: 'test'
+  ...
+# Subtest: withdrawal scrubs nested drafts, assessment spans and unresolved asks from subsequent active state/request/pack
+ok 22 - withdrawal scrubs nested drafts, assessment spans and unresolved asks from subsequent active state/request/pack
+  ---
+  duration_ms: 25.035677
+  type: 'test'
+  ...
+# Subtest: epoch fence precedes duplicate-event replay and removes all old attempts and candidate payload
+ok 23 - epoch fence precedes duplicate-event replay and removes all old attempts and candidate payload
+  ---
+  duration_ms: 6.144041
+  type: 'test'
+  ...
+# Subtest: late model response after correction cannot replace the selected current draft
+ok 24 - late model response after correction cannot replace the selected current draft
+  ---
+  duration_ms: 8.358312
+  type: 'test'
+  ...
+# Subtest: new target preserves historical stories but cancels fit, brief, draft and pack bindings
+ok 25 - new target preserves historical stories but cancels fit, brief, draft and pack bindings
+  ---
+  duration_ms: 10.943561
+  type: 'test'
+  ...
+# Subtest: changed snapshot without typed invalidation blocks old-pack creation instead of silently dropping dependencies
+ok 26 - changed snapshot without typed invalidation blocks old-pack creation instead of silently dropping dependencies
+  ---
+  duration_ms: 2.257025
+  type: 'test'
+  ...
+# Subtest: fake typed correction and value-bearing tombstone cannot acquire host authority
+ok 27 - fake typed correction and value-bearing tombstone cannot acquire host authority
+  ---
+  duration_ms: 2.215723
+  type: 'test'
+  ...
+# Subtest: reordered evidence retains canonical references and request meaning
+ok 28 - reordered evidence retains canonical references and request meaning
+  ---
+  duration_ms: 5.887204
+  type: 'test'
+  ...
+# Subtest: complete scripted practice loop keeps original/revision/transfer separate and does not aggregate mastery
+ok 29 - complete scripted practice loop keeps original/revision/transfer separate and does not aggregate mastery
+  ---
+  duration_ms: 246.919725
+  type: 'test'
+  ...
+# Subtest: actual UTF-8 file reopens in fresh Node process with exact hashes and content
+ok 30 - actual UTF-8 file reopens in fresh Node process with exact hashes and content
+  ---
+  duration_ms: 349.597455
+  type: 'test'
+  ...
+# Subtest: pause stores unresolved side question and exact attempt checkpoint before serialization
+ok 31 - pause stores unresolved side question and exact attempt checkpoint before serialization
+  ---
+  duration_ms: 9.823687
+  type: 'test'
+  ...
+# Subtest: foreign fact is refused even when the snapshot envelope names the current owner
+ok 32 - foreign fact is refused even when the snapshot envelope names the current owner
+  ---
+  duration_ms: 0.251879
+  type: 'test'
+  ...
+# Subtest: style edit consumes one admitted candidate while keeping original checkpoint and canonical facts
+ok 33 - style edit consumes one admitted candidate while keeping original checkpoint and canonical facts
+  ---
+  duration_ms: 19.27354
+  type: 'test'
+  ...
+# Subtest: user stop produces a partial pack and no late callback can claim completion
+ok 34 - user stop produces a partial pack and no late callback can claim completion
+  ---
+  duration_ms: 10.559168
+  type: 'test'
+  ...
+# Subtest: another role remains general practice without a software adapter claim or code execution
+ok 35 - another role remains general practice without a software adapter claim or code execution
+  ---
+  duration_ms: 2.563075
+  type: 'test'
+  ...
+# Subtest: pure modules run in ordered ESM-like VM without require, IO or provider globals
+ok 36 - pure modules run in ordered ESM-like VM without require, IO or provider globals
+  ---
+  duration_ms: 24.882206
+  type: 'test'
+  ...
+# Subtest: real capture requires correlated status, host receipt and actual readable source bytes
+ok 37 - real capture requires correlated status, host receipt and actual readable source bytes
+  ---
+  duration_ms: 36.951861
+  type: 'test'
+  ...
+# Subtest: fabricated success and altered source bytes fail before research can become usable
+ok 38 - fabricated success and altered source bytes fail before research can become usable
+  ---
+  duration_ms: 19.022913
+  type: 'test'
+  ...
+# Subtest: research queued remains explicit while independent practice is available
+ok 39 - research queued remains explicit while independent practice is available
+  ---
+  duration_ms: 8.183959
+  type: 'test'
+  ...
+# Subtest: research running remains explicit while independent practice is available
+ok 40 - research running remains explicit while independent practice is available
+  ---
+  duration_ms: 14.148211
+  type: 'test'
+  ...
+# Subtest: research failed remains explicit while independent practice is available
+ok 41 - research failed remains explicit while independent practice is available
+  ---
+  duration_ms: 10.091168
+  type: 'test'
+  ...
+# Subtest: research blocked remains explicit while independent practice is available
+ok 42 - research blocked remains explicit while independent practice is available
+  ---
+  duration_ms: 7.64506
+  type: 'test'
+  ...
+# Subtest: research unavailable remains explicit while independent practice is available
+ok 43 - research unavailable remains explicit while independent practice is available
+  ---
+  duration_ms: 7.316425
+  type: 'test'
+  ...
+# Subtest: research unsupported remains explicit while independent practice is available
+ok 44 - research unsupported remains explicit while independent practice is available
+  ---
+  duration_ms: 7.177055
+  type: 'test'
+  ...
+# Subtest: research unknown remains explicit while independent practice is available
+ok 45 - research unknown remains explicit while independent practice is available
+  ---
+  duration_ms: 8.396058
+  type: 'test'
+  ...
+# Subtest: research stale_context remains explicit while independent practice is available
+ok 46 - research stale_context remains explicit while independent practice is available
+  ---
+  duration_ms: 9.949466
+  type: 'test'
+  ...
+# Subtest: posting requirements cannot become personal skills in draft or legacy stories
+ok 47 - posting requirements cannot become personal skills in draft or legacy stories
+  ---
+  duration_ms: 15.693475
+  type: 'test'
+  ...
+# Subtest: source synthesis and priority updates carry evidence and change deterministic plan order
+ok 48 - source synthesis and priority updates carry evidence and change deterministic plan order
+  ---
+  duration_ms: 10.751482
+  type: 'test'
+  ...
+# Subtest: untrusted source URL cannot approve itself through an available capability
+ok 49 - untrusted source URL cannot approve itself through an available capability
+  ---
+  duration_ms: 5.116195
+  type: 'test'
+  ...
+# Subtest: reserve contract time-0
+ok 50 - reserve contract time-0
+  ---
+  duration_ms: 8.894609
+  type: 'test'
+  ...
+# Subtest: reserve contract time-1
+ok 51 - reserve contract time-1
+  ---
+  duration_ms: 4.449802
+  type: 'test'
+  ...
+# Subtest: reserve contract time-3
+ok 52 - reserve contract time-3
+  ---
+  duration_ms: 8.130299
+  type: 'test'
+  ...
+# Subtest: reserve contract time-5
+ok 53 - reserve contract time-5
+  ---
+  duration_ms: 19.937979
+  type: 'test'
+  ...
+# Subtest: reserve contract time-7
+ok 54 - reserve contract time-7
+  ---
+  duration_ms: 8.333385
+  type: 'test'
+  ...
+# Subtest: reserve contract time-20
+ok 55 - reserve contract time-20
+  ---
+  duration_ms: 4.679168
+  type: 'test'
+  ...
+# Subtest: reserve contract time-45
+ok 56 - reserve contract time-45
+  ---
+  duration_ms: 4.392326
+  type: 'test'
+  ...
+# Subtest: reserve contract time-180
+ok 57 - reserve contract time-180
+  ---
+  duration_ms: 8.489529
+  type: 'test'
+  ...
+# Subtest: reserve contract foreign_fact
+ok 58 - reserve contract foreign_fact
+  ---
+  duration_ms: 2.39326
+  type: 'test'
+  ...
+# Subtest: reserve contract foreign_source
+ok 59 - reserve contract foreign_source
+  ---
+  duration_ms: 1.848921
+  type: 'test'
+  ...
+# Subtest: reserve contract foreign_receipt
+ok 60 - reserve contract foreign_receipt
+  ---
+  duration_ms: 6.951586
+  type: 'test'
+  ...
+# Subtest: reserve contract foreign_artifact
+ok 61 - reserve contract foreign_artifact
+  ---
+  duration_ms: 6.699367
+  type: 'test'
+  ...
+# Subtest: reserve contract withdraw_project
+ok 62 - reserve contract withdraw_project
+  ---
+  duration_ms: 18.365865
+  type: 'test'
+  ...
+# Subtest: reserve contract replace_resume
+ok 63 - reserve contract replace_resume
+  ---
+  duration_ms: 12.751901
+  type: 'test'
+  ...
+# Subtest: reserve contract target_changed
+ok 64 - reserve contract target_changed
+  ---
+  duration_ms: 27.008675
+  type: 'test'
+  ...
+# Subtest: reserve contract epoch_after_pause
+ok 65 - reserve contract epoch_after_pause
+  ---
+  duration_ms: 6.425796
+  type: 'test'
+  ...
+# Subtest: reserve contract missing_coach_capability
+ok 66 - reserve contract missing_coach_capability
+  ---
+  duration_ms: 3.07146
+  type: 'test'
+  ...
+# Subtest: reserve contract missing_research_capability
+ok 67 - reserve contract missing_research_capability
+  ---
+  duration_ms: 7.392519
+  type: 'test'
+  ...
+# Subtest: reserve contract unknown_research
+ok 68 - reserve contract unknown_research
+  ---
+  duration_ms: 4.945468
+  type: 'test'
+  ...
+# Subtest: reserve contract stale_answer_hash
+ok 69 - reserve contract stale_answer_hash
+  ---
+  duration_ms: 4.553609
+  type: 'test'
+  ...
+# Subtest: reserve contract unsupported_candidate_field
+ok 70 - reserve contract unsupported_candidate_field
+  ---
+  duration_ms: 5.038648
+  type: 'test'
+  ...
+# Subtest: reserve contract invalid_span
+ok 71 - reserve contract invalid_span
+  ---
+  duration_ms: 6.403692
+  type: 'test'
+  ...
+# Subtest: reserve contract empty_artifact
+ok 72 - reserve contract empty_artifact
+  ---
+  duration_ms: 4.531836
+  type: 'test'
+  ...
+# Subtest: reserve contract stale_artifact_revision
+ok 73 - reserve contract stale_artifact_revision
+  ---
+  duration_ms: 4.429543
+  type: 'test'
+  ...
+1..73
+# tests 73
+# suites 0
+# pass 73
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 859.547468

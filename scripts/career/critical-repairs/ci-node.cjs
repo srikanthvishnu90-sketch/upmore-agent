@@ -16,7 +16,7 @@ run('python3',['-c','import docx;print(docx.__version__)']);
 run('pdftotext',['-v']);run('pdfinfo',['-v']);
 const testsRoot=path.join(root,'tests');
 function criticalTests(relative){const dir=path.join(testsRoot,relative);if(!fs.existsSync(dir))return [];return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?criticalTests(path.join(relative,e.name)):e.isFile()&&e.name.endsWith('.test.cjs')?[path.join(relative,e.name)]:[]);}
-const all=[...fs.readdirSync(testsRoot).filter(x=>x.endsWith('.cjs')),...criticalTests('career-critical-repairs')].sort();
+const all=[...fs.readdirSync(testsRoot).filter(x=>x.endsWith('.cjs')),...criticalTests('career-critical-repairs'),...criticalTests('career-interview-journey')].sort();
 const sqlFiles=all.filter(x=>x.endsWith('-postgres.test.cjs')||x==='privacy-research-composition.test.cjs'||/process\.env\.CAREER_TEST_(?:CONTAINER|DATABASE|PORT)/.test(fs.readFileSync(path.join(root,'tests',x),'utf8')));
 const sourceFiles=all.filter(x=>!sqlFiles.includes(x));
 const selected=argv.includes('--source-only')?sourceFiles:argv.includes('--postgres-only')?sqlFiles:all;

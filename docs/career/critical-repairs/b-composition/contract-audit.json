@@ -1,0 +1,48 @@
+{
+  "tier": "SOURCE_REVIEW_AND_MOCK_CONTRACT",
+  "owner_source": "53ae74b30b4dc5567be845ae3ba602927a9b74ed",
+  "composition_source": "1140d9be377c747278ae1fb02be299d2fa6c331d",
+  "canonical_context_accepted_by_B": {
+    "accepted": false,
+    "reason": "foreign evidence owner/scope"
+  },
+  "B_context_accepted_by_A": {
+    "ok": false,
+    "errors": [
+      "$.owner_id: string",
+      "$.thread_id: string",
+      "$.facts.0.item_version: required",
+      "$.facts.0.created: required",
+      "$.facts.0.effective: required",
+      "$.facts.0.freshness: required",
+      "$.facts.0.status: required",
+      "$.facts.0.source_refs: required",
+      "$.facts.0.version: extra",
+      "$.facts.0.owner_id: extra",
+      "$.facts.0.thread_id: extra",
+      "$.facts.0.scope: type",
+      "$.facts.0.provenance.kind: required",
+      "$.facts.0.provenance.record_id: required",
+      "$.facts.0.provenance.revision: required",
+      "$.facts.0.provenance.reference: required",
+      "$.facts.0.provenance.trust: required",
+      "$.facts.0.provenance.observed_at: required",
+      "$.facts.0.provenance.source_id: extra",
+      "$.facts.0.provenance.span: extra",
+      "$.facts.0.trust: extra",
+      "$.facts.0.validity: extra",
+      "$.facts.1.item_version: required",
+      "$.facts.1.created: required"
+    ]
+  },
+  "B_action_accepted_by_A": {
+    "ok": false,
+    "errors": [
+      "$: oneOf"
+    ]
+  },
+  "status": "BLOCKED_NEEDS_EXPLICIT_VERSIONED_ADAPTER",
+  "actual_entry": "NOT_WIRED",
+  "provider_quality": "NOT_RUN",
+  "provider_calls": 0
+}

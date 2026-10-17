@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Spec A composition checkpoint: merge published Spec B source 53ae74b3 into the isolated review branch without changing any B-owned file. Own CI discovery/negative-control gating and new A-owned compatibility evidence only. B source tests are offline contracts, not actual-entry or model-quality proof; registration and canonical compatibility remain pending.
+
 - 2026-10-17 final conversation replay prerequisite: scripts/career/conversation-recovery/{run,setup}.cjs local fixture identification only. Require an explicitly labeled owned, network-none Docker target; create a new database, print and recheck its marker before schema/reset. Preserve all frozen transcript expectations, predicates and failure records. Own new critical-repairs replay evidence only.
 
 - 2026-10-16 Spec A gateway prerequisite: narrow shared model_gateway.ts deadline/parent-abort/stream-byte-limit lifecycle only, plus frozen staged-gateway synthetic tests and evidence in the critical-repairs namespace. Preserve provider routing, approved configuration, raw usage checks, no retries and all existing callers. No provider execution. Freeze current seven failures before runtime repair.

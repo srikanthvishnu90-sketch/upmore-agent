@@ -1,0 +1,24 @@
+{
+  "initialRuntimeCheckpoint": "0c7f8026dcac7896c433d4199ec7cb659ff51baf",
+  "finalRuntimeCheckpoint": "2935f057b7183e06fb463d43fd180488f25049c2",
+  "sameFailures": true,
+  "failureCount": 13,
+  "failures": [
+    "D1 redirect gate: a board page that redirects OFF the allowlist stops the run typed HOST_REDIRECT_REFUSED \u2014 nothing filled, nothing submitted",
+    "D3 arming wire: runApply with an owner approvalRef arms the board and submits exactly once, confirmation captured; without a ref it refuses",
+    "D4 through the driver: education + country fields on a real form fill from the profile and land in the payload",
+    "D8 EEO decline default: the decline is selected even when the board words it 'Prefer not to answer'",
+    "D9 Lever custom card: the ask record quotes the human card question, not the machine field name",
+    "confirmation capture: an ambiguous landing page is unknown_outcome \u2014 never success \u2014 and reconcile keeps it unknown",
+    "confirmation capture: an armed submit that lands on a confirmation page returns ID + text + screenshot",
+    "doorstep: attestation is never auto-answered through the browser driver; with explicit confirmation the run reaches final review and stops",
+    "integrity: a resume file whose bytes do not match the profile sha is refused, never uploaded",
+    "submit stays unplugged unless armed: 149 approval alone does not enable a browser-board submit",
+    "\u00a76.3 captcha at open: run stops with CAPTCHA_HANDOFF, zero submits, stop on the step log",
+    "\u00a76.3 captcha at review: the run fills, reaches review, stops \u2014 CAPTCHA_HANDOFF with zero submits",
+    "\u00a76.3 isolation: two browser boards are two contexts \u2014 A's fills and storage never appear in B"
+  ],
+  "cause": "Chromium executable absent from preinstalled Playwright; attempted install denied by CDN HTTP 403 Domain forbidden",
+  "oldSourceLogSha256": "bfe4d1dbf2cc66adc5dcc790948720d9fc1e66c5fbb6fe37063a45a10729bd34",
+  "finalSourceLogSha256": "25d7c2f8b8279b0bdcda173155d22fa70ada1ca0be375219b500786068f0206c"
+}

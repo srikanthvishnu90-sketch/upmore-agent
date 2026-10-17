@@ -1,0 +1,12 @@
+CAUGHT  M01 skip verification: report success right after the write -> expected scenarios, caught by [scenarios]
+CAUGHT  M02 swap the tier check: T3 acts without confirmation -> expected scenarios, caught by [scenarios]
+CAUGHT  M03 drop the freshness label from answers -> expected scenarios, caught by [scenarios, safety]
+CAUGHT  M04 overclaim: the registry accepts TESTED without a test -> expected acceptance, caught by [acceptance]
+CAUGHT  M05 break split rounding: the remainder cents are dropped -> expected safety, caught by [safety]
+CAUGHT  M06 data guard off: connector text is never instruction-like -> expected safety, caught by [scenarios, safety]
+CAUGHT  M07 advice guard off: every request is allowed -> expected safety, caught by [safety]
+CAUGHT  M08 voice lint stops catching filler -> expected judged, caught by [judged]
+CAUGHT  M09 the savings ledger books unverified estimates -> expected benchmark, caught by [benchmark]
+CAUGHT  M10 idempotency dropped: a duplicate delivery writes twice -> expected scenarios, caught by [scenarios]
+CAUGHT  M11 news clusterer merges same-template headlines across companies, so one company's event swallows another's alert -> expected benchmark, caught by [benchmark]
+11/11 mutations caught and attributed

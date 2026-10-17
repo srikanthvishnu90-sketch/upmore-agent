@@ -1,0 +1,33 @@
+(node:79536) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:79536) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ source supersession is resume replacement only for the selected resume source (84.060663ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 156.60383
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/interview-context-compat.test.cjs:27:1
+✖ source supersession is resume replacement only for the selected resume source (84.060663ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'resume_replaced'
+  - 'correction'
+  
+      at TestContext.<anonymous> (/tmp/upmore-context-controls-wCl6bv/tests/career-critical-repairs/interview-context-compat.test.cjs:27:252)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'resume_replaced',
+    expected: 'correction',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

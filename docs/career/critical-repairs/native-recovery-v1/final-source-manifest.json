@@ -11,5 +11,6 @@
     "tests/career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs": "9e121ae472c80190acbae317c69c240ed0f582f3b569f3c30d7d94e18bb0f78c"
   },
   "paidCalls": 0,
-  "quality": "NOT_EVALUATED"
+  "quality": "NOT_EVALUATED",
+  "runtimeCheckpoint": "2935f057b7183e06fb463d43fd180488f25049c2"
 }

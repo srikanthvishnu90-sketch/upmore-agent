@@ -1,0 +1,31 @@
+(node:78791) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:78791) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ context consumer fixture keeps its pre-implementation frozen bytes (1.532993ms)
+✔ canonical A snapshot converts into the unchanged B context validator (74.553745ms)
+✔ unchanged B reducer supports explicitly classified target through the adapter (34.406417ms)
+✔ a software-looking title alone never supplies role family or level (17.753488ms)
+✔ classification from a different source record does not bind the target (17.537678ms)
+✔ ambiguous classification requires clarification rather than choosing a value (9.702844ms)
+✔ resume reference binds the owned source bytes, never a reported artifact label (9.229378ms)
+✔ stale/disputed/withdrawn personal evidence cannot enter B active facts (10.098876ms)
+✔ public-source provenance cannot turn a project fact into personal evidence (16.068461ms)
+✔ actual source bytes must match the declared source digest (10.086526ms)
+✔ changed context bytes and foreign evidence fail closed (98.279659ms)
+✔ absence never becomes available capability or execution proof (12.023998ms)
+✔ projection is immutable and leaves canonical input unchanged (8.779621ms)
+✔ explicit classification versions remain reducer dependencies (17.473475ms)
+✔ multiple targets require an explicit owned current selection (10.728192ms)
+✔ unrelated goal changes never become interview target invalidations (8.799671ms)
+✔ source supersession is resume replacement only for the selected resume source (8.417968ms)
+✔ an available canonical capability cannot bypass missing trusted result adapters (8.66236ms)
+✔ a new resume source version cannot silently retag the old selection as current (15.837829ms)
+✔ canonical version zero survives projection without renumbering (12.657083ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 473.949229

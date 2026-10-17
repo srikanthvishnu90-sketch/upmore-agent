@@ -1,0 +1,20 @@
+{
+  "base": "200a0f09fdee9c2c14ddc951c6d0e658dc47098c",
+  "preservedFiles": {
+    "packages/career-interview-journey/adapters/artifact.js": "57b10bf0cf542dde7b815670d0e5ee7ce718ec37bc57490899c1f8eda006e9ab",
+    "packages/career-interview-journey/adapters/context.js": "e267f4157ba051c9f78dd389f20e1a8019d7cad9f3c7068c33ccf89746ffa127",
+    "packages/career-interview-journey/adapters/legacy.js": "0466a5c23f6613779b06af8a90bdf9c5976a4918534879f2bd138eb1b40b9daf",
+    "packages/career-interview-journey/adapters/reasoning.js": "33efc3982150b81242e38376bc456810dc897b8d5ffa42ee5d5e56cb1c7b24c0",
+    "packages/career-interview-journey/adapters/research.js": "cee80154ebe970aa6039ea5f1b70a443b5c27b1c455125e4e5388925231b13cb",
+    "packages/career-interview-journey/prompts/assessment-v1.js": "aca986d115c11270c8ea3e827038751a7294b6b4eb7f1e5c8c2fc98fe26a4223",
+    "packages/career-interview-journey/rubrics/index.js": "93e2cdfedff2500ab660387827baca5c7eef1668dd6ae34c4c549f10609ffb6a",
+    "packages/domain/127-career-prep.js": "3afa89e5eca8e8a2d77cbdef335f73c3a14000a5f665595572b427cadac356f1",
+    "packages/domain/130-career-onboarding.js": "588c40cf788fc8386ffbaf7e4b5047429a0e64b5c7989799b06e0e0ec068623d",
+    "packages/domain/155-career-conversation.js": "b1e22b948a40225856238ecb386c06a702e675d006bfc321760a4d64dfe711ae",
+    "packages/domain/interview-journey/hash.js": "8ae1de6bdfc77f644084240fe608e8ac45257a6afc64562e4ffc86b6cdc52439",
+    "packages/domain/interview-journey/index.js": "97f49d86b4e89fc619713ad702fccdf41e2c2f9c7e3d00dd92180b2061c025a4",
+    "packages/domain/interview-journey/pack.js": "a18536a9eb153cd75c87d55c0147bf413b17e53ea02ecceb7617548795914d4c",
+    "packages/domain/interview-journey/state.schema.json": "becc442ff2dea1a655552892c02e67c9d76e561f3607c296e9b53e9315b35e5c"
+  },
+  "allUnchanged": true
+}

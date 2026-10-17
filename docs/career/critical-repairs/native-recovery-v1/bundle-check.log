@@ -1,0 +1,15 @@
+✔ the career bundle is current with packages/domain (build --career-only --check) (402.276897ms)
+✔ the career bundle exports only Career* names — no finance surface (172.31475ms)
+✔ pruned artifact == full bundle: 9-turn chain and the whole battery, byte-identical (560.585692ms)
+✔ B-05: the staged career artifact stays under the platform ceiling (206.959599ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (428.11519ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (176.378877ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (1.374554ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1230.08749

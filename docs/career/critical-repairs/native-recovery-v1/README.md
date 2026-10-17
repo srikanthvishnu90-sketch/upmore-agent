@@ -57,6 +57,28 @@ Agent100 dry agents pass; all 12 context negative controls and 11 standard eval
 mutations are caught; dataset validation passes. The eval harness's RELEASE OK
 verdict does not satisfy the separate required original-archive gate.
 
+Final runtime checkpoint: **`2935f057b7183e06fb463d43fd180488f25049c2`**.
+Its affected native reruns pass **28/28**: 13 entry, five authority, eight
+observation recovery, and two no-dispatch replay controls. The repeated full
+source selection again has **4,612 pass, 13 fail, 24 skip**, with exactly the same
+13 Chromium-unavailable failures (`source-failures-comparison.json`). No new
+source failure appeared. The final local handler typecheck with the labelled
+stub passes. Test runs began on a dirty predecessor HEAD; the final source hashes
+prove their runtime bytes equal this published checkpoint. The 280-check full
+SQL run used the predecessor's handler; both final SQL proposals are byte-for-byte
+identical, and the affected native handler paths were rerun after the guard fix.
+
+Exact runtime-head CI is [run 39003972040](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39003972040).
+The retained observation shows Deno (including real SDK checks) and database
+passing, Node pending, and the required original archival gate failing. The
+predecessor and original-head CI observations are separate and never substituted
+for the final head. See `checkpoint-ci-observation.json` for observed states.
+
+`evidence-ledger-proposal.json` proposes scoped append-only records for Muse;
+the shared common ledger was not overwritten. `verification-manifest.json`
+indexes the retained evidence hashes. No original archive, evaluator transcript
+or live-readiness receipt was generated.
+
 The full local Node source selection at the first checkpoint ran 4,649 outcomes:
 4,612 pass, 13 fail, 24 skip. Every failure is in the unchanged local portal
 browser suite: the preinstalled Playwright has no Chromium executable. Download

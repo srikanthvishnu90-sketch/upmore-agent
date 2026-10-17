@@ -1,0 +1,31 @@
+(node:79237) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:79237) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ public-source provenance cannot turn a project fact into personal evidence (81.555586ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 167.865864
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/interview-context-compat.test.cjs:18:1
+✖ public-source provenance cannot turn a project fact into personal evidence (81.555586ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(!r.snapshot.facts.some(x=>x.id==='fact-1'))
+  
+      at TestContext.<anonymous> (/tmp/upmore-context-controls-wCl6bv/tests/career-critical-repairs/interview-context-compat.test.cjs:18:283)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

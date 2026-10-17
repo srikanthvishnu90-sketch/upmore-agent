@@ -1,0 +1,120 @@
+✖ expired unknown-submit tombstone stays fenced without pinning a new pilot (2.831357ms)
+✖ ordinary polling expires old orphan evidence without deleting task fences (5.859985ms)
+✖ explicit shutdown removes fresh orphan evidence without deleting task fences (1.029102ms)
+✖ real expired uncertain checkpoint keeps polling unrelated work after restart past two minutes (26.09381ms)
+✖ expiry during an active pilot immediately reports a handoff rather than uncertainty timeout (18.287964ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 135.685736
+
+✖ failing tests:
+
+test at ../../tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:7:1
+✖ expired unknown-submit tombstone stays fenced without pinning a new pilot (2.831357ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  - 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+  
+      at TestContext.<anonymous> (/tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:10:50)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    expected: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:12:37
+✖ ordinary polling expires old orphan evidence without deleting task fences (5.859985ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:16:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:12:37
+✖ explicit shutdown removes fresh orphan evidence without deleting task fences (1.029102ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:16:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:18:1
+✖ real expired uncertain checkpoint keeps polling unrelated work after restart past two minutes (26.09381ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 2
+  
+      at TestContext.<anonymous> (/tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:20:219)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:22:1
+✖ expiry during an active pilot immediately reports a handoff rather than uncertainty timeout (18.287964ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (/tmp/career-retention-71fda-before/tests/career-orphan-retention.test.cjs:23:489)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,10 @@
+[Unit]
+Description=Fire the Upmore alerts scheduler every 15 minutes
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=true
+Unit=upmore-alerts-scheduler.service
+
+[Install]
+WantedBy=timers.target

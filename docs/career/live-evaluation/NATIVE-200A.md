@@ -120,3 +120,9 @@ results NOT_RUN**. Sealed prompts and actual-transcript placeholders are unchang
 [Source hashes and current findings](evidence/native-200a/interoperability-findings.json)
 record the exact candidate and bounds. This is an interoperability/source review,
 not completion of the parent's separate native-runtime audit.
+
+Exact tested evaluator source: `c74921a516b9744575c7dcf21cc757db8446f624`.
+[Recorded checks](../../testing/runs/independent-native-200a-interoperability-20261017/results.json)
+include 42 passing test names, raw log hashes and per-file source/evidence hashes.
+Both records are appended to the shared evidence ledger. Later publication
+changes only documentation/evidence.

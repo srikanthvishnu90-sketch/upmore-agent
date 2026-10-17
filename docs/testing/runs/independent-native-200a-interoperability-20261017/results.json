@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "label": "independent-native-200a-interoperability-20261017",
+  "commit": "c74921a516b9744575c7dcf21cc757db8446f624",
+  "source_digest": "0d16411f71d664affcd3ee25f0e07654778f420559a0583ca0fdc340514b42cd",
+  "observed_at": "2026-10-17T04:31:16.623173+00:00",
+  "checks": [
+    {
+      "id": "independent-native-200a-interoperability-20261017:evaluator-native-accounting",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/live-evaluation",
+        "-v"
+      ],
+      "observed_at": "2026-10-17T04:31:16.623173+00:00",
+      "commit": "c74921a516b9744575c7dcf21cc757db8446f624",
+      "source_digest": "0d16411f71d664affcd3ee25f0e07654778f420559a0583ca0fdc340514b42cd",
+      "environment": {
+        "os": "Linux-6.18.55-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": {
+        "passed": 42,
+        "failed": 0,
+        "provider_calls": 0,
+        "real_model_spend_micros": 0
+      },
+      "exit_code": 0,
+      "log": "docs/testing/runs/independent-native-200a-interoperability-20261017/evaluator-native-accounting.log",
+      "log_sha256": "b5cfe9e634067afcaa0c3468367d028f11a2dd790fd9131eb9ed823b41f7b308",
+      "verification_level": "LOCAL",
+      "provider_mode": "controlled-zero-cost",
+      "screenshots": [],
+      "test_ids": [
+        "test_all_three_liabilities_reserved_before_dispatch (test_admission.AdmissionTests.test_all_three_liabilities_reserved_before_dispatch)",
+        "test_artifact_requires_actual_matching_utf8_bytes (test_admission.AdmissionTests.test_artifact_requires_actual_matching_utf8_bytes)",
+        "test_binding_change_blocks_before_admission (test_admission.AdmissionTests.test_binding_change_blocks_before_admission)",
+        "test_changed_adapter_source_denies_before_dispatch (test_admission.AdmissionTests.test_changed_adapter_source_denies_before_dispatch)",
+        "test_changed_cap_or_campaign_refused (test_admission.AdmissionTests.test_changed_cap_or_campaign_refused)",
+        "test_concurrent_processes_share_one_unknown_stop (test_admission.AdmissionTests.test_concurrent_processes_share_one_unknown_stop)",
+        "test_deleted_ledger_cannot_reinitialize (test_admission.AdmissionTests.test_deleted_ledger_cannot_reinitialize)",
+        "test_duplicate_call_cannot_redispatch (test_admission.AdmissionTests.test_duplicate_call_cannot_redispatch)",
+        "test_final_receipt_does_not_refill_allocation (test_admission.AdmissionTests.test_final_receipt_does_not_refill_allocation)",
+        "test_invalid_or_unpriced_full_bound_refused (test_admission.AdmissionTests.test_invalid_or_unpriced_full_bound_refused)",
+        "test_malformed_partial_or_excessive_receipt_retains_hold (test_admission.AdmissionTests.test_malformed_partial_or_excessive_receipt_retains_hold)",
+        "test_missing_ledger_status_does_not_create_one (test_admission.AdmissionTests.test_missing_ledger_status_does_not_create_one)",
+        "test_missing_seal_denies_existing_ledger (test_admission.AdmissionTests.test_missing_seal_denies_existing_ledger)",
+        "test_missing_worker_or_native_readiness_prevents_install (test_admission.AdmissionTests.test_missing_worker_or_native_readiness_prevents_install)",
+        "test_natural_message_reaches_adapter_unchanged (test_admission.AdmissionTests.test_natural_message_reaches_adapter_unchanged)",
+        "test_operational_api_has_no_alternate_ledger_or_cap (test_admission.AdmissionTests.test_operational_api_has_no_alternate_ledger_or_cap)",
+        "test_partial_install_tombstone_never_recreates_allocation (test_admission.AdmissionTests.test_partial_install_tombstone_never_recreates_allocation)",
+        "test_repeated_install_never_resets_spend (test_admission.AdmissionTests.test_repeated_install_never_resets_spend)",
+        "test_same_provider_charge_cannot_be_counted_twice (test_admission.AdmissionTests.test_same_provider_charge_cannot_be_counted_twice)",
+        "test_sql_updates_deletes_and_over_cap_insert_refused (test_admission.AdmissionTests.test_sql_updates_deletes_and_over_cap_insert_refused)",
+        "test_timeout_never_retries_and_retains_full_pair (test_admission.AdmissionTests.test_timeout_never_retries_and_retains_full_pair)",
+        "test_typed_route_rejected_without_claiming_conversation (test_admission.AdmissionTests.test_typed_route_rejected_without_claiming_conversation)",
+        "test_unknown_blocks_new_id_and_survives_reopen (test_admission.AdmissionTests.test_unknown_blocks_new_id_and_survives_reopen)",
+        "test_actual_published_controlled_metadata_maps_without_typed_rewrite (test_native_receipt.NativeReceiptTests.test_actual_published_controlled_metadata_maps_without_typed_rewrite)",
+        "test_fifty_thousand_bound_admits_at_most_twenty_turns (test_native_receipt.NativeReceiptTests.test_fifty_thousand_bound_admits_at_most_twenty_turns)",
+        "test_hidden_other_liability_or_excessive_bound_refused (test_native_receipt.NativeReceiptTests.test_hidden_other_liability_or_excessive_bound_refused)",
+        "test_paid_checker_cannot_be_relabelled_local (test_native_receipt.NativeReceiptTests.test_paid_checker_cannot_be_relabelled_local)",
+        "test_tampered_raw_usage_or_configuration_refused (test_native_receipt.NativeReceiptTests.test_tampered_raw_usage_or_configuration_refused)",
+        "test_unknown_zero_known_cost_is_not_final_zero_receipt (test_native_receipt.NativeReceiptTests.test_unknown_zero_known_cost_is_not_final_zero_receipt)",
+        "test_wrong_original_native_request_hash_retains_full_bound (test_native_receipt.NativeReceiptTests.test_wrong_original_native_request_hash_retains_full_bound)",
+        "test_changed_existing_command_blocks_before_new_reservation (test_opaque_invocation.OpaqueInvocationTests.test_changed_existing_command_blocks_before_new_reservation)",
+        "test_configured_host_mismatch_refused (test_opaque_invocation.OpaqueInvocationTests.test_configured_host_mismatch_refused)",
+        "test_constructing_adapter_does_not_execute_or_configure_invocation (test_opaque_invocation.OpaqueInvocationTests.test_constructing_adapter_does_not_execute_or_configure_invocation)",
+        "test_live_contract_rejects_synthetic_receipt_wrapper_without_actual_native_response (test_opaque_invocation.OpaqueInvocationTests.test_live_contract_rejects_synthetic_receipt_wrapper_without_actual_native_response)",
+        "test_missing_readiness_stops_before_reservation (test_opaque_invocation.OpaqueInvocationTests.test_missing_readiness_stops_before_reservation)",
+        "test_native_wire_is_unchanged_and_bound_before_one_subprocess (test_opaque_invocation.OpaqueInvocationTests.test_native_wire_is_unchanged_and_bound_before_one_subprocess)",
+        "test_source_only_native_contract_cannot_claim_readiness (test_opaque_invocation.OpaqueInvocationTests.test_source_only_native_contract_cannot_claim_readiness)",
+        "test_counts_real_burden_with_artifact_readback_event (test_review.ReviewTests.test_counts_real_burden_with_artifact_readback_event)",
+        "test_failed_keeps_consumed_turns_and_no_completion_score (test_review.ReviewTests.test_failed_keeps_consumed_turns_and_no_completion_score)",
+        "test_promised_file_cannot_count_as_complete (test_review.ReviewTests.test_promised_file_cannot_count_as_complete)",
+        "test_question_coding_requires_quote_and_prior_fact (test_review.ReviewTests.test_question_coding_requires_quote_and_prior_fact)",
+        "test_unrun_is_null_not_zero (test_review.ReviewTests.test_unrun_is_null_not_zero)"
+      ],
+      "limitations": [
+        "Native accounting metadata replay and disposable evaluator controls only. Not actual Upmore handler execution, live model, configured invocation or worker fence verification."
+      ]
+    },
+    {
+      "id": "independent-native-200a-interoperability-20261017:diff-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "observed_at": "2026-10-17T04:31:16.623173+00:00",
+      "commit": "c74921a516b9744575c7dcf21cc757db8446f624",
+      "source_digest": "0d16411f71d664affcd3ee25f0e07654778f420559a0583ca0fdc340514b42cd",
+      "environment": {
+        "os": "Linux-6.18.55-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/independent-native-200a-interoperability-20261017/diff-whitespace.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification_level": "LOCAL",
+      "provider_mode": "controlled-zero-cost",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Native accounting metadata replay and disposable evaluator controls only. Not actual Upmore handler execution, live model, configured invocation or worker fence verification."
+      ]
+    }
+  ],
+  "not_run": [
+    "Actual browser/accessibility inspection: no enabled browser surface.",
+    "Partner sandbox/live: adapters not registered; no production authorization.",
+    "Root lint/format/security script: no configured command identified.",
+    "Database harness: separate privileged invocation required."
+  ],
+  "read_only_control_plane_evidence": "docs/career/live-evaluation/evidence/native-200a/readonly-control-plane.json",
+  "specific_source_hashes": {
+    "scripts/career/live-evaluation/admission.py": "adeb1212bbbc5c38c155448bc8219e97d75c0f4eee58147ffa16bf7b92443b5a",
+    "scripts/career/live-evaluation/harness.py": "f6f1d503dae6b458e13138a9cd38fffcfc802afce9854013c606de2d6d8f1fb0",
+    "scripts/career/live-evaluation/native_receipt.py": "6807be6c99460a0b458f486749ec759edb2013f20b8de9f1e0ee2913f830352d",
+    "scripts/career/live-evaluation/opaque_invocation.py": "52a69ff2e38769ec5c15da18eec3f6dc28c8338aa0e67770984ac8b8a86b68be",
+    "scripts/career/live-evaluation/preflight.py": "c288675b630a5604cbb412cbeddb657e510036795f5b3c0554dd89b855e0b759",
+    "scripts/career/live-evaluation/review.py": "6ed8d939bcb053ad9e84723739d80d9388c79d87bf288de65e29d05e9983435c",
+    "tests/live-evaluation/capture_controlled.py": "61d638c16637a1fde9786c7f771285760f25f5a1bd109519fbed223cbefd2527",
+    "tests/live-evaluation/capture_opaque_control.py": "61e105c6e5d543a0237c5c223b28df3cff972614d50da55553013f110279eec8",
+    "tests/live-evaluation/historical-budget-controls.mjs": "bef593a00cc8a84332c2d06b34f8c3a436012d9f2b6e1fc024b935e6481960b3",
+    "tests/live-evaluation/test_admission.py": "46ef2b68282041bfd52d78b18bc998c3193b2d0bdcc6a317b1455a8428175a92",
+    "tests/live-evaluation/test_native_receipt.py": "13b3aeae3376d283996d40ed8f2cfd18018d835114e5893f725174c4070d5bb8",
+    "tests/live-evaluation/test_opaque_invocation.py": "aa84dbdd7a76e97185844eb1d724419a09bf9207d581d57e1e0d8fff972b2adc",
+    "tests/live-evaluation/test_review.py": "4c5ffe440dffd0bc4f14a4ae7158cf19b084b57924cd3da748e8ff5715a93975",
+    "docs/career/live-evaluation/evidence/native-200a/interoperability-findings.json": "5a11f9851c41924e032c213bcac6a591246d36beffb7879e6d711058e219bb98",
+    "docs/career/live-evaluation/evidence/native-200a/published-controlled-metadata.json": "0c35280fb4f3d25576551abe67614c48063d5a6d224c57cf1ff1fd8051cca99c",
+    "docs/career/live-evaluation/evidence/native-200a/readonly-control-plane.json": "a8b9b47b7eac84e2309691ef4251f6b52167804a7079a992190989ebcc374976"
+  }
+}

@@ -1,0 +1,6 @@
+'use strict';
+// Freeze the reported false positive while preserving positive privacy controls.
+const {test}=require('node:test'),assert=require('node:assert/strict'),V=require('../../evals/data/validate.cjs');
+const SHA='315158f5314360417266270ec6e6e9e71aad0af8';
+test('typed full commit SHA is a digest rather than an embedded account number',()=>{for(const key of ['source','commit','sourceCommit','testedCommit'])assert.deepEqual(V.privacyFindings(JSON.stringify({[key]:SHA}),'synthetic.json'),[]);});
+test('account-shaped digits and secrets remain detected beside or inside untyped SHA-like text',()=>{for(const text of [JSON.stringify({account:'5314360417266270'}),JSON.stringify({source:SHA,account:'73619482015'}),JSON.stringify({note:'a73619482015b'}),JSON.stringify({source:SHA.slice(0,39)}),JSON.stringify({account:SHA})])assert.ok(V.privacyFindings(text,'synthetic.json').length,text);assert.ok(V.privacyFindings('ssn 123-45-6789','synthetic.txt').some(x=>x.rule==='ssn_shaped'));assert.ok(V.privacyFindings('card 4111111111111111','synthetic.txt').some(x=>x.rule==='card_number_shaped'));assert.ok(V.privacyFindings('routing 021000021','synthetic.txt').some(x=>x.rule==='routing_number_shaped'));});

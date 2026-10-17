@@ -1,0 +1,17 @@
+{
+  "preparedOnFrozenOracleCommit": "5698d750259b20c0381d206d209eed76152741cf",
+  "files": {
+    "supabase/functions/_shared/career_interview_entry.ts": "c1ed705ea8d86299070c6bb0a19f5517cb52e71db1aa0df5a55aa9c53df69309",
+    "supabase/sql/proposals/career_interview_entry_v1.sql": "cf6d533f4e50147942dcd87c16f158714fef4cf44fa1b4f4db946d54b3958797",
+    "supabase/functions/agent-chat/handler-career.ts": "f77db24eaa9f7a98975f416c7d6e23108f87e93593d9f6829e16de42d472724b",
+    "supabase/functions/_shared/career_host.js": "1871bbc29a780d031b1c54876f3beb0999e8604c20cd2b0f980b4e17e45e6422",
+    "scripts/build-router-core.py": "bd972eb420a22a55d1e4f7ace1a4af4265f0c0574af39aee358340b751a05dd8",
+    "scripts/career/stage-career.cjs": "53696902414d03ace83c9e56af56c0d6d7155689d6cdda02ec347fd0c56aabdb",
+    "tests/career-critical-repairs/interview-entry-postgres.test.cjs": "78973a5e2be1082de4e40c1b614bfb238619efae407a8cc7e8f9d96ef4ff4c6c"
+  },
+  "B_runtime": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+  "B_evidence_head": "325580e0f1ae226958718bef0b53979b86c85a26",
+  "providerCalls": 0,
+  "modelQuality": "NOT_RUN",
+  "browserOutcomes": 0
+}

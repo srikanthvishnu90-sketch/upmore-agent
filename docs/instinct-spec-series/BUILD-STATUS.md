@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Spec A actual-entry checkpoint: registered unchanged B interview runtime in both generated bundles; new default-off `_shared/career_interview_entry.ts` and owner-review `career_interview_entry_v1.sql` connect canonical owned context, existing atomic turn persistence, full durable proposals and authenticated exact-byte partial artifact readback. Frozen actual staged entry/native SQL journey passes; coaching/research remain unavailable, model quality and live browser outcomes NOT_RUN. Evidence: `docs/career/critical-repairs/interview-entry-v1/`. No shared release, deploy, production migration or module 127/130/155 edits.
+
 - 2026-10-17 Spec A composition checkpoint: merge published Spec B source 53ae74b3 into the isolated review branch without changing any B-owned file. Own CI discovery/negative-control gating and new A-owned compatibility evidence only. B source tests are offline contracts, not actual-entry or model-quality proof; registration and canonical compatibility remain pending.
 
 - 2026-10-17 final conversation replay prerequisite: scripts/career/conversation-recovery/{run,setup}.cjs local fixture identification only. Require an explicitly labeled owned, network-none Docker target; create a new database, print and recheck its marker before schema/reset. Preserve all frozen transcript expectations, predicates and failure records. Own new critical-repairs replay evidence only.

@@ -37,7 +37,7 @@ function test(files,env,label){
 const image='postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d';
 const container='upmore-career-integration-pg-ci-'+token,ready=path.join(out,'wire-ready.json');let wire,created=false;
 const docker=(args,input)=>run('docker',args,input===undefined?{}:{input});
-const ddl=['tests/fixtures/career-persistence-schema.sql','supabase/migrations/20261015020000_career_watch_kv.sql','supabase/migrations/20261015234000_career_task_intents_v1.sql','supabase/sql/proposals/career_public_research_v1.sql','supabase/sql/proposals/career_model_budget_v1.sql','supabase/sql/proposals/career_model_context_v2.sql','tests/fixtures/model-gateway-independent/monthly-schema.sql','supabase/migrations/20261010110000_model_call_budget.sql','supabase/sql/proposals/career_model_pair_budget_v2.sql'];
+const ddl=['tests/fixtures/career-persistence-schema.sql','supabase/migrations/20261015020000_career_watch_kv.sql','supabase/migrations/20261015234000_career_task_intents_v1.sql','supabase/sql/proposals/career_public_research_v1.sql','supabase/sql/proposals/career_model_budget_v1.sql','supabase/sql/proposals/career_model_context_v2.sql','tests/fixtures/model-gateway-independent/monthly-schema.sql','supabase/migrations/20261010110000_model_call_budget.sql','supabase/sql/proposals/career_model_pair_budget_v2.sql','supabase/sql/proposals/career_interview_entry_v1.sql'];
 summary.ddlSha256=Object.fromEntries(ddl.map(x=>[x,sha256(fs.readFileSync(path.join(root,x)))]));
 async function main(){try{
  if(!argv.includes('--postgres-only'))test(sourceFiles,{},'source');

@@ -37,7 +37,7 @@ const CareerHost = (() => {
     "trackStore", "suppression", "applyLog", "applicationLog", "outreach",
     "outreachContacts", "contacts", "sendingAccounts", "artifacts",
     "discovery", "plan", "offer", "portalRecords", "statusRecords",
-    "tasks", "resumeTexts", "pastedText",
+    "tasks", "resumeTexts", "pastedText", "interviewJourney",
     // COMPLEXITY WAVE: a user-pasted posting staged on ctx, the user's
     // own stated facts, the deferred parts of a multi-intent turn, and
     // relayed opt-out records — all four are conversation state the

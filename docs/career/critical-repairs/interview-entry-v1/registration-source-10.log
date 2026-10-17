@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: host creates and a networking ask is answered by the career path
+ok 1 - host creates and a networking ask is answered by the career path
+  ---
+  duration_ms: 46.959913
+  type: 'test'
+  ...
+# Subtest: apply ask with an empty live pool fabricates no roles
+ok 2 - apply ask with an empty live pool fabricates no roles
+  ---
+  duration_ms: 21.080693
+  type: 'test'
+  ...
+# Subtest: tracking ask gets a career answer, never the finance product
+ok 3 - tracking ask gets a career answer, never the finance product
+  ---
+  duration_ms: 2.00105
+  type: 'test'
+  ...
+# Subtest: kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx
+ok 4 - kill switch halts, and the halt survives a snapshot round-trip into a fresh ctx
+  ---
+  duration_ms: 2.170725
+  type: 'test'
+  ...
+# Subtest: a finance ask is NOT served as the finance product
+ok 5 - a finance ask is NOT served as the finance product
+  ---
+  duration_ms: 12.14719
+  type: 'test'
+  ...
+# Subtest: garbage input never throws and still returns a reply
+ok 6 - garbage input never throws and still returns a reply
+  ---
+  duration_ms: 11.976644
+  type: 'test'
+  ...
+# Subtest: B-05: the staged career artifact stays under the platform ceiling
+ok 7 - B-05: the staged career artifact stays under the platform ceiling
+  ---
+  duration_ms: 79.269666
+  type: 'test'
+  ...
+# Subtest: supabase/functions/_shared/router_core.js is current with packages/domain and the registry
+ok 8 - supabase/functions/_shared/router_core.js is current with packages/domain and the registry
+  ---
+  duration_ms: 247.96173
+  type: 'test'
+  ...
+# Subtest: the bundle loads as an ES module and exports the career seam modules and the reference JSON consts
+ok 9 - the bundle loads as an ES module and exports the career seam modules and the reference JSON consts
+  ---
+  duration_ms: 173.198749
+  type: 'test'
+  ...
+# Subtest: the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored
+ok 10 - the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored
+  ---
+  duration_ms: 1.193405
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 481.681459

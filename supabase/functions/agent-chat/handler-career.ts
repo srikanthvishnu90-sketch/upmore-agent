@@ -1,6 +1,7 @@
 import { careerModelReply } from "../_shared/career_model_reply.ts";
 import { dialogueStamp, groundedEnabled, type CareerModelDependencies } from "../_shared/career_model_grounded.ts";
 import { researchCommand } from "../_shared/career_research_policy.js";
+import {interviewTurn,interviewArtifact} from '../_shared/career_interview_entry.ts';
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
 // Owner decision 2026-10-15: "Prune the shelved finance half from the
@@ -141,6 +142,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
       );
     }
 
+    const artifactPath=new URL(req.url).pathname.match(/^\/career\/artifacts\/([a-f0-9-]{36})$/);
+    if(req.method==='GET'&&artifactPath){
+      if(bridgeUserId)return json(cors,{error:'unauthorized'},401);
+      const admin=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey);
+      return await interviewArtifact({admin,userId:user.id,id:artifactPath[1],cors});
+    }
     const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
     const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
@@ -163,6 +170,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
       throw error;
     }
     flowCtx.user = user.id; flowCtx.thread = tid;
+    if(body.career_journey!==undefined){
+      const note=flowCtx.note;flowCtx.note=null;
+      const admin=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey);
+      return await interviewTurn({admin,userId:user.id,threadId:tid,turnKey,message,raw:body.career_journey,images:imageBlocks||[],cors,note});
+    }
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
     // final switch" — the money version is gone from live). Career is the

@@ -48,6 +48,15 @@ function importsOf(file) {
 }
 
 const entrySrc = path.join(FN, ENTRY);
+const CONTRACTS = path.join(ROOT, 'packages', 'career-contracts');
+function stageKey(absolute) {
+  const real=fs.realpathSync(absolute);
+  for(const [base,prefix] of [[FN,''],[CONTRACTS,'_career_contracts/']]) {
+    const rel=path.relative(base,real);
+    if(rel&&!rel.startsWith('..')&&!path.isAbsolute(rel))return prefix+rel.split(path.sep).join('/');
+  }
+  throw Error('Import outside approved career staging roots');
+}
 const staged = new Map();
 const queue = [["agent-chat/index.ts", entrySrc]];
 while (queue.length) {
@@ -56,7 +65,7 @@ while (queue.length) {
   staged.set(key, srcAbs);
   for (const spec of importsOf(srcAbs)) {
     const targetAbs = path.resolve(path.dirname(srcAbs), spec);
-    const relKey = path.relative(FN, targetAbs).split(path.sep).join("/");
+    const relKey = stageKey(targetAbs);
     queue.push([relKey, targetAbs]);
   }
 }
@@ -66,7 +75,12 @@ const files = [];
 for (const [key, srcAbs] of [...staged.entries()].sort()) {
   const dest = path.join(STAGE, key);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  let content = fs.readFileSync(srcAbs);
+  let content = Buffer.from(fs.readFileSync(srcAbs,'utf8').replace(IMPORT_RE,(match,a,b)=>{
+    const spec=a||b;if(!spec||!spec.startsWith('.'))return match;
+    const target=stageKey(path.resolve(path.dirname(srcAbs),spec));
+    let relative=path.posix.relative(path.posix.dirname(key),target);if(!relative.startsWith('.'))relative='./'+relative;
+    return match.replace(spec,relative);
+  }));
   if (ESBUILD && key.endsWith(".js")) {
     const tmp = dest + ".raw.js";
     fs.writeFileSync(tmp, content);

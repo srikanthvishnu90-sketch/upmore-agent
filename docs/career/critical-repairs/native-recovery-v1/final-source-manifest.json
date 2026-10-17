@@ -1,0 +1,15 @@
+{
+  "base": "200a0f09fdee9c2c14ddc951c6d0e658dc47098c",
+  "predecessorCheckpoint": "0c7f8026dcac7896c433d4199ec7cb659ff51baf",
+  "changeAfterPredecessor": "Only handler replay guard requires an operation ID; new no-dispatch replay tests. SQL proposals and all other product bytes identical.",
+  "sourceSha256": {
+    "supabase/functions/_shared/career_native_reasoner.ts": "a5ca7981bd12d0fdb2f5d63936e12d3979db8ee9ab90d2eabd2056f1247650a4",
+    "supabase/functions/agent-chat/handler-career.ts": "6668cc78f81fd7bb063e352108010152b5105941ab05e3454b3b1e2ffe99f7da",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+    "supabase/sql/proposals/career_native_execution_v1.sql": "b937f75e939508485a73fc16dcfce0514277ccaa15d3da6bf6eb5153101f8c9f",
+    "tests/career-critical-repairs/native-observation-recovery-postgres.test.cjs": "278e73edf57278a6a8549121012f500bd72bff2b89c674669269af4a7798773e",
+    "tests/career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs": "9e121ae472c80190acbae317c69c240ed0f582f3b569f3c30d7d94e18bb0f78c"
+  },
+  "paidCalls": 0,
+  "quality": "NOT_EVALUATED"
+}

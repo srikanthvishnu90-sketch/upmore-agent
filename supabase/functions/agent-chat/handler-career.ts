@@ -204,7 +204,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
           const check=await admin.rpc('career_model_replay_check_v2',{p_user:user.id,p_thread:tid,p_key:turnKey,p_hash:requestHash});
           if(check.error||check.data?.ok!==true)throw Object.assign(new Error('career_context_changed'),{code:'career_model_context_changed'});
         }
-        if (loaded.replay.meta?.career_model?.contract==='native_pair_v1') {
+        if (loaded.replay.meta?.career_model?.contract==='native_pair_v1'&&typeof loaded.replay.meta.career_model.operation_id==='string') {
           const reconciled=await admin.rpc('career_native_replay_v1',{p_user:user.id,p_thread:tid,p_key:turnKey,p_hash:requestHash});
           if(reconciled.error||!reconciled.data?.response)throw Object.assign(new Error('native_replay_unavailable'),{code:reconciled.data?.error||'storage_unavailable'});
           flowCtx.note=null;return json(cors,reconciled.data.response,200);

@@ -40,12 +40,42 @@ explicit original type-only SDK stub pass. The real remote SDK import and full
 edge suite could not be fetched locally; those are not passing runtime checks.
 Broader source and local PostgreSQL suites are tracked in the follow-up evidence.
 
+Review of the first checkpoint found a no-dispatch replay edge case: native
+`not_configured` responses have no execution record. Routing them into the new
+RPC produced 503 on replay. Both missing-key and missing-policy regressions are
+retained in `no-dispatch-before.log` (0/2), then pass unchanged in
+`no-dispatch-after.log` (2/2). Reconciliation now requires a durable operation ID;
+zero-call responses retain ordinary exact replay. `final-source-manifest.json`
+pins this final guard and the two new tests. All other product bytes, including
+both SQL proposals, match the first checkpoint.
+
+The full local PostgreSQL selection on the first checkpoint completed **280/280
+across 25 suites** (`postgres-full.log` and its summary). Local migrations, RLS,
+ledger reapplication and concurrent-message contracts also pass, on unmodified
+inputs copied read-only to an isolated PostgreSQL 16.15 container. All 103
+Agent100 dry agents pass; all 12 context negative controls and 11 standard eval
+mutations are caught; dataset validation passes. The eval harness's RELEASE OK
+verdict does not satisfy the separate required original-archive gate.
+
+The full local Node source selection at the first checkpoint ran 4,649 outcomes:
+4,612 pass, 13 fail, 24 skip. Every failure is in the unchanged local portal
+browser suite: the preinstalled Playwright has no Chromium executable. Download
+is blocked with HTTP 403 `Domain forbidden`; errors are retained. No browser
+assertion, sandbox setting or skip rule was changed. Final-guard source and
+affected native reruns are recorded separately, with exact source hashes.
+
 The original archive gate still returns NOT_RUN and blocks release: all seven
 listed original assets are unavailable. Nothing is fabricated or waived.
 Controlled providers prove plumbing and accounting only, not model quality.
 Paid calls, live database mutations, credential changes, hosting, external
 submissions, merges and deployments: **zero**. The conservative whole-turn
 ceiling remains 50,000 microUSD; this lane has no paid-call allocation.
+
+No executor deployment command was run. The repository's automatic Vercel
+integration reported a success status after the authorized git push; this lane
+did not access or manage that deployment. Muse must integrate the matching
+pair-read and native SQL proposals with the handler source before enabling this
+repair. A code-only rollout against the old RPC definitions is not supported.
 
 See `source-manifest.json` for exact source/evidence hashes, and the unchanged
 [invocation contract](../native-text-v1/INVOCATION-READINESS.md) for live readiness

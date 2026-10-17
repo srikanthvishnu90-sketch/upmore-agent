@@ -44,6 +44,21 @@ test("MI-034 tranche 2 grew the watchable universe past the 107-board v2 line", 
   assert.ok(live.length >= 176, `live boards ${live.length} < 176 (107 v2 + 69 banks tranche minimum)`);
 });
 
+test("MI-034 egress 2 (Corpus 3A resume) grew the universe past 262 and token-labels its unattributable boards", () => {
+  assert.ok(live.length >= 309, `live boards ${live.length} < 309 (262 tranche-2 + 47 egress-2)`);
+  const key = (p, t) => live.some((b) => b.provider === p && String(b.board_token).toLowerCase() === t);
+  for (const [p, t] of [
+    ["smartrecruiters", "expeditors"], ["smartrecruiters", "harvarduniversity"],
+    ["ashby", "preply"], ["greenhouse", "blankstreet"], ["lever", "elfbeauty"],
+    ["greenhouse", "geotab"], ["ashby", "instructure"],
+  ]) assert.ok(key(p, t), `missing egress-2 board ${p}:${t}`);
+  for (const [p, t] of [["ashby", "ondeck"], ["ashby", "project44"], ["greenhouse", "coursehero"], ["greenhouse", "greenpeace"], ["greenhouse", "mit"], ["lever", "blueorigin"], ["lever", "mit"]]) {
+    const b = live.find((x) => x.provider === p && String(x.board_token).toLowerCase() === t);
+    assert.ok(b, `missing ${p}:${t}`);
+    assert.equal(b.company, b.board_token, `${p}:${t} company must stay the token (0 postings, unattributable), got ${b.company}`);
+  }
+});
+
 test("MI-034 banks tranche boards are present and live", () => {
   const key = (p, t) => live.some((b) => b.provider === p && String(b.board_token).toLowerCase() === t);
   for (const [p, t] of [

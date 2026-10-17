@@ -100,6 +100,7 @@ const CareerPortalBrowser = (() => {
       if (/(^|\.)lever\.co$/.test(host)) return "lever";
       if (/(^|\.)ashbyhq\.com$/.test(host)) return "ashby";
       if (/(^|\.)smartrecruiters\.com$/.test(host)) return "smartrecruiters";
+      if (/(^|\.)(tfaforms\.(net|com)|formassembly\.com)$/.test(host)) return "formassembly"; // MI-100
     } catch (e) { /* fall through */ }
     return null;
   }

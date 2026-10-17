@@ -7,7 +7,7 @@
    and submit ONLY on an explicit owner approval, exactly once, with
    timeout -> needs_human reconciliation (§8.3). §6.3 rules are hard code:
      - employer-hosted forms on TESTED ATS families only (Greenhouse,
-       Lever, Ashby, SmartRecruiters); LinkedIn / Indeed apply automation
+       Lever, Ashby, SmartRecruiters, FormAssembly — MI-100); LinkedIn / Indeed apply automation
        is refused by construction (AGGREGATOR_APPLY_FORBIDDEN);
      - one isolated session per user; a session refuses any other user;
      - a captcha / verification code at any point STOPS the run and hands
@@ -58,6 +58,14 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-100: FormAssembly — the hosted form platform behind Emergent
+    // Ventures (Mercatus Center, George Mason University; census
+    // 2026-10-15 §12 — the live form is mercatus.tfaforms.net/5099527).
+    // Tenants live on tfaforms.net / tfaforms.com subdomains;
+    // formassembly.com is the vendor's own host. Lookalikes (tfaforms.*
+    // on someone else's registrable domain) do NOT match: the pattern
+    // is anchored to the END of the hostname.
+    { re: /(^|\.)(tfaforms\.(net|com)|formassembly\.com)$/, family: "formassembly" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -82,7 +90,7 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, FormAssembly) and registered sandbox boards may be driven (§6.3)" };
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -134,6 +142,69 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-100: the FormAssembly sandbox board (TEST only) ----------
+  // FormAssembly-shaped field set, staged from the Emergent Ventures
+  // live form (census 2026-10-15 §12, form 5099527): basic questions
+  // (name/contact/country/state) fill from confirmed facts; region
+  // affected and the optional funding area are owner-decision fields;
+  // the proposal (no more than 1,500 words, three parts, must stand
+  // alone) is free_text and NEVER invented — Emergent Ventures' own
+  // form bans AI-written applications and tests submissions for them,
+  // so the product organizes facts + outline only and the proposal
+  // text may only ever be the owner's own confirmed draft (the generic
+  // free_text rule: confirmed + draft, nothing else fills). The live
+  // form's fields are read at drive time by module 150; this board is
+  // the faithful local seam for the pipeline, like the Greenhouse one.
+  const FORMASSEMBLY_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "state_of_residence", label: "State of residence", kind: "standard", profile_key: "state_of_residence", required: false },
+    { field_id: "resume", label: "Supplementary attachment (resume/CV)", kind: "standard", profile_key: "resume", required: false },
+    { field_id: "region_affected", label: "Region affected", kind: "free_text", question_key: "region_affected", required: false },
+    { field_id: "funding_area", label: "Dedicated funding area (optional)", kind: "free_text", question_key: "funding_area", required: false },
+    { field_id: "proposal", label: "Proposal (no more than 1,500 words — your own writing)", kind: "free_text", question_key: "proposal", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createFormAssemblySandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "formassembly",
+      host: "sandbox.tfaforms-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: FORMASSEMBLY_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-F-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -1023,6 +1094,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createFormAssemblySandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, FORMASSEMBLY_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

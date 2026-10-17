@@ -405,7 +405,33 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-100 fixture: a FormAssembly-shaped fellowship form (the Emergent
+// Ventures shape, form 5099527, staged from the census 2026-10-15 §12 —
+// fields are read at drive time by module 150 in the real product; this
+// fixture is the captured-form replay guard). The proposal textarea is
+// owner-writing only (EV bans AI-written applications): the drive must
+// leave it untouched, and it is not required here so the fact-only
+// doorstep can be verified around it.
+const FORMASSEMBLY_FORM = `<!doctype html><html><head><title>Emergent Ventures Application (TEST fixture)</title></head><body>
+<h1>Emergent Ventures</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="state">State of Residence</label><input id="state" name="state" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="region">Region affected</label><textarea id="region" name="region_affected"></textarea></div>
+  <div><label for="funding">Dedicated funding area (optional)</label><input id="funding" name="funding_area" type="text"></div>
+  <div><label for="proposal">Proposal (no more than 1,500 words)</label><textarea id="proposal" name="proposal"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/formassembly-form": FORMASSEMBLY_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

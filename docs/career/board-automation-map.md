@@ -74,6 +74,33 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+### FormAssembly — *.tfaforms.net / *.tfaforms.com / formassembly.com (MI-100)
+- What it is: the hosted form platform behind Emergent Ventures
+  (Mercatus Center, George Mason University; fellowship census
+  2026-10-15 §12). The live application is a tenant form —
+  https://mercatus.tfaforms.net/5099527 — rolling, no deadline.
+- **⛔ AI policy printed on the form itself:** Emergent Ventures no
+  longer accepts AI-written applications and tests submissions for
+  them. The 1,500-word proposal is the owner's own writing, always:
+  module 149 stages it as a free_text owner ask that fills ONLY from
+  the owner's own confirmed draft — the product organizes facts +
+  outline only, and never invents proposal text (guarded by
+  tests/career-formassembly-portal.test.cjs F2/F2b/F2c).
+- Account required to apply? None observed on the live form [census].
+  Fields are read at drive time through module 150 — the sandbox
+  board's field set is staged from the census summary (basic
+  questions = FACT; region affected + funding area = owner decisions;
+  proposal = owner writing; supplementary attachments allowed, PDFs
+  not accepted per the census).
+- Driver posture: **allowed** (MI-100, branch work/mi100-formassembly) —
+  host gate in 149 + 150 + the helper's navigation gate, end-anchored
+  so lookalikes (tfaforms.* on another registrable domain) stay
+  refused; doorstep proven tier-2 over a captured-form fixture
+  (tests/career-formassembly-portal.test.cjs 9/9 +
+  tests/career-formassembly-browser.test.cjs). No live FormAssembly
+  form has been driven and nothing has been submitted through this
+  family.
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

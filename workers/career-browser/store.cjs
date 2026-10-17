@@ -19,11 +19,12 @@ function createFileTaskStore(root) {
     const target = safe(task.id);
     task.revision = (task.revision || 0) + 1;
     const temp = target + "." + crypto.randomUUID() + ".tmp";
-    const fd = fs.openSync(temp, "wx", 0o600);
-    try { fs.writeFileSync(fd, JSON.stringify(task)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
-    fs.renameSync(temp, target);
-    const dir = fs.openSync(root, "r");
-    try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+    let fd;
+    try {
+      fd=fs.openSync(temp,"wx",0o600);fs.writeFileSync(fd,JSON.stringify(task));fs.fsyncSync(fd);fs.closeSync(fd);fd=undefined;
+      fs.renameSync(temp,target);
+      const dir=fs.openSync(root,"r");try{fs.fsyncSync(dir);}finally{fs.closeSync(dir);}
+    }finally{if(fd!==undefined)fs.closeSync(fd);try{fs.unlinkSync(temp);}catch(_){} }
   }
   function withLock(id, fn) {
     const lock = safe(id) + ".lock";
@@ -46,6 +47,14 @@ function createFileTaskStore(root) {
       return out;
     } finally { fs.closeSync(fd); fs.unlinkSync(lock); }
   }
-  return { get, put, withLock, list: () => fs.readdirSync(root).filter((x) => /^[a-f0-9]{32}\.json$/.test(x)).map((x) => x.slice(0, -5)) };
+  const writtenAt=id=>{try{return fs.lstatSync(safe(id)).mtimeMs;}catch(e){if(e.code==='ENOENT')return null;throw e;}};
+  function expireTemporary(ttlMs,at,immediate=false){
+    let remaining=false,delay=ttlMs;
+    for(const file of fs.readdirSync(root).filter(f=>/^[a-f0-9]{32}\.json\.[a-f0-9-]+\.tmp$/.test(f))){
+      const target=path.join(root,file),s=fs.lstatSync(target);if(!s.isFile()||s.isSymbolicLink())throw fail('PRIVATE_TEMPORARY_FILE_INVALID');
+      if(immediate||at-s.mtimeMs>=ttlMs)fs.unlinkSync(target);else{remaining=true;delay=Math.min(delay,Math.max(1,s.mtimeMs+ttlMs-at));}
+    }return {remaining,delay};
+  }
+  return { get, put, withLock, writtenAt, expireTemporary, list: () => fs.readdirSync(root).filter((x) => /^[a-f0-9]{32}\.json$/.test(x)).map((x) => x.slice(0, -5)) };
 }
 module.exports = { createFileTaskStore, hash, fail, clone };

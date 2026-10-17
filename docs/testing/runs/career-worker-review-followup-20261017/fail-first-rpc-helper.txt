@@ -1,0 +1,37 @@
+✖ actual RPC helper exits and removes private IPC after its parent is SIGKILLed (2095.751333ms)
+✖ actual RPC helper has an absolute TTL with a live parent and clears IPC (2054.757347ms)
+✖ actual RPC transport passes its bounded lifetime and fails closed after helper expiry (2053.758709ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6269.049476
+
+✖ failing tests:
+
+test at tests/career-rpc-helper-lifecycle.test.cjs:12:1
+✖ actual RPC helper exits and removes private IPC after its parent is SIGKILLed (2095.751333ms)
+  Error: Actual RPC helper did not stop within deadline
+      at until (/workspace/career-greenhouse-vertical/tests/career-rpc-helper-lifecycle.test.cjs:8:95)
+      at async TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-rpc-helper-lifecycle.test.cjs:19:2)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at tests/career-rpc-helper-lifecycle.test.cjs:21:1
+✖ actual RPC helper has an absolute TTL with a live parent and clears IPC (2054.757347ms)
+  Error: Actual RPC helper did not stop within deadline
+      at until (/workspace/career-greenhouse-vertical/tests/career-rpc-helper-lifecycle.test.cjs:8:95)
+      at async TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-rpc-helper-lifecycle.test.cjs:23:57)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/career-rpc-helper-lifecycle.test.cjs:25:1
+✖ actual RPC transport passes its bounded lifetime and fails closed after helper expiry (2053.758709ms)
+  Error: Actual RPC helper did not stop within deadline
+      at until (/workspace/career-greenhouse-vertical/tests/career-rpc-helper-lifecycle.test.cjs:8:95)
+      at async TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-rpc-helper-lifecycle.test.cjs:29:2)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

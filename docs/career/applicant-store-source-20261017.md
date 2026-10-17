@@ -1,0 +1,46 @@
+# Applicant store source mapping — 2026-10-17
+
+**Source-only proposal; no production schema/data inspected or mutated.** Existing source does not contain the required durable PDF/DOCX byte and explicit artifact-confirmation store. A genuine resume mentioned in today's snapshot cannot safely be upgraded into upload bytes. The new adapter fails closed until the proposal and authenticated upload/confirmation ingress are reviewed and integrated by Muse.
+
+## Existing canonical paths
+
+| Boundary | Actual source path | Finding |
+| --- | --- | --- |
+| Authenticated owner | `supabase/functions/agent-chat/handler-career.ts`: `supabase.auth.getUser`; verified bridge owner; `ownerThread` | User ID is server-derived. The production adapter does not accept owner/state from a chat payload. |
+| Career memory/profile | `career_persistence.js` → `career_host_load` → `agent_flow_state.state.career.stores.profile` | A per-thread owner-scoped snapshot. `profiles` is upserted as account identity here, not as applicant facts. No cross-thread "latest profile" query is invented. |
+| Profile confirmation | `packages/domain/122-career-profile.js`: `normalizeFact`, `confirmFact`; `130-career-onboarding.js` resume correction state | `status: confirmed` and `needs_confirmation: false` do not supply a versioned, owner/epoch-bound explicit confirmation for standard fields. No names, emails, eligibility, EEO or attestations are inferred. |
+| Legacy resume/artifact | `career_host.js` `STATE_KEYS` persists `artifacts`, `resumeTexts`; `141-career-doorstep.js` binds `{name,version,record,sha256,content}` | Labels/text/content hashes are not a durable owned PDF/DOCX blob. No actual byte-upload, Storage bucket or binary materialization path was found in migrations, handler, host or app source. |
+| Account controls | `career_watch_kv` key `career:account`; `career_host_commit`; `career_task_account_v1` | Existing owner lock/version/privacy epoch/pause remain the only authority. |
+| Application approval | `career_task_bridge.js` → `career_task_turn_commit_v1` → `career_task_intents_v1.binding` | Exact task/payload/resume/destination and optional profile hash, tied to authenticated thread/turn. A generic yes cannot authorize the browser. The adapter does not create approvals or submit effects. |
+
+## Minimal unapplied schema proposal
+
+`supabase/sql/proposals/career_applicant_resume_store_v1.sql` adds one private immutable-version resume table and service-only invoker functions. It is deliberately outside `supabase/migrations/` and is not applied live.
+
+`career_applicant_resumes_v1` holds actual bytes, server-computed digest, filename/MIME, owner/epoch, immutable artifact/version IDs, server sequence and an owned confirmation-turn reference. Limit: **1 MiB PDF/DOCX**, fitting the existing 2 MiB private RPC response cap after base64. Larger files fail explicitly; there is no Storage URL fallback. The latest confirmed pointer comes from `(user_id, privacy_epoch, sequence DESC)` in SQL, not a caller-sorted list or a requested historical ID.
+
+A new trigger stamps **future** durable `career:turn:*` receipts with the existing account version, read server-side in the same transaction. Old receipts are not backfilled. This avoids relying on equal timestamps as a version proof. A delayed earlier confirmation cannot become a new latest artifact after account activity advances.
+
+`career_applicant_resume_confirm_v1` is a backend ingress function, not a browser-worker method. It requires a real committed owner turn with the exact plain-text confirmation `Confirm resume <actual SHA-256> for applications`, and validates its existing `careerRequestHash` v2. The actual text-only handler hashes `acceptedImages: []` and `careerTask: null`; the staged HTTP regression verifies this exact path. The source receipt, owned thread, snapshot scope/epoch, account version, filename/type and actual bytes must all agree. A boolean, generic yes, old unstamped receipt, foreign turn, changed bytes/version or stale confirmation is refused. Immutable replay does not create a new sequence. This is explicit source-level pilot vocabulary; no upload/confirmation UI or automatic ingestion handler is shipped here.
+
+`career_applicant_equipment_resolve_v1` reads only for an active claimed prepare/approve intent with its exact owner/task/lease/version/epoch/resume hash. It also checks the owned worker lease and original prepare request's posting/artifact binding. Reconcile does not get resume bytes. Metadata and byte reads each validate current authority and latest selection under the existing owner lock. The output is `career_owned_equipment/v2`, with actual bytes returned separately on the second read.
+
+No SQL function is SECURITY DEFINER. RLS is enabled; anon/authenticated roles have no table or RPC access. The backend retains the existing explicit owner/task filters. An epoch change/account deletion erases the proposed byte records; deleting the source receipt cascades its artifacts. Database WAL/backups still require the owner's established retention policy; logical deletion is not claimed as physical backup erasure.
+
+## Concrete runtime wiring
+
+`workers/career-browser/applicant-store.cjs:createApplicantStoreEquipment` → existing private RPC transport's read-only `career_applicant_equipment_resolve_v1` method → proposed SQL → `createOwnedEquipmentResolver` → verified 0600 file under its private root. The real service's Equip phase now forwards the actual intent ID and lease token, plus task/account/epoch/posting/hash. No credential type or network destination was added.
+
+The operator template has an explicit opt-in `UPMORE_EQUIPMENT_SOURCE=applicant_resume_store_v1`; it is not configured here. Its default behavior still requires the owner-approved equipment module. The confirmation-write RPC is intentionally absent from the browser worker's RPC allowlist. No fixture fallback, sample candidate, local renderer, URL fetch or transcript parser is on the source adapter's runtime path. Employer readback remains NOT_WIRED.
+
+What can resolve **after** proposal + genuine upload/confirmation integration: the owner's latest explicitly confirmed immutable PDF/DOCX, its exact original bytes/digest/type/filename and confirmation provenance, under a valid application task lease. Unproven standard profile fields remain absent: the application pipeline asks for missing required answers. Current legacy stored snapshot artifacts cannot resolve as bytes, and no existing live user resume was fetched or proven to resolve by this lane.
+
+## Verification
+
+`node scripts/career/test-applicant-store.cjs` uses the pinned public PostgreSQL 16 image `postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea` already installed locally. It never pulls implicitly. It also runs the existing public-research and owned-claim PostgreSQL suites serially against the same migrated isolated schema, checking compatibility with the new receipt/erasure hooks. The ephemeral local container has network `none`, no ports or persistent volumes, and is removed in `finally`. It applies the real memory/task migrations and proposed SQL, with minimal local agent tables and synthetic applicant records. This is a new real PostgreSQL run, distinct from the earlier 285 structural checks.
+
+Tests exercise the actual staged authenticated HTTP handler and request hash, real SQL confirmation store, actual task claims and leases, both real local PDF/DOCX formats, source adapter and real service Equip integration. Fault cases cover absent legacy bytes, generic/foreign/stale confirmation, immutable replay, latest selection, changed authority during reads, STOP/erase, expired lease and client-role denial. Mock browser observation is used only in the test that proves the worker stops for missing confirmed email without a submit. The auth provider returns a synthetic owned test identity; this proves handler/SQL source wiring, not a live authenticated user session. No employer behavior or live applicant proof is represented by these tests.
+
+Supabase's [RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security) was consulted. The changelog markdown fetch was unavailable (web content-type error; direct fetch 403); no denial bypass was attempted. No new Supabase client API or dependency is introduced; SQL is verified on the pinned local PostgreSQL image.
+
+Final validation on runtime/schema checkpoint `a0ef00b0494e687030a2ff9b764416e5bf18ff12`: **275 domain/worker + 18 staged + 32 actual isolated PostgreSQL = 325 passed**, zero failures/skips in those groups. The PostgreSQL group comprises 15 applicant-store, 10 existing claim-recovery and 7 existing public-research cases; the test runner extends the latter two suites without changing runtime/schema source. [Expanded evidence](../testing/runs/applicant-store-expanded-20261017/results.json), [PostgreSQL evidence](../testing/runs/applicant-store-postgres-20261017/results.json), and [explicit source digests](../testing/runs/applicant-store-postgres-20261017/source-inputs.json). All local test containers were removed. Actual browser execution remains blocked by the previously recorded SUID/Crashpad environment failure; it was not retried for this store change. No employer registration or outcome was promoted.

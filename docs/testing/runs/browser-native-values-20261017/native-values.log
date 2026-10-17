@@ -1,0 +1,44 @@
+✔ native worker binds exact confirmed names/resume/manifest and keeps receipt-only outcome unknown with a durable fence (67.83664ms)
+✔ latest confirmed artifact correction before approval blocks before a modeled click (10.10463ms)
+✔ changed native manifest after restart invalidates prepared task before opening browser (14.802879ms)
+✔ posting identity and specific approval hash are independently enforced (12.126003ms)
+✔ verified route refusal is reported as diagnostic without clearing the durable submit fence (MODELED transport) (36.578023ms)
+✔ only modeled loopback manifests are registrable; relabeling cannot activate employer (5.49346ms)
+✔ manifest rejects duplicate name (0.305496ms)
+✔ manifest rejects duplicate selector (0.288269ms)
+✔ manifest rejects off-origin resources (0.200413ms)
+✔ manifest rejects resume masquerading as cover letter (0.327057ms)
+✔ exact bindings keep first and last names independent and preserve question identity (0.997423ms)
+✔ binding refuses renamed DOM field (0.339324ms)
+✔ binding refuses changed question (0.347006ms)
+✔ binding refuses changed options (0.557567ms)
+✔ binding refuses new required field (0.552756ms)
+✔ binding refuses duplicate DOM selector (0.324283ms)
+✔ binding refuses disabled resume (0.260278ms)
+✔ actual PDF bytes survive platform multipart encoding and native admission (LOCAL HTTP format) (46.115843ms)
+✔ actual DOCX bytes survive platform multipart encoding and native admission (LOCAL HTTP format) (3.732399ms)
+✔ outbound admission refuses wrong answer (2.549277ms)
+✔ outbound admission refuses extra hidden field (2.284297ms)
+✔ outbound admission refuses duplicate field (2.429661ms)
+✔ outbound admission refuses wrong bytes (1.856754ms)
+✔ truncated multipart never reaches destination admission (1.971373ms)
+✔ native receipt requires exact scoped markup, an admitted successful request, and stays nonauthoritative (0.748399ms)
+✔ native board never promotes generic thanks text into accepted and refuses second submit (MODELED command transport) (3.181358ms)
+✔ route sends one real pdf multipart to modeled loopback server, strips internal headers and prevents replay (130.649402ms)
+✔ route sends one real docx multipart to modeled loopback server, strips internal headers and prevents replay (76.908681ms)
+✔ invalid outbound bytes, absent arming, wrong endpoint and frames cause zero network effects (2.859797ms)
+✔ transport uncertainty consumes mutation allowance before fetch; a later command cannot retry (2.446099ms)
+✔ redirect is not followed and cannot become a receipt (1.861677ms)
+✔ representative HTML independently parses to the exact manifest fields (STATIC modeled fixture) (34.447627ms)
+✔ multiline textarea uses HTML form newline semantics without changing words or whitespace (platform multipart, no network) (2.350627ms)
+✔ pre-dispatch refusal is diagnostic; any admitted transmission stays uncertain (1.320491ms)
+✔ multipart quoted filenames preserve exact original identity and bytes (platform encoding, no network) (2.271482ms)
+✔ actual helper readback preserves Selecta and Select-prefixed prose; only empty select options are placeholders (3.098058ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 421.487343

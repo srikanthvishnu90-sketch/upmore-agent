@@ -1,0 +1,18 @@
+(node:3116) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3116) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ research intent commits without posting/profile/artifact and replays one turn pair (760.787408ms)
+✔ late research response rejection rolls back messages, account, state and intent (727.837783ms)
+✔ research grant only admits the typed public read effect and enforces ownership (1221.470705ms)
+✔ research rejects applicant data or changed immutable question in SQL (889.235554ms)
+✔ actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status (2724.293536ms)
+✔ failed actual chat commit makes no task intent, browser command or successful queued reply (536.231097ms)
+✔ actual committed STOP before dispatch cancels research without any MOCK read (789.66747ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7790.49881

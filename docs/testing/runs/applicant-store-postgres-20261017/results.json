@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "label": "applicant-store-postgres-20261017",
+  "checks": [
+    {
+      "id": "applicant-store-postgres-20261017:real-postgres",
+      "command": [
+        "node",
+        "scripts/career/test-applicant-store.cjs"
+      ],
+      "observed_at": "2026-10-17T05:07:05.443052+00:00",
+      "commit": "a0ef00b0494e687030a2ff9b764416e5bf18ff12",
+      "source_digest": "cb15069ef88e2a37898f05d5d74eb77ec31cbe9713cafbb776d6a12fb2c8e9f2",
+      "source_inputs": "docs/testing/runs/applicant-store-postgres-20261017/source-inputs.json",
+      "verification_level": "ISOLATED_POSTGRES",
+      "provider_mode": "SYNTHETIC_APPLICANT_AND_AUTH_ACTUAL_SQL_AND_STAGED_HANDLER",
+      "result": "PASS",
+      "exit_code": 0,
+      "reported_outcomes": {
+        "passed": 32,
+        "total": 32,
+        "failed": 0,
+        "skipped": 0,
+        "new_applicant_tests": 15,
+        "existing_claim_recovery_tests": 10,
+        "existing_research_tests": 7
+      },
+      "test_ids": [
+        "actual canonical turn -> confirmed pdf store -> claimed task RPC -> exact private bytes; snapshot facts are not auto-confirmed",
+        "actual canonical turn -> confirmed docx store -> claimed task RPC -> exact private bytes; snapshot facts are not auto-confirmed",
+        "actual staged authenticated handler commits the exact confirmation hash used by the proposed writer",
+        "legacy snapshot artifact labels cannot resolve as resume bytes without the new confirmed store",
+        "caller boolean, generic yes, wrong turn or foreign receipt cannot mint a confirmation",
+        "confirmation binds real bytes and immutable version, with an idempotent replay",
+        "delayed confirmation of an old owner turn cannot supersede newer account activity",
+        "latest confirmed resume is chosen by server sequence, never requested historical ID/hash",
+        "task owner, lease, posting, digest and account version are independently scoped",
+        "STOP revokes resolution and ERASE deletes server bytes without another owner loss",
+        "correction between metadata and byte RPC prevents materialization",
+        "SQL gates expired owned lease and unclaimed task; no bytes are returned",
+        "actual service forwards the claimed task/lease to source adapter and asks for missing confirmed facts",
+        "legacy receipts without a server account-version stamp are refused; invalid MIME/size never persists",
+        "client roles cannot read/write bytes or call either service RPC; no SECURITY DEFINER",
+        "lost committed claim acknowledgement is read back once without redispatch",
+        "death before task checkpoint recovers on the same durable worker identity and prepares once",
+        "foreign owner, worker, request and live-lease takeover are refused",
+        "expired queued checkpoint refreshes its local lease before the first browser command",
+        "expired claim requires generation CAS, rotates lease and fences stale worker",
+        "unknown submit fence survives missing checkpoint and can never be reclaimed or repeated",
+        "active approval progresses beyond 60 older unrelated intents",
+        "active reconciliation progresses beyond 60 older unrelated intents",
+        "scoped SQL pending binds owner, worker and epoch and preserves pause and client guards",
+        "new recovery RPCs remain inaccessible to client roles",
+        "research intent commits without posting/profile/artifact and replays one turn pair",
+        "late research response rejection rolls back messages, account, state and intent",
+        "research grant only admits the typed public read effect and enforces ownership",
+        "research rejects applicant data or changed immutable question in SQL",
+        "actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status",
+        "failed actual chat commit makes no task intent, browser command or successful queued reply",
+        "actual committed STOP before dispatch cancels research without any MOCK read"
+      ],
+      "log": "docs/testing/runs/applicant-store-postgres-20261017/postgres-output-excerpt.log",
+      "log_sha256": "40c55f97b61ee2644c43f04f9f891debab42bb634ff76b5a520a5fb83f85a43e",
+      "log_scope": "stdout excerpt omits initial metadata and first two passing test rows; exact first two names included above and final summary preserved",
+      "image": "postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+      "isolation": {
+        "network": "none",
+        "ports": 0,
+        "persistentVolumes": 0,
+        "containerRemoved": true
+      },
+      "limitations": [
+        "Actual SQL and staged handler; synthetic candidate data and auth identity. No production connection or live applicant proof.",
+        "Runtime/schema source committed at listed SHA; runner extended compatibility suites in working tree. Exact runner digest supplied.",
+        "No browser/employer send, deployment, production mutation or new credential binding."
+      ]
+    }
+  ]
+}

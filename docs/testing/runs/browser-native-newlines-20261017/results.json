@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "label": "browser-native-newlines-20261017",
+  "commit": "06085b3ce81ed991b5ab526798c91d83e2522ec1",
+  "source_digest": "c9ee268a4e22825a53ad98ccb0f1c1814606a3bc3cc4960edf9a8e6c231e6837",
+  "observed_at": "2026-10-17T04:56:31.828814+00:00",
+  "checks": [
+    {
+      "id": "browser-native-newlines-20261017:native-regressions",
+      "command": [
+        "node",
+        "--test",
+        "tests/career-greenhouse-native.test.cjs",
+        "tests/career-greenhouse-native-worker.test.cjs",
+        "tests/career-worker-review-regressions.test.cjs",
+        "tests/career-receipt-integrity.test.cjs"
+      ],
+      "observed_at": "2026-10-17T04:56:31.828814+00:00",
+      "commit": "06085b3ce81ed991b5ab526798c91d83e2522ec1",
+      "source_digest": "c9ee268a4e22825a53ad98ccb0f1c1814606a3bc3cc4960edf9a8e6c231e6837",
+      "environment": {
+        "os": "Linux-6.18.55-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/browser-native-newlines-20261017/native-regressions.log",
+      "log_sha256": "c6232ca93aaf04e363130678bbcb988982bf69457366f702ed2ef4a83843eea6",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [
+        "native worker binds exact confirmed names/resume/manifest and keeps receipt-only outcome unknown with a durable fence",
+        "latest confirmed artifact correction before approval blocks before a modeled click",
+        "changed native manifest after restart invalidates prepared task before opening browser",
+        "posting identity and specific approval hash are independently enforced",
+        "verified route refusal is reported as diagnostic without clearing the durable submit fence (MODELED transport)",
+        "only modeled loopback manifests are registrable; relabeling cannot activate employer",
+        "manifest rejects duplicate name",
+        "manifest rejects duplicate selector",
+        "manifest rejects off-origin resources",
+        "manifest rejects resume masquerading as cover letter",
+        "exact bindings keep first and last names independent and preserve question identity",
+        "binding refuses renamed DOM field",
+        "binding refuses changed question",
+        "binding refuses changed options",
+        "binding refuses new required field",
+        "binding refuses duplicate DOM selector",
+        "binding refuses disabled resume",
+        "actual PDF bytes survive platform multipart encoding and native admission (LOCAL HTTP format)",
+        "actual DOCX bytes survive platform multipart encoding and native admission (LOCAL HTTP format)",
+        "outbound admission refuses wrong answer",
+        "outbound admission refuses extra hidden field",
+        "outbound admission refuses duplicate field",
+        "outbound admission refuses wrong bytes",
+        "truncated multipart never reaches destination admission",
+        "native receipt requires exact scoped markup, an admitted successful request, and stays nonauthoritative",
+        "native board never promotes generic thanks text into accepted and refuses second submit (MODELED command transport)",
+        "route sends one real pdf multipart to modeled loopback server, strips internal headers and prevents replay",
+        "route sends one real docx multipart to modeled loopback server, strips internal headers and prevents replay",
+        "invalid outbound bytes, absent arming, wrong endpoint and frames cause zero network effects",
+        "transport uncertainty consumes mutation allowance before fetch; a later command cannot retry",
+        "redirect is not followed and cannot become a receipt",
+        "representative HTML independently parses to the exact manifest fields (STATIC modeled fixture)",
+        "multiline textarea uses HTML form newline semantics without changing words or whitespace (platform multipart, no network)",
+        "pre-dispatch refusal is diagnostic; any admitted transmission stays uncertain",
+        "destination boolean ID stays unknown and cannot cause another submit",
+        "destination object ID stays unknown and cannot cause another submit",
+        "destination blank ID stays unknown and cannot cause another submit",
+        "destination negative outcome stays unknown and cannot cause another submit",
+        "destination pending status stays unknown and cannot cause another submit",
+        "destination wrong actual resume hash stays unknown and cannot cause another submit",
+        "destination wrong actual payload hash stays unknown and cannot cause another submit",
+        "destination invalid actual file size stays unknown and cannot cause another submit",
+        "receipt validation is not a client authentication or employer activation mechanism",
+        "confirmation parser requires an explicit reference label",
+        "actual 150 adapter extracts explicit application reference, never success prose",
+        "actual 150 receipt capture binds the private submit capture and refuses absent PNG",
+        "one-application runner remains alive through review, approval uncertainty and reconciliation",
+        "idle review checkpoint is purged on ordinary polling after epoch revocation",
+        "browser helper gets a benign environment and managed lifetime, never backend markers",
+        "service calls the actual 150 immutable receipt seam for the exact destination ID",
+        "idle revocation purges private evidence but preserves an unknown-submit tombstone",
+        "runner bounds idle and uncertain waits and preserves the same checkpoint on restart"
+      ],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    },
+    {
+      "id": "browser-native-newlines-20261017:whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "observed_at": "2026-10-17T04:56:31.828814+00:00",
+      "commit": "06085b3ce81ed991b5ab526798c91d83e2522ec1",
+      "source_digest": "c9ee268a4e22825a53ad98ccb0f1c1814606a3bc3cc4960edf9a8e6c231e6837",
+      "environment": {
+        "os": "Linux-6.18.55-x86_64-with-glibc2.41"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/browser-native-newlines-20261017/whitespace.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    }
+  ],
+  "not_run": [
+    "Actual browser/accessibility inspection: no enabled browser surface.",
+    "Partner sandbox/live: adapters not registered; no production authorization.",
+    "Root lint/format/security script: no configured command identified.",
+    "Database harness: separate privileged invocation required."
+  ]
+}

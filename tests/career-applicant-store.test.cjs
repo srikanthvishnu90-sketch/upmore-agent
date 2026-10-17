@@ -1,0 +1,10 @@
+'use strict';
+// Failure-boundary tests only. Successful source wiring is exercised separately
+// through actual PostgreSQL and staged handler; no fixture acceptance claims.
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {createApplicantStoreEquipment}=require('../workers/career-browser/applicant-store.cjs');
+const {METHODS}=require('../workers/career-browser/rpc-client.cjs');
+function fixture(t,call){const root=fs.mkdtempSync(path.join(os.tmpdir(),'MOCK-applicant-read-fault-')),cache=path.join(root,'copies'),authority={current:()=>({exists:true,version:1,epoch:0,paused:false})},a=createApplicantStoreEquipment({root:cache,authority,call});t.after(()=>{a.close();fs.rmSync(root,{recursive:true,force:true});});return {a,cache,scope:{accountVersion:1,privacyEpoch:0,taskId:'a'.repeat(32),intentId:'b'.repeat(64),leaseToken:'00000000-0000-4000-8000-000000000001',postingKey:'local:role',resumeSha256:'c'.repeat(64)}};}
+test('worker transport allows only the scoped equipment read, never artifact confirmation writes',()=>{assert.equal(METHODS.has('career_applicant_equipment_resolve_v1'),true);assert.equal(METHODS.has('career_applicant_resume_confirm_v1'),false);});
+test('missing schema/RPC is unavailable, with no rendered, fixture or legacy snapshot fallback',t=>{let calls=0;const f=fixture(t,()=>{calls++;throw Error('SYNTHETIC missing function');});assert.throws(()=>f.a.resolveEquipment('user','resume',f.scope),{code:'APPLICANT_STORE_UNAVAILABLE'});assert.equal(calls,1);assert.deepEqual(fs.readdirSync(f.cache),[]);});
+test('unclaimed/async equipment sources cannot create private files',t=>{let calls=0;const f=fixture(t,async()=>{calls++;return {};});assert.throws(()=>f.a.resolveEquipment('user','resume',{...f.scope,leaseToken:null}),{code:'APPLICANT_TASK_SCOPE_REQUIRED'});assert.equal(calls,0);assert.throws(()=>f.a.resolveEquipment('user','resume',f.scope),{code:'SYNC_EQUIPMENT_ADAPTER_REQUIRED'});assert.equal(calls,1);assert.deepEqual(fs.readdirSync(f.cache),[]);});

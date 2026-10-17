@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>MODELED Greenhouse native form — local test only</title>
+<h1>MODELED native hosted form</h1><p>SYNTHETIC CANDIDATE. This is not an employer form or captured Greenhouse HTML.</p>
+<form id="application" action="/native-submit" method="post" enctype="multipart/form-data">
+<label for="first_name">First name</label><input id="first_name" type="text" name="job_application[first_name]" required>
+<label for="last_name">Last name</label><input id="last_name" type="text" name="job_application[last_name]" required>
+<label for="email">Email</label><input id="email" type="email" name="job_application[email]" required>
+<label for="resume">Resume</label><input id="resume" type="file" name="job_application[resume]" required accept=".pdf,.docx">
+<label for="sponsorship">Will you require sponsorship?</label><select id="sponsorship" name="job_application[answers][sponsor]" required><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select>
+<button id="submit_application" type="submit">Submit application</button>
+</form>

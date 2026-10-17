@@ -58,11 +58,13 @@ function start(root) {
       if (parsed.fields.work_authorization) payload.work_authorization = parsed.fields.work_authorization;
       payload.certify = parsed.fields.certify === "on";
       payload.resume_sha256 = resume.sha256;
-      if (sha(JSON.stringify(payload)) !== req.headers["x-upmore-review"] || resume.sha256 !== req.headers["x-upmore-resume"]) throw new Error("posted bytes differ from approved review");
+      const receivedPayloadSha256 = sha(JSON.stringify(payload));
+      if (receivedPayloadSha256 !== req.headers["x-upmore-review"] || resume.sha256 !== req.headers["x-upmore-resume"]) throw new Error("posted bytes differ from approved review");
       const dest = "http://localhost:" + server.address().port + "/submit";
-      const proof = { source: "controlled_portal_readback", taskId, userId: req.headers["x-upmore-user"],
+      const proof = { source: "controlled_portal_readback", outcome: "accepted", taskId, userId: req.headers["x-upmore-user"],
         destination: dest, payloadSha256: req.headers["x-upmore-review"], resumeSha256: resume.sha256,
-        confirmationId: "LOCAL-" + taskId.slice(0, 10), receivedFileBytes: resume.bytes };
+        confirmationId: "LOCAL-" + taskId.slice(0, 10), receivedFileBytes: resume.bytes,
+        receivedPayloadSha256, receivedResumeSha256: resume.sha256 };
       const receipt = path.join(root, taskId + ".json");
       const fd = fs.openSync(receipt, "wx", 0o600); // a duplicate cannot create a second receipt
       fs.writeFileSync(fd, JSON.stringify(proof)); fs.fsyncSync(fd); fs.closeSync(fd);

@@ -1,0 +1,85 @@
+✖ lost committed claim acknowledgement is read back once without redispatch (440.553086ms)
+✖ death before task checkpoint recovers on the same durable worker identity and prepares once (502.841611ms)
+✖ foreign owner, worker, request and live-lease takeover are refused (424.979406ms)
+✖ expired claim requires generation CAS, rotates lease and fences stale worker (446.440402ms)
+✖ unknown submit fence survives missing checkpoint and can never be reclaimed or repeated (489.680421ms)
+✔ new recovery RPCs remain inaccessible to client roles (263.150433ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 1
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2687.424127
+
+✖ failing tests:
+
+test at tests/career-claim-recovery-postgres.test.cjs:23:2
+✖ lost committed claim acknowledgement is read back once without redispatch (440.553086ms)
+  Error: TASK_AUTHORITY_UNAVAILABLE
+      at fail (/workspace/career-greenhouse-vertical/workers/career-browser/store.cjs:6:54)
+      at rpc (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:13:23)
+      at Object.claim (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:34:27)
+      at claim (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:20:35)
+      at TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:26:11)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'TASK_AUTHORITY_UNAVAILABLE'
+  }
+
+test at tests/career-claim-recovery-postgres.test.cjs:28:2
+✖ death before task checkpoint recovers on the same durable worker identity and prepares once (502.841611ms)
+  Error: TASK_AUTHORITY_UNAVAILABLE
+      at fail (/workspace/career-greenhouse-vertical/workers/career-browser/store.cjs:6:54)
+      at rpc (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:13:23)
+      at Object.pending (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:68:24)
+      at Object.runPending (/workspace/career-greenhouse-vertical/workers/career-browser/service.cjs:353:37)
+      at TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:41:26)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'TASK_AUTHORITY_UNAVAILABLE'
+  }
+
+test at tests/career-claim-recovery-postgres.test.cjs:43:2
+✖ foreign owner, worker, request and live-lease takeover are refused (424.979406ms)
+  Error: TASK_AUTHORITY_UNAVAILABLE
+      at fail (/workspace/career-greenhouse-vertical/workers/career-browser/store.cjs:6:54)
+      at rpc (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:13:23)
+      at Object.claim (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:34:27)
+      at claim (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:20:35)
+      at TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:44:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'TASK_AUTHORITY_UNAVAILABLE'
+  }
+
+test at tests/career-claim-recovery-postgres.test.cjs:48:2
+✖ expired claim requires generation CAS, rotates lease and fences stale worker (446.440402ms)
+  Error: TASK_AUTHORITY_UNAVAILABLE
+      at fail (/workspace/career-greenhouse-vertical/workers/career-browser/store.cjs:6:54)
+      at rpc (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:13:23)
+      at Object.claim (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:34:27)
+      at claim (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:20:35)
+      at TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:49:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'TASK_AUTHORITY_UNAVAILABLE'
+  }
+
+test at tests/career-claim-recovery-postgres.test.cjs:56:2
+✖ unknown submit fence survives missing checkpoint and can never be reclaimed or repeated (489.680421ms)
+  Error: TASK_AUTHORITY_UNAVAILABLE
+      at fail (/workspace/career-greenhouse-vertical/workers/career-browser/store.cjs:6:54)
+      at rpc (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:13:23)
+      at Object.claim (/workspace/career-greenhouse-vertical/workers/career-browser/authority.cjs:34:27)
+      at TestContext.<anonymous> (/workspace/career-greenhouse-vertical/tests/career-claim-recovery-postgres.test.cjs:58:17)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'TASK_AUTHORITY_UNAVAILABLE'
+  }

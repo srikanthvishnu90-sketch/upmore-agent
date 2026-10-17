@@ -3,8 +3,10 @@ const { fail } = require("./store.cjs");
 // The transport must execute these RPCs against the memory repair's existing
 // account row. There is no cached, file-backed or permissive fallback.
 // Synchronous transport is required by the existing 149/150 board contract.
-function createTaskAuthority({ call }) {
+function createTaskAuthority({ call, workerId }) {
   if (typeof call !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
+  const {claimIdentity,UUID}=require('./worker-identity.cjs');
+  if(workerId!==undefined&&!UUID.test(workerId))throw fail('WORKER_IDENTITY_INVALID');
   function rpc(name, args) {
     let data;
     try { data = call(name, args); }
@@ -21,7 +23,21 @@ function createTaskAuthority({ call }) {
     },
     claim({ userId, intentId, taskId, leaseToken, expected }) {
       if (!/^[a-f0-9]{64}$/.test(intentId || "")) throw fail("TASK_INTENT_REQUIRED");
-      const grant = rpc("career_task_claim_v1", { p_user: userId, p_intent: intentId, p_task: taskId, p_lease: leaseToken || null });
+      let grant;
+      if(workerId){
+        const requestId=claimIdentity(workerId,userId,intentId,taskId);
+        const args={p_user:userId,p_intent:intentId,p_task:taskId,p_worker:workerId,p_request:requestId,p_lease:leaseToken||null,p_generation:0};
+        try{grant=rpc('career_task_claim_owned_v1',args);}
+        catch(original){
+          // Check the uncertain write before any repeat. Readback is scoped to
+          // this persisted worker/request; foreign and stale leases stay closed.
+          const recovered=rpc('career_task_claim_readback_v1',{p_user:userId,p_intent:intentId,p_worker:workerId,p_request:requestId});
+          if(recovered.state==='claimed')grant=recovered.grant;
+          else if(recovered.state==='expired'&&Number.isSafeInteger(recovered.generation))grant=rpc('career_task_claim_owned_v1',{...args,p_generation:recovered.generation});
+          else throw original;
+        }
+        if(grant.workerId!==workerId||grant.claimRequest!==requestId||!Number.isSafeInteger(grant.generation)||grant.generation<1)throw fail('TASK_AUTHORITY_REVOKED');
+      }else grant = rpc("career_task_claim_v1", { p_user: userId, p_intent: intentId, p_task: taskId, p_lease: leaseToken || null });
       if (grant.version !== "career_task_intent/v1" || grant.userId !== userId || grant.taskId !== taskId || grant.intentId !== intentId || typeof grant.leaseToken !== "string") throw fail("TASK_AUTHORITY_REVOKED");
       for (const [key, value] of Object.entries(expected)) if (value != null && grant.binding?.[key] !== value) throw fail("TASK_AUTHORITY_BINDING_MISMATCH");
       return grant;
@@ -50,7 +66,15 @@ function createTaskAuthority({ call }) {
         return { state: "completed", reconciled: true };
       }
     },
-    pending() { return rpc("career_task_pending_v1", {}).intents || []; },
+    pending({userId,taskId,limit=50}={}) {
+      if(!Number.isInteger(limit)||limit<1||limit>50)throw fail('TASK_BATCH_LIMIT_INVALID');
+      if(taskId!==undefined){
+        if(!workerId)throw fail('TASK_SCOPED_PENDING_NOT_WIRED');
+        if(!UUID.test(userId||'')||!/^[a-f0-9]{32}$/.test(taskId))throw fail('TASK_SCOPE_INVALID');
+        return rpc('career_task_pending_scoped_v1',{p_worker:workerId,p_user:userId,p_task:taskId,p_limit:limit}).intents||[];
+      }
+      return rpc(workerId?'career_task_pending_owned_v1':"career_task_pending_v1",workerId?{p_worker:workerId}:{}).intents || [];
+    },
   };
 }
 module.exports = { createTaskAuthority };

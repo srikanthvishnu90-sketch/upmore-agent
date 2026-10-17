@@ -1,0 +1,15 @@
+✔ lost committed claim acknowledgement is read back once without redispatch (781.012911ms)
+✔ death before task checkpoint recovers on the same durable worker identity and prepares once (4831.247367ms)
+✔ foreign owner, worker, request and live-lease takeover are refused (1004.368563ms)
+✔ expired queued checkpoint refreshes its local lease before the first browser command (4658.453584ms)
+✔ expired claim requires generation CAS, rotates lease and fences stale worker (1190.106061ms)
+✔ unknown submit fence survives missing checkpoint and can never be reclaimed or repeated (1280.44193ms)
+✔ new recovery RPCs remain inaccessible to client roles (359.931123ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14269.337753

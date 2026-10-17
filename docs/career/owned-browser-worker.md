@@ -17,6 +17,11 @@ public origins admit only a read operation; the loopback restriction below
 continues to govern application preparation/submission. This is not a claim
 of a deployed research worker or completed live research outcomes.
 
+A source-only [hosted pull-worker proposal](hosted-worker-proposal-20261017.md)
+now provides packaging, bounded polling, private RPC transport and genuine-PNG
+hooks. This is an Upmore-operated Linux target; a personal Mac is not a product
+dependency. No host, image, secret binding or employer adapter is activated.
+
 ## Runtime blocker
 
 The selected executor has Chromium and Playwright, but cannot start a

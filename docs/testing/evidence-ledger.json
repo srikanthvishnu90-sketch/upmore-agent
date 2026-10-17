@@ -63359,6 +63359,21 @@
    "failed": 0,
    "evidence": "docs/career/mass-applications-20261017/conversation-evidence.json",
    "scope": "synthetic source contracts; broad checks pending"
+  },
+  {
+   "id": "career-applications-reviewer-source-33219612",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--source-only"
+   ],
+   "observed_at": "2026-10-17T17:46:13.876428+00:00",
+   "commit": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+   "status": "pass",
+   "passed": 4797,
+   "skipped": 40,
+   "failed": 0,
+   "evidence": "docs/career/mass-applications-20261017/evidence/conversation-33219612-full-source-summary.json"
   }
  ],
  "limitations": [

@@ -1,4 +1,4 @@
-import {CareerApplications as Apps,CareerJobs as Jobs,CareerDiscover as Discover} from './router_core.career.js';
+import {CareerApplications as Apps,CareerJobs as Jobs,CareerDiscover as Discover,CareerAlertWatch as Watch,CAREER_BOARD_DIRECTORY_JSON as Directory} from './router_core.career.js';
 import {redactIdentity} from './identity_redact.ts';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,HASH=/^[a-f0-9]{64}$/,TASK=/^[a-f0-9]{32}$/;
 const err=(code,status=409)=>Object.assign(Error(code),{code,status});
@@ -20,10 +20,10 @@ function searchView(s,now){
  const all=s.results||[],ready=all.filter(r=>r.eligibility?.status==='eligible'),held=all.filter(r=>r.eligibility?.status==='awaiting_user'),synthetic=all.some(r=>r.source?.provenance==='synthetic_fixture/v1');
  return {version:'career_application_chat/v1',status:Date.parse(s.expires_at)<=now&&!s.selected_batch?'shortlist_expired':'shortlist',searchId:s.search_id,requested:s.requested,matched:ready.length,shortlist:ready,held,sourceHealth:s.source_health||[],expiresAt:s.expires_at,observedAt:s.created_at,synthetic,originalAsk:s.ask};
 }
-export function applicationFeeds(feeds){const finance=/\b(?:capital|financial|investments?|securities|bank|equity|jane street|robinhood|coinbase|gemini|ramp)\b/i;return feeds.filter(f=>f.status!=='dead'&&!/demo|test fixture/i.test(f.company||'')).map((f,n)=>({f,n,rank:finance.test(f.company||'')?0:1})).sort((a,b)=>a.rank-b.rank||a.n-b.n).slice(0,16).map(x=>x.f);}
+export function applicationFeeds(feeds){const finance=/(?:capital|financial|investments?|securities|bank|equity|jane\s*street|robinhood|coinbase|gemini|ramp)/i,seen=new Set(),directory=Watch.feedsFromDirectory(Directory.boards,{content:true});return (feeds||[...Discover.discoveryPlan().feeds,...directory]).filter(f=>{if(f.status==='dead'||/demo|test fixture/i.test(f.company||'')||seen.has(f.url))return false;seen.add(f.url);return true;}).map((f,n)=>({f,n,rank:finance.test(f.company||'')?0:1})).sort((a,b)=>a.rank-b.rank||a.n-b.n).slice(0,16).map(x=>x.f);}
 export async function collectApplicationSources({ask,limit,userId,profile,config={},now,interests:providedInterests}){
  const interests=providedInterests||Apps.interests(ask,profile,now),scoring=Apps.scoringProfile(profile),country=Apps.workCountry(profile),metadata=new Map(),health=[],candidates=[];
- const feeds=applicationFeeds(config.feeds||Discover.discoveryPlan().feeds),urls=new Set(feeds.map(f=>f.url));
+ const feeds=applicationFeeds(config.feeds),urls=new Set(feeds.map(f=>f.url));
  const fixtureOrigins=new Set(config.fixtureOrigins||[]),fetcher=config.fetch||fetch;
  async function read(url){
   if(!urls.has(url)||new URL(url).protocol!=='https:')throw Error('UNTRUSTED_APPLICATION_SOURCE');const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);

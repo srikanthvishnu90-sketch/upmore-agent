@@ -19,7 +19,12 @@ function luhnValid(d) { let s = 0, alt = false; for (let i = d.length - 1; i >= 
 const ALLOWED_DIGIT_RUNS = /^(0+|1234567890|9{8,}|0{8,}|12345678\d*|20\d{6}|19\d{6})$/; // fake-looking or date-like runs
 function privacyFindings(text, where) {
   const out = [];
-  for (const m of String(text).matchAll(/\d[\d -]{7,22}\d/g)) {
+  let scanned=String(text);
+  // Only complete hashes in explicit JSON provenance fields are digest data.
+  // Other fields, partial hashes, free text and neighbouring account numbers
+  // retain the original privacy scan. Never rewrite the evidence file.
+  try { JSON.parse(scanned);scanned=scanned.replace(/"(?:commit|sourceCommit|testedCommit|source)"\s*:\s*"[a-f0-9]{40}"/g, m=>m.replace(/\d/g,'x')); } catch { /* ordinary prose/source still scanned in full */ }
+  for (const m of scanned.matchAll(/\d[\d -]{7,22}\d/g)) {
     const digits = m[0].replace(/[ -]/g, "");
     if (digits.length < 8 || ALLOWED_DIGIT_RUNS.test(digits)) continue;
     if (digits.length === 9 && routingValid(digits)) out.push({ where, rule: "routing_number_shaped", match: m[0] });

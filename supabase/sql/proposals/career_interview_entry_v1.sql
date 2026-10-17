@@ -19,7 +19,7 @@ end $$;
 
 create function public.career_journey_turn_commit_v1(p_base jsonb,p_context jsonb,p_actions jsonb,p_artifact jsonb)
 returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
-declare u uuid:=(p_base->>'p_user')::uuid;t uuid:=(p_base->>'p_thread')::uuid;readback jsonb;c jsonb;saved jsonb;act jsonb;old jsonb;action_key text;artid uuid;
+declare u uuid:=(p_base->>'p_user')::uuid;t uuid:=(p_base->>'p_thread')::uuid;readback jsonb;c jsonb;saved jsonb;act jsonb;old jsonb;action_key text;artid uuid;verified jsonb;opened jsonb;existing_artifact jsonb;
 begin
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
  -- Replay lookup precedes current-context validation and performs no write.
@@ -66,27 +66,45 @@ begin
   insert into career_watch_kv(user_id,key,value)values(u,'career:journey-action:'||t||':'||(act#>>'{proposal,action_id}'),act)on conflict(user_id,key)do nothing;
  end loop;
  if artid is not null then insert into career_watch_kv(user_id,key,value)values(u,'career:journey-artifact:'||artid,p_artifact);end if;
+ -- Acknowledgement advances the turn/context binding without changing bytes.
+ -- Retain a distinct current delivery binding for verified, still-current packs.
+ verified:=p_base#>'{p_snapshot,stores,interviewJourney,completion,artifact}';
+ if verified->>'readback_status'='verified' then
+  select value into existing_artifact from career_watch_kv where user_id=u and key='career:journey-artifact:'||(verified->>'id') for update;
+  select value into opened from career_watch_kv where user_id=u and key='career:journey-readback:'||(verified->>'receipt_id');
+  if existing_artifact is null or opened is null or opened#>>'{receipt,type}' is distinct from 'artifact_readback'
+  or existing_artifact->>'thread_id' is distinct from t::text or existing_artifact->>'sha256' is distinct from verified->>'sha256'
+  or existing_artifact->'version' is distinct from verified->'version' or opened#>'{artifact,binding}' is distinct from existing_artifact->'binding'
+  or existing_artifact->'target_ref' is distinct from p_base#>'{p_snapshot,stores,interviewJourney,target_ref}'
+  or existing_artifact->'resume_ref' is distinct from p_base#>'{p_snapshot,stores,interviewJourney,resume_ref}'
+  or existing_artifact->'epoch' is distinct from p_context#>'{binding,epoch}' then raise exception 'invalid verified artifact';end if;
+  update career_watch_kv set value=value||jsonb_build_object('readable_binding',p_context->'binding','readable_journey_revision',p_base#>'{p_snapshot,stores,interviewJourney,revision}','verified_receipt_id',verified->'receipt_id'),updated_at=now()
+   where user_id=u and key='career:journey-artifact:'||(verified->>'id');
+ end if;
  return saved;
 end $$;
 
 create function public.career_journey_artifact_open_v1(p_user uuid,p_artifact uuid)
 returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
-declare a jsonb;c jsonb;s jsonb;r jsonb;rid uuid:=gen_random_uuid();t uuid;
+declare a jsonb;c jsonb;s jsonb;r jsonb;rid uuid:=gen_random_uuid();t uuid;pending boolean;verified boolean;
 begin
  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
  select value into a from career_watch_kv where user_id=p_user and key='career:journey-artifact:'||p_artifact;
  if a is null then return jsonb_build_object('error','artifact_unavailable');end if;t:=(a->>'thread_id')::uuid;
  c:=career_journey_context_read_v1(p_user,t);
  select state#>'{career,stores,interviewJourney}'into s from agent_flow_state where user_id=p_user and thread_id=t;
- if c ? 'error' or c->'paused'='true'::jsonb or a->'binding' is distinct from c#>'{context,binding}'
+ pending:=a->'binding'=c#>'{context,binding}' and a->>'journey_revision'=s->>'revision' and a->>'action_id'=s#>>'{checkpoint,pending_artifact,action_id}';
+ verified:=a->'readable_binding'=c#>'{context,binding}' and a->>'readable_journey_revision'=s->>'revision'
+  and s#>>'{completion,artifact,readback_status}'='verified' and s#>>'{completion,artifact,id}'=p_artifact::text
+  and s#>'{completion,artifact,version}'=a->'version' and s#>>'{completion,artifact,sha256}'=a->>'sha256'
+  and s#>>'{completion,artifact,receipt_id}'=a->>'verified_receipt_id';
+ if c ? 'error' or c->'paused'='true'::jsonb or s->>'status' is distinct from 'active' or not coalesce(pending or verified,false)
  or a->>'owner_id' is distinct from p_user::text or a->>'journey_id' is distinct from s->>'journey_id'
- or a->>'journey_revision' is distinct from s->>'revision'
- or a->>'action_id' is distinct from s#>>'{checkpoint,pending_artifact,action_id}'
  or a->'target_ref' is distinct from s->'target_ref' or a->'resume_ref' is distinct from s->'resume_ref'
  or a->>'sha256' is distinct from encode(sha256(convert_to(a->>'content','UTF8')),'hex')
  or (a->>'byte_length')::integer is distinct from octet_length(a->>'content')
  then return jsonb_build_object('error','artifact_unavailable');end if;
- r:=jsonb_build_object('id',rid,'type','artifact_readback','owner_id',p_user,'thread_id',t,'epoch',a->'epoch','artifact_id',p_artifact,'artifact_version',a->'version','action_id',a->'action_id','input_digest',a->'input_digest','authorized_open',true,'fresh_session',true,'journey_revision',a->'journey_revision','validated_binding',(c#>'{context,binding}')||jsonb_build_object('owner_id',p_user,'thread_id',t,'journey_revision',a->'journey_revision'),'target_ref',a->'target_ref','resume_ref',a->'resume_ref','sha256',a->'sha256');
+ r:=jsonb_build_object('id',rid,'type',case when pending then 'artifact_readback' else 'artifact_reopen' end,'owner_id',p_user,'thread_id',t,'epoch',a->'epoch','artifact_id',p_artifact,'artifact_version',a->'version','action_id',a->'action_id','input_digest',a->'input_digest','authorized_open',true,'fresh_session',true,'journey_revision',a->'journey_revision','validated_binding',(c#>'{context,binding}')||jsonb_build_object('owner_id',p_user,'thread_id',t,'journey_revision',a->'journey_revision'),'target_ref',a->'target_ref','resume_ref',a->'resume_ref','sha256',a->'sha256');
  insert into career_watch_kv(user_id,key,value)values(p_user,'career:journey-readback:'||rid,jsonb_build_object('receipt',r,'artifact',a));
  return jsonb_build_object('artifact',a,'receipt',r);
 end $$;
@@ -98,7 +116,7 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
  c:=career_journey_context_read_v1(p_user,p_thread);if c ? 'error' then return c;end if;
  select value into r from career_watch_kv where user_id=p_user and key='career:journey-readback:'||p_receipt;
- if r is null or r#>>'{receipt,thread_id}' is distinct from p_thread::text or r#>'{artifact,binding}' is distinct from c#>'{context,binding}'then return jsonb_build_object('error','artifact_unavailable');end if;
+ if r is null or r#>>'{receipt,type}' is distinct from 'artifact_readback' or r#>>'{receipt,thread_id}' is distinct from p_thread::text or r#>'{artifact,binding}' is distinct from c#>'{context,binding}'then return jsonb_build_object('error','artifact_unavailable');end if;
  return r;
 end $$;
 revoke all on function public.career_journey_context_read_v1(uuid,uuid),public.career_journey_turn_commit_v1(jsonb,jsonb,jsonb,jsonb),public.career_journey_artifact_open_v1(uuid,uuid),public.career_journey_readback_v1(uuid,uuid,uuid)from public,anon,authenticated;

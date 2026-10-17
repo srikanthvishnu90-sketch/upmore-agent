@@ -88,6 +88,10 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Spec A CI privacy false-positive repair: `evals/data/validate.cjs` typed complete commit-SHA recognition only, new critical-repairs positive/negative privacy controls and scoped evidence. Preserve the exact evidence SHA, every swept file and the privacy failure gate. A numeric substring of commit 315158f5314360417266270ec6e6e9e71aad0af8 was misclassified; no broad file/path exclusion is authorized.
+
+- 2026-10-17 Spec A reviewed readback repairs: narrow artifact-route CORS response in `agent-chat/_shared/chat_cors.ts` (retain the exact origin allowlist), owned artifact verification/reopen metadata in the existing entry proposal, and new critical-repairs regressions/evidence. Independent review confirmed missing receipt-header exposure and post-acknowledgement 404. GET safelisting means the prior Allow-Methods-only diagnosis is not used as browser-failure evidence. Native Chromium remains blocked; HTTP CORS protocol tests are labeled accordingly.
+
 - 2026-10-17 Spec A actual-entry checkpoint: registered unchanged B interview runtime in both generated bundles; new default-off `_shared/career_interview_entry.ts` and owner-review `career_interview_entry_v1.sql` connect canonical owned context, existing atomic turn persistence, full durable proposals and authenticated exact-byte partial artifact readback. Frozen actual staged entry/native SQL journey passes; coaching/research remain unavailable, model quality and live browser outcomes NOT_RUN. Evidence: `docs/career/critical-repairs/interview-entry-v1/`. No shared release, deploy, production migration or module 127/130/155 edits.
 
 - 2026-10-17 Spec A composition checkpoint: merge published Spec B source 53ae74b3 into the isolated review branch without changing any B-owned file. Own CI discovery/negative-control gating and new A-owned compatibility evidence only. B source tests are offline contracts, not actual-entry or model-quality proof; registration and canonical compatibility remain pending.

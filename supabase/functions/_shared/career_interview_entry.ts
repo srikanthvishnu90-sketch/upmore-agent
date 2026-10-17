@@ -2,6 +2,7 @@
 import {CareerInterviewJourney as J} from './router_core.career.js';
 import {toInterviewContextV1,interviewContextDigestV1} from '../../../packages/career-contracts/interview-context-compat-v1.ts';
 import {createCareerPersistence} from './career_persistence.js';
+import {interviewContextTurn} from './career_interview_context.ts';
 const clone=(v:any)=>JSON.parse(JSON.stringify(v));
 const canonical=(x:any):string=>x===null||typeof x!=='object'?JSON.stringify(x):Array.isArray(x)?'['+x.map(canonical).join(',')+']':'{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';
 async function sha(text:string){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -9,13 +10,19 @@ const uuid=(v:any)=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[
 const json=(cors:any,body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'content-type':'application/json'}});
 function command(raw:any){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('invalid_journey_command');
- const fields:Record<string,string[]>={start:['available_minutes','target_ref','resume_ref','mode'],submit_answer:['kind'],pause:[],resume:[],stop:[],build_pack:[],artifact_readback:['receipt_id'],status:[],select_question:['question_id'],run_code:[]};
+ const fields:Record<string,string[]>={start:['available_minutes','target_ref','resume_ref','mode'],submit_answer:['kind'],pause:[],resume:[],stop:[],build_pack:[],artifact_readback:['receipt_id'],status:[],select_question:['question_id'],run_code:[],save_fact:['id','kind','expected_version','actual','classification'],save_resume:['id','expected_version','actual']};
  if(!Object.hasOwn(fields,raw.type)||Object.keys(raw).some(k=>k!=='type'&&!fields[raw.type].includes(k)))throw Error('invalid_journey_command');
  if(raw.type==='artifact_readback'&&!uuid(raw.receipt_id))throw Error('invalid_journey_command');
  for(const key of ['target_ref','resume_ref'])if(raw[key]!==undefined){const r=raw[key];if(!r||typeof r.id!=='string'||r.id.length>160||!Number.isSafeInteger(r.version)||r.version<0||Object.keys(r).some(k=>!['id','version'].includes(k)))throw Error('invalid_journey_command');}
  if(raw.available_minutes!==undefined&&(!Number.isInteger(raw.available_minutes)||raw.available_minutes<0||raw.available_minutes>1440))throw Error('invalid_journey_command');
  if(raw.mode!==undefined&&!['coaching','mock'].includes(raw.mode))throw Error('invalid_journey_command');
- if(raw.kind!==undefined&&!['initial','revision','practice','transfer'].includes(raw.kind))throw Error('invalid_journey_command');
+ if(raw.type==='submit_answer'&&raw.kind!==undefined&&!['initial','revision','practice','transfer'].includes(raw.kind))throw Error('invalid_journey_command');
+ if(['save_fact','save_resume'].includes(raw.type)){
+  if(raw.actual!==true||!/^[-A-Za-z0-9_]{1,64}$/.test(raw.id||'')||!(raw.expected_version===null||Number.isSafeInteger(raw.expected_version)&&raw.expected_version>=0))throw Error('invalid_journey_command');
+  if(raw.type==='save_fact'&&!['project','experience','target'].includes(raw.kind))throw Error('invalid_journey_command');
+  if(raw.classification!==undefined&&raw.kind!=='target')throw Error('invalid_journey_command');
+  if(raw.classification!==undefined&&(!raw.classification||Array.isArray(raw.classification)||typeof raw.classification!=='object'||Object.entries(raw.classification).some(([k,v])=>!['role_family','level','company','stage'].includes(k)||typeof v!=='string'||!v.trim()||v.length>160)))throw Error('invalid_journey_command');
+ }
  if(raw.question_id!==undefined&&(typeof raw.question_id!=='string'||raw.question_id.length>80))throw Error('invalid_journey_command');
  return clone(raw);
 }
@@ -24,6 +31,8 @@ function meta(state:any){return {version:'career_interview_entry/v1',stage:state
 export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,images,cors,note}:any){
  let cmd;try{cmd=command(raw);if(images.length)throw Error('invalid_journey_command');}catch{return json(cors,{error:'invalid_journey_command'},400);}
  if(Deno.env.get('CAREER_JOURNEY_MODE')!=='interview_v1')return json(cors,{error:'not_wired',reply:'Interview preparation is not enabled on this host.',action:null},503);
+ if(cmd.type==='save_fact'&&message.length>2000)return json(cors,{error:'context_fact_too_large'},400);
+ if(['save_fact','save_resume'].includes(cmd.type))return await interviewContextTurn({admin,userId,threadId,turnKey,message,cmd,cors,note});
  const requestHash=await sha(canonical({version:'career_interview_request/v1',message,command:cmd}));
  try{
   const p=createCareerPersistence(admin),loaded=clone(await p.load({userId,threadId,turnKey,requestHash}));

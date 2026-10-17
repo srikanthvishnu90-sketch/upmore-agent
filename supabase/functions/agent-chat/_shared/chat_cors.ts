@@ -6,12 +6,14 @@ export const CHAT_ORIGINS = new Set([
   "http://127.0.0.1:8000", "http://127.0.0.1:8080",
 ]);
 export function corsFor(req: Request): Record<string, string> {
+  const artifact=/^\/career\/artifacts\/[a-f0-9-]{36}$/.test(new URL(req.url).pathname);
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": artifact ? "GET, OPTIONS" : "POST, OPTIONS",
     "Vary": "Origin",
   };
   const origin = req.headers.get("Origin") ?? "";
   if (CHAT_ORIGINS.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  if (artifact && CHAT_ORIGINS.has(origin)) headers["Access-Control-Expose-Headers"] = "x-upmore-readback-receipt";
   return headers;
 }

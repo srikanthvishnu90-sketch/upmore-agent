@@ -1,0 +1,56 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"66af2289d3469407","commit":"56d18050f05dd42951e7e87e33925acf3f85091a","preflightDirtyFiles":"","harnessSha256":"6653d693904a47fa7b1eafbd0bf0696011b762aee828440a276a2b3e6dd468e2","testSourceSha256":{"career-critical-repairs/interview-readback-review-postgres.test.cjs":"1770b749b3e178bcf63f63dab7fcb4b22a6604e922d3184e4eaa8446900600be"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":372,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-readback-review-postgres.test.cjs"],"started":"2026-10-17T01:34:51.263Z","runs":[],"out":"/tmp/upmore-ci-node-yZPa3l","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/interview-readback-review-postgres.test.cjs","database":"career_test_ci_66af2289d3469407_0","marker":"upmore-ci-fixture:66af2289d3469407"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-66af2289d3469407","database":"career_test_ci_66af2289d3469407_0","marker":"upmore-ci-fixture:66af2289d3469407"}
+# (node:653483) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:653483) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: allowed browser origin can preflight authenticated artifact GET and read only the exposed receipt header
+not ok 1 - allowed browser origin can preflight authenticated artifact GET and read only the exposed receipt header
+  ---
+  duration_ms: 1552.217521
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-readback-review-postgres.test.cjs:7:1'
+  failureType: 'testCodeFailure'
+  error: 'browser JS must see receipt'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-readback-review-postgres.test.cjs:7:739)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: verified artifact remains downloadable after acknowledgement and safe restart; mutation and erase revoke it
+not ok 2 - verified artifact remains downloadable after acknowledgement and safe restart; mutation and erase revoke it
+  ---
+  duration_ms: 2445.165063
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-readback-review-postgres.test.cjs:8:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    acknowledgement must not revoke the delivered artifact
+    
+    404 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 404
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-readback-review-postgres.test.cjs:8:602)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4152.842943
+{"token":"66af2289d3469407","commit":"56d18050f05dd42951e7e87e33925acf3f85091a","preflightDirtyFiles":"","harnessSha256":"6653d693904a47fa7b1eafbd0bf0696011b762aee828440a276a2b3e6dd468e2","testSourceSha256":{"career-critical-repairs/interview-readback-review-postgres.test.cjs":"1770b749b3e178bcf63f63dab7fcb4b22a6604e922d3184e4eaa8446900600be"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":372,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-readback-review-postgres.test.cjs"],"started":"2026-10-17T01:34:51.263Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/interview-readback-review-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/interview-readback-review-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-yZPa3l","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8655bf6f7b6363a307a74661506bdfa2c12f614d374223779cfe4b586bd4f98a","supabase/sql/proposals/career_interview_entry_v1.sql":"cf6d533f4e50147942dcd87c16f158714fef4cf44fa1b4f4db946d54b3958797"},"fixture":{"container":"upmore-career-integration-pg-ci-66af2289d3469407","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T01:35:01.034Z","pass":false}

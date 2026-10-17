@@ -1,0 +1,15 @@
+{
+  "prepared_on": "b51ac5d7",
+  "source_sha256": {
+    "packages/career-contracts/interview-context-writer-v1.ts": "6df61356216b69d9547d5535855dbe389aa3e862749a5595c07dd9d9482fbf68",
+    "supabase/functions/_shared/career_interview_context.ts": "c0ebc725606586219504add67dbb62337954b0d85790de86541c72cc60f0ab9a",
+    "supabase/functions/_shared/career_interview_entry.ts": "579ca12990264a058f9c2e369d3e929de99d90807f9adcdb80ed4415b7ebba6c",
+    "supabase/functions/agent-chat/_shared/chat_cors.ts": "ba442629ada47af34b549559bd924f1c7a6aae1410e95fca2d60e3661b496272",
+    "supabase/sql/proposals/career_interview_entry_v1.sql": "a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e",
+    "supabase/sql/proposals/career_interview_context_write_v1.sql": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+    "evals/data/validate.cjs": "452a09b953dc2d1faa2ad107d7d8f5e4678e274e4c64cf5a0a9b42011551ee57"
+  },
+  "scope": "LOCAL_SQL_CONTROLLED_INPUT_NO_PROVIDER",
+  "browser": "NOT_RUN",
+  "paid_calls": 0
+}

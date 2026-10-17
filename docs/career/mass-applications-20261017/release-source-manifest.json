@@ -1,6 +1,6 @@
 {
-  "runtime": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
-  "observedAt": "2026-10-17T16:21:59.580497+00:00",
+  "runtime": "abe6db57c519b042da218f1979ec72869aa8487c",
+  "observedAt": "2026-10-17T16:32:51.731870+00:00",
   "status": "BLOCKED_SOURCE_HANDOFF_NOT_DEPLOYED",
   "branch": "codex/mass-applications-20261017",
   "project": {
@@ -168,7 +168,7 @@
     },
     {
       "path": "supabase/sql/proposals/career_application_batch_v1.sql",
-      "sha256": "d02f86ac132020d8ec34cf6f0b96897f9ba47f4978cd0b8681be0a83ee814fe4",
+      "sha256": "b0f5338e3a9c1ca02004d25bb1fde1998cef64fa287b5098f4d44c4766819508",
       "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
     },
     {
@@ -200,14 +200,14 @@
   ],
   "staticInventoryLimitation": "Literal ESM import/export declarations only; bundled CommonJS require calls resolve internally and are not treated as filesystem imports; runtime config, installed schema, external dependencies and Auth/origins require operator verification. No credential values read.",
   "workerBuild": {
-    "output": "/tmp/upmore-worker-91811a34-source.tgz",
-    "sha256": "685a5f95c5bed58c7318e433091c107c6effe10c0e8150da73b2bc5772f43093",
-    "files": 39,
-    "codeSha": "91811a341fefe98d541bd90c94ed0dca168f3cfc"
+    "output": "/tmp/upmore-worker-abe6db57-source.tgz",
+    "sha256": "ba67376d9ed8aed1cc88370bc2c82f9257da812bb8800112eaa233e877051413",
+    "files": 40,
+    "codeSha": "abe6db57c519b042da218f1979ec72869aa8487c"
   },
   "workerManifest": {
     "version": "upmore_owned_worker_source/v1",
-    "codeSha": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
+    "codeSha": "abe6db57c519b042da218f1979ec72869aa8487c",
     "verification": "SOURCE_ONLY_NOT_DEPLOYED",
     "files": [
       {
@@ -239,8 +239,12 @@
         "sha256": "a2e8ee5743ef641d402a2b90b03aba6944c1b62f6054d8746d2caf8b9e306a2a"
       },
       {
+        "path": "packages/domain/152-career-assign.js",
+        "sha256": "16ebb0e9ec69900e9c171a1e96d6e5fd69288f51732fe8629dd440d678d99d70"
+      },
+      {
         "path": "scripts/career/build-owned-worker.cjs",
-        "sha256": "a3252e77673520e3fa2db0c781199a6f0b42acf8a5d3a7b02ada0f65f77b7b19"
+        "sha256": "24df952092eb9a5bcdb3d8d2c9f6b0a2e51cb3530718b9b6f2f1c7d1073e031f"
       },
       {
         "path": "scripts/career/portal-browser-helper.cjs",
@@ -292,7 +296,7 @@
       },
       {
         "path": "workers/career-browser/batch-context.cjs",
-        "sha256": "acf1fb8e9871c9f5839628e248fe493d0952c77e011df3f9ca0dca99692c2dfb"
+        "sha256": "16a344baf3851fbf855152f471199017ba517647a9894e0add32065ecb0e5e41"
       },
       {
         "path": "workers/career-browser/equipment.cjs",
@@ -356,7 +360,7 @@
       },
       {
         "path": "workers/career-browser/service.cjs",
-        "sha256": "6606b033f483e44fbc20c8d1ffd45921c081ed0575d85669e54a98f43c8b6ee4"
+        "sha256": "d732df13d40fe33fa0de432d8dd0fef99d58a50efbc8d86e6e2a115192fec2db"
       },
       {
         "path": "workers/career-browser/store.cjs",
@@ -461,16 +465,22 @@
       "summary": "evidence/f748-ci-node-summary.json"
     },
     "currentRuntimeFullSource": {
-      "head": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
-      "passed": 4778,
-      "failed": 0,
-      "skipped": 40,
-      "summary": "evidence/91811-full-source-summary.json"
+      "status": "IN_PROGRESS",
+      "head": "abe6db57c519b042da218f1979ec72869aa8487c",
+      "log": "/tmp/upmore-eligibility-full-source.log",
+      "frozenWorktree": "/workspace/upmore-mass-flow"
     },
     "resumeMetadata": {
       "passed": 1,
       "failed": 0,
       "summary": "evidence/resume-restore-postgres-summary.json"
+    },
+    "currentFitEligibility": {
+      "passed": 10,
+      "failed": 0,
+      "summary": "evidence/eligibility-postgres-summary.json",
+      "sourceAndBuildPassed": 8,
+      "workerControlsPassed": 28
     }
   },
   "paidCalls": 0,
@@ -478,8 +488,9 @@
   "deployments": 0,
   "employerSubmissions": 0,
   "operatorSourceSha256": {
-    "workers/career-browser/deploy/Dockerfile.proposal": "03227202368fea23e46ba9a1d26bba04fcc3ad1b44ba16a280a2a725e108492c",
+    "workers/career-browser/deploy/Dockerfile.proposal": "97358aa9c433bf49ceb0f48370b183d112ed1b5c704eea38ac70ed3e692d33f2",
     "workers/career-browser/deploy/operator-config.example.cjs": "db518542a05ed07e522b429e145b926bd8cce430ad62f84e30d3c458d4380883"
   },
-  "imageProposalBlocker": "COPY closure repaired and contract-tested. Approved base image/runtime absent; no image build, browser or deployment verified."
+  "imageProposalBlocker": "COPY closure repaired including152 and contract-tested; approved normal-sandbox base/runtime remains unavailable, no image built.",
+  "browserIntegrationPath": "BROWSER-INTEGRATION-PATH.md; Muse source ref unavailable after one failed fetch;18/18 unverified."
 }

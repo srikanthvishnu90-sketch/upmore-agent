@@ -22561,21 +22561,27 @@ const CareerTailor = (() => {
     const skillRowByName = new Map();
     for (const s of provenSkills(profile, jd).filter((x) => x.proven && x.name)) skillRowByName.set(s.name.toLowerCase(), s);
     for (const s of nonSkillSkillRows(profile, jd)) if (!skillRowByName.has(s.name.toLowerCase())) skillRowByName.set(s.name.toLowerCase(), s);
-    // Name-safety filter: a skill name may only PRINT when every word of
-    // it appears in the persona's fact prose (title/text/bullets/org of
-    // some fact). A name sourced only from a skills[] list, whose words no
-    // fact ever states in prose, would print as an unsupported proper name
-    // on the page — it stays a coverage miss, never an invention.
-    // Lane B depth (Crew B Cycle 2): a lexicon exemption for skills[]-
-    // sourced names was TRIED here and REVERTED on measurement — the
-    // Lane B re-run's coverage rose (0.686 -> 0.961) but invention went
-    // 0 -> 1,441, every instance the immutability name check (a
-    // capitalized name mid-line must appear in the persona's fact
-    // PROSE; skills[] is not prose). The invention bar is hard (0), so
-    // the prose rule stands for lexicon and non-lexicon names alike:
-    // a skills[]-only name is a coverage miss, never an invention.
+    // Name-safety filter: a skill name may PRINT when it is attested
+    // by the user's own record — either (a) every word of it appears
+    // in the persona's fact prose (title/text/bullets/org of some
+    // fact), or (b) the name is listed in a confirmed fact's
+    // skills[] list. A name attested by NEITHER is an invention and
+    // never prints.
+    // OWNER RULING 2026-10-16 (MI-023, supersedes the prose-only
+    // rule): skills listed in a fact's skills[] list COUNT as
+    // attested for tailoring. History: a lexicon exemption for
+    // skills[]-sourced names was tried in Crew B Cycle 2 and
+    // REVERTED on Lane B measurement — coverage rose (0.686 ->
+    // 0.961) but the grader's prose-only immutability check counted
+    // 1,441 invention instances, every one a skills[]-attested name.
+    // The owner ruled those names lawful: they come only from the
+    // user's own record, so invention stays 0 by construction — a
+    // name from neither prose nor any skills[] list still never
+    // prints (the guard in tests/career-tailor-depth2.test.cjs).
     const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
-    const nameSafe = (name) => String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
+    const attestedListed = new Set();
+    for (const f of Profile.confirmedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
+    const nameSafe = (name) => attestedListed.has(canonicalSkill(name).toLowerCase()) || String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
     const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
     const skillsLine = skillsProven.length ? { heading: "Skills", lines: [] } : null;
     if (skillsLine) {
@@ -30222,7 +30228,21 @@ const CareerOnboarding = (() => {
   function osAsOf(ctx) { const d = osNow(ctx); return `${d.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()}`; }
   function osStore(ctx) {
     const OS = osMod(); if (!OS || !OS.createStore) return null;
-    if (!ctx.osStore) { try { ctx.osStore = OS.createStore(); } catch { return null; } }
+    if (ctx.osStore) return ctx.osStore;
+    // DEPTH INTEGRATION (FR-411 / BUG-253): the OS store rides the
+    // persisted track store, exactly as 142's handleOS resolves it —
+    // the host rebuilds ctx per turn, so a store living only on ctx
+    // forgot every win between turns. The track store reaches this
+    // module under whichever anchor the turn's world provides: the
+    // host-restored ctx.trackStore (production) or the
+    // profile-anchored store 142's trackStoreOf derives (harness).
+    // Both doors (this front door and the router) read and write
+    // the SAME store object.
+    let ts = null;
+    try { ts = ctx.trackStore || (ctx.profile && ctx.profile._careerTrackStore) || null; } catch { ts = null; }
+    if (ts && ts._osStore) { ctx.osStore = ts._osStore; return ctx.osStore; }
+    try { ctx.osStore = OS.createStore(); } catch { return null; }
+    if (ts) { try { ts._osStore = ctx.osStore; } catch { /* the ctx store stands */ } }
     return ctx.osStore;
   }
   function profileSkills(profile) {
@@ -30263,6 +30283,12 @@ const CareerOnboarding = (() => {
     try {
       // SC-271 — market value, evidence only (129 COS-001)
       if (/\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/.test(t)) {
+        // DEPTH INTEGRATION (Lane B corpus C5): a turn that ALSO
+        // carries a promotion/plan ask is a plan conversation, not a
+        // bare worth read — stand down so the router's plan handler
+        // answers both halves (it carries the honest worth state
+        // inside the plan). A pure worth ask is served here as before.
+        if (/\bpromotion\b|\bpromot\w*\b|\bcareer plan\b|\bgrowth plan\b|\bwhat'?s the plan\b|\bladder\b|\bnext level\b|\blevel up\b/.test(t)) return null;
         const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
         const head = mv.estimate
           ? `Your market value, from sourced figures only: ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures, with a median midpoint of ${money(mv.estimate.median_midpoint)}. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands.`
@@ -30315,10 +30341,18 @@ const CareerOnboarding = (() => {
         return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp, reply: `${head} ${ownRecord} ${rp.count ? "Want the packet exported for your review meeting?" : "Dictate the first win now — one line is enough — and the packet starts from it."}` };
       }
       // SC-275 — wins log state (129 COS-005/006 read side; nothing invented)
+      // DEPTH INTEGRATION (FR-411 / BUG-253): a LOG STATEMENT is a
+      // write, not a read — this read-side branch stands down for
+      // statement shapes so the router's writer (142 handleOS)
+      // records the win on the shared store. The read below runs on
+      // that same store, so it reports wins logged through either
+      // door, in the user's own words (the packet's own lines).
       if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
+        if (/\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && !/\bshow\b|\blist\b|\bread\b/.test(t)) return null;
         const store = osStore(c); if (!store) return null;
         const rp = OS.reviewPacket(store, { now: iso });
-        return { intent: "career_os_wins_log", resultStatus: "completed", sends: 0, review_packet: rp, wins_logged_total: rp.count, payload: rp, reply: `Your wins log is live: ${rp.count} win${rp.count === 1 ? "" : "s"} on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. ${ownRecord} ${rp.count ? "Want to add another win now?" : "Want to dictate your first win now?"}` };
+        const lines = rp.count ? ` On the log: ${String(rp.text || "").split("\n").slice(0, 3).join(" ")}` : "";
+        return { intent: "career_os_wins_log", resultStatus: "completed", sends: 0, review_packet: rp, wins_logged_total: rp.count, payload: rp, reply: `Your wins log is live: ${rp.count} win${rp.count === 1 ? "" : "s"} on it so far, each dated and in your own words, feeding the living resume and the review packet.${lines} Text wins as they happen and they land in that packet — nothing is back-filled or invented. ${ownRecord} ${rp.count ? "Want to add another win now?" : "Want to dictate your first win now?"}` };
       }
       // SC-277 — return-offer playbook + intern timeline (129 COS-007)
       if (/\breturn[ -]?offer playbook\b/.test(t)) {
@@ -47657,7 +47691,7 @@ const CareerAlertWatch = (() => {
     const watched = watchedFamiliesOf(profile, deps);
     const alerts = [], gated = [];
     let alerts_emitted = 0;
-    // MI-029 (BUG-237) — the gate evidence pass. The scale path polls the
+    // MI-029 (BUG-260) — the gate evidence pass. The scale path polls the
     // board directory LIST-FIRST (feedsFromDirectory drops ?content=true at
     // ~1/100th the payload), so a posting can reach this gate with jd_text ""
     // — and MI-095's JD-head occupation leg then reads an empty string and
@@ -47787,7 +47821,7 @@ const CareerAlertWatch = (() => {
     else if (obs.ewma_new_per_day >= 0.02) { tier = "standard"; base = CADENCE.standard; why = `${obs.ewma_new_per_day.toFixed(2)} new/day: standard tier`; }
     else { tier = "quiet"; base = CADENCE.quiet; why = "no new postings observed: quiet tier"; }
     if (obs.starred && base > CADENCE.active) { base = CADENCE.active; tier = "active"; why += "; starred company capped at 15 min"; }
-    // MI-033 (BUG-238): the error backoff must distinguish WHY the board
+    // MI-033 (BUG-261): the error backoff must distinguish WHY the board
     // failed. A TRANSPORT error (no HTTP response at all — DNS, reset,
     // timeout) is not a sick or rate-limiting board; doubling its interval
     // (60 -> 120) and parking it at 240 pushed retries past MT2's Window 2

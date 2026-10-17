@@ -12,11 +12,13 @@
        REVERTED on Lane B measurement — coverage rose 0.686 -> 0.961
        but invention went 0 -> 1,441, every instance the immutability
        name check (a capitalized name mid-line must appear in fact
-       PROSE; skills[] is not prose). The invention bar is hard, so the
-       prose rule stands for all names: a skills[]-only name whose
-       words no fact states in prose does not print (coverage miss,
-       never an invention) and is NOT a gap (it is evidenced). Guard
-       (1) pins both sides of that line.
+       PROSE; skills[] is not prose). OWNER RULING 2026-10-16
+       (MI-023) SUPERSEDES the prose-only rule: skills listed in a
+       fact's skills[] list COUNT as attested, so those names print
+       and are lawful (they come only from the user's own record);
+       a name attested by NEITHER prose NOR skills[] remains an
+       invention and never prints. Guards (1)/(1b)/(1c) pin the
+       ruled line.
    (2) the skills line only carried non-skill-fact skills the JD parser
        extracted as wanted — a persona's other evidenced skills (the
        occupation's own vocabulary, carried in the facts) never reached
@@ -45,27 +47,39 @@ function baseProfile(facts, extra) {
 }
 const skillsTextOf = (r) => { const l = (r.resume.lines || []).find((x) => x.type === "skills"); return l ? l.text : ""; };
 
-test("depth (1): skills[]-evidenced lexicon skill prints when its words are prose-supported; a prose-unsupported skills[]-only name does not print and is not a gap", () => {
+test("depth (1): a skills[]-listed skill prints under the MI-023 owner ruling (2026-10-16) — prose support no longer required; an evidenced skill is never a gap", () => {
   const p = baseProfile([
     { id: "F-001", kind: "experience", title: "Paralegal, TEST Firm", org: "TEST Firm", start: "2024-01", end: "2026-05", needs_confirmation: false, evidence: [], skills: ["Legal Research", "Legal Writing", "Legal Calendaring"], text: "Paralegal at TEST Firm. Drafts pleadings and researches case law for 30 active matters; writing samples are on file with the firm.", bullets: ["Drafts pleadings for 30 active matters", "Researches case law under attorney supervision"] },
     { id: "F-002", kind: "education", title: "B.A. English, TEST University", org: "TEST University", start: "2019-09", end: "2023-05", needs_confirmation: false, evidence: [], skills: [], text: "B.A. English at TEST University, graduated May 2023.", bullets: [] },
   ]);
-  // "writing" IS in F-001's prose; "calendaring" is in NO fact's prose.
+  // "writing" IS in F-001's prose; "calendaring" is in NO fact's prose
+  // but IS listed in F-001's skills[] — attested under the ruling.
   const r = Tailor.tailorResume(p, "Paralegal (TEST posting)\nRequired: Legal Research, Legal Writing, Legal Calendaring.\nYou will support attorneys.", {});
   assert.equal(r.ok, true, JSON.stringify(r.violations || []));
   assert.match(skillsTextOf(r), /Legal Writing/, `prose-supported skills[] skill must reach the page: "${skillsTextOf(r)}"`);
-  assert.ok(!/Calendaring/.test(r.resume.lines.map((l) => l.text).join("\n")), "a skills[]-only name with no prose support must not print (immutability name rule — invention bar)");
+  assert.match(skillsTextOf(r), /Legal Calendaring/, `a skills[]-listed name is attested under the MI-023 ruling and must print: "${skillsTextOf(r)}"`);
   assert.ok(!(r.gaps || []).some((g) => g.requirement === "Legal Writing"), "an evidenced skill is not a gap");
-  assert.ok(!(r.gaps || []).some((g) => g.requirement === "Legal Calendaring"), "Legal Calendaring is evidenced (skills[]) — a coverage miss under the name rule, never a gap");
+  assert.ok(!(r.gaps || []).some((g) => g.requirement === "Legal Calendaring"), "Legal Calendaring is evidenced (skills[]) — not a gap");
 });
 
-test("depth (1b): a NON-lexicon name sourced only from skills[] with no prose support still does not print", () => {
+test("depth (1b): a NON-lexicon name listed in a fact's skills[] is likewise attested under the ruling and prints", () => {
   const p = baseProfile([
     { id: "F-001", kind: "experience", title: "Analyst, TEST Co", org: "TEST Co", start: "2024-01", end: "2026-05", needs_confirmation: false, evidence: [], skills: ["Python", "Zentharp Analytics"], text: "Analyst at TEST Co. Built Python reports for 12 users.", bullets: ["Built Python reports for 12 users"] },
   ]);
-  const r = Tailor.tailorResume(p, "Analyst (TEST posting)\nRequired: Python.\nYou will build reports.", {});
+  const r = Tailor.tailorResume(p, "Analyst (TEST posting)\nRequired: Python, Zentharp Analytics.\nYou will build reports.", {});
   assert.equal(r.ok, true, JSON.stringify(r.violations || []));
-  assert.ok(!/Zentharp/.test(r.resume.lines.map((l) => l.text).join("\n")), "a non-lexicon proper name no fact states in prose must not print");
+  assert.match(skillsTextOf(r), /Zentharp Analytics/, "a skills[]-listed name counts as attested (MI-023 ruling) even outside the lexicon");
+});
+
+test("depth (1c): INVENTION GUARD under the ruling — a skill name attested by NEITHER prose NOR any skills[] list never prints and lands as a gap", () => {
+  const p = baseProfile([
+    { id: "F-001", kind: "experience", title: "Analyst, TEST Co", org: "TEST Co", start: "2024-01", end: "2026-05", needs_confirmation: false, evidence: [], skills: ["Python"], text: "Analyst at TEST Co. Built Python reports for 12 users.", bullets: ["Built Python reports for 12 users"] },
+  ]);
+  const r = Tailor.tailorResume(p, "Analyst (TEST posting)\nRequired: Python, Rust, Quantum Basket Weaving.\nYou will build reports.", {});
+  assert.equal(r.ok, true, JSON.stringify(r.violations || []));
+  assert.ok(!/Quantum Basket Weaving/.test(r.resume.lines.map((l) => l.text).join("\n")), "a name from neither prose nor skills[] must never print — that is invention");
+  assert.ok(!/\bRust\b/.test(skillsTextOf(r)), "an unattested lexicon skill must not print either");
+  assert.ok((r.gaps || []).some((g) => g.requirement === "Rust"), "an unattested requirement is an honest gap");
 });
 
 test("depth (2): an evidenced skill the JD parser did not extract still reaches the skills line (occupation vocabulary)", () => {

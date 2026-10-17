@@ -322,7 +322,21 @@ const CareerOnboarding = (() => {
   function osAsOf(ctx) { const d = osNow(ctx); return `${d.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()}`; }
   function osStore(ctx) {
     const OS = osMod(); if (!OS || !OS.createStore) return null;
-    if (!ctx.osStore) { try { ctx.osStore = OS.createStore(); } catch { return null; } }
+    if (ctx.osStore) return ctx.osStore;
+    // DEPTH INTEGRATION (FR-411 / BUG-253): the OS store rides the
+    // persisted track store, exactly as 142's handleOS resolves it —
+    // the host rebuilds ctx per turn, so a store living only on ctx
+    // forgot every win between turns. The track store reaches this
+    // module under whichever anchor the turn's world provides: the
+    // host-restored ctx.trackStore (production) or the
+    // profile-anchored store 142's trackStoreOf derives (harness).
+    // Both doors (this front door and the router) read and write
+    // the SAME store object.
+    let ts = null;
+    try { ts = ctx.trackStore || (ctx.profile && ctx.profile._careerTrackStore) || null; } catch { ts = null; }
+    if (ts && ts._osStore) { ctx.osStore = ts._osStore; return ctx.osStore; }
+    try { ctx.osStore = OS.createStore(); } catch { return null; }
+    if (ts) { try { ts._osStore = ctx.osStore; } catch { /* the ctx store stands */ } }
     return ctx.osStore;
   }
   function profileSkills(profile) {
@@ -363,6 +377,12 @@ const CareerOnboarding = (() => {
     try {
       // SC-271 — market value, evidence only (129 COS-001)
       if (/\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/.test(t)) {
+        // DEPTH INTEGRATION (Lane B corpus C5): a turn that ALSO
+        // carries a promotion/plan ask is a plan conversation, not a
+        // bare worth read — stand down so the router's plan handler
+        // answers both halves (it carries the honest worth state
+        // inside the plan). A pure worth ask is served here as before.
+        if (/\bpromotion\b|\bpromot\w*\b|\bcareer plan\b|\bgrowth plan\b|\bwhat'?s the plan\b|\bladder\b|\bnext level\b|\blevel up\b/.test(t)) return null;
         const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
         const head = mv.estimate
           ? `Your market value, from sourced figures only: ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures, with a median midpoint of ${money(mv.estimate.median_midpoint)}. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands.`
@@ -415,10 +435,18 @@ const CareerOnboarding = (() => {
         return { intent: "career_os_review_packet", resultStatus: "prepared", sends: 0, review_packet: rp, payload: rp, reply: `${head} ${ownRecord} ${rp.count ? "Want the packet exported for your review meeting?" : "Dictate the first win now — one line is enough — and the packet starts from it."}` };
       }
       // SC-275 — wins log state (129 COS-005/006 read side; nothing invented)
+      // DEPTH INTEGRATION (FR-411 / BUG-253): a LOG STATEMENT is a
+      // write, not a read — this read-side branch stands down for
+      // statement shapes so the router's writer (142 handleOS)
+      // records the win on the shared store. The read below runs on
+      // that same store, so it reports wins logged through either
+      // door, in the user's own words (the packet's own lines).
       if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
+        if (/\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && !/\bshow\b|\blist\b|\bread\b/.test(t)) return null;
         const store = osStore(c); if (!store) return null;
         const rp = OS.reviewPacket(store, { now: iso });
-        return { intent: "career_os_wins_log", resultStatus: "completed", sends: 0, review_packet: rp, wins_logged_total: rp.count, payload: rp, reply: `Your wins log is live: ${rp.count} win${rp.count === 1 ? "" : "s"} on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. ${ownRecord} ${rp.count ? "Want to add another win now?" : "Want to dictate your first win now?"}` };
+        const lines = rp.count ? ` On the log: ${String(rp.text || "").split("\n").slice(0, 3).join(" ")}` : "";
+        return { intent: "career_os_wins_log", resultStatus: "completed", sends: 0, review_packet: rp, wins_logged_total: rp.count, payload: rp, reply: `Your wins log is live: ${rp.count} win${rp.count === 1 ? "" : "s"} on it so far, each dated and in your own words, feeding the living resume and the review packet.${lines} Text wins as they happen and they land in that packet — nothing is back-filled or invented. ${ownRecord} ${rp.count ? "Want to add another win now?" : "Want to dictate your first win now?"}` };
       }
       // SC-277 — return-offer playbook + intern timeline (129 COS-007)
       if (/\breturn[ -]?offer playbook\b/.test(t)) {

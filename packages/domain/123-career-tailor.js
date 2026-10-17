@@ -582,21 +582,27 @@ const CareerTailor = (() => {
     const skillRowByName = new Map();
     for (const s of provenSkills(profile, jd).filter((x) => x.proven && x.name)) skillRowByName.set(s.name.toLowerCase(), s);
     for (const s of nonSkillSkillRows(profile, jd)) if (!skillRowByName.has(s.name.toLowerCase())) skillRowByName.set(s.name.toLowerCase(), s);
-    // Name-safety filter: a skill name may only PRINT when every word of
-    // it appears in the persona's fact prose (title/text/bullets/org of
-    // some fact). A name sourced only from a skills[] list, whose words no
-    // fact ever states in prose, would print as an unsupported proper name
-    // on the page — it stays a coverage miss, never an invention.
-    // Lane B depth (Crew B Cycle 2): a lexicon exemption for skills[]-
-    // sourced names was TRIED here and REVERTED on measurement — the
-    // Lane B re-run's coverage rose (0.686 -> 0.961) but invention went
-    // 0 -> 1,441, every instance the immutability name check (a
-    // capitalized name mid-line must appear in the persona's fact
-    // PROSE; skills[] is not prose). The invention bar is hard (0), so
-    // the prose rule stands for lexicon and non-lexicon names alike:
-    // a skills[]-only name is a coverage miss, never an invention.
+    // Name-safety filter: a skill name may PRINT when it is attested
+    // by the user's own record — either (a) every word of it appears
+    // in the persona's fact prose (title/text/bullets/org of some
+    // fact), or (b) the name is listed in a confirmed fact's
+    // skills[] list. A name attested by NEITHER is an invention and
+    // never prints.
+    // OWNER RULING 2026-10-16 (MI-023, supersedes the prose-only
+    // rule): skills listed in a fact's skills[] list COUNT as
+    // attested for tailoring. History: a lexicon exemption for
+    // skills[]-sourced names was tried in Crew B Cycle 2 and
+    // REVERTED on Lane B measurement — coverage rose (0.686 ->
+    // 0.961) but the grader's prose-only immutability check counted
+    // 1,441 invention instances, every one a skills[]-attested name.
+    // The owner ruled those names lawful: they come only from the
+    // user's own record, so invention stays 0 by construction — a
+    // name from neither prose nor any skills[] list still never
+    // prints (the guard in tests/career-tailor-depth2.test.cjs).
     const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
-    const nameSafe = (name) => String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
+    const attestedListed = new Set();
+    for (const f of Profile.confirmedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
+    const nameSafe = (name) => attestedListed.has(canonicalSkill(name).toLowerCase()) || String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
     const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
     const skillsLine = skillsProven.length ? { heading: "Skills", lines: [] } : null;
     if (skillsLine) {

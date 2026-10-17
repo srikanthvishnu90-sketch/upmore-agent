@@ -8213,12 +8213,6 @@ const CareerRouter = (() => {
       // never silence). This was the World-L silent-null mechanism.
       const dead = profile ? handleDeadBoard(text, c) : null;
       if (dead) return dead;
-      // INTEGRATION (2026-10-16): an ask that NAMES internships is an
-      // internship search — the generic branch below claimed it first
-      // and served full-time roles, so handleInternship (bands
-      // intern/new-grad/junior, summer headline) was unreachable from
-      // the most natural phrasing, "find me internships".
-      if (/\binternships?\b/.test(t)) return handleInternship(text, c);
       return handleDiscovery(text, c, {});
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {

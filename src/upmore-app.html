@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-LwntJ405LfV/NciMQ8ST18Rlx6du/SA2UblsmzPKbdA=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-jy6I/Shbp9E9Mm/T9gNva9qu5Px6bKvSdrJ5ntpEQDw=' 'sha256-BHLUNNJNL011DYBVrRZb5XC/IKi5/PYRYbmvUig6tjI=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -1832,7 +1832,8 @@
       <div class="cbox" id="chatBox">
         <textarea id="chatInput" rows="1" placeholder="Hand off a task" autocomplete="off" aria-label="Message"></textarea>
         <div class="ctoolrow">
-          <button class="ctool" id="chatAttach" aria-label="Attach a file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <button class="ctool" id="chatAttach" aria-label="Attach a photo"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <button class="ctool" id="chatResume" aria-label="Add or review your resume">Resume</button>
           <span class="cctx" id="chatCtx"><span class="cdotok"></span><span id="chatCtxText">No connected data</span></span>
           <span style="flex:1"></span>
           <button class="ctool" id="chatVoice" aria-label="Voice input"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></button>
@@ -1843,6 +1844,26 @@
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
+
+  <div class="sheet" id="applicantResumeSheet" role="dialog" aria-modal="true" aria-labelledby="applicantResumeTitle" hidden>
+    <div class="sheetcard">
+      <h2 id="applicantResumeTitle">Your application resume</h2>
+      <p class="psub">Use an original PDF or DOCX in this chat. Details come from what you confirm, never guesses from the file.</p>
+      <p id="applicantResumeStatus" role="status" aria-live="polite"></p>
+      <p id="applicantResumeFile" style="overflow-wrap:anywhere"></p>
+      <input type="file" id="applicantResumeInput" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <button class="ghostbtn" id="applicantResumeChoose">Choose resume</button>
+      <button class="ghostbtn" id="applicantResumeRetry" hidden>Retry same upload</button>
+      <p class="psub">Optional details to review and confirm:</p>
+      <label for="applicant_first_name">First name</label><input class="input" id="applicant_first_name" maxlength="300" autocomplete="given-name">
+      <label for="applicant_last_name">Last name</label><input class="input" id="applicant_last_name" maxlength="300" autocomplete="family-name">
+      <label for="applicant_email">Email</label><input class="input" id="applicant_email" type="email" maxlength="300" autocomplete="email">
+      <label for="applicant_location">Location</label><input class="input" id="applicant_location" maxlength="300" autocomplete="address-level2">
+      <button class="ghostbtn" id="applicantResumeReview" disabled>Review this resume and details</button>
+      <button class="primary" id="applicantResumeConfirm" disabled>Use this resume</button>
+      <button class="ghostbtn" id="applicantResumeClose">Close</button>
+    </div>
+  </div>
 
   <!-- ================= CHAT THREADS ================= -->
   <div class="sheet" id="chatsSheet" hidden>
@@ -2211,6 +2232,63 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
     return {state:'ok',value:value.messages};
   }
   return {capture,ask,list,history,invalidate(){epoch++;}};
+};
+
+</script>
+<script>
+/* Original resume bytes stay outside chat/model payloads. State is memory-only. */
+globalThis.UpmoreApplicantResume = function ({capture,getToken,request,onChange=()=>{},newId=()=>crypto.randomUUID().replace(/-/g,''),now=Date.now}) {
+  const UUID=/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i,HASH=/^[a-f\d]{64}$/;
+  const fieldsAllowed=new Set(['first_name','last_name','name','email','phone','location','country','city','state','postal_code','linkedin','website','github']);
+  const canonical=x=>JSON.stringify(Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))));
+  let ticket,file,upload,review,confirmed,pendingFields={},uploadKey,confirmKey,revision=0,busy=false,state='idle';
+  function reset(){revision++;ticket=file=upload=review=confirmed=uploadKey=confirmKey=undefined;pendingFields={};busy=false;state='idle';onChange();}
+  function current(){return !!ticket?.current();}
+  function bound(){return current()&&UUID.test(ticket.owner||'')&&UUID.test(ticket.thread||'');}
+  function view(){if(ticket&&!current())reset();return {state,busy,filename:file?.name||upload?.filename||null,upload:upload?{...upload}:null,review:review?{...review,fields:{...pendingFields}}:null,confirmed:confirmed?{...confirmed}:null};}
+  function start(){reset();ticket=capture();if(!ticket.owner||!UUID.test(ticket.thread||'')){state='chat_required';onChange();return false;}return true;}
+  async function call(route,body,version){
+    let token;try{token=await getToken();}catch(_){throw Error('sign_in');}if(version!==revision||!bound())return null;
+    if(typeof token!=='string'||!token)throw Error('sign_in');
+    let result;try{result=await request(route,body,token);}catch(_){throw Error('uncertain');}if(version!==revision||!bound())return null;
+    if(result.status!==200)throw Error(result.status===401?'sign_in':result.status===503?'uncertain':result.status===409?'changed':result.status===400?'rejected':'unavailable');
+    return result.body;
+  }
+  function ownedReply(body,key){return body?.thread_id===ticket.thread&&body.turn_key===key&&body.applicant;}
+  async function uploadFile(selected){
+    if(busy)return false;if(!bound()&&!start())return false;
+    if(selected){file=selected;upload=review=confirmed=undefined;uploadKey='resume_upload_'+newId();confirmKey=undefined;revision++;}
+    if(!file||!file.size||file.size>1048576||!(/\.(pdf|docx)$/i.test(file.name))){state='file_required';onChange();return false;}
+    const mime=/\.pdf$/i.test(file.name)?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const form=new FormData();form.set('threadId',ticket.thread);form.set('requestId',uploadKey);form.set('file',new Blob([file],{type:mime}),file.name);form.set('filename',file.name);
+    const version=revision;busy=true;state='uploading';onChange();
+    try{const body=await call('uploads',form,version);if(!body)return false;const a=ownedReply(body,uploadKey);
+      if(!a||a.status!=='uploaded_unconfirmed'||!UUID.test(a.uploadId)||!HASH.test(a.sha256)||a.filename!==file.name||a.bytes!==file.size||a.contentType!==mime)throw Error('unavailable');
+      upload={...a};state='uploaded';return true;
+    }catch(e){if(version===revision&&current())state=e.message==='uncertain'?'upload_uncertain':e.message;return false;}
+    finally{if(version===revision&&current()){busy=false;onChange();}}
+  }
+  function edit(values){if(!bound()||busy)return false;const next={};for(const [key,value]of Object.entries(values||{})){if(!fieldsAllowed.has(key)||typeof value!=='string')return false;if(value.trim())next[key]=value.trim();}
+    if(canonical(next)!==canonical(pendingFields)){pendingFields=next;review=undefined;confirmKey=undefined;revision++;if(upload)state='uploaded';onChange();}return true;
+  }
+  async function reviewFile(){
+    if(busy||!bound()||!upload)return false;const version=revision,fields={...pendingFields};busy=true;state='reviewing';onChange();
+    try{const body=await call('review',{threadId:ticket.thread,uploadId:upload.uploadId,fields},version);if(!body)return false;
+      const r=body.review,b=r?.binding;if(!HASH.test(r?.sha256||'')||b?.userId!==ticket.owner||b.threadId!==ticket.thread||b.uploadId!==upload.uploadId||b.sha256!==upload.sha256||canonical(b.fields||{})!==canonical(fields)||!(Date.parse(r.expiresAt)>now()))throw Error('unavailable');
+      review={sha256:r.sha256,expiresAt:r.expiresAt};confirmKey='resume_confirm_'+newId();state='review_ready';return true;
+    }catch(e){if(version===revision&&current())state=e.message;return false;}
+    finally{if(version===revision&&current()){busy=false;onChange();}}
+  }
+  async function confirmFile(){
+    if(busy||!bound()||!upload||!review)return false;if(state!=='confirm_uncertain'&&!(Date.parse(review.expiresAt)>now())){state='changed';review=undefined;onChange();return false;}
+    const version=revision,fields={...pendingFields};busy=true;state='confirming';onChange();
+    try{const body=await call('confirm',{threadId:ticket.thread,requestId:confirmKey,uploadId:upload.uploadId,reviewHash:review.sha256,fields,message:Object.keys(fields).length?'use this resume and confirm these fields':'use this resume'},version);if(!body)return false;const a=ownedReply(body,confirmKey);
+      if(!a||a.status!=='confirmed'||a.uploadId!==upload.uploadId||a.sha256!==upload.sha256||a.artifactId!==upload.artifactId||a.filename!==upload.filename||a.bytes!==upload.bytes||a.contentType!==upload.contentType||typeof a.versionId!=='string'||!a.versionId||!Array.isArray(a.confirmedFieldKeys)||new Set(a.confirmedFieldKeys).size!==a.confirmedFieldKeys.length||canonical(Object.fromEntries(a.confirmedFieldKeys.map(k=>[k,true])))!==canonical(Object.fromEntries(Object.keys(fields).map(k=>[k,true]))))throw Error('unavailable');
+      confirmed={...a};file=undefined;state='confirmed';return true;
+    }catch(e){if(version===revision&&current())state=e.message==='uncertain'?'confirm_uncertain':e.message;return false;}
+    finally{if(version===revision&&current()){busy=false;onChange();}}
+  }
+  return {start,reset,view,upload:uploadFile,edit,review:reviewFile,confirm:confirmFile};
 };
 
 </script>
@@ -8255,6 +8333,7 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
     $("chatsSheet").hidden = false;
   }
   function newGuideChat() {
+    careerResumeReset();
     chatRequests.invalidate(); busy=false; agentTaskRunning=false;
     upmoreThread = null;
     chatThread.empty = true; chatThread.lastTs = 0;
@@ -8278,6 +8357,7 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
     }
   }
   async function openGuideChat(id) {
+    careerResumeReset();
     if (!upmoreThreads.some(row=>row.id===id && row.user_id===session?.user?.id)) {toast('Choose a chat in your account.');return;}
     chatRequests.invalidate(); busy=false; agentTaskRunning=false;
     $("chatsSheet").hidden = true;
@@ -8314,7 +8394,44 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
     readThreads:async owner=>{const {data,error}=await supa.from('agent_threads').select('id,user_id,title,created_at').eq('user_id',owner).order('created_at',{ascending:false}).limit(50);if(error)throw error;return data;},
     readHistory:async(owner,id,ticket)=>{const owned=await supa.from('agent_threads').select('id,user_id').eq('id',id).eq('user_id',owner).single();if(!ticket.current() || owned.error || !owned.data)throw Error('Chat unavailable');const messages=await supa.from('agent_messages').select('thread_id,role,content').eq('thread_id',id).order('id',{ascending:true}).limit(200);if(messages.error)throw messages.error;return {thread:owned.data,messages:messages.data};}
   });
+  /* Application-chat resume flow; no file bytes enter agentAsk or chatImages. */
+const applicantResume=UpmoreApplicantResume({
+  capture:()=>chatRequests.capture(),getToken:()=>getSessionToken(),onChange:renderApplicantResume,
+  request:async(route,body,token)=>{const multipart=body instanceof FormData,response=await fetch(UPMORE_BACKEND_URL+'/functions/v1/career-applicant/'+route,{method:'POST',headers:{apikey:UPMORE_ANON_KEY,authorization:'Bearer '+token,...(multipart?{}:{'content-type':'application/json'})},body:multipart?body:JSON.stringify(body)});let result;try{result=await response.json();}catch(_){result=null;}return {status:response.status,body:result};}
+});
+function applicantFields(){const values={};for(const key of ['first_name','last_name','email','location'])values[key]=$('applicant_'+key)?.value||'';return values;}
+function renderApplicantResume(){
+  const panel=$('applicantResumeSheet');if(!panel)return;const v=applicantResume.view(),status=$('applicantResumeStatus');
+  const messages={idle:'Choose your original PDF or DOCX, up to 1 MiB.',uploading:'Uploading your original file…',uploaded:'File uploaded. Review the file and any details you want to confirm.',reviewing:'Preparing your exact review…',review_ready:'Review this file and the details below. Confirm only what you want used in applications.',confirming:'Saving your confirmation…',confirmed:'Resume confirmed for this application chat. Job applications still need a reviewed approval.',upload_uncertain:'The upload could not be confirmed. Retry the same upload to check it.',confirm_uncertain:'The confirmation could not be confirmed. Retry the same confirmation to check it.',changed:'Your review changed or expired. Review it again before confirming.',chat_required:'Start or open your application chat first.',sign_in:'Sign in again to continue.',file_required:'Choose an original PDF or DOCX up to 1 MiB.',unavailable:'Resume upload is unavailable. No new confirmation is claimed.',uncertain:'The review is unavailable. Try reviewing again.'};
+  status.textContent=messages[v.state]||messages.unavailable;
+  const proof=$('applicantResumeFile');proof.textContent=v.upload?`${v.upload.filename} · ${v.upload.bytes} bytes · SHA-256 ${v.upload.sha256}`:v.filename||'';
+  $('applicantResumeChoose').disabled=v.busy;$('applicantResumeReview').disabled=v.busy||!v.upload||v.state==='confirmed';
+  $('applicantResumeConfirm').disabled=v.busy||!v.review||v.state==='confirmed';
+  $('applicantResumeConfirm').textContent=v.state==='confirm_uncertain'?'Retry same confirmation':Object.keys(applicantFields()).some(k=>applicantFields()[k].trim())?'Use this resume and confirm these details':'Use this resume';
+  const retry=$('applicantResumeRetry');retry.hidden=v.state!=='upload_uncertain';retry.disabled=v.busy;
+  for(const key of ['first_name','last_name','email','location'])$('applicant_'+key).disabled=v.busy||v.state==='confirmed';
+}
+function careerResumeReset(){applicantResume.reset();const panel=$('applicantResumeSheet');if(panel)panel.hidden=true;const file=$('applicantResumeInput');if(file)file.value='';for(const key of ['first_name','last_name','email','location']){const el=$('applicant_'+key);if(el)el.value='';}renderApplicantResume();}
+function openApplicantResume(){
+  if(!session){toast('Sign in to use your resume.');show('login');return;}
+  if(!upmoreThread){toast('Start or open your application chat first, then add your resume.');return;}
+  if(applicantResume.view().state==='idle'&&!applicantResume.start())return;
+  $('applicantResumeSheet').hidden=false;renderApplicantResume();$('applicantResumeChoose').focus();
+}
+function wireApplicantResume(){
+  $('chatResume').onclick=openApplicantResume;
+  $('applicantResumeChoose').onclick=()=>$('applicantResumeInput').click();
+  $('applicantResumeInput').onchange=()=>{const file=$('applicantResumeInput').files?.[0];$('applicantResumeInput').value='';if(file)applicantResume.upload(file);};
+  $('applicantResumeRetry').onclick=()=>applicantResume.upload();
+  $('applicantResumeReview').onclick=()=>{if(applicantResume.edit(applicantFields()))applicantResume.review();};
+  $('applicantResumeConfirm').onclick=()=>applicantResume.confirm();
+  $('applicantResumeClose').onclick=()=>{$('applicantResumeSheet').hidden=true;$('chatResume').focus();};
+  for(const key of ['first_name','last_name','email','location'])$('applicant_'+key).oninput=()=>applicantResume.edit(applicantFields());
+  $('applicantResumeSheet').addEventListener('keydown',event=>{if(event.key==='Escape'){$('applicantResumeSheet').hidden=true;$('chatResume').focus();}});
+}
+
   function resetPrivateChat() {
+    careerResumeReset();
     chatRequests.invalidate();upmoreThread=null;upmoreThreads=[];chatThreadListState='unknown';busy=false;agentTaskRunning=false;
     const history=$('chatThreadList');if(history)history.replaceChildren();
     const body=$('threadMain');if(body)body.replaceChildren();
@@ -13086,6 +13203,7 @@ function threadEl(m) { return $("threadMain"); }
 function scrollChat() { const f = chatFeedEl(); if (f) f.scrollTop = f.scrollHeight; }
 
 function setChatMode(m) {
+  if (typeof chatMode!=="undefined" && m!==chatMode) careerResumeReset();
   if(m!==chatMode){chatRequests.invalidate();busy=false;agentTaskRunning=false;}
   const feed = chatFeedEl(); if (!feed) return;
   chatThread.scroll = feed.scrollTop;
@@ -13315,6 +13433,7 @@ function renderChatImages() {
   });
 }
 function wireChat() {
+  wireApplicantResume();
   const feed = chatFeedEl();
   feed.innerHTML = '<div id="threadMain"></div>';
   chat = $("threadMain");

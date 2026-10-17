@@ -39,6 +39,8 @@ for marker, filename, wrapped in [
     ('<!--__LEDGER_CONTROLLER__-->', 'ledger-review-controller.js', True),
     ('<!--__BILL_CONTROLLER__-->', 'bill-workflow-controller.js', True),
     ('<!--__CHAT_CONTROLLER__-->', 'chat-request-controller.js', True),
+    ('<!--__APPLICANT_CONTROLLER__-->', 'career-applicant-controller.js', True),
+    ('/*__APPLICANT_UI__*/', 'career-applicant-ui.js', False),
     ('/*__FINANCIAL_REVIEW__*/', 'financial-review.js', False),
     ('/*__BILL_WORKFLOW_UI__*/', 'bill-workflow-ui.js', False),
     ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),

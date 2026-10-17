@@ -62815,6 +62815,61 @@
     "Source/controlled fixtures/local PostgreSQL only; no live model/employer quality or deployed readiness.",
     "Genuine original archives remain missing and release-blocking."
    ]
+  },
+  {
+   "id": "mass-entry-focused-20261017",
+   "command": [
+    "node",
+    "--test",
+    "tests/career-mass-readiness.test.cjs",
+    "tests/career-applicant-client.test.cjs",
+    "tests/router-bundle.test.cjs"
+   ],
+   "observed_at": "2026-10-17T14:39:35.614309+00:00",
+   "commit": "51807f10ab3dde0c50ea020e5c1f1f096f39a1a4",
+   "source_hashes": "docs/career/mass-applications-20261017/checkpoint-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 10,
+    "failed": 0
+   },
+   "exit_code": 0,
+   "log": "docs/career/mass-applications-20261017/evidence/checkpoint-unit.log",
+   "log_sha256": "d1b9141a7d6798b1a45e08f6133764573f87989c6d471a95a2df2744d20a18ef",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Source working-tree hashes recorded; not deployed.",
+    "No employer or live-model quality outcome."
+   ]
+  },
+  {
+   "id": "mass-entry-owned-resume-20261017",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only",
+    "--sql-file=career-critical-repairs/applicant-client-postgres.test.cjs"
+   ],
+   "observed_at": "2026-10-17T14:39:35.614309+00:00",
+   "commit": "51807f10ab3dde0c50ea020e5c1f1f096f39a1a4",
+   "source_hashes": "docs/career/mass-applications-20261017/checkpoint-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 1,
+    "failed": 0
+   },
+   "exit_code": 0,
+   "log": "docs/career/mass-applications-20261017/evidence/resume-client-local-postgres.log",
+   "log_sha256": "98b99c75743189e30edae566fa1ee22f07e991f77362d75d8d9821ccba2bf012",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "limitations": [
+    "Source working-tree hashes recorded; not deployed.",
+    "No employer or live-model quality outcome."
+   ]
   }
  ],
  "limitations": [

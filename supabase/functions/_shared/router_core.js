@@ -28399,6 +28399,10 @@ const CareerApply = (() => {
           const clearance = fit.hard_fails.some((r) => /clearance/i.test(r));
           return { job_id: p.job_id, company: p.company, role: p.title, decision: clearance ? "ask" : "skip", fit: null, reasons: fit.hard_fails.map((r) => `hard filter: ${r}`) };
         }
+        if (fit.restriction_unresolved || (fit.needs_user_input || []).length) {
+          return { job_id: p.job_id, company: p.company, role: p.title, decision: "ask", fit: fit.score, bucket: fit.bucket,
+            reasons: [...(fit.reasons || []), ...(fit.needs_user_input || []).map((q) => q.reason || q.question)], needs_user_input: fit.needs_user_input || [] };
+        }
         return { job_id: p.job_id, company: p.company, role: p.title, decision: "apply", fit: fit.score, bucket: fit.bucket, reasons: fit.reasons };
       }
       reasons.push("no scoring profile passed in — fit not computed");

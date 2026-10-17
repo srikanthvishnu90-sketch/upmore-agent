@@ -1,0 +1,18 @@
+✔ actual client sends original file separately from chat, reviews explicit fields then confirms (28.150209ms)
+✔ confirmation acknowledgement uncertainty retries the exact owned request, even after review expiry (1.6437ms)
+✔ upload uncertainty is explicit and manual retry retains original bytes and id (1.642807ms)
+✔ edited answers invalidate the review and cannot silently change an approved field set (1.387339ms)
+✔ owner change ignores pending acknowledgements and clears memory-only private state (8.436465ms)
+✔ missing application chat makes no request and unknown field names never become confirmed facts (3.020739ms)
+✔ batch triage holds only the unresolved role and preserves its essential question (13.047805ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (372.899292ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (333.186713ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (1.618171ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 781.379278

@@ -1831,7 +1831,8 @@
       <div class="cbox" id="chatBox">
         <textarea id="chatInput" rows="1" placeholder="Hand off a task" autocomplete="off" aria-label="Message"></textarea>
         <div class="ctoolrow">
-          <button class="ctool" id="chatAttach" aria-label="Attach a file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <button class="ctool" id="chatAttach" aria-label="Attach a photo"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <button class="ctool" id="chatResume" aria-label="Add or review your resume">Resume</button>
           <span class="cctx" id="chatCtx"><span class="cdotok"></span><span id="chatCtxText">No connected data</span></span>
           <span style="flex:1"></span>
           <button class="ctool" id="chatVoice" aria-label="Voice input"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></button>
@@ -1842,6 +1843,26 @@
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
+
+  <div class="sheet" id="applicantResumeSheet" role="dialog" aria-modal="true" aria-labelledby="applicantResumeTitle" hidden>
+    <div class="sheetcard">
+      <h2 id="applicantResumeTitle">Your application resume</h2>
+      <p class="psub">Use an original PDF or DOCX in this chat. Details come from what you confirm, never guesses from the file.</p>
+      <p id="applicantResumeStatus" role="status" aria-live="polite"></p>
+      <p id="applicantResumeFile" style="overflow-wrap:anywhere"></p>
+      <input type="file" id="applicantResumeInput" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <button class="ghostbtn" id="applicantResumeChoose">Choose resume</button>
+      <button class="ghostbtn" id="applicantResumeRetry" hidden>Retry same upload</button>
+      <p class="psub">Optional details to review and confirm:</p>
+      <label for="applicant_first_name">First name</label><input class="input" id="applicant_first_name" maxlength="300" autocomplete="given-name">
+      <label for="applicant_last_name">Last name</label><input class="input" id="applicant_last_name" maxlength="300" autocomplete="family-name">
+      <label for="applicant_email">Email</label><input class="input" id="applicant_email" type="email" maxlength="300" autocomplete="email">
+      <label for="applicant_location">Location</label><input class="input" id="applicant_location" maxlength="300" autocomplete="address-level2">
+      <button class="ghostbtn" id="applicantResumeReview" disabled>Review this resume and details</button>
+      <button class="primary" id="applicantResumeConfirm" disabled>Use this resume</button>
+      <button class="ghostbtn" id="applicantResumeClose">Close</button>
+    </div>
+  </div>
 
   <!-- ================= CHAT THREADS ================= -->
   <div class="sheet" id="chatsSheet" hidden>
@@ -2010,6 +2031,7 @@
 <!--__LEDGER_CONTROLLER__-->
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
+<!--__APPLICANT_CONTROLLER__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
@@ -7872,6 +7894,7 @@
     $("chatsSheet").hidden = false;
   }
   function newGuideChat() {
+    careerResumeReset();
     chatRequests.invalidate(); busy=false; agentTaskRunning=false;
     upmoreThread = null;
     chatThread.empty = true; chatThread.lastTs = 0;
@@ -7895,6 +7918,7 @@
     }
   }
   async function openGuideChat(id) {
+    careerResumeReset();
     if (!upmoreThreads.some(row=>row.id===id && row.user_id===session?.user?.id)) {toast('Choose a chat in your account.');return;}
     chatRequests.invalidate(); busy=false; agentTaskRunning=false;
     $("chatsSheet").hidden = true;
@@ -7931,7 +7955,9 @@
     readThreads:async owner=>{const {data,error}=await supa.from('agent_threads').select('id,user_id,title,created_at').eq('user_id',owner).order('created_at',{ascending:false}).limit(50);if(error)throw error;return data;},
     readHistory:async(owner,id,ticket)=>{const owned=await supa.from('agent_threads').select('id,user_id').eq('id',id).eq('user_id',owner).single();if(!ticket.current() || owned.error || !owned.data)throw Error('Chat unavailable');const messages=await supa.from('agent_messages').select('thread_id,role,content').eq('thread_id',id).order('id',{ascending:true}).limit(200);if(messages.error)throw messages.error;return {thread:owned.data,messages:messages.data};}
   });
+  /*__APPLICANT_UI__*/
   function resetPrivateChat() {
+    careerResumeReset();
     chatRequests.invalidate();upmoreThread=null;upmoreThreads=[];chatThreadListState='unknown';busy=false;agentTaskRunning=false;
     const history=$('chatThreadList');if(history)history.replaceChildren();
     const body=$('threadMain');if(body)body.replaceChildren();
@@ -12248,6 +12274,7 @@ function threadEl(m) { return $("threadMain"); }
 function scrollChat() { const f = chatFeedEl(); if (f) f.scrollTop = f.scrollHeight; }
 
 function setChatMode(m) {
+  if (typeof chatMode!=="undefined" && m!==chatMode) careerResumeReset();
   if(m!==chatMode){chatRequests.invalidate();busy=false;agentTaskRunning=false;}
   const feed = chatFeedEl(); if (!feed) return;
   chatThread.scroll = feed.scrollTop;
@@ -12477,6 +12504,7 @@ function renderChatImages() {
   });
 }
 function wireChat() {
+  wireApplicantResume();
   const feed = chatFeedEl();
   feed.innerHTML = '<div id="threadMain"></div>';
   chat = $("threadMain");

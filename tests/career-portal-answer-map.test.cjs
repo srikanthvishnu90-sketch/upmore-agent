@@ -741,7 +741,10 @@ test("R3 follow-on end to end: graduation_year_or_later resolves against the edu
 });
 
 test("R3 follow-on classification: acknowledgment widgets canonicalize on SELECT and RADIO shapes too (Sigma/Point72 live shapes)", () => {
-  for (const t of ["select", "radio"]) {
+  // checkbox_group/radio_group are the shapes classifyFields actually
+  // emits for grouped inputs (the first live Sigma drive proved a
+  // fixture using any other group value guards nothing).
+  for (const t of ["select", "radio", "checkbox_group", "radio_group"]) {
     const a = clsR3("Acknowledge, confirm, and agree to the following statements.", t);
     assert.equal(a.kind, "attestation", t); assert.equal(a.question_key, "acknowledgment_receipt", t);
     const p = clsR3("Privacy", t);

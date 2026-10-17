@@ -272,7 +272,7 @@ const CareerPortalBrowser = (() => {
     // only checkboxes (Sigma's "Acknowledge, confirm, and agree..."
     // and Point72's "Privacy" both classified unknown live) — the
     // canonicalization is keyed on the label class, not the element.
-    if (inputType === "checkbox" || inputType === "group" || inputType === "radio" || inputType === "select") {
+    if (inputType === "checkbox" || inputType === "checkbox_group" || inputType === "group" || inputType === "radio" || inputType === "radio_group" || inputType === "select") {
       if (/acknowledg|privacy/.test(eff) && !/certif|attest/.test(eff)) return { kind: "attestation", question_key: "acknowledgment_receipt" };
       if (/certif|attest|true and complete|provided.*true/.test(eff)) return { kind: "attestation", question_key: "certify_true" };
     }

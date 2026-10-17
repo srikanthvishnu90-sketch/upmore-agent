@@ -1,5 +1,5 @@
 "use strict";
-// BUG-238 / MI-033 (Depth Lane D, 2026-10-16): watcher misses from the
+// BUG-261 / MI-033 (Depth Lane D, 2026-10-16): watcher misses from the
 // transport-error backoff class — MT2 Window 2 measured 8 misses, one uniform
 // class: a board whose fetch failed with a TRANSPORT error (no HTTP response
 // at all: DNS, reset, timeout) had its next poll pushed out 120 minutes by

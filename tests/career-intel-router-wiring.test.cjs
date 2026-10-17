@@ -1,4 +1,4 @@
-// Guard for BUG-237 / FR-395 (Depth Lane C) — the router half of
+// Guard for BUG-257 / FR-415 (Depth Lane C) — the router half of
 // BUG-219/BUG-220 and live failure LF-05.
 //
 // BUG-219/220 built the capability in modules 125/153 (role lens +

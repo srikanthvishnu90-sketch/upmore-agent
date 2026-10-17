@@ -1,5 +1,5 @@
 "use strict";
-// BUG-239 (Depth Lane D, 2026-10-16) — scheduler cadence phase drift.
+// BUG-262 (Depth Lane D, 2026-10-16) — scheduler cadence phase drift.
 // The scheduler's first due-rule was elapsed-based ("starred due when
 // 14+ minutes since the last starred run"). A run at 23:04 pushed the
 // next due to 23:18; the 23:15 timer fire found nothing due and exited
@@ -18,7 +18,7 @@ const { pathToFileURL } = require("node:url");
 const schedP = import(pathToFileURL(path.join(__dirname, "..", "scripts/career/alerts-scheduler.mjs")).href);
 const T = (h, m) => Date.UTC(2026, 9, 16, h, m);
 
-test("BUG-239 replay: a :04 run does NOT push the :15 slot out — the :15 fire finds starred due", async () => {
+test("BUG-262 replay: a :04 run does NOT push the :15 slot out — the :15 fire finds starred due", async () => {
   const { cadencesDue } = await schedP;
   const sched = { starred_last: T(23, 4), default_last: T(23, 4) };
   assert.deepEqual(cadencesDue(sched, T(23, 15), "due"), ["starred"],

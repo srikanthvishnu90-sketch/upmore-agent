@@ -80,7 +80,7 @@ test("lane B career path: junior accountant to CFO — ladder, skills, CPA, next
 });
 
 test("lane B career OS: the wins log persists across turns (log, then show)", () => {
-  // KNOWN RED at delivery — BUG-237 (ledger): the wins LOG statement
+  // KNOWN RED at delivery — BUG-253 (ledger): the wins LOG statement
   // is claimed by 130's SC-275 read-side branch (its gate matches
   // "log a win" and reports the count without logging), on a store
   // that does not survive 130's per-turn ctx either. 142's side is

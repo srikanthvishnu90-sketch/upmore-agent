@@ -1,5 +1,5 @@
 "use strict";
-// BUG-237 / MI-029 (Depth Lane D, 2026-10-16): the 151 watch gate killed
+// BUG-260 / MI-029 (Depth Lane D, 2026-10-16): the 151 watch gate killed
 // postings whose job text names the watched occupation — Lane A counted 18
 // (class gated_at_151). Mechanism, proven from the code: the scale path polls
 // the board directory LIST-FIRST (feedsFromDirectory drops ?content=true "at

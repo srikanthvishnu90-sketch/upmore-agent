@@ -337,7 +337,7 @@ const CareerAlertWatch = (() => {
     const watched = watchedFamiliesOf(profile, deps);
     const alerts = [], gated = [];
     let alerts_emitted = 0;
-    // MI-029 (BUG-237) — the gate evidence pass. The scale path polls the
+    // MI-029 (BUG-260) — the gate evidence pass. The scale path polls the
     // board directory LIST-FIRST (feedsFromDirectory drops ?content=true at
     // ~1/100th the payload), so a posting can reach this gate with jd_text ""
     // — and MI-095's JD-head occupation leg then reads an empty string and
@@ -467,7 +467,7 @@ const CareerAlertWatch = (() => {
     else if (obs.ewma_new_per_day >= 0.02) { tier = "standard"; base = CADENCE.standard; why = `${obs.ewma_new_per_day.toFixed(2)} new/day: standard tier`; }
     else { tier = "quiet"; base = CADENCE.quiet; why = "no new postings observed: quiet tier"; }
     if (obs.starred && base > CADENCE.active) { base = CADENCE.active; tier = "active"; why += "; starred company capped at 15 min"; }
-    // MI-033 (BUG-238): the error backoff must distinguish WHY the board
+    // MI-033 (BUG-261): the error backoff must distinguish WHY the board
     // failed. A TRANSPORT error (no HTTP response at all — DNS, reset,
     // timeout) is not a sick or rate-limiting board; doubling its interval
     // (60 -> 120) and parking it at 240 pushed retries past MT2's Window 2

@@ -48,7 +48,7 @@ const STATE_PATH = path.join(RUNTIME, "state", "scheduler-state.json");
 const STARRED_SLOT_MIN = 15;   // starred cadence: one run per 15-minute wall-clock slot
 const DEFAULT_SLOT_MIN = 60;   // default cadence: one run per hourly wall-clock slot
 
-// Which cadence subsets are due. GRID-ANCHORED (BUG-239): a subset is due
+// Which cadence subsets are due. GRID-ANCHORED (BUG-262): a subset is due
 // when a new wall-clock slot has begun since its last run — never "N
 // minutes since the last run", which drifts: a run at :04 pushed the
 // next due to :18, the :15 timer fire found nothing due, and the slot

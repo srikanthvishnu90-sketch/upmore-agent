@@ -74,6 +74,48 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+## Fellowship program-site forms (MI-103)
+
+### Thiel Fellowship — thielfellowship.org (account-gated)
+- What it is: the Thiel Fellowship application — a bespoke account-gated
+  web application on thielfellowship.org (fellowship census 2026-10-15
+  §3). The program is OPEN, rolling, with no deadline; $250,000 over two
+  years, no equity taken; enrolled students may apply but must drop out
+  or defer to ACCEPT — that decision is the owner's alone.
+- Account required to apply? **Yes — and the account step is the
+  owner's, full stop.** Applicants register with an email + password,
+  then complete the application in stages inside the account.
+  Registering an account, signing in, or handling a password is an
+  owner-credential action: **no drive may perform it, ever.** The seam
+  therefore carries the wall as a typed stop: any landing that is not
+  the in-account application (a visible password field on the page,
+  reported by the helper as an account wall) stops the run with
+  **ACCOUNT_WALL_OWNER_HANDOFF** and a handoff URL — no form is read, no
+  field is filled, no credential is typed, no sign-in or create-account
+  control is clicked. The owner creates / signs into the account in his
+  own session; only then may the drive run, on the in-account form.
+- Fields: not readable without an account [census]. The sandbox board's
+  field set is staged from the census §3 summary only (its secondary
+  walkthrough list: name, date of birth, hometown, current location,
+  project/company name + URL, LinkedIn, previous projects, and short
+  written answers about the project); the live form's fields are read at
+  drive time through module 150. Date of birth and hometown are NOT in
+  the fact bank (census Phase 2) — a drive without confirmed values for
+  them waits honestly and never invents. The project/company name fills
+  only from a confirmed answer (which project is the owner's decision);
+  the written answers fill only from the owner's own confirmed draft —
+  never invented; attestations are explicit-only.
+- Driver posture: **allowed for the in-account form only** (MI-103,
+  branch work/mi103-thiel) — host gate in 149 + 150 + the helper's
+  navigation gate, end-anchored to thielfellowship.org so lookalikes
+  stay refused; the in-account doorstep and the account-wall stop are
+  proven tier-2 over captured-form fixtures
+  (tests/career-thiel-portal.test.cjs +
+  tests/career-thiel-browser.test.cjs). **No live Thiel form has been
+  driven, no account has been created, and nothing has been submitted
+  through this family. The live in-account doorstep proof remains owed
+  until the owner creates the account himself.**
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

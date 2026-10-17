@@ -24678,7 +24678,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    and submit ONLY on an explicit owner approval, exactly once, with
    timeout -> needs_human reconciliation (§8.3). §6.3 rules are hard code:
      - employer-hosted forms on TESTED ATS families only (Greenhouse,
-       Lever, Ashby, SmartRecruiters); LinkedIn / Indeed apply automation
+       Lever, Ashby, SmartRecruiters, plus the Thiel Fellowship
+       account-gated family — MI-103); LinkedIn / Indeed apply automation
        is refused by construction (AGGREGATOR_APPLY_FORBIDDEN);
      - one isolated session per user; a session refuses any other user;
      - a captcha / verification code at any point STOPS the run and hands
@@ -24714,6 +24715,14 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
    (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
    owner-gated work — see docs/career/board-automation-map.md.
+   MI-103 (Thiel Fellowship): the one account-gated family in the seam.
+   Its application lives BEHIND an account the owner must create/sign
+   into himself (email + password — an owner-credential action no drive
+   may perform, and this module never handles a credential). A landing
+   that is not the in-account application — an unauthenticated /
+   login-wall page, surfaced by the board as `accountWall` — is a typed
+   ACCOUNT_WALL_OWNER_HANDOFF stop, never a drive; only the in-account
+   form (the owner's own session) may be driven, to the doorstep.
    Caps (§6.4) are the owner's DECIDED numbers (15/day locked 2026-10-12;
    5/vendor/day; 1/company/30 days) and are ENFORCED here (MI-110): a run
    or submit that would exceed one stops CAP_REACHED naming the cap and
@@ -24729,6 +24738,13 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-103: the Thiel Fellowship's bespoke account-gated application
+    // on thielfellowship.org (fellowship census 2026-10-15 §3). The
+    // pattern is anchored to the END of the hostname, so lookalikes
+    // (thielfellowship.example.com, thielfellowship.org.evil.com) do
+    // NOT match. Classification alone never authorizes a drive over a
+    // login wall — see the ACCOUNT_WALL_OWNER_HANDOFF stop in runApply.
+    { re: /(^|\.)thielfellowship\.org$/, family: "thiel" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -24753,7 +24769,7 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Thiel Fellowship) and registered sandbox boards may be driven (§6.3)" };
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -24805,6 +24821,78 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-103: the Thiel Fellowship sandbox board (TEST only) ----------
+  // The Thiel application is a bespoke account-gated web app on
+  // thielfellowship.org (census 2026-10-15 §3): register with an email
+  // + password (the OWNER's step — this board models the wall, it never
+  // creates an account), then complete the application in stages. The
+  // field set below is staged from the census §3 summary ONLY — the
+  // census could not read the in-account fields without an account;
+  // secondary walkthroughs list: name, date of birth, hometown, current
+  // location, project/company name + URL, LinkedIn, previous projects,
+  // and short written answers about the project. The live form's fields
+  // are read at drive time by module 150; this board is the faithful
+  // local seam for the pipeline, like the Greenhouse one. Discipline:
+  // identity/contact/DOB/hometown/location/LinkedIn fill from confirmed
+  // facts only (DOB and hometown are NOT in the fact bank — with no
+  // confirmed value the drive waits, it never invents); the project /
+  // company name is a screening DECISION that fills only from a
+  // confirmed answer; every written-answer field is free_text that
+  // fills ONLY from the owner's own confirmed draft; certify stays
+  // explicit-only. Behaviors are switchable so the guard can stage the
+  // account wall (accountWallAt: "open" | "review") and captchas.
+  const THIEL_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "date_of_birth", label: "Date of Birth", kind: "standard", profile_key: "date_of_birth", required: true },
+    { field_id: "hometown", label: "Hometown", kind: "standard", profile_key: "hometown", required: false },
+    { field_id: "current_location", label: "Current Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "project_or_company_name", label: "Project or Company Name", kind: "screening", question_key: "project_or_company_name", required: true },
+    { field_id: "project_url", label: "Project or Company URL", kind: "standard", profile_key: "website", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "previous_projects", label: "Previous projects", kind: "free_text", question_key: "previous_projects", required: false },
+    { field_id: "project_description", label: "Describe your project", kind: "free_text", question_key: "project_description", required: false },
+    { field_id: "project_progress", label: "What progress have you made on your project so far?", kind: "free_text", question_key: "project_progress", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createThielSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null, // null | "open" | "review"
+      accountWallAt: o.accountWallAt || null, // null | "open" | "review" — the unauthenticated landing
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "thiel",
+      host: "sandbox.thielfellowship-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null, accountWall: state.accountWallAt === "open" ? "account_wall" : null }; },
+      form() { return { fields: THIEL_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null, accountWall: state.accountWallAt === "review" ? "account_wall" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-T-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -25222,6 +25310,16 @@ const CareerPortalApply = (() => {
       logStep("host_redirect_refused", { code: opened.code, finalUrl: opened.finalUrl || null, host: opened.host || null, at: "open" });
       return blocked(opened.code, { reason: opened.reason || "the page landed off the tested-ATS allowlist (§6.3)", finalUrl: opened.finalUrl || null, host: opened.host || null });
     }
+    // MI-103: the account wall is a typed stop, never a drive. An
+    // unauthenticated / login-wall landing means the application lives
+    // behind an account only the owner may create or sign into (email +
+    // password are owner credentials — no drive performs that step,
+    // handles a password, or attempts a login). The run stops here:
+    // no form read, no fill, no submit on or after the wall.
+    if (opened.accountWall) {
+      logStep("account_wall_stop", { at: "open" });
+      return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "the application is behind an account wall — registering or signing in with the owner's email + password is an owner-credential action no drive may perform; the owner creates / signs into the account, then the drive resumes on the in-account application" });
+    }
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
@@ -25374,6 +25472,10 @@ const CareerPortalApply = (() => {
       logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
       return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null });
     }
+    if (review.accountWall) {
+      logStep("account_wall_stop", { at: "review" });
+      return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "the review step landed on an account wall (the session is signed out) — signing in with the owner's email + password is an owner-credential action no drive may perform; the owner signs in, then the drive resumes on the in-account application" });
+    }
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
@@ -25436,6 +25538,10 @@ const CareerPortalApply = (() => {
       if (recheck && recheck.code) {
         logStep("review_validation_failed_after_repair", { code: recheck.code });
         return blocked(recheck.code, { reason: "the board's own validation still rejects the form after the doorstep repair restored every readback value — the stop is the board's, named as-is", formAnalysis, asks });
+      }
+      if (recheck && recheck.accountWall) {
+        logStep("account_wall_stop", { at: "review_recheck" });
+        return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "the review step landed on an account wall (the session is signed out) — signing in with the owner's email + password is an owner-credential action no drive may perform; the owner signs in, then the drive resumes on the in-account application" });
       }
       if (recheck && recheck.captcha) {
         logStep("captcha_stop", { at: "review_recheck" });
@@ -25694,7 +25800,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createThielSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, THIEL_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

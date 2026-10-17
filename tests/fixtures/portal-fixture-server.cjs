@@ -405,7 +405,51 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-103 fixtures: the Thiel Fellowship's two page shapes, staged from
+// the fellowship census 2026-10-15 §3 (the in-account field list comes
+// from secondary walkthroughs — name, date of birth, hometown, current
+// location, project/company name + URL, LinkedIn, previous projects,
+// short written answers about the project; in the real product the live
+// form's fields are read at drive time by module 150). THIEL_FORM is the
+// IN-ACCOUNT application (the shape the owner sees after HE signs in):
+// the written-answer textareas are owner-writing only, the drive must
+// leave them untouched, and they are not required here so the fact-only
+// doorstep can be verified around them. The live application stages
+// carry no resume upload per the census, so neither does this fixture.
+// THIEL_LOGIN is the ACCOUNT WALL itself: an email + password sign-in /
+// create-account page. The drive must stop ACCOUNT_WALL_OWNER_HANDOFF
+// on it before any form read or fill — no credential is ever typed here.
+const THIEL_FORM = `<!doctype html><html><head><title>Thiel Fellowship Application (TEST fixture)</title></head><body>
+<h1>Thiel Fellowship — Application</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="dob">Date of Birth *</label><input id="dob" name="date_of_birth" type="text" required></div>
+  <div><label for="hometown">Hometown</label><input id="hometown" name="hometown" type="text"></div>
+  <div><label for="location">Current Location</label><input id="location" name="location" type="text"></div>
+  <div><label for="project_name">Project or Company Name *</label><input id="project_name" name="project_or_company_name" type="text" required></div>
+  <div><label for="project_url">Project or Company URL</label><input id="project_url" name="project_url" type="text"></div>
+  <div><label for="linkedin">LinkedIn Profile</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="previous_projects">Previous projects</label><textarea id="previous_projects" name="previous_projects"></textarea></div>
+  <div><label for="project_description">Describe your project</label><textarea id="project_description" name="project_description"></textarea></div>
+  <div><label for="project_progress">What progress have you made on your project so far?</label><textarea id="project_progress" name="project_progress"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const THIEL_LOGIN = `<!doctype html><html><head><title>Thiel Fellowship — Sign In (TEST fixture)</title></head><body>
+<h1>Sign in to the Thiel Fellowship</h1>
+<p>Create an account or sign in to continue your application.</p>
+<form id="login" method="post" action="/never-submit">
+  <div><label for="login_email">Email *</label><input id="login_email" name="email" type="email" required></div>
+  <div><label for="login_password">Password *</label><input id="login_password" name="password" type="password" required></div>
+  <button type="submit" id="signin-btn">Sign in</button>
+</form>
+<p><a href="/thiel-login">Create account</a> · <a href="/thiel-login">Forgot password?</a></p>
+</body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/thiel-form": THIEL_FORM, "/thiel-login": THIEL_LOGIN, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

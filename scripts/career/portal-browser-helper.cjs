@@ -69,7 +69,7 @@ async function getBrowser() {
 // requests are gated — subresources (scripts, trackers, CDNs) pass
 // untouched, and the one armed submit's own landing navigation is
 // checked during submission too; controlled tasks reject every redirect.
-const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];
+const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com", "thielfellowship.org"]; // MI-103: thielfellowship.org is the Thiel Fellowship host — the hop gate allows the HOST; the account-wall stop (fnDetectAccountWall + module 149) decides whether a landing on it may be driven at all
 function navAllowed(url) {
   let u;
   try { u = new URL(String(url)); } catch (e) { return false; }
@@ -149,6 +149,20 @@ function fnDetectChallenge() {
   const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);
   if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";
   return null;
+}
+/* MI-103: the account wall. The seam NEVER handles credentials — no
+ * drive may type a password, click sign-in/create-account, or create an
+ * account — so a VISIBLE password field on a landing is a login wall by
+ * construction, whatever the page around it claims to be. Detection is
+ * a pure observation (like fnDetectChallenge): it reports the wall and
+ * module 149/150 turn it into the typed ACCOUNT_WALL_OWNER_HANDOFF stop.
+ * An in-account application form carries no password field and is never
+ * flagged. */
+function fnDetectAccountWall() {
+  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  const pw = Array.from(document.querySelectorAll('input[type="password"]')).find(vis);
+  if (!pw) return null;
+  return "account_wall";
 }
 function fnCaptchaTech() {
   const srcs = Array.from(document.querySelectorAll("script[src], iframe[src]")).map((e) => e.src || "");
@@ -304,11 +318,12 @@ async function cmdOpen(board, cmd) {
     board.fieldCount = fields.length;
   }
   const tech = await page.evaluate(fnCaptchaTech).catch(() => []);
+  const accountWall = await page.evaluate(fnDetectAccountWall).catch(() => null);
   if (board.blockedNav) {
     navSteps.push("apply-click-blocked:" + board.blockedNav);
     return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav, fieldCount: 0, captchaTech: tech, navSteps };
   }
-  return { ok: true, captcha, finalUrl: board.url, fieldCount: board.fieldCount || 0, captchaTech: tech, navSteps };
+  return { ok: true, captcha, accountWall, finalUrl: board.url, fieldCount: board.fieldCount || 0, captchaTech: tech, navSteps };
 }
 
 async function cmdDiscover(board) {
@@ -883,6 +898,8 @@ async function cmdReview(board, cmd) {
   const page = board.page;
   const captcha = await page.evaluate(fnDetectChallenge);
   if (captcha) return { captcha: "challenge", finalUrl: page.url() };
+  const accountWall = await page.evaluate(fnDetectAccountWall).catch(() => null);
+  if (accountWall) return { accountWall: "account_wall", finalUrl: page.url() };
   const fields = await page.evaluate(fnDiscoverFields);
   if (fields.some((f) => !(cmd.knownSelectors || []).includes(f.selector))) return { needsFields: true, finalUrl: page.url() };
   const invalid = fields.filter((f) => !f.disabled && f.required && !f.valid);

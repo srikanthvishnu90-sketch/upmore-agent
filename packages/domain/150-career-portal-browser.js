@@ -52,7 +52,13 @@
    Session isolation (§6.3): every board owns a fresh browser context —
    no cookies, storage, or values are shared between boards or users.
    Account model: boards that need no account (Greenhouse / Lever /
-   Ashby public forms) run anonymously. Account-walled families
+   Ashby public forms) run anonymously. The Thiel Fellowship family
+   (MI-103) is account-gated: the helper reports a visible password
+   field on a landing as `accountWall`, this driver surfaces it from
+   open()/atReview(), and module 149 stops ACCOUNT_WALL_OWNER_HANDOFF —
+   the driver never types a credential, never clicks sign-in or
+   create-account, and only the owner's own signed-in session may be
+   driven, to the doorstep. Account-walled families
    (Workday, iCIMS, Taleo) are mapped in docs/career/board-automation-map.md
    with the least-user design (per-employer account, user-owned details,
    vaulted credential, one-time approval, Gmail verification retrieval);
@@ -100,6 +106,7 @@ const CareerPortalBrowser = (() => {
       if (/(^|\.)lever\.co$/.test(host)) return "lever";
       if (/(^|\.)ashbyhq\.com$/.test(host)) return "ashby";
       if (/(^|\.)smartrecruiters\.com$/.test(host)) return "smartrecruiters";
+      if (/(^|\.)thielfellowship\.org$/.test(host)) return "thiel"; // MI-103
     } catch (e) { /* fall through */ }
     return null;
   }
@@ -267,6 +274,23 @@ const CareerPortalBrowser = (() => {
     // boards name these fields by machine name (hispanic_ethnicity)
     // as often as by label ("Are you Hispanic/Latino?").
     if (/gender|race|ethnic|veteran|disability|sexual orientation|pronouns|lgbt|hispanic|latino/.test(hay)) return { kind: "eeo", question_key: slug(eff).slice(0, 32) || "eeo" };
+    // MI-103: the Thiel Fellowship in-account wordings (census 2026-10-15
+    // §3's secondary-walkthrough field list). The project/company name is
+    // the applicant's own DECISION (screening — fills only from a
+    // confirmed answer); the project/company URL takes the confirmed
+    // website fact; "Hometown" takes the hometown fact (checked before
+    // the generic location rule below can claim it); the written-answer
+    // wordings bind to the SAME free_text question_keys module 149's
+    // sandbox board uses, so an owner's confirmed draft under that key
+    // is the only text that can fill the live field either. A password
+    // field never reaches this classifier — the helper reports the
+    // account wall at open and 149 stops before any form read.
+    if (/project or company name|company or project name|project\/company name/.test(eff)) return { kind: "screening", question_key: "project_or_company_name" };
+    if (/project or company url|project url|company url/.test(eff)) return { kind: "standard", profile_key: "website" };
+    if (/hometown|home town/.test(eff)) return { kind: "standard", profile_key: "hometown" };
+    if (/previous projects|prior projects/.test(eff)) return { kind: "free_text", question_key: "previous_projects" };
+    if (/describe your project/.test(eff)) return { kind: "free_text", question_key: "project_description" };
+    if (/progress have you made|progress.*so far/.test(eff)) return { kind: "free_text", question_key: "project_progress" };
     // D4 (BUG-062): education + country keys — the answers exist in the
     // fact bank (F-001 shape) and now have keys to carry them.
     if (/preferred name|preferred first name/.test(eff)) return { kind: "standard", profile_key: "preferred_name" };
@@ -491,6 +515,7 @@ const CareerPortalBrowser = (() => {
           log("host_redirect_refused", { at: "open", finalUrl: fg.finalUrl, host: fg.host });
           return { ok: false, captcha: null, code: fg.code, finalUrl: fg.finalUrl, host: fg.host, reason: fg.reason };
         }
+        if (r.accountWall) { log("account_wall_detected", { at: "open" }); return { ok: true, captcha: null, accountWall: r.accountWall }; }
         if (r.captcha) { log("captcha_detected", { at: "open" }); return { ok: true, captcha: r.captcha, screenshotRef: captureStopScreenshot("open") }; }
         return { ok: true, captcha: r.captcha || null };
       },
@@ -624,6 +649,7 @@ const CareerPortalBrowser = (() => {
           state.finalUrl = landed;
         }
         if (r.code) return { code: r.code, finalUrl: r.finalUrl };
+        if (r.accountWall) { log("account_wall_detected", { at: "review" }); return { ok: true, captcha: null, accountWall: r.accountWall }; }
         if (r.captcha) { log("captcha_detected", { at: "review" }); return { ok: true, captcha: "challenge", screenshotRef: captureStopScreenshot("review") }; }
         log("at_review", {});
         return { ok: true, captcha: null, needsFields: !!r.needsFields, advanced: !!r.advanced, atFinalReview: r.atFinalReview === true };

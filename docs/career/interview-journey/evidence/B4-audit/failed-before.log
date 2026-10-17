@@ -1,0 +1,161 @@
+✖ audit: pause technical -> role correction -> restart -> resume never restores unsupported technical work (72.898212ms)
+✖ audit: all-abstention assessments cannot satisfy family, practice, revision or transfer completion (496.953606ms)
+✖ audit: declaring minutes remaining reanchors the budget after elapsed work (269.409917ms)
+✖ audit: withdrawing a retrieved but unused project preserves the specifically linked answer and draft (30.167744ms)
+✖ audit: an unaddressed side question survives feedback and an explicit answer resolves only that ask (48.236657ms)
+✖ audit: a project ownership hint does not become technical assistance or irrelevant retrieved coaching (87.732158ms)
+✖ audit: wording-only edits do not create another competency assessment or leave two selected drafts active (47.945879ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 0
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1202.515454
+
+✖ failing tests:
+
+test at tests/career-interview-journey/audit-messy.test.cjs:15:1
+✖ audit: pause technical -> role correction -> restart -> resume never restores unsupported technical work (72.898212ms)
+  AssertionError [ERR_ASSERTION]: a correction must not implicitly resume a paused journey
+  
+  'active' !== 'paused'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:18:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'active',
+    expected: 'paused',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-messy.test.cjs:23:1
+✖ audit: all-abstention assessments cannot satisfy family, practice, revision or transfer completion (496.953606ms)
+  AssertionError [ERR_ASSERTION]: project answer not assessed
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:27:209)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-messy.test.cjs:30:1
+✖ audit: declaring minutes remaining reanchors the budget after elapsed work (269.409917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  4 !== 12
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:31:259)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 12,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-messy.test.cjs:33:1
+✖ audit: withdrawing a retrieved but unused project preserves the specifically linked answer and draft (30.167744ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'withdrawn'
+  - 'active'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:38:54)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'withdrawn',
+    expected: 'active',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-messy.test.cjs:41:1
+✖ audit: an unaddressed side question survives feedback and an explicit answer resolves only that ask (48.236657ms)
+  AssertionError [ERR_ASSERTION]: feedback alone cannot stand in for a side answer
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:42:191)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-messy.test.cjs:47:1
+✖ audit: a project ownership hint does not become technical assistance or irrelevant retrieved coaching (87.732158ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'coached' !== 'none'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:49:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'coached',
+    expected: 'none',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-messy.test.cjs:51:1
+✖ audit: wording-only edits do not create another competency assessment or leave two selected drafts active (47.945879ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-messy.test.cjs:52:238)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

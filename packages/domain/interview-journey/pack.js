@@ -2,6 +2,7 @@
 const InterviewJourneyPack = (() => {
   const H=typeof InterviewJourneyHash!=='undefined'?InterviewJourneyHash:require('./hash.js');
   const C=typeof InterviewJourneyContext!=='undefined'?InterviewJourneyContext:require('../../career-interview-journey/adapters/context.js');
+  const M=typeof InterviewJourneyReasoning!=='undefined'?InterviewJourneyReasoning:require('../../career-interview-journey/adapters/reasoning.js');
   const text = x => typeof x==='string'?x:H.canonical(x);
   const label=x=>String(x).replace(/_/g,' ');
   const references=refs=>refs.map(r=>r.id+'@'+r.version).join(', ')||'none';
@@ -12,7 +13,8 @@ const InterviewJourneyPack = (() => {
     const refs=state.dependencies.filter(r=>{try{C.resolve(snapshot,r);return true;}catch{return false;}});
     const facts=refs.map(r=>C.resolve(snapshot,r)).filter(r=>snapshot.facts.includes(r));
     const attempts=state.attempts.filter(a=>a.status==='active'&&!a.context_outdated);
-    const assessments=state.assessments.filter(a=>a.status==='active'&&attempts.some(t=>t.id===a.attempt_id));
+    const assessments=state.assessments.filter(a=>a.status==='active'&&a.assessment_kind!=='style_admission'&&attempts.some(t=>t.id===a.attempt_id));
+    const coverage=assessments.filter(a=>M.hasCoverage(a,attempts.find(t=>t.id===a.attempt_id)));
     const drafts=state.drafts.filter(d=>d.status==='active');
     const captures=state.research.filter(r=>r.status==='succeeded'&&refs.some(ref=>ref.id===r.source_ref.id&&ref.version===r.source_ref.version));
     const families=['project','technical','behavioral'];
@@ -25,9 +27,9 @@ const InterviewJourneyPack = (() => {
     if(captures.length===0)missing.push('Research limited: no verified role/company capture');
     const briefs=state.briefs.filter(b=>b.status==='active'&&b.source_refs.every(r=>refs.some(x=>x.id===r.id&&x.version===r.version)));
     if(!briefs.length)missing.push('Source-backed role/company synthesis not assessed');
-    for(const family of families)if(!assessments.some(a=>a.family===family))missing.push(family+' answer not assessed');
-    for(const kind of ['practice','revision'])if(!attempts.some(t=>t.kind===kind&&assessments.some(a=>a.attempt_id===t.id)))missing.push(kind+' not assessed');
-    if(!state.observations.some(o=>o.kind==='transfer'&&o.assistance==='none'&&o.status==='observed'))missing.push('Unassisted transfer not assessed');
+    for(const family of families)if(!coverage.some(a=>a.family===family))missing.push(family+' answer not assessed');
+    for(const kind of ['practice','revision'])if(!attempts.some(t=>t.kind===kind&&coverage.some(a=>a.attempt_id===t.id)))missing.push(kind+' not assessed');
+    if(!state.observations.some(o=>o.kind==='transfer'&&o.assistance==='none'&&o.status==='observed'&&coverage.some(a=>a.id===o.assessment_id&&M.isAssessed(a,o.competency))))missing.push('Unassisted transfer not assessed');
     if(!drafts.length)missing.push('No current evidence-linked answer draft');
     if(state.status==='partial_at_user_stop')missing.push('User stopped before full completion');
     const sections=[

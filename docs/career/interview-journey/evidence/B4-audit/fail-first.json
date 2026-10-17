@@ -1,0 +1,13 @@
+{
+  "source_commit": "53ae74b30b4dc5567be845ae3ba602927a9b74ed",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/audit-messy.test.cjs"
+  ],
+  "exit_code": 1,
+  "test_sha256": "77f23ca350371c4e53cbbc85dd89dc86669d6177d7eac755391577a6c71c4536",
+  "log_sha256": "0303a56cf045d32566cd299cc6cce6363a7c58df48be9fc88744392f8f3a38e4",
+  "scope": "7 fresh multi-turn contract regressions; not conversations, semantic quality or independent holdouts",
+  "provider_calls": 0
+}

@@ -1,0 +1,12 @@
+{
+  "source": "53ae74b30b4dc5567be845ae3ba602927a9b74ed",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/audit-recovery.test.cjs"
+  ],
+  "exit_code": 1,
+  "test_sha256": "94a6e1ac99b1b2e2b552a61fbbb92d6ad7ebe69792a38f9bb73a28a0ac8ef87c",
+  "log_sha256": "18b2cfc782bc6f0a888131853ee2d4b472d197ec155ad40e17345e032bb9ce95",
+  "provider_calls": 0
+}

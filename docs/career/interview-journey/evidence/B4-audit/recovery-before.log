@@ -1,0 +1,124 @@
+✖ admitted checker rejection settles pending state and permits one explicitly requested fresh assessment (26.791211ms)
+✖ admitted generation_failed preserves original answer and exposes a bounded recovery (11.755059ms)
+✖ admitted checker_failed preserves original answer and exposes a bounded recovery (14.780387ms)
+✖ admitted timeout remains uncertain, observes the original action and cannot start another pair until a terminal host receipt (21.57405ms)
+✖ untrusted outcome fields and foreign or wrong-action receipts cannot release pending admission (15.727284ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 209.034068
+
+✖ failing tests:
+
+test at tests/career-interview-journey/audit-recovery.test.cjs:10:1
+✖ admitted checker rejection settles pending state and permits one explicitly requested fresh assessment (26.791211ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unsupported'
+  - 'failed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-recovery.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unsupported',
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-recovery.test.cjs:16:61
+✖ admitted generation_failed preserves original answer and exposes a bounded recovery (11.755059ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unsupported'
+  - 'failed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-recovery.test.cjs:16:252)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unsupported',
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-recovery.test.cjs:16:61
+✖ admitted checker_failed preserves original answer and exposes a bounded recovery (14.780387ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unsupported'
+  - 'failed'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-recovery.test.cjs:16:252)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unsupported',
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-recovery.test.cjs:17:1
+✖ admitted timeout remains uncertain, observes the original action and cannot start another pair until a terminal host receipt (21.57405ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unsupported'
+  - 'unknown'
+       ^
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-recovery.test.cjs:18:197)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unsupported',
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/audit-recovery.test.cjs:22:1
+✖ untrusted outcome fields and foreign or wrong-action receipts cannot release pending admission (15.727284ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-recovery.test.cjs:22:199)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /receipt/,
+    operator: 'throws',
+    diff: 'simple'
+  }

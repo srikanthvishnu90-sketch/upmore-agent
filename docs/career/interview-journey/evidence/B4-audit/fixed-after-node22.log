@@ -1,0 +1,94 @@
+TAP version 13
+# Subtest: an assessed unrelated criterion cannot satisfy the question core coverage
+ok 1 - an assessed unrelated criterion cannot satisfy the question core coverage
+  ---
+  duration_ms: 77.685852
+  type: 'test'
+  ...
+# Subtest: transfer records the originally targeted competency rather than a newly suggested gap
+ok 2 - transfer records the originally targeted competency rather than a newly suggested gap
+  ---
+  duration_ms: 229.253544
+  type: 'test'
+  ...
+# Subtest: audit: pause technical -> role correction -> restart -> resume never restores unsupported technical work
+ok 3 - audit: pause technical -> role correction -> restart -> resume never restores unsupported technical work
+  ---
+  duration_ms: 114.827814
+  type: 'test'
+  ...
+# Subtest: audit: all-abstention assessments cannot satisfy family, practice, revision or transfer completion
+ok 4 - audit: all-abstention assessments cannot satisfy family, practice, revision or transfer completion
+  ---
+  duration_ms: 370.480443
+  type: 'test'
+  ...
+# Subtest: audit: declaring minutes remaining reanchors the budget after elapsed work
+ok 5 - audit: declaring minutes remaining reanchors the budget after elapsed work
+  ---
+  duration_ms: 28.10167
+  type: 'test'
+  ...
+# Subtest: audit: withdrawing a retrieved but unused project preserves the specifically linked answer and draft
+ok 6 - audit: withdrawing a retrieved but unused project preserves the specifically linked answer and draft
+  ---
+  duration_ms: 27.221834
+  type: 'test'
+  ...
+# Subtest: audit: an unaddressed side question survives feedback and an explicit answer resolves only that ask
+ok 7 - audit: an unaddressed side question survives feedback and an explicit answer resolves only that ask
+  ---
+  duration_ms: 24.904513
+  type: 'test'
+  ...
+# Subtest: audit: a project ownership hint does not become technical assistance or irrelevant retrieved coaching
+ok 8 - audit: a project ownership hint does not become technical assistance or irrelevant retrieved coaching
+  ---
+  duration_ms: 57.979708
+  type: 'test'
+  ...
+# Subtest: audit: wording-only edits do not create another competency assessment or leave two selected drafts active
+ok 9 - audit: wording-only edits do not create another competency assessment or leave two selected drafts active
+  ---
+  duration_ms: 27.002674
+  type: 'test'
+  ...
+# Subtest: admitted checker rejection settles pending state and permits one explicitly requested fresh assessment
+ok 10 - admitted checker rejection settles pending state and permits one explicitly requested fresh assessment
+  ---
+  duration_ms: 108.840786
+  type: 'test'
+  ...
+# Subtest: admitted generation_failed preserves original answer and exposes a bounded recovery
+ok 11 - admitted generation_failed preserves original answer and exposes a bounded recovery
+  ---
+  duration_ms: 28.60309
+  type: 'test'
+  ...
+# Subtest: admitted checker_failed preserves original answer and exposes a bounded recovery
+ok 12 - admitted checker_failed preserves original answer and exposes a bounded recovery
+  ---
+  duration_ms: 23.448351
+  type: 'test'
+  ...
+# Subtest: admitted timeout remains uncertain, observes the original action and cannot start another pair until a terminal host receipt
+ok 13 - admitted timeout remains uncertain, observes the original action and cannot start another pair until a terminal host receipt
+  ---
+  duration_ms: 52.468607
+  type: 'test'
+  ...
+# Subtest: untrusted outcome fields and foreign or wrong-action receipts cannot release pending admission
+ok 14 - untrusted outcome fields and foreign or wrong-action receipts cannot release pending admission
+  ---
+  duration_ms: 9.993367
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 782.850272

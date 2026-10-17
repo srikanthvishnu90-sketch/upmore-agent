@@ -160,3 +160,95 @@ Current blockers are missing A schemas/registration/store/artifact proof, not an
 approval denial. No dependent integration was attempted through another route.
 No credentials, SQL, production changes or provider calls are required from B
 to hand off this concrete source and consumer evidence.
+
+## Depth-audit additions to agree against A's canonical contract
+
+The follow-up at `AUDIT-20261016.md` changes B records and closes reproduced
+completion/continuity gaps. These remain **consumer proposals** until the actual
+A schema and producer examples pass the compatibility runner. B does not create
+or replace `packages/career-contracts` files.
+
+### Admitted generation/checker failure and reconciliation
+
+Success is not the only terminal path. A delivers `reasoning_result` with the
+owned action ID and a trusted `reasoning_outcome` receipt ID. The snapshot receipt
+contains owner/thread/epoch, original action/input/request digests,
+`request_binding`, current `validated_binding`, `outcome_status`, `failure_kind`,
+`budget_state`, paired `reservation_ref` and `usage_receipt_refs`.
+
+- Outcome status: `failed`, `unknown`, `unavailable`, `blocked`, `stale_context`.
+- Failure kind: `generation_failed`, `checker_failed`, `checker_rejected`,
+  `generation_timeout`, `checker_timeout`, `provider_unavailable`, `stale_context`.
+- Budget state: `settled` or `uncertain`. `unknown` cannot claim settlement.
+
+A must derive these fields from actual admissions, usage/timeout reconciliation
+and its durable receipts. A failed checker may still incur generation and
+checker costs. A cancellation or B checkpoint change never releases a
+reservation. A must reconcile/account outcomes even when B ignores an old reply.
+No model/user field can settle a call or reset the original shared allowance.
+
+B retains the exact answer and failure record, clears the active pending slot,
+and proposes no automatic generation retry. Definite settled failure permits an
+explicit new-turn `retry_assessment` citing the terminal outcome receipt and,
+optionally, the saved attempt ID. A admits that separately under the paired
+budget policy. Retry does not fabricate an assessment or mutate the answer.
+
+Uncertain outcome proposes only `read_action_status` for the original owned
+action. New answer text can be stored, but new pairs remain blocked. A terminal
+host reconciliation receipt is required before retry. Late results for the old
+action cannot overwrite a newer pending assessment or selected draft. Direct
+promotion of an uncertain late success is not implemented: A must first expose
+an explicit reconciled outcome/consumption contract rather than silently revive
+a cancelled slot. The actual budget/accounting tests still belong to A.
+
+### Dependencies, asks and completion
+
+`submit_answer.source_refs`, if supplied, must be host-bound canonical refs for
+that answer. Without them, B retains a conservative dependency set. Retrieved
+refs are stored separately from answer refs and admitted candidate reference
+declarations. A must not call those declarations independently measured semantic
+use. Source/target/resume binding remains mandatory for context-specific output.
+
+B-local unresolved asks now have stable ID/kind/text/source-event metadata.
+Candidate `ask_responses` contains matching ask ID, actual answer text and
+eligible evidence refs; only explicit responses resolve those asks. Style edits
+consume their own instruction, supersede the selected wording and create no new
+competency grade. A should map canonical ask IDs explicitly when its schema is
+published rather than treating prompt-local aliases as durable identities.
+
+Coverage requires question-specific core dimensions, or the targeted practice
+dimension. Transfer checks retain the originally probed competency separately
+from the model's next suggested gap. `not_assessed` provides no coverage. Scores
+remain practice inferences; a supported score of zero records a judged gap and
+never implies readiness. Timing changes mean **minutes remaining now**, anchored
+to the lifetime elapsed counter. Corrections retain pause/stop status and sanitize
+both current and saved questions; resume/submission recheck current role scope.
+
+### Executable canonical-schema consumer check
+
+```sh
+npm ci --prefix scripts/career/interview-journey --ignore-scripts
+node scripts/career/interview-journey/canonical-compatibility.cjs \
+  --schema packages/career-contracts/journey-contract-v1.schema.json \
+  --fixtures packages/career-contracts/journey-contract-v1.fixtures.json
+```
+
+The runner accepts inputs only from A's actual `packages/career-contracts`
+directory; B's synthetic development fixtures and state schema are refused.
+There is no fabricated positive fixture in this runner. Missing A files report
+BLOCKED with zero canonical cases executed. Ajv 8.17.1 is pinned solely as a
+development schema validator, with coercion/defaults/removal disabled and no
+remote reference fetching.
+
+A's fixture bundle identifies `canonical_schema_sha256`, `pointers` for its
+actual snapshot/transition/action definitions, and producer `cases`. Each case
+has ID/family and actual host `steps` (snapshot/event, optional initial state).
+The schema definition pointers are selected by A; B does not invent aliases or
+weaken definitions. Expected consumer-rejection steps are explicit. The runner
+first validates each genuine producer snapshot, freezes inputs, executes B,
+checks mutation/CAS invariants, and validates B's transition and every action
+against A's exact definitions. Schema failures preserve precise instance paths.
+Required producer families are start, paused role change, abstention, admitted
+failure, uncertain admission and artifact readback. Missing families remain an
+open compatibility gate. This checks JSON consumer shape; actual TypeScript,
+entry, SQL, paired admission and deployed behavior remain separate A tests.

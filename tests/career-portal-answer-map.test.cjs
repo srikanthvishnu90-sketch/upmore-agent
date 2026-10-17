@@ -759,9 +759,9 @@ test("R3 follow-on classification: the acknowledgment class canonicalizes on a r
     { label: "Acknowledge, confirm, and agree to the following statements.", name: "", id: "question_31788067003", inputType: "text", tag: "input", cls: "select__input", selector: "#q_ack", required: true },
     { label: "Describe your approach to data privacy in past projects", name: "", id: "q_essay", inputType: "textarea", tag: "textarea", cls: "", selector: "#q_essay", required: false },
   ]);
-  const ack = defs.find((d) => d.field_id.includes("acknowledge"));
+  const ack = defs.find((d) => /acknowledge, confirm/i.test(d.label || ""));
   assert.equal(ack.kind, "attestation");
   assert.equal(ack.question_key, "acknowledgment_receipt", "a combobox-shaped acknowledgment takes the class key (its DOM probe: input[type=text][role=combobox].select__input)");
-  const essay = defs.find((d) => d.field_id.includes("describe"));
+  const essay = defs.find((d) => /data privacy/i.test(d.label || ""));
   assert.notEqual(essay.kind, "attestation", "a free-text field that merely mentions privacy is never an attestation");
 });

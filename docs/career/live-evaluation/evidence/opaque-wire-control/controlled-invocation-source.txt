@@ -1,0 +1,10 @@
+#!/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3
+import json,pathlib,sys
+request=json.load(sys.stdin)
+if request['operation']=='read_only_readiness':
+ print('{"invocation_id": "controlled-upmore", "host_id": "controlled-host", "source_sha": "controlled-source", "bounds_micros": {"generation": 60000, "checker": 30000, "other": 10000}, "operation": "read_only_readiness", "provider_calls": 0, "native_text_implemented": true, "native_pair_contract": "native_pair_v1"}')
+else:
+ pathlib.Path('/tmp/tmpekjl3o6y/observed-request.json').write_text(json.dumps(request))
+ t=request['admission']
+ r={'admission_id':t['id'],'request_sha256':t['request_sha256'],'binding_sha256':t['binding_sha256'],'legs':{k:{'cost_micros':0,'final':True,'provider_request_ids':[]}for k in ['generation','checker','other']}}
+ print(json.dumps({'selected_route':'native_text','response':{'reply':'CONTROLLED ONLY'},'usage_receipt':r}))

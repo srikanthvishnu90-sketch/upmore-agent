@@ -1,0 +1,17 @@
+{
+  "binding_sha256": "867c9da0be924d7e601a48f3647ab1d8e998bb89a6633957b97c2aaf3042faed",
+  "response": {
+    "invocation_id": "controlled-upmore",
+    "host_id": "controlled-host",
+    "source_sha": "controlled-source",
+    "bounds_micros": {
+      "generation": 60000,
+      "checker": 30000,
+      "other": 10000
+    },
+    "operation": "read_only_readiness",
+    "provider_calls": 0,
+    "native_text_implemented": true,
+    "native_pair_contract": "native_pair_v1"
+  }
+}

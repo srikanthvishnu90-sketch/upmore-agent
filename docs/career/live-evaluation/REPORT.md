@@ -1,4 +1,6 @@
-# Independent evaluator admission: source ready, live blocked
+# Initial independent evaluator admission handoff
+
+Current followup: [campaign identity, exact-source budget controls and native transport binding](FOLLOWUP.md). That followup supersedes this initial handoff for the newly located original thread, A's entry contract and current controlled test counts. The initial evidence below is preserved.
 
 Review branch: `codex/evaluator-live-admission-20261017`, based on B's
 `aca3fe703689047e10cb3431c41c6819b5f55f99`. This branch changes evaluator code,
@@ -131,8 +133,9 @@ are proved fenced within the held $5.
 Exact tested source commit: `ac4d042813de3ccfb60d01ceb56a7a4ac9a9d1b0`.
 [Recorded checks](../../testing/runs/independent-live-evaluation-20261017/results.json)
 contain the source digest, 28 test names and raw log hashes; both checks are
-appended to `docs/testing/evidence-ledger.json`. Later publication changes only
-evidence/documentation.
+appended to `docs/testing/evidence-ledger.json`. That original publication changed only evidence/documentation; subsequent
+evaluator transport changes and their new exact-source checks are tracked in
+the followup.
 
 - [Read-only preflight](evidence/preflight.json): source hashes, known-path
   metadata, local PID/name scope, allocation and missing proofs.

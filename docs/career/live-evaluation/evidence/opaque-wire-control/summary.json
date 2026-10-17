@@ -1,0 +1,21 @@
+{
+  "mode": "controlled_zero_cost",
+  "provider_requests": 0,
+  "real_spend_micros": 0,
+  "actual_upmore_handler_executed": false,
+  "existing_real_invocation_configured": false,
+  "gate_status_synthetic_only": {
+    "allocation": "upmore-seven-total-evaluation-20261017",
+    "cap_micros": 1000000,
+    "admitted_full_bounds_micros": 100000,
+    "receipt_verified_micros": 0,
+    "unresolved_full_bound_micros": 0,
+    "pending_ids": [],
+    "unallocated_micros": 900000,
+    "admittable_now_micros": 900000,
+    "binding_sha256": "867c9da0be924d7e601a48f3647ab1d8e998bb89a6633957b97c2aaf3042faed"
+  },
+  "raw_message_unchanged": true,
+  "command_sha256": "932583e38f6acadf11a14492962301eb1c251cd38f3925277eea7639938b0cea",
+  "scope": "Filesystem-only synthetic child process validates source pin, read-only readiness, exact native request and full-bound-before-child ordering; no live model, credentials or Upmore handler"
+}

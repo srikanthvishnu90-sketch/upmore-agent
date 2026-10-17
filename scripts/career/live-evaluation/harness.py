@@ -8,8 +8,9 @@ import json
 import os
 import hashlib
 import inspect
+import uuid
 from pathlib import Path
-from admission import Denied, digest
+from admission import ALLOCATION, Denied, digest
 
 
 def adapter_digest(invocation):
@@ -31,9 +32,14 @@ def run_turn(gate, invocation, admission_id, message, thread_id, transcript):
         raise Denied("unclassified_invocation")
     if adapter_digest(invocation) != invocation.binding.get("adapter_sha256"):
         raise Denied("adapter_source_binding_changed")
+    if hasattr(invocation, "verify_binding"):
+        invocation.verify_binding()  # local source/command-byte identity only
+    if hasattr(invocation, "assert_ready"):
+        invocation.assert_ready()  # no subprocess or provider request
     # The adapter must verify its own pinned source/endpoint/identity before this
     # point. It may not re-route user text via career_journey or direct prompts.
-    body = {"message": message, "thread_id": thread_id}
+    body = {"message": message, "thread_id": thread_id,
+            "turn_key": str(uuid.uuid5(uuid.NAMESPACE_URL, ALLOCATION + ":" + admission_id))}
     ticket = gate.reserve(admission_id, body, digest(invocation.binding))
     append_event(transcript, {"event": "admitted", "mode": invocation.mode,
                               "request": body, "ticket": ticket})

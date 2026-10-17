@@ -1,0 +1,29 @@
+{
+  "allocation": "upmore-seven-total-evaluation-20261017",
+  "cap_micros": 1000000,
+  "old_workers": [
+    {
+      "thread_id": "CONTROLLED-WORKER",
+      "state": "terminal",
+      "evidence_ref": "controlled"
+    }
+  ],
+  "all_old_workers_accounted": true,
+  "invocation_id": "controlled-upmore",
+  "host_id": "controlled-host",
+  "source_sha": "controlled-source",
+  "readiness_evidence_ref": "controlled",
+  "native_text_evidence_ref": "controlled",
+  "full_bound_evidence_ref": "controlled",
+  "adapter_sha256": "038be725322958d5ba348f362403256ce66622cc800565a5e9b4d883af839bd6",
+  "existing_secure_invocation_verified": true,
+  "native_text_route_verified": true,
+  "all_paying_paths_bounded": true,
+  "automatic_retries": 0,
+  "bounds_micros": {
+    "generation": 60000,
+    "checker": 30000,
+    "other": 10000
+  },
+  "opaque_command_sha256": "932583e38f6acadf11a14492962301eb1c251cd38f3925277eea7639938b0cea"
+}

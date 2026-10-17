@@ -12,3 +12,12 @@
   Sources: [current evaluator report](career/live-evaluation/REPORT.md),
   [read-only preflight](career/live-evaluation/evidence/preflight.json),
   [new private manifest](career/live-evaluation/evidence/private-manifest.json).
+
+- Parent followup identified original campaign thread
+  `01a13811-a731-7437-976e-2de54f3d80fb` and completed turn
+  `01a138d1-3140-7287-be3a-75873f788c22`. The initial evaluator handoff
+  is now explicitly historical. [Current followup](career/live-evaluation/FOLLOWUP.md)
+  replaces its missing-campaign-ID statement, records six exact-source budget
+  controls, and tracks A's newly published docs-only native entry contract.
+  Completion and reported $0.497420 charged OR reserved do not prove a global
+  worker fence; all old $5 stays held. No original ledger or worker was changed.

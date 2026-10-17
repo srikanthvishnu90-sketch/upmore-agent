@@ -1,0 +1,133 @@
+{
+  "observed_at": "2026-10-17T04:01:13.295442+00:00",
+  "parent_supplied_trusted_history": {
+    "original_campaign_thread": "01a13811-a731-7437-976e-2de54f3d80fb",
+    "completed_turn": "01a138d1-3140-7287-be3a-75873f788c22",
+    "reported_scenarios": 1137,
+    "reported_charged_OR_reserved_micros": 497420,
+    "billing_receipt_verified_here": false,
+    "parent_stop_status_message_result": "NOT_FOUND; background processes not verified; no fence inferred"
+  },
+  "old_audit_head": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+  "budget_blob": "8195f872144333c72890e54533e78f25dc134da8",
+  "source_identity": {
+    "tests/memory-audit/budget.ts": {
+      "git_blob": "8195f872144333c72890e54533e78f25dc134da8",
+      "sha256": "5f4c61a14dc16c86c1a1ef4f3450e1e0f9d2e0d49f3d23c1f34596e5e325c026"
+    },
+    "tests/memory-audit/handler-world.ts": {
+      "git_blob": "f2c20eb8ea8ed4bc4baac605059dcd6d731cfcb1",
+      "sha256": "05643c9788ca31e1d1faff6fb4f8a72ab1a1fdeefb40d2205a1ccd5c601a16cb"
+    },
+    "tests/memory-audit/supervise.py": {
+      "git_blob": "5b7301561804d8cc5900c09a2405f6d44c9041ec",
+      "sha256": "2bef0a12895160a9f03040a2a8be43a2c19e2c9feaf110ea0e3db628e556a438"
+    },
+    "tests/memory-audit/campaign.ts": {
+      "git_blob": "67530005a6239bd1a82608c53a5f792464b9433d",
+      "sha256": "1f560db47d4463ec0a24a4ac4aa298b97eebbc96159e9e351b143edb59021db2"
+    },
+    "tests/memory-audit/server.ts": {
+      "git_blob": "8bf52cef89e133b7ce70e9fa8a3c46abf3c7666f",
+      "sha256": "6d5d9d983116e615da7cce5c2162daef930655d7b8870c3c140aa0e6fe801f41"
+    },
+    "tests/memory-audit/judge.ts": {
+      "git_blob": "8673eb18d83bc0fe04cf0e4745b1c6de7ceb5b48",
+      "sha256": "2f7009f3e8b3411305c48f02ed3d589df233ceff24199fa35751e3a598b1852b"
+    }
+  },
+  "exact_ledger_path": "/workspace/.upmore-tools/audit-budget/budget.json",
+  "exact_default_campaign_path": "/workspace/upmore-audit/paid-full-3500",
+  "old_claims": {
+    "same_default_ledger_for_generation_and_grading": true,
+    "supervisor_initial_scenarios": 3500,
+    "optional_continuation_scenarios": 6500,
+    "campaign_per_invocation_max_scenarios": 10000,
+    "trials_per_worker_command": 1,
+    "first_worker_intervals": [
+      [
+        0,
+        875
+      ],
+      [
+        875,
+        1750
+      ],
+      [
+        1750,
+        2625
+      ],
+      [
+        2625,
+        3500
+      ]
+    ],
+    "continuation_worker_intervals": [
+      [
+        1000,
+        2625
+      ],
+      [
+        2625,
+        4250
+      ],
+      [
+        4250,
+        5875
+      ],
+      [
+        5875,
+        7500
+      ]
+    ],
+    "server_bind": "127.0.0.1:8010 default",
+    "server_request_or_idle_shutdown_bound": null,
+    "supervisor_worker_kill_or_wall_time_bound": null,
+    "provider_output_token_max": 4096,
+    "judge_output_token_max": 1200,
+    "paid_judge_uses_same_fetch_wrapper": true,
+    "provider_redirects": "error",
+    "unknown_receipts_stop_threshold": 3
+  },
+  "controlled_exact_source_results": {
+    "mode": "controlled_zero_cost",
+    "network_requests": 0,
+    "credential_or_environment_reads": 0,
+    "scope": "Exact byte-pinned original budget blob executed under Node TypeScript transform with filesystem-only Deno shim; disposable paths only",
+    "valid_unchanged_ledger_enforces_cap": true,
+    "missing_ledger_status_creates_zero": true,
+    "deleted_disposable_spent_ledger_reinitializes_zero": true,
+    "disposable_malformed_missing_limit_bypasses_limit_comparison": true,
+    "three_unknown_receipts_stop_and_retain": true
+  },
+  "repair_commit": {
+    "sha": "eb6d4807e224f5de6be7da459323bce58b3e0bf0",
+    "git_fetch": "not our ref",
+    "github_read": "422 No commit found for SHA",
+    "adoption_by_original_workers": "UNPROVEN; no runtime replacement/fence attempted"
+  },
+  "native_text_update": {
+    "observed_A_head": "c6b750a5afaac0a70563aa4f609e28ec16afe9b9",
+    "changes_since_0907": [
+      "docs/career/critical-repairs/native-text-v1/ENTRY-CONTRACT.md",
+      "docs/instinct-spec-series/BUILD-STATUS.md"
+    ],
+    "actual_handler_or_paying_runtime_changes": false,
+    "status": "Contract defined; native text implementation still pending",
+    "evaluator_wire": [
+      "thread_id",
+      "turn_key",
+      "message"
+    ],
+    "typed_commands_or_injected_verifier_sent": false
+  },
+  "remaining_fence_proof": "Original executor must supply all worker/server PID exit records or durable same-ledger no-reset fence and adopted source identity; finite case ranges and chat completion do not prove process termination or surviving ledger integrity.",
+  "new_paid_requests": 0,
+  "new_verified_spend_micros": 0,
+  "new_provider_liabilities_micros": 0,
+  "old_allocation_held_micros": 5000000,
+  "new_evaluation_max_micros": 1000000,
+  "left_unused_micros": 1000000,
+  "live_model": "NOT_RUN",
+  "production": "NOT_RUN"
+}

@@ -1,0 +1,14 @@
+{
+  "operation": "invoke_actual_upmore",
+  "body": {
+    "message": "  Please Reopen: my corrected note!\nKeep THIS wording.  ",
+    "thread_id": "CONTROLLED-THREAD",
+    "turn_key": "eecea2aa-c8b3-580b-beac-a275b1629aad"
+  },
+  "admission": {
+    "id": "controlled-opaque-one",
+    "bound_micros": 100000,
+    "binding_sha256": "867c9da0be924d7e601a48f3647ab1d8e998bb89a6633957b97c2aaf3042faed",
+    "request_sha256": "25eed004ac28e5f30395bf2750417dec0e5bd7bb89827e5c1ef3006577637c39"
+  }
+}

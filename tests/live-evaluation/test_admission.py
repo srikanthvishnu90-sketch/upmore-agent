@@ -192,7 +192,7 @@ class AdmissionTests(unittest.TestCase):
             calls = 0
             def invoke_upmore(adapter, body, ticket):
                 adapter.calls += 1
-                self.assertEqual(set(body), {"message", "thread_id"})
+                self.assertEqual(set(body), {"message", "thread_id", "turn_key"})
                 self.assertEqual(gate.status()["unresolved_full_bound_micros"], 100_000)
                 if fail: raise TimeoutError("controlled timeout; zero network")
                 return {"selected_route": route, "response": {"reply": "CONTROLLED RESPONSE"},
@@ -215,6 +215,8 @@ class AdmissionTests(unittest.TestCase):
         run_turn(self.gate, adapter, "one", message, "thread-a", out)
         events = [json.loads(line) for line in out.read_text().splitlines()]
         self.assertEqual(events[0]["request"]["message"], message)
+        import uuid
+        self.assertEqual(str(uuid.UUID(events[0]["request"]["turn_key"])), events[0]["request"]["turn_key"])
         self.assertEqual(events[1]["result"]["response"]["reply"], "CONTROLLED RESPONSE")
         self.assertEqual(adapter.calls, 1)
 

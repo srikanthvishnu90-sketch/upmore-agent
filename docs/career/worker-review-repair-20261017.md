@@ -122,3 +122,17 @@ cleanup: an owner-approved supervisor/volume destruction or independently run
 retention service is still a deployment prerequisite. No such hosting policy,
 service, resource or credential binding was created or verified here. A denied
 Vercel sandbox-list request leaves existing-host availability **unknown**.
+
+
+Follow-up exact source `9ef2a4b5d3b298ff117296146995cb912ef4ce22` passes **286
+structural tests**, including **68 real isolated PostgreSQL contracts**, with
+no skipped tests in the recorded suites. Explicit close of either worker entry
+purges private checkpoints and closes resources once. The unchanged four frozen
+assertions still hash to `bb64691e4539c696554c043be6648c53c4983c3abc98fa0a11778d3c48949b90`.
+The new deterministic 24-file source archive hashes to
+`5a775cd71eb13c102f98c1a806ecd283c25b0cece089467cb3fdb509215c5136`.
+See `docs/testing/runs/career-worker-review-followup-20261017/results.json` for
+exact commands, source/log hashes, passing names and the nine primary fail-first
+failures. This is neither new independent-review approval nor live verification.
+The SQL proposal remains unapplied to production. No hosting action, spend,
+credential binding, employer submission or deployment occurred.

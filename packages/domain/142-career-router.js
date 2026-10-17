@@ -8388,15 +8388,31 @@ const CareerRouter = (() => {
       // science are my majors") names the same fact subject-last.
       else if ((m = cl.match(/^([a-z][a-z &,]{2,40}?)\s+(?:is|are)\s+my\s+majors?\b/i))) push("majors", _cleanFactVal(m[1]), m[0]);
       else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) push("majors", _cleanFactVal(m[1].replace(/^(a|the|my)\s+/i, "")), m[0]);
-      if ((m = cl.match(/\btargeting\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/))) push("geography", m[1], m[0]);
+      // LF-08 (BUG-270 / FR-425): this frame was the one proper-name
+      // geography frame with NO city gate — "targeting Meridian
+      // Capital" filed a FIRM name as geography (the reply then
+      // confirmed it in the geography wording, "you're targeting
+      // Meridian Capital"), and the next turn's real geography
+      // statement silently overwrote the single-value slot, so the
+      // firm the product had confirmed was never on the record under
+      // its own kind and a new thread denied it was ever stated.
+      // A targeting name that is not a known city is not geography —
+      // the target_firm chain below claims it.
+      if ((m = cl.match(/\btargeting\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/)) && FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("geography", m[1], m[0]);
       else if ((m = cl.match(/\baiming\s+(?:at|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+firms\b/))) push("geography", m[1], m[0]);
       else if ((m = cl.match(/\btargeting\s+([a-z]+)\s+firms\b/i))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
       // DEPTH LANE A: "I want New York firms" — the want-frame names
       // the search geography as plainly as "targeting" does.
       else if ((m = cl.match(new RegExp(`\\bwant\\s+(${FACT_CITIES.join("|")})\\s+(?:firms|roles|jobs|banks|companies|offices)\\b`, "i")))) push("geography", m[1], m[0]);
       else if (/\b(network|target|firms|aiming|looking|move|based)\b/i.test(cl)) { const cm = cl.match(new RegExp(`\\bin\\s+(${FACT_CITIES.join("|")})\\b`)); if (cm) push("geography", cm[1], cm[0]); }
-      if ((m = cl.match(/\bnetwork into\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
-      else if ((m = cl.match(/\bmostly\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+)?)\s+type\s+(?:places|firms|companies)\b/))) push("target_firm", m[1], m[0]);
+      // LF-08 (BUG-270 / FR-425): "I'm targeting <Firm>" — the most
+      // natural target-firm statement there is — had no frame in this
+      // chain at all; the geography chain's ungated targeting frame
+      // took the name instead (see above). Same discipline as
+      // network-into: a known city is never a firm.
+      if ((m = cl.match(/\btargeting\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
+      else if ((m = cl.match(/\bnetwork into\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
+      else if ((m = cl.match(/\bmostly\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+)?)\s+type\s+(?:places|firms|companies)\b/)) && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("target_firm", m[1], m[0]);
       else if ((m = cl.match(/\bmy\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
       // DEPTH LANE A: the plain frame — "my target firm is X" — is the
       // most natural way to state it and had no pattern at all.

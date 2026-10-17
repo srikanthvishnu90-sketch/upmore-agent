@@ -14,7 +14,7 @@ export async function toInterviewContextV1(input:CareerContextSnapshotV1,selecti
  if(!validateJourneyContractV1('CareerContextSnapshotV1',input).ok)throw Error('invalid_canonical_context');
  const s=clone(input);
  if(await interviewContextDigestV1(s)!==s.binding.context_sha256)throw Error('context_digest_mismatch');
- const current=(x:any)=>x.freshness==='current'&&Number.isSafeInteger(x.item_version)&&x.item_version>0;
+ const current=(x:any)=>x.freshness==='current'&&Number.isSafeInteger(x.item_version)&&x.item_version>=0;
  // A source requirement or assessment cannot become a personal qualification.
  const personal=s.facts.filter((f:any)=>current(f)&&['active','corrected'].includes(f.status)&&['user_report','user_pasted'].includes(f.provenance.kind)&&f.provenance.trust==='user_reported');
  function select(kind:string,ref?:Ref){

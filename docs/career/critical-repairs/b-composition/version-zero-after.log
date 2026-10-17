@@ -1,0 +1,133 @@
+TAP version 13
+# (node:422206) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:422206) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: context consumer fixture keeps its pre-implementation frozen bytes
+ok 1 - context consumer fixture keeps its pre-implementation frozen bytes
+  ---
+  duration_ms: 1.355649
+  type: 'test'
+  ...
+# Subtest: canonical A snapshot converts into the unchanged B context validator
+ok 2 - canonical A snapshot converts into the unchanged B context validator
+  ---
+  duration_ms: 68.781773
+  type: 'test'
+  ...
+# Subtest: unchanged B reducer supports explicitly classified target through the adapter
+ok 3 - unchanged B reducer supports explicitly classified target through the adapter
+  ---
+  duration_ms: 29.808164
+  type: 'test'
+  ...
+# Subtest: a software-looking title alone never supplies role family or level
+ok 4 - a software-looking title alone never supplies role family or level
+  ---
+  duration_ms: 13.135767
+  type: 'test'
+  ...
+# Subtest: classification from a different source record does not bind the target
+ok 5 - classification from a different source record does not bind the target
+  ---
+  duration_ms: 9.202794
+  type: 'test'
+  ...
+# Subtest: ambiguous classification requires clarification rather than choosing a value
+ok 6 - ambiguous classification requires clarification rather than choosing a value
+  ---
+  duration_ms: 12.830803
+  type: 'test'
+  ...
+# Subtest: resume reference binds the owned source bytes, never a reported artifact label
+ok 7 - resume reference binds the owned source bytes, never a reported artifact label
+  ---
+  duration_ms: 12.922751
+  type: 'test'
+  ...
+# Subtest: stale/disputed/withdrawn personal evidence cannot enter B active facts
+ok 8 - stale/disputed/withdrawn personal evidence cannot enter B active facts
+  ---
+  duration_ms: 10.802452
+  type: 'test'
+  ...
+# Subtest: public-source provenance cannot turn a project fact into personal evidence
+ok 9 - public-source provenance cannot turn a project fact into personal evidence
+  ---
+  duration_ms: 11.097927
+  type: 'test'
+  ...
+# Subtest: actual source bytes must match the declared source digest
+ok 10 - actual source bytes must match the declared source digest
+  ---
+  duration_ms: 10.809432
+  type: 'test'
+  ...
+# Subtest: changed context bytes and foreign evidence fail closed
+ok 11 - changed context bytes and foreign evidence fail closed
+  ---
+  duration_ms: 8.99378
+  type: 'test'
+  ...
+# Subtest: absence never becomes available capability or execution proof
+ok 12 - absence never becomes available capability or execution proof
+  ---
+  duration_ms: 9.20598
+  type: 'test'
+  ...
+# Subtest: projection is immutable and leaves canonical input unchanged
+ok 13 - projection is immutable and leaves canonical input unchanged
+  ---
+  duration_ms: 11.819793
+  type: 'test'
+  ...
+# Subtest: explicit classification versions remain reducer dependencies
+ok 14 - explicit classification versions remain reducer dependencies
+  ---
+  duration_ms: 34.096536
+  type: 'test'
+  ...
+# Subtest: multiple targets require an explicit owned current selection
+ok 15 - multiple targets require an explicit owned current selection
+  ---
+  duration_ms: 11.500262
+  type: 'test'
+  ...
+# Subtest: unrelated goal changes never become interview target invalidations
+ok 16 - unrelated goal changes never become interview target invalidations
+  ---
+  duration_ms: 9.276435
+  type: 'test'
+  ...
+# Subtest: source supersession is resume replacement only for the selected resume source
+ok 17 - source supersession is resume replacement only for the selected resume source
+  ---
+  duration_ms: 11.408534
+  type: 'test'
+  ...
+# Subtest: an available canonical capability cannot bypass missing trusted result adapters
+ok 18 - an available canonical capability cannot bypass missing trusted result adapters
+  ---
+  duration_ms: 8.718906
+  type: 'test'
+  ...
+# Subtest: a new resume source version cannot silently retag the old selection as current
+ok 19 - a new resume source version cannot silently retag the old selection as current
+  ---
+  duration_ms: 22.038185
+  type: 'test'
+  ...
+# Subtest: canonical version zero survives projection without renumbering
+ok 20 - canonical version zero survives projection without renumbering
+  ---
+  duration_ms: 9.17285
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 379.251234

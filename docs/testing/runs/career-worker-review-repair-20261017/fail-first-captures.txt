@@ -1,0 +1,291 @@
+✖ submit and CAPTCHA screenshot commands share the bounded buffer writer (3.142299ms)
+✖ file size, task byte quota and capture count fail before creating another file (2.660688ms)
+✖ one private root bounds evidence across multiple tasks (0.723391ms)
+✖ failed direct capture is cleaned up and TTL expiration is explicit (2.362049ms)
+✖ symlink targets and public evidence directories are refused (1.08163ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89.238989
+
+✖ failing tests:
+
+test at ../../tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:8:1
+✖ submit and CAPTCHA screenshot commands share the bounded buffer writer (3.142299ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /\.screenshot\(\{\s*path:/. Input:
+  
+  '/* Portal browser helper — the Playwright side of the CA-03 browser seam.\n' +
+    '   A long-running child process owned by packages/domain/150-career-portal-browser.js.\n' +
+    '   It is a DUMB DOM EXECUTOR: it holds one Chromium, one isolated browser\n' +
+    '   context per board, and executes file-delivered commands (open / discover /\n' +
+    '   fill / readback / review / screenshot / close) against the live page.\n' +
+    '   All policy (host allowlist, field classification, confirmed-facts-only,\n' +
+    '   attestation discipline) lives in module 150 + module 149 — never here.\n' +
+    '   This process clicks a submit button ONLY for the "submit_and_capture"\n' +
+    '   command, which module 150 issues solely for an explicitly armed board\n' +
+    '   (owner-approved submit lane), exactly once — and even then it never\n' +
+    '   clicks through a captcha: a challenge at submit returns\n' +
+    '   { captcha: "challenge", clicked: false }.\n' +
+    '   Protocol: watch <dir> for cmd-<boardId>-<seq>.json, write\n' +
+    '   resp-<boardId>-<seq>.json. Exits on a cmd-sys-*.json {type:"shutdown"}\n' +
+    '   or after 15 idle minutes. */\n' +
+    '"use strict";\n' +
+    'const fs = require("node:fs");\n' +
+    'const path = require("node:path");\n' +
+    'const crypto = require("node:crypto");\n' +
+    'const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");\n' +
+    "const { publicGet } = require('../../workers/career-browser/research-network.cjs');\n" +
+    "const { publicResearchURL } = require('../../supabase/functions/_shared/career_research_policy.js');\n" +
+    '\n' +
+    'const dir = process.argv[2];\n' +
+    'if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }\n' +
+    '\n' +
+    'function resolvePlaywright() {\n' +
+    '  const tries = [];\n' +
+    '  if (process.env.UPMORE_PLAYWRIGHT_PATH) tries.push(process.env.UPMORE_PLAYWRIGHT_PATH);\n' +
+    '  tries.push("playwright");\n' +
+    '  for (const t of tries) { try { return require(t); } catch (e) { /* next */ } }\n' +
+    '  return null;\n' +
+    '}\n' +
+    'const pw = resolvePlaywright();\n' +
+    'if (!pw) { fs.writeFileSync(path.join(dir, "fatal.json"), JSON.stringify({ code: "PLAYWRIGHT_UNRESOLVABLE", message: "playwright not resolvable in helper (set UPMORE_PLAYWRIGHT_PATH)" })); process.exit(3); }\n' +
+    '\n' +
+    'const helperInstanceId = crypto.randomUUID();\n' +
+    'const boards = new Map(); // boardId -> { context, page, url }\n' +
+    'let browser = null;\n' +
+    'let lastActivity = Date.now();\n' +
+    '\n' +
+    '// Upmore-owned Chromium only. Failure to start with its sandbox enabled is\n' +
+    '// a runtime blocker, never a reason to disable isolation or add a proxy.\n' +
+    'async function getBrowser() {\n' +
+    '  if (browser) return browser;\n' +
+    '  browser = await pw.chromium.launch({ headless: true, chromiumSandbox: true,\n' +
+    '    ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) });\n' +
+    '  return browser;\n' +
+    '}\n' +
+    '// §6.3 hop gate (BUG-060 / D1): the allowlist holds on EVERY main-frame\n' +
+    '// navigation, not just the URL module 150 was asked to open. Boards\n' +
+    "// redirect off their own host (Greenhouse -> the employer's site); the\n" +
+    '// redirect target must never even load. Only main-frame navigation\n' +
+    '// requests are gated — subresources (scripts, trackers, CDNs) pass\n' +
+    "// untouched, and the one armed submit's own landing navigation is\n" +
+    '// checked during submission too; controlled tasks reject every redirect.\n' +
+    'const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];\n' +
+    'function navAllowed(url) {\n' +
+    '  let u;\n' +
+    '  try { u = new URL(String(url)); } catch (e) { return false; }\n' +
+    '  if (!/^https?:$/.test(u.protocol)) return true; // about:, data:, blob: — not network hops\n' +
+    '  const host = u.hostname.toLowerCase();\n' +
+    '  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;\n' +
+    '  return NAV_SUFFIXES.some((d) => host === d || host.endsWith("." + d));\n' +
+    '}\n' +
+    'async function getBoard(boardId, research = false) {\n' +
+    '  if (!boards.has(boardId)) {\n' +
+    '    const b = await getBrowser();\n' +
+    '    const context = await b.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block", ...(research ? { javaScriptEnabled: false, acceptDownloads: false } : {}) });\n' +
+    '    const page = await context.newPage();\n' +
+    '    const entry = { context, page, research, requests: [], url: null, blockedNav: null, submitInProgress: false, scope: null, mutationSent: false };\n' +
+    '    boards.set(boardId, entry);\n' +
+    '    // Redirect hops never pass through page.route (a 302 target is part\n' +
+    '    // of the initial request chain in Chromium/Playwright), but they DO\n' +
+    '    // surface as request events — record any off-allowlist main-frame\n' +
+    '    // navigation attempt so cmdOpen/cmdReview can stop on it, and\n' +
+    "    // module 150's post-load final-URL gate makes the typed refusal.\n" +
+    '    page.on("request", (req) => {\n' +
+    '      try {\n' +
+    '        if (!entry.research && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {\n' +
+    '          entry.blockedNav = entry.blockedNav || req.url();\n' +
+    '        }\n' +
+    '      } catch (e) { /* frame may be gone; the final-URL gate still decides */ }\n' +
+    '    });\n' +
+    '    await context.route("**/*", async (route) => {\n' +
+    '      try {\n' +
+    '        const req = route.request();\n' +
+    '        if (entry.research) {\n' +
+    "          if (!req.isNavigationRequest() || req.frame() !== page.mainFrame()) { await route.abort('blockedbyclient'); return; }\n" +
+    "          const event = { url: req.url(), method: req.method(), at: new Date().toISOString(), status: 'refused' }; entry.requests.push(event);\n" +
+    '          try {\n' +
+    "            if (entry.requests.length > 12 || req.method() !== 'GET' || !req.isNavigationRequest() || req.frame() !== page.mainFrame() || req.url() !== entry.scope.url) throw Object.assign(new Error('research request refused'), { code: 'RESEARCH_REQUEST_REFUSED' });\n" +
+    '            const response = await publicGet(req.url(), { origin: entry.scope.origin });\n' +
+    "            entry.sourceSha256 = crypto.createHash('sha256').update(response.body).digest('hex');\n" +
+    "            event.status = 'read'; event.httpStatus = response.status; event.sourceSha256 = entry.sourceSha256;\n" +
+    '            await route.fulfill({ status: response.status, headers: response.headers, body: response.body });\n' +
+    "          } catch (e) { event.code = e.code || 'RESEARCH_NETWORK_FAILED'; entry.blockedNav = event.code; await route.abort('blockedbyclient'); }\n" +
+    '          return;\n' +
+    '        }\n' +
+    '        if (req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {\n' +
+    '          entry.blockedNav = req.url();\n' +
+    '          await route.abort("blockedbyclient");\n' +
+    '          return;\n' +
+    '        }\n' +
+    '        if (entry.scope) {\n' +
+    '          if (req.frame() !== page.mainFrame()) { await route.abort("blockedbyclient"); return; }\n' +
+    '          const u = new URL(req.url());\n' +
+    '          if (u.origin !== entry.scope.origin) { await route.abort("blockedbyclient"); return; }\n' +
+    '          if (!["GET", "HEAD"].includes(req.method())) {\n' +
+    '            if (!entry.submitInProgress || entry.mutationSent || req.method() !== "POST" || req.url() !== entry.scope.submitUrl) {\n' +
+    '              await route.abort("blockedbyclient"); return;\n' +
+    '            }\n' +
+    '            entry.mutationSent = true;\n' +
+    '            const response = await route.fetch({ maxRedirects: 0, headers: { ...req.headers(), "x-upmore-task": entry.scope.taskId,\n' +
+    '              "x-upmore-user": entry.scope.userId, "x-upmore-review": entry.scope.payloadSha256,\n' +
+    '              "x-upmore-resume": entry.scope.resumeSha256 } });\n' +
+    '            if (response.status() >= 300 && response.status() < 400) {\n' +
+    '              entry.blockedNav = new URL(response.headers().location || "/", req.url()).href;\n' +
+    '              await route.fulfill({ status: 403, body: "Controlled portal redirect refused" }); return;\n' +
+    '            }\n' +
+    '            await route.fulfill({ response });\n' +
+    '            return;\n' +
+    '          }\n' +
+    '          // Following an HTTP redirect can escape request interception.\n' +
+    '          // Controlled local portals must answer directly; stop every redirect\n' +
+    "          // before a second request, including an authorized POST's landing.\n" +
+    '          const response = await route.fetch({ maxRedirects: 0 });\n' +
+    '          if (response.status() >= 300 && response.status() < 400) {\n' +
+    '            entry.blockedNav = new URL(response.headers().location || "/", req.url()).href;\n' +
+    '            await route.fulfill({ status: 403, body: "Controlled portal redirect refused" }); return;\n' +
+    '          }\n' +
+    '          await route.fulfill({ response }); return;\n' +
+    '        }\n' +
+    '        await route.continue();\n' +
+    '      } catch (e) { try { await route.abort("blockedbyclient"); } catch (_) { /* already handled */ } }\n' +
+    '    });\n' +
+    '  }\n' +
+    '  return boards.get(boardId);\n' +
+    '}\n' +
+    '\n' +
+    '// ---------- in-page helpers (self-contained; serialized by Playwright) ----------\n' +
+    'function fnDetectChallenge() {\n' +
+    '  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);\n' +
+    `  const sels = [".g-recaptcha", ".h-captcha", "iframe[src*='recaptcha']", "iframe[src*='hcaptcha']", "#challenge-form"];\n` +
+    '  for (const s of sels) { const el = document.querySelector(s); if (el && vis(el)) return "challenge"; }\n' +
+    '  const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);\n' +
+    '  if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";\n' +
+    '  return null;\n' +
+    '}\n' +
+    'function fnCaptchaTech() {\n' +
+    '  const srcs = Array.from(document.querySelectorAll("script[src], iframe[src]")).map((e) => e.src || "");\n' +
+    '  const tech = [];\n' +
+    '  if (srcs.some((s) => /recaptcha/.test(s))) tech.push("recaptcha");\n' +
+    '  if (srcs.some((s) => /hcaptcha/.test(s))) tech.push("hcaptcha");\n' +
+    '  if (srcs.some((s) => /turnstile|challenges\\.cloudflare/.test(s))) tech.push("cloudflare-turnstile");\n' +
+    '  if (document.querySelector(".g-recaptcha")) tech.push("recaptcha-widget");\n' +
+    '  if (document.querySelector(".h-captcha")) tech.push("hcaptcha-widget");\n' +
+    '  return tech;\n' +
+    '}\n' +
+    'function fnDiscoverFields(includeHidden) {\n' +
+    `  const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\\\"'));\n` +
+    '  const clean = (t) => (t || "").replace(/\\s+/g, " ").trim().slice(0, 300);\n' +
+    '  function labelFor(el) {\n' +
+    '    let t = "";\n' +
+    `    if (el.id) { const l = document.querySelector('label[for="' + esc(el.id) + '"]'); if (l) t = l.innerText || l.textContent || ""; }\n` +
+    '    if (!t) { const wrap = el.closest("label"); if ('... 23062 more characters
+  
+      at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:10:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `/* Portal browser helper — the Playwright side of the CA-03 browser seam.\n   A long-running child process owned by packages/domain/150-career-portal-browser.js.\n   It is a DUMB DOM EXECUTOR: it holds one Chromium, one isolated browser\n   context per board, and executes file-delivered commands (open / discover /\n   fill / readback / review / screenshot / close) against the live page.\n   All policy (host allowlist, field classification, confirmed-facts-only,\n   attestation discipline) lives in module 150 + module 149 — never here.\n   This process clicks a submit button ONLY for the "submit_and_capture"\n   command, which module 150 issues solely for an explicitly armed board\n   (owner-approved submit lane), exactly once — and even then it never\n   clicks through a captcha: a challenge at submit returns\n   { captcha: "challenge", clicked: false }.\n   Protocol: watch <dir> for cmd-<boardId>-<seq>.json, write\n   resp-<boardId>-<seq>.json. Exits on a cmd-sys-*.json {type:"shutdown"}\n   or after 15 idle minutes. */\n"use strict";\nconst fs = require("node:fs");\nconst path = require("node:path");\nconst crypto = require("node:crypto");\nconst { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");\nconst { publicGet } = require('../../workers/career-browser/research-network.cjs');\nconst { publicResearchURL } = require('../../supabase/functions/_shared/career_research_policy.js');\n\nconst dir = process.argv[2];\nif (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }\n\nfunction resolvePlaywright() {\n  const tries = [];\n  if (process.env.UPMORE_PLAYWRIGHT_PATH) tries.push(process.env.UPMORE_PLAYWRIGHT_PATH);\n  tries.push("playwright");\n  for (const t of tries) { try { return require(t); } catch (e) { /* next */ } }\n  return null;\n}\nconst pw = resolvePlaywright();\nif (!pw) { fs.writeFileSync(path.join(dir, "fatal.json"), JSON.stringify({ code: "PLAYWRIGHT_UNRESOLVABLE", message: "playwright not resolvable in helper (set UPMORE_PLAYWRIGHT_PATH)" })); process.exit(3); }\n\nconst helperInstanceId = crypto.randomUUID();\nconst boards = new Map(); // boardId -> { context, page, url }\nlet browser = null;\nlet lastActivity = Date.now();\n\n// Upmore-owned Chromium only. Failure to start with its sandbox enabled is\n// a runtime blocker, never a reason to disable isolation or add a proxy.\nasync function getBrowser() {\n  if (browser) return browser;\n  browser = await pw.chromium.launch({ headless: true, chromiumSandbox: true,\n    ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) });\n  return browser;\n}\n// §6.3 hop gate (BUG-060 / D1): the allowlist holds on EVERY main-frame\n// navigation, not just the URL module 150 was asked to open. Boards\n// redirect off their own host (Greenhouse -> the employer's site); the\n// redirect target must never even load. Only main-frame navigation\n// requests are gated — subresources (scripts, trackers, CDNs) pass\n// untouched, and the one armed submit's own landing navigation is\n// checked during submission too; controlled tasks reject every redirect.\nconst NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];\nfunction navAllowed(url) {\n  let u;\n  try { u = new URL(String(url)); } catch (e) { return false; }\n  if (!/^https?:$/.test(u.protocol)) return true; // about:, data:, blob: — not network hops\n  const host = u.hostname.toLowerCase();\n  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;\n  return NAV_SUFFIXES.some((d) => host === d || host.endsWith("." + d));\n}\nasync function getBoard(boardId, research = false) {\n  if (!boards.has(boardId)) {\n    const b = await getBrowser();\n    const context = await b.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block", ...(research ? { javaScriptEnabled: false, acceptDownloads: false } : {}) });\n    const page = await context.newPage();\n    const entry = { context, page, research, requests: [], url: null, blockedNav: null, submitInProgress: false, scope: null, mutationSent: false };\n    boards.set(boardId, entry);\n    // Redirect hops never pass through page.route (a 302 target is part\n    // of the initial request chain in Chromium/Playwright), but they DO\n    // surface as request events — record any off-allowlist main-frame\n    // navigation attempt so cmdOpen/cmdReview can stop on it, and\n    // module 150's post-load final-URL gate makes the typed refusal.\n    page.on("request", (req) => {\n      try {\n        if (!entry.research && req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {\n          entry.blockedNav = entry.blockedNav || req.url();\n        }\n      } catch (e) { /* frame may be gone; the final-URL gate still decides */ }\n    });\n    await context.route("**/*", async (route) => {\n      try {\n        const req = route.request();\n        if (entry.research) {\n          if (!req.isNavigationRequest() || req.frame() !== page.mainFrame()) { await route.abort('blockedbyclient'); return; }\n          const event = { url: req.url(), method: req.method(), at: new Date().toISOString(), status: 'refused' }; entry.requests.push(event);\n          try {\n            if (entry.requests.length > 12 || req.method() !== 'GET' || !req.isNavigationRequest() || req.frame() !== page.mainFrame() || req.url() !== entry.scope.url) throw Object.assign(new Error('research request refused'), { code: 'RESEARCH_REQUEST_REFUSED' });\n            const response = await publicGet(req.url(), { origin: entry.scope.origin });\n            entry.sourceSha256 = crypto.createHash('sha256').update(response.body).digest('hex');\n            event.status = 'read'; event.httpStatus = response.status; event.sourceSha256 = entry.sourceSha256;\n            await route.fulfill({ status: response.status, headers: response.headers, body: response.body });\n          } catch (e) { event.code = e.code || 'RESEARCH_NETWORK_FAILED'; entry.blockedNav = event.code; await route.abort('blockedbyclient'); }\n          return;\n        }\n        if (req.isNavigationRequest() && req.frame() === page.mainFrame() && !navAllowed(req.url())) {\n          entry.blockedNav = req.url();\n          await route.abort("blockedbyclient");\n          return;\n        }\n        if (entry.scope) {\n          if (req.frame() !== page.mainFrame()) { await route.abort("blockedbyclient"); return; }\n          const u = new URL(req.url());\n          if (u.origin !== entry.scope.origin) { await route.abort("blockedbyclient"); return; }\n          if (!["GET", "HEAD"].includes(req.method())) {\n            if (!entry.submitInProgress || entry.mutationSent || req.method() !== "POST" || req.url() !== entry.scope.submitUrl) {\n              await route.abort("blockedbyclient"); return;\n            }\n            entry.mutationSent = true;\n            const response = await route.fetch({ maxRedirects: 0, headers: { ...req.headers(), "x-upmore-task": entry.scope.taskId,\n              "x-upmore-user": entry.scope.userId, "x-upmore-review": entry.scope.payloadSha256,\n              "x-upmore-resume": entry.scope.resumeSha256 } });\n            if (response.status() >= 300 && response.status() < 400) {\n              entry.blockedNav = new URL(response.headers().location || "/", req.url()).href;\n              await route.fulfill({ status: 403, body: "Controlled portal redirect refused" }); return;\n            }\n            await route.fulfill({ response });\n            return;\n          }\n          // Following an HTTP redirect can escape request interception.\n          // Controlled local portals must answer directly; stop every redirect\n          // before a second request, including an authorized POST's landing.\n          const response = await route.fetch({ maxRedirects: 0 });\n          if (response.status() >= 300 && response.status() < 400) {\n            entry.blockedNav = new URL(response.headers().location || "/", req.url()).href;\n            await route.fulfill({ status: 403, body: "Controlled portal redirect refused" }); return;\n          }\n          await route.fulfill({ response }); return;\n        }\n        await route.continue();\n      } catch (e) { try { await route.abort("blockedbyclient"); } catch (_) { /* already handled */ } }\n    });\n  }\n  return boards.get(boardId);\n}\n\n// ---------- in-page helpers (self-contained; serialized by Playwright) ----------\nfunction fnDetectChallenge() {\n  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);\n  const sels = [".g-recaptcha", ".h-captcha", "iframe[src*='recaptcha']", "iframe[src*='hcaptcha']", "#challenge-form"];\n  for (const s of sels) { const el = document.querySelector(s); if (el && vis(el)) return "challenge"; }\n  const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);\n  if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";\n  return null;\n}\nfunction fnCaptchaTech() {\n  const srcs = Array.from(document.querySelectorAll("script[src], iframe[src]")).map((e) => e.src || "");\n  const tech = [];\n  if (srcs.some((s) => /recaptcha/.test(s))) tech.push("recaptcha");\n  if (srcs.some((s) => /hcaptcha/.test(s))) tech.push("hcaptcha");\n  if (srcs.some((s) => /turnstile|challenges\\.cloudflare/.test(s))) tech.push("cloudflare-turnstile");\n  if (document.querySelector(".g-recaptcha")) tech.push("recaptcha-widget");\n  if (document.querySelector(".h-captcha")) tech.push("hcaptcha-widget");\n  return tech;\n}\nfunction fnDiscoverFields(includeHidden) {\n  const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\\\"'));\n  const clean = (t) => (t || "").replace(/\\s+/g, " ").trim().slice(0, 300);\n  function labelFor(el) {\n    let t = "";\n    if (el.id) { const l = document.querySelector('label[for="' + esc(el.id) + '"]'); if (l) t = l.innerText || l.textContent || ""; }\n    if (!t) { const wrap = el.closest("label"); if (`... 23062 more characters,
+    expected: /\.screenshot\(\{\s*path:/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at ../../tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:12:1
+✖ file size, task byte quota and capture count fail before creating another file (2.660688ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'EVIDENCE_STORAGE_BUDGET'
+  - }
+  
+      at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:13:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: Cannot read properties of undefined (reading 'maxFileBytes')
+        at assert.throws.code (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:13:96)
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:13:61)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+        at Test.postRun (node:internal/test_runner/test:1522:19)
+        at Test.run (node:internal/test_runner/test:1447:12)
+        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3),
+    expected: { code: 'EVIDENCE_STORAGE_BUDGET' },
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at ../../tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:19:1
+✖ one private root bounds evidence across multiple tasks (0.723391ms)
+  TypeError: Cannot read properties of undefined (reading 'maxRootBytes')
+      at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:21:109)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at ../../tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:24:1
+✖ failed direct capture is cleaned up and TTL expiration is explicit (2.362049ms)
+  TypeError: Cannot read properties of undefined (reading 'ttlMs')
+      at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:27:160)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at ../../tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:30:1
+✖ symlink targets and public evidence directories are refused (1.08163ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'EVIDENCE_PRIVATE_DIRECTORY_REQUIRED'
+  - }
+  
+      at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:31:125)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: pngBudget is not a function
+        at assert.throws.code (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:31:136)
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/tmp/career-capture-before-review/tests/career-capture-limits.test.cjs:31:125)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+        at Test.postRun (node:internal/test_runner/test:1522:19)
+        at Test.run (node:internal/test_runner/test:1447:12)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:960:7),
+    expected: { code: 'EVIDENCE_PRIVATE_DIRECTORY_REQUIRED' },
+    operator: 'throws',
+    diff: 'simple'
+  }

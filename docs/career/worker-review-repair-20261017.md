@@ -62,3 +62,17 @@ project/team, followed by an already-owned compatible unprivileged Linux
 worker. Any resource, existing credential/artifact binding and Muse deployment
 still requires the separately specified owner authorization. Browser allocation
 and spend remain **$0**, employer applications and new screenshots **zero**.
+
+## Verified source packet
+
+Source commit `2ea6d6ca50780c0e07b2b4db20237f2449a78380`: **272 tests pass**,
+including **65 real isolated PostgreSQL contracts**, with no skips in the
+recorded suites. The four frozen assertions retain SHA-256
+`bb64691e4539c696554c043be6648c53c4983c3abc98fa0a11778d3c48949b90`.
+The deterministic source archive contains 23 files, SHA-256
+`dc73eb1c5b9e2e5a7bd2d440cf6529e9252b9b482c794606afb0e03d04131ef0`.
+It contains neither a runnable browser image nor operator secrets/configuration.
+Commands, passing test names, log hashes, source digests and preserved fail-first
+logs are in `docs/testing/runs/career-worker-review-repair-20261017/results.json`.
+Shared release and the previous review branch were checked read-only and left
+unchanged. No merge or deployment was performed.

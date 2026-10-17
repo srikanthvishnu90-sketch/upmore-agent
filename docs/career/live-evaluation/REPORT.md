@@ -1,6 +1,8 @@
 # Initial independent evaluator admission handoff
 
-Current followup: [campaign identity, exact-source budget controls and native transport binding](FOLLOWUP.md). That followup supersedes this initial handoff for the newly located original thread, A's entry contract and current controlled test counts. The initial evidence below is preserved.
+Latest: [native 200a source interoperability and verified production metadata](NATIVE-200A.md).
+
+Earlier followup: [campaign identity, exact-source budget controls and native transport binding](FOLLOWUP.md). That followup supersedes this initial handoff for the newly located original thread, A's entry contract and current controlled test counts. The initial evidence below is preserved.
 
 Review branch: `codex/evaluator-live-admission-20261017`, based on B's
 `aca3fe703689047e10cb3431c41c6819b5f55f99`. This branch changes evaluator code,

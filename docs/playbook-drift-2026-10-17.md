@@ -21,3 +21,11 @@
   controls, and tracks A's newly published docs-only native entry contract.
   Completion and reported $0.497420 charged OR reserved do not prove a global
   worker fence; all old $5 stays held. No original ledger or worker was changed.
+
+- A published implemented native runtime `200a0f09fdee9c2c14ddc951c6d0e658dc47098c`.
+  [Current interoperability report](career/live-evaluation/NATIVE-200A.md) replaces
+  the earlier docs-only source blocker, verifies its metadata mapping and fixed
+  50,000-microUSD whole-turn bound, and records actual read-only Upmore production
+  metadata: `agent-chat` v224 exists, but nine required public native/pair RPCs
+  are absent. Existing approved isolated invocation and original-worker fence
+  remain unverified. No credentials, deployment, allowance write or paid call.

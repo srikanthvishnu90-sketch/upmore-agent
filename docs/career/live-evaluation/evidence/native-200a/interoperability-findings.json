@@ -1,0 +1,43 @@
+{
+  "observed_at": "2026-10-17T04:29:32.436756+00:00",
+  "source_sha": "200a0f09fdee9c2c14ddc951c6d0e658dc47098c",
+  "source_hashes": {
+    "supabase/functions/agent-chat/handler-career.ts": "35b21e7b1a6dc5cd6cabc93ff1bd018ec1b50130dbeceeb28888d3760fd8c3d6",
+    "supabase/functions/_shared/career_model_reply.ts": "316711dd44be75005bc9fad806fc77081ec8d26cff30c933e680d9caf1545d32",
+    "supabase/functions/_shared/career_native_context.ts": "36a9c6be672ef9a11645b28a2171a3dc8db8f56b3b2fcbfce6296ffca970e484",
+    "supabase/functions/_shared/career_native_reasoner.ts": "00da99e5f78c64277a7cd42406181ca93100c7d9025a600d3a522df767c130aa",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837",
+    "supabase/sql/proposals/career_native_execution_v1.sql": "f7c315ec0d493098f959904c0708a0d2d1fc266af87c4fac326354a9c0dbd1f3",
+    "docs/career/critical-repairs/native-text-v1/INVOCATION-READINESS.md": "00f1852e06cf7592ddca0a2147793cdf51fc9d51e8effc23b7c6ebb006fe8ff4"
+  },
+  "whole_invocation_bound_micros": {
+    "generation": 25000,
+    "checker": 25000,
+    "other": 0
+  },
+  "per_turn_whole_bound_micros": 50000,
+  "fixed_allocation_micros": 1000000,
+  "maximum_whole_turn_admissions": 20,
+  "planned_private_turns": 96,
+  "full_packet_admissible_at_this_bound": false,
+  "no_tighter_bound_inferred_from_controlled_response": true,
+  "metadata_replay_scope": "Exact request and career_model nodes extracted from A retained staged controlled log. Outer JSON line is not parseable; no complete transcript or independent handler execution claimed.",
+  "original_campaign_thread": "01a13811-a731-7437-976e-2de54f3d80fb",
+  "original_completed_turn": "01a138d1-3140-7287-be3a-75873f788c22",
+  "old_worker_fence_still_unverified": true,
+  "native_implementation_source_blocker": "RESOLVED at source level, subject to separate independent review",
+  "production_invocation": "INELIGIBLE: catalog lacks nine required native/pair RPCs; source retrieval UNAVAILABLE",
+  "isolated_existing_approved_invocation": "NONE VERIFIED WITH AVAILABLE TOOLS",
+  "concrete_next_unblocker": "Recover original executor terminal/fenced state for workers/server and identify an already approved isolated runner containing exact native runtime + SQL + existing secure invocation. Supply its non-secret readiness/source/model/price/config/ledger binding; do not deploy production or initialize funding to manufacture readiness.",
+  "new_live_provider_requests": 0,
+  "new_verified_model_spend_micros": 0,
+  "new_provider_liabilities_micros": 0,
+  "old_hold_micros": 5000000,
+  "left_unused_micros": 1000000,
+  "live_model": "NOT_RUN",
+  "production_model_results": "NOT_RUN",
+  "production_readonly_metadata": "VERIFIED",
+  "A_owned_runtime_changed": false,
+  "current_python_controlled_tests": 42,
+  "mapper_replay_result": "PASS on exact A published controlled request/accounting JSON nodes; no independent handler execution or live result"
+}

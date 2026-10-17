@@ -84,6 +84,16 @@ class OpaqueInvocationTests(unittest.TestCase):
             run_turn(gate, invocation, "one", "Continue", "a", self.root / "t.jsonl")
         self.assertEqual(gate.status()["admitted_full_bounds_micros"], 0)
 
+    def test_live_contract_rejects_synthetic_receipt_wrapper_without_actual_native_response(self):
+        # Controlled child only: exercising live-contract validation is not a
+        # live invocation or a model result, and nothing leaves this temp root.
+        invocation = self.prepare(); invocation.read_only_readiness()
+        invocation.mode = "live_model"
+        gate = Gate(self.root / "controlled-ledger"); gate.install_once(invocation.binding)
+        with self.assertRaisesRegex(Denied, "actual_native_response_identity_missing"):
+            run_turn(gate, invocation, "one", "Continue", "a", self.root / "t.jsonl")
+        self.assertEqual(gate.status()["unresolved_full_bound_micros"], 100_000)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -11,6 +11,7 @@ from pathlib import Path
 import subprocess
 
 from admission import Denied, digest, validate_binding
+from native_receipt import from_native_metadata
 
 IDENTITY_FIELDS = ("invocation_id", "host_id", "source_sha", "bounds_micros")
 
@@ -77,4 +78,13 @@ class ExistingUpmoreInvocation:
             raise Denied("native_request_or_admission_mismatch")
         if ticket["binding_sha256"] != digest(self.binding):
             raise Denied("native_invocation_binding_mismatch")
-        return self._call({"operation": "invoke_actual_upmore", "body": body, "admission": ticket})
+        value = self._call({"operation": "invoke_actual_upmore", "body": body, "admission": ticket})
+        if self.mode == "live_model":
+            # Real invocation output must contain the actual ordinary Upmore
+            # response. Do not trust a relay's pre-made final-zero usage wrapper.
+            raw = value.get("upmore_response", value.get("response", value))
+            if not isinstance(raw, dict) or raw.get("thread_id") != body["thread_id"] or raw.get("turn_key") != body["turn_key"]:
+                raise Denied("actual_native_response_identity_missing")
+            receipt = from_native_metadata(self.binding, body, ticket, raw.get("meta", {}).get("career_model", {}))
+            return {"selected_route": "native_text", "response": raw, "usage_receipt": receipt}
+        return value

@@ -1,0 +1,75 @@
+{
+  "evidence_class": "ACTUAL_READ_ONLY_SUPABASE_CONTROL_PLANE_NO_CHAT_INVOCATION",
+  "project_name": "upmore",
+  "project_id": "mrwngntwmnaqrqhupvlt",
+  "agent_chat": {
+    "id": "285cb36c-d5f8-4656-a007-64c72276b474",
+    "slug": "agent-chat",
+    "name": "agent-chat",
+    "status": "ACTIVE",
+    "version": 224,
+    "created_at": 1790040077638,
+    "updated_at": 1792185829549,
+    "verify_jwt": true,
+    "import_map": false,
+    "entrypoint_path": "file:///tmp/user_fn_mrwngntwmnaqrqhupvlt_285cb36c-d5f8-4656-a007-64c72276b474_224/source/agent-chat/index.ts",
+    "ezbr_sha256": "548219df92004ad39b68e31be0a70a6bef9eee1fd289d3ae960172269034da21"
+  },
+  "migration_history": {
+    "migrations": []
+  },
+  "source_read": {
+    "tool": "supabase_get_edge_function",
+    "target": "agent-chat",
+    "outcome": "UNAVAILABLE",
+    "message": "MCP error -32603: An internal error occurred during tool execution"
+  },
+  "native_rpc_catalog_query": "SELECT requested.name, EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname=requested.name) AS installed FROM (VALUES ('career_native_read_v1'),('career_native_claim_v1'),('career_native_leg_consume_v1'),('career_native_checker_prepare_v1'),('career_native_observe_v1'),('career_native_outcome_v1'),('career_native_fence_v1'),('career_model_pair_read_v2'),('career_model_leg_settle_v2')) AS requested(name) ORDER BY requested.name;",
+  "native_rpc_results": [
+    {
+      "name": "career_model_leg_settle_v2",
+      "installed": false
+    },
+    {
+      "name": "career_model_pair_read_v2",
+      "installed": false
+    },
+    {
+      "name": "career_native_checker_prepare_v1",
+      "installed": false
+    },
+    {
+      "name": "career_native_claim_v1",
+      "installed": false
+    },
+    {
+      "name": "career_native_fence_v1",
+      "installed": false
+    },
+    {
+      "name": "career_native_leg_consume_v1",
+      "installed": false
+    },
+    {
+      "name": "career_native_observe_v1",
+      "installed": false
+    },
+    {
+      "name": "career_native_outcome_v1",
+      "installed": false
+    },
+    {
+      "name": "career_native_read_v1",
+      "installed": false
+    }
+  ],
+  "conclusion": "The connected production Upmore project is not an installed native-200a invocation target: required public RPCs are absent. Active/JWT-protected edge metadata is not evaluation readiness.",
+  "original_audit_worker_fence": "Not observable through these tools: original ledger and workers are in a different executor filesystem, not this production catalog.",
+  "live_model_calls": 0,
+  "keys_or_credentials_requested": false,
+  "auth_sessions_requested": false,
+  "chat_endpoint_or_health_probe": false,
+  "provider_health_probe": false,
+  "funding_or_schema_writes": false,
+  "production_mutation": false
+}

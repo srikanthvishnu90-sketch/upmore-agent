@@ -1,4 +1,6 @@
-# Campaign identity, exact-source budget controls and native transport binding
+# Campaign identity and initial native transport binding
+
+Current update: [native 200a interoperability and the concrete invocation blocker](NATIVE-200A.md). That update supersedes the docs-only native source status below.
 
 This follows the parent's original-campaign discovery. It supersedes the initial
 report's missing campaign-thread ID, while retaining its no-paid-call status.

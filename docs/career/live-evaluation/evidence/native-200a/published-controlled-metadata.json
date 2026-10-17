@@ -1,0 +1,121 @@
+{
+  "evidence_class": "REPLAY_OF_A_PUBLISHED_CONTROLLED_METADATA_NOT_LIVE_OR_INDEPENDENT_HANDLER_EXECUTION",
+  "source_sha": "200a0f09fdee9c2c14ddc951c6d0e658dc47098c",
+  "source_path": "docs/career/critical-repairs/native-text-v1/native-final-13-of-13.log",
+  "source_sha256": "bb28b0be04195aa8985f6378de68f5164a226d902f8d5ed0283dc80fdf8a30cd",
+  "source_line": 8,
+  "outer_json_parseable": false,
+  "outer_parse_error": "Expecting ',' delimiter: line 1 column 4059 (char 4058)",
+  "extraction": "Individually parsed exact request and career_model JSON nodes. No full transcript or assistant response reconstructed.",
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "native-exact",
+    "message": "  I am a fresher. Help me explain my class calculator without overstating my contribution.  "
+  },
+  "career_model": {
+    "legs": {
+      "other": {
+        "final": true,
+        "state": "not_sent",
+        "cost_micros": 0,
+        "provider_request_ids": []
+      },
+      "checker": {
+        "final": true,
+        "state": "recorded",
+        "cost_micros": 11,
+        "raw_usage_receipt": {
+          "usage": {
+            "total_tokens": 70,
+            "prompt_tokens": 50,
+            "completion_tokens": 20,
+            "prompt_tokens_details": {
+              "audio_tokens": 0,
+              "cached_tokens": 5
+            },
+            "completion_tokens_details": {
+              "audio_tokens": 0,
+              "reasoning_tokens": 3,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-controlled-native-2",
+          "config_digest": "269f8e97c744bb3bbc963bebcae9def366b248c8dd0acfced19934064eb041e5",
+          "response_model": "gpt-5-nano-2025-08-07",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "34a252bcb734920d36ddd16e31142e8bbcc997d244eb921e3a15b79be469979a",
+          "response_body_sha256": "284a403f26ab0720da8a2eac7306f27aac5242bfd6610bfd52727abb680987c2"
+        },
+        "provider_request_ids": [
+          "chatcmpl-controlled-native-2"
+        ]
+      },
+      "generation": {
+        "final": true,
+        "state": "recorded",
+        "cost_micros": 11,
+        "raw_usage_receipt": {
+          "usage": {
+            "total_tokens": 70,
+            "prompt_tokens": 50,
+            "completion_tokens": 20,
+            "prompt_tokens_details": {
+              "audio_tokens": 0,
+              "cached_tokens": 5
+            },
+            "completion_tokens_details": {
+              "audio_tokens": 0,
+              "reasoning_tokens": 3,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-controlled-native-1",
+          "config_digest": "ff63ab3a922742b8992ee2e624a0b7accee9ca177cf92e0158b1d3db7a040d94",
+          "response_model": "gpt-5-nano-2025-08-07",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "b26be80952a71b55ac9b4a2c4dfbffbbf5b67e4b7337bc90fc06f1c074e4a27a",
+          "response_body_sha256": "3d39364277ae515a01a233b0e91ccd97bb676b3c2322076646bebe55d605e8c4"
+        },
+        "provider_request_ids": [
+          "chatcmpl-controlled-native-1"
+        ]
+      }
+    },
+    "status": "generated",
+    "pair_id": "a4c90762-0f63-4a48-abb5-0888ab84f29f",
+    "contract": "native_pair_v1",
+    "generator": "CONTROLLED_NATIVE_RESPONSES",
+    "failure_kind": null,
+    "operation_id": "9348f54e-2bb3-436a-a0ea-b4aa95d9ca28",
+    "verification": {
+      "status": "supported",
+      "quality": "not_established_by_contract_checks",
+      "cost_policy": "paired_gateway_budgeted/v1",
+      "prompt_version": "career_native_checker/v1"
+    },
+    "bounds_micros": {
+      "other": 0,
+      "checker": 10024,
+      "generation": 1488
+    },
+    "intent_sha256": "40643aefdea827728c1ff6f4d6f352877c084942baea30f1c8c489cae5afd391",
+    "context_sha256": "ec9a547b397305f5e9f29281a3831b0a646bd614eb04535edf3f0c15658780da",
+    "request_digest": "72f1f1f5dfdeb15f4863153485226320c9e613030abde540668cd9d6656a3a12",
+    "accounting_as_of": "2026-10-17T04:14:01.132Z",
+    "accounting_state": "settled",
+    "uncertain_micros": 0,
+    "user_text_sha256": "c099df6bc7f9629e03719f8f4a552385cabb9de240f0fbef21b91e01a31e6f09",
+    "accounting_source": "career_model_pair_read_v2",
+    "known_cost_micros": 22,
+    "parent_bound_micros": 11512,
+    "native_request_sha256": "aa04ab149bde4fbe1e991d3f8b56938279e587019b1df92921434d8accec1269",
+    "provider_calls_possible": 2,
+    "provider_calls_confirmed": 2
+  }
+}

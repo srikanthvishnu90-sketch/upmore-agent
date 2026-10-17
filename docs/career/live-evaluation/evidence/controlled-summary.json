@@ -1,0 +1,29 @@
+{
+  "mode": "controlled_zero_cost",
+  "network_requests": 0,
+  "real_spend_micros": 0,
+  "gate_status_synthetic_only": {
+    "allocation": "upmore-seven-total-evaluation-20261017",
+    "cap_micros": 1000000,
+    "admitted_full_bounds_micros": 200000,
+    "receipt_verified_micros": 0,
+    "unresolved_full_bound_micros": 100000,
+    "pending_ids": [
+      "controlled-unknown"
+    ],
+    "unallocated_micros": 800000,
+    "admittable_now_micros": 0,
+    "binding_sha256": "20b1c2e49fe188d217454fab726d3dd605e52d0a600b202e0d79c2dc1c8a90f6"
+  },
+  "post_unknown_stop": "global_unknown_or_inflight_stop",
+  "artifact_proof": {
+    "path": "docs/career/live-evaluation/evidence/controlled-artifact.txt",
+    "bytes": 80,
+    "sha256": "d219ff3b859f997614d90d567c87000d1b04f17f2d0bee43edc6efb8b0ff3f70",
+    "verification_level": "local_bytes_only_owner_provenance_still_required"
+  },
+  "actual_upmore_handler_executed": false,
+  "live_model": "NOT_RUN",
+  "production": "NOT_RUN",
+  "limitations": "Injected seam verifies harness accounting/order; no model, handler quality, server deployment, owner persistence or production capability verified"
+}

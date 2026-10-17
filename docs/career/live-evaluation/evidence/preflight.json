@@ -1,0 +1,64 @@
+{
+  "observed_at": "2026-10-17T03:53:10.764065+00:00",
+  "evaluation_branch": "codex/evaluator-live-admission-20261017",
+  "source_hashes": {
+    "346a48ce43be554bf79d04e765c9a5974439523c:supabase/functions/agent-chat/handler-career.ts": "ef8a35637e94469de9ac8b79d92eabb35c404057ea86ba33690148e6b0eed0ae",
+    "346a48ce43be554bf79d04e765c9a5974439523c:supabase/functions/_shared/career_model_grounded.ts": "19826d2058ffa163f95b8f05f6aae65d2576b95d58ac22427bf9982f1b987ab2",
+    "346a48ce43be554bf79d04e765c9a5974439523c:supabase/functions/_shared/career_interview_entry.ts": "366e40d07874f0d7b8bbc047458dba4919979974e32919a6b1771a65fd906408",
+    "0907f0337c35016fbee912956d15155cc0b658b4:supabase/functions/agent-chat/handler-career.ts": "ef8a35637e94469de9ac8b79d92eabb35c404057ea86ba33690148e6b0eed0ae",
+    "0907f0337c35016fbee912956d15155cc0b658b4:supabase/functions/_shared/career_model_grounded.ts": "19826d2058ffa163f95b8f05f6aae65d2576b95d58ac22427bf9982f1b987ab2",
+    "0907f0337c35016fbee912956d15155cc0b658b4:supabase/functions/_shared/career_interview_entry.ts": "366e40d07874f0d7b8bbc047458dba4919979974e32919a6b1771a65fd906408"
+  },
+  "historical_audit_source": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+  "historical_worker_slots": [
+    "worker-1",
+    "worker-2",
+    "worker-3",
+    "worker-4"
+  ],
+  "original_worker_thread_ids": null,
+  "original_worker_state": "UNVERIFIED: worker slots are processes, not ChatGPT thread IDs; do not substitute them",
+  "thread_id_lookup": "Historical published audit docs/supervisor contain no campaign chat thread IDs; Personal Context unavailable; parent clarification pending",
+  "parent_request_thread_id": "01a1365c-87f9-7510-8c18-e9c2b8a520cd",
+  "known_path_presence_only": {
+    "/workspace/.upmore-tools/audit-budget/budget.json": false,
+    "/workspace/upmore-audit/paid-full-3500/launch.json": false,
+    "/workspace/.upmore-tools/env.sh": false,
+    "/workspace/shared/upmore-live-evaluation-20261017/invocation-attestation.json": false
+  },
+  "local_process_names_only": [
+    {
+      "pid": 928,
+      "executable_name": "python3"
+    }
+  ],
+  "process_scope": "Local executor only; names cannot establish campaign identity, terminal state or remote fence",
+  "operational_gate": {
+    "admission_open": false,
+    "reason": "durable_allocation_missing_or_corrupt",
+    "admittable_now_micros": 0
+  },
+  "gate_proof_scope": "Controlled zero-cost durable store/API; not installed on an existing provider transport",
+  "allocation_micros": {
+    "owner_total": 7000000,
+    "old_spent_or_unresolved_hold": 5000000,
+    "this_task_max": 1000000,
+    "leave_unused": 1000000
+  },
+  "new_live_provider_requests": 0,
+  "new_verified_spend_micros": 0,
+  "new_outstanding_provider_liabilities_micros": 0,
+  "old_actual_spend_and_liabilities": "UNKNOWN; entire $5 conservatively unavailable",
+  "credentials_read_or_printed": false,
+  "credential_or_ongoing_access_configuration": false,
+  "controlled": "See controlled evidence; no conversation capability score",
+  "live_model": "NOT_RUN",
+  "production": "NOT_RUN",
+  "blockers": [
+    "Exact original paid-campaign worker thread IDs plus original-executor terminal/fenced-within-old-$5 attestation are missing",
+    "Existing secure configured Upmore invocation/read-only readiness/identity proof is missing; no credentials requested",
+    "Reviewed source requires local_no_external_calls semanticVerifier on raw text; paired interview calls require career_journey typed commands. A's native text bridge remains pending at observed 0907f033",
+    "Pinned transport maximum input/output/checker/other cost evidence and durable $1 ledger binding remain missing; evaluator gate alone does not establish server enforcement"
+  ],
+  "approval_status": "No denial; missing operational evidence. No paying action attempted"
+}

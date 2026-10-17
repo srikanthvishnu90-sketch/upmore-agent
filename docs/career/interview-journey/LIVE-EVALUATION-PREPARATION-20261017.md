@@ -7,8 +7,17 @@ proposal. Exact old charges need not be reconstructed first if old workers are
 proved fenced within the held $5. Scenario wording/oracle hashes are unchanged.
 
 No provider call, budget reservation, account-credit query or credential
-inspection was performed. The original shared **$5** remains the only allowance;
-this preparation does not create a new allowance.
+inspection was performed. The original **$5** remains held spent/unresolved; the
+authorized new evaluation maximum is **$1**, leaving **$1 unused** within the
+owner's **$7 total**. Admission remains closed pending operational proof.
+
+This file records earlier preparation. Its referenced private packet is absent
+in the independent evaluator executor; a freshly authored twelve-conversation
+packet, actual gate/harness implementation and current blockers are recorded in
+[the independent evaluation handoff](../live-evaluation/REPORT.md). The older
+exact-bill-reconciliation checklist and $0.25 proposal below are historical and
+superseded by the held-$5/fenced-workers plus $1 allocation; another spending
+authorization is not required.
 
 ## Spend reconciliation
 

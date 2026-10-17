@@ -1,0 +1,147 @@
+{
+  "version": "fresh12-evaluator-only/v1",
+  "created_at_utc": "2026-10-17",
+  "status": "NOT_RUN",
+  "cases": [
+    {
+      "id": "C01",
+      "planned_user_turns": 8,
+      "coverage": [
+        "remembered_facts",
+        "correction",
+        "artifact_completion"
+      ],
+      "sha256": "c685126dbe41dd877e5fcefcaba406c265298810767c022c1e6078eabb137fea"
+    },
+    {
+      "id": "C02",
+      "planned_user_turns": 8,
+      "coverage": [
+        "resume_replacement",
+        "correction",
+        "source_provenance",
+        "artifact_completion"
+      ],
+      "sha256": "90a0972e4519b28fba7de85ab5ae58fc113c784fb316a17dcb95164e6326a0d9"
+    },
+    {
+      "id": "C03",
+      "planned_user_turns": 8,
+      "coverage": [
+        "cross_thread_continuity",
+        "remembered_facts",
+        "thread_scope",
+        "artifact_completion"
+      ],
+      "sha256": "2ce3266d5abf40c72ff5a4edb96a05f4aa2cf763561b62669e1a50562b881c00"
+    },
+    {
+      "id": "C04",
+      "planned_user_turns": 8,
+      "coverage": [
+        "interruptions",
+        "task_completion",
+        "remembered_facts",
+        "artifact_completion"
+      ],
+      "sha256": "968e099511b5bba88a6993a0aec12383542a20effdf1653e15c5521959d09b99"
+    },
+    {
+      "id": "C05",
+      "planned_user_turns": 8,
+      "coverage": [
+        "correction",
+        "target_change",
+        "task_completion",
+        "artifact_completion"
+      ],
+      "sha256": "b15ad4645875f929c17e6c9db333156992593914ad33c923f90f185c77dbb763"
+    },
+    {
+      "id": "C06",
+      "planned_user_turns": 8,
+      "coverage": [
+        "distinct_owner_isolation",
+        "cross_thread_continuity",
+        "source_provenance"
+      ],
+      "sha256": "543e453aac3b8cdfcd972168037e9e102555f326b87b57f4a05cac011a598140"
+    },
+    {
+      "id": "C07",
+      "planned_user_turns": 8,
+      "coverage": [
+        "resume_replacement",
+        "interruptions",
+        "remembered_facts",
+        "artifact_completion"
+      ],
+      "sha256": "3b99f259128a772276b48bd8b307dbe424f25f63501809d6d6113a45be14e577"
+    },
+    {
+      "id": "C08",
+      "planned_user_turns": 8,
+      "coverage": [
+        "withdrawal",
+        "correction",
+        "cross_thread_continuity",
+        "artifact_completion"
+      ],
+      "sha256": "d810009f8dc5e3899a9e3e32b3a616ccfc5c20fa43a22618e5b057f0b738b822"
+    },
+    {
+      "id": "C09",
+      "planned_user_turns": 8,
+      "coverage": [
+        "technical_transfer",
+        "remembered_facts",
+        "source_provenance",
+        "artifact_completion"
+      ],
+      "sha256": "5b9cb516a5e229fec59b39e8f3bff2e10a8283ae95937a927f01636ce86e415a"
+    },
+    {
+      "id": "C10",
+      "planned_user_turns": 8,
+      "coverage": [
+        "artifact_revision",
+        "task_completion",
+        "correction",
+        "source_provenance"
+      ],
+      "sha256": "6a5899c95e61f524d05cba3d0cb95ab0903b489f6fda889243fb60e12530e6f5"
+    },
+    {
+      "id": "C11",
+      "planned_user_turns": 8,
+      "coverage": [
+        "ambiguity",
+        "necessary_questions",
+        "remembered_facts",
+        "artifact_completion"
+      ],
+      "sha256": "303e107cf0ecbc96afe30ea7e7af8f61cde1d37c3206975bc32c324929ffe967"
+    },
+    {
+      "id": "C12",
+      "planned_user_turns": 8,
+      "coverage": [
+        "long_handoff",
+        "cross_thread_continuity",
+        "resume_replacement",
+        "interruptions",
+        "artifact_completion"
+      ],
+      "sha256": "c07e8348889809c0a857394e9a1de77da5ee3eec7d190ce7ee3b42fec8891922"
+    }
+  ],
+  "episodes": 12,
+  "planned_user_turns": 96,
+  "exact_prompts_outside_git": true,
+  "private_packet_path": "/workspace/scratch/upmore-evaluator-private/fresh12-evaluator-20261017",
+  "archive_path": "/workspace/scratch/upmore-evaluator-private/fresh12-evaluator-20261017.zip",
+  "archive_sha256": "18788d7d46bd115c8e60f022c85f4eb643ab9bb6b7c376705f98ce7a6b5529d9",
+  "archive_bytes": 15899,
+  "protocol_sha256": "afaacbefb025ec61cc85f7d8d7335b6e9f8fda100468d742d90802b832bb818f",
+  "earlier_packet": "Unavailable in this executor; this is newly authored, not a reconstruction with the old hash."
+}

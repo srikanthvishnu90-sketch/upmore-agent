@@ -1,0 +1,26 @@
+[
+  {
+    "log": "ingress-delta-full-postgres.log",
+    "status": "INTENTIONALLY_INTERRUPTED_SUPERSEDED",
+    "completeSqlFilesBeforeInterruption": 19,
+    "reason": "Preserve partial failure evidence; free local resources for the fresh complete ce810f30 source/SQL runs. No result from these runs is claimed as a complete pass.",
+    "ownedFixtureRemoved": true,
+    "processesStopped": 5
+  },
+  {
+    "log": "combined-repaired-full-postgres.log",
+    "status": "INTENTIONALLY_INTERRUPTED_SUPERSEDED",
+    "completeSqlFilesBeforeInterruption": 13,
+    "reason": "Preserve partial failure evidence; free local resources for the fresh complete ce810f30 source/SQL runs. No result from these runs is claimed as a complete pass.",
+    "ownedFixtureRemoved": true,
+    "processesStopped": 4
+  },
+  {
+    "log": "final-full-postgres.log",
+    "status": "INTENTIONALLY_INTERRUPTED_SUPERSEDED",
+    "completeSqlFilesBeforeInterruption": 10,
+    "reason": "Preserve partial failure evidence; free local resources for the fresh complete ce810f30 source/SQL runs. No result from these runs is claimed as a complete pass.",
+    "ownedFixtureRemoved": true,
+    "processesStopped": 5
+  }
+]

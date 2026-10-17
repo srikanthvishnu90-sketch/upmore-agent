@@ -1,0 +1,45 @@
+✔ trusted RPC transport restricts endpoint/method and never follows a redirect (35.605332ms)
+✔ RPC lost/failed response stays uncertain, attempts once and does not log SQL text (1.7312ms)
+✔ synchronous private IPC adapter roundtrip closes its helper and scratch directory (81.551027ms)
+✔ pull runner requests one task, stops at pilot budget, logs metadata only and opens no server (4.74812ms)
+✔ restart reports uncertain checkpoints without requeue; bounded errors stop polling (0.595249ms)
+✔ service batch limit is enforced before dispatch and does not widen portal permissions (25.635418ms)
+✔ genuine evidence hook refuses absent screenshot methods/files; no synthetic PNG is created (4.353532ms)
+✔ pull-only entry has no HTTP listener and closes injected resources (2.523489ms)
+✔ deployment build is deterministic and contains only an explicit source allowlist (195.283001ms)
+✔ required real PNG capability blocks a worker before approval/submission when absent (18.134906ms)
+✔ expired unknown-submit tombstone stays fenced without pinning a new pilot (2.124086ms)
+✔ ordinary polling expires old orphan evidence without deleting task fences (5.680646ms)
+✔ explicit shutdown removes fresh orphan evidence without deleting task fences (1.086424ms)
+✔ real expired uncertain checkpoint keeps polling unrelated work after restart past two minutes (22.217157ms)
+✔ expiry during an active pilot immediately reports a handoff rather than uncertainty timeout (29.410974ms)
+✔ research evidence_ready is terminal without an application-success claim (2.023951ms)
+✔ research insufficient_evidence is terminal without an application-success claim (0.286654ms)
+✔ post-stop deadline purges private task JSON and frames without RPC access or renewed retention (54.2096ms)
+✔ real local retention timer erases JSON after polling ends with no backend adapter (168.35316ms)
+✔ legacy private JSON gets its deadline from disk age, not a restart extension (5.914034ms)
+✔ orphaned atomic JSON scratch from process death expires without a task checkpoint (8.171277ms)
+✔ direct reads enforce an expired private deadline before RPC, even without a poll or timer (33.622652ms)
+✔ explicit legacy HTTP worker close purges private JSON and closes resources once (33.097496ms)
+✔ confirmation parser requires an explicit reference label (5.781456ms)
+✔ actual 150 adapter extracts explicit application reference, never success prose (13.48ms)
+✔ actual 150 receipt capture binds the private submit capture and refuses absent PNG (6.404794ms)
+✔ one-application runner remains alive through review, approval uncertainty and reconciliation (3.944164ms)
+✔ idle review checkpoint is purged on ordinary polling after epoch revocation (77.545406ms)
+✔ browser helper gets a benign environment and managed lifetime, never backend markers (4.754479ms)
+✔ service calls the actual 150 immutable receipt seam for the exact destination ID (112.676196ms)
+✔ idle revocation purges private evidence but preserves an unknown-submit tombstone (101.080022ms)
+✔ runner bounds idle and uncertain waits and preserves the same checkpoint on restart (0.623697ms)
+{"evidence":"COMBINED_PENDING_PUBLICATION_SUPERVISOR","afterFirstTick":{"runner":{"stopped":false,"tasks":0,"completed":0,"evidenceReady":0,"handoffs":0,"errors":0,"transitions":1,"activeTaskId":"2a2ff65a2bc03f57f21ae602b56a4aa9"},"status":"evidence_ready","blocker":"TASK_RESULT_UNCONFIRMED","publicationPending":true,"reads":1,"finishes":1},"paidCalls":0,"actualNetworkCalls":0}
+✔ pull supervisor keeps the same captured research active until central publication is confirmed (25.794783ms)
+✔ restart restores a pending publication and recovers without another capture (4.186391ms)
+✔ persistent publication failures retain the existing transition bound and captured result (2.624006ms)
+✔ immutable publication recovery does not depend on the pending queue RPC (3.233528ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 735.822354

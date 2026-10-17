@@ -1,0 +1,49 @@
+{
+  "runtime": "ce810f30540665410de95856b694335a334c9ce8",
+  "ciRun": 39007276669,
+  "ciJobs": [
+    {
+      "id": 117322206073,
+      "name": "deno",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 117322206169,
+      "name": "Required original archival evidence",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 117322206208,
+      "name": "node",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 117322206213,
+      "name": "database",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "githubDeploymentStatuses": [
+    {
+      "context": "Vercel",
+      "state": "success",
+      "description": "Deployment has completed",
+      "target_url": "https://vercel.com/srikanthvishnu90-sketchs-projects/upmore/FkYQsBJXZj9JgetuLRfbEzyqwNsT"
+    }
+  ],
+  "scope": "Read-only GitHub metadata only. No hosting command or live database mutation.",
+  "vercelAuthoritativeTarget": {
+    "status": "UNVERIFIED",
+    "priorAttempt": {
+      "action": "Vercel get_deployment",
+      "target": "dpl_2RAfgr4nBZgLpuEA7npN6PpJKYMi",
+      "owningTeam": "srikanthvishnu90-sketchs-projects",
+      "result": "HTTP 403 authorization denied"
+    },
+    "retry": "Not retried without new owning-team authorization. No credentials changed."
+  }
+}

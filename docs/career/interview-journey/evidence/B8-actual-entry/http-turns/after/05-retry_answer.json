@@ -1,0 +1,36 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 5,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-wrong-question",
+    "message": "Retry my saved answer",
+    "career_journey": {
+      "type": "retry_answer",
+      "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+      "outcome_receipt_id": "4d4678f3-a9e3-45e8-a0b4-67246457b480"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 503,
+    "body": {
+      "error": "select_original_question_before_retry",
+      "reply": "I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.",
+      "action": null,
+      "turn_key": "independent-wrong-question"
+    },
+    "text": "{\"error\":\"select_original_question_before_retry\",\"reply\":\"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.\",\"action\":null,\"turn_key\":\"independent-wrong-question\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

@@ -7,7 +7,9 @@ The frozen Library inputs and ownership boundary are in [OWNERSHIP.md](OWNERSHIP
 
 **Current result: 145/145 internal module contracts pass. Historical direct A
 canonical compatibility: FAIL; current versioned context consumption: 23/23
-tested cases pass, including canonical version zero. Product integration: BLOCKED. Actual coaching quality:
+tested cases pass, including canonical version zero. External A composition:
+actual-entry case 12 completed with controlled replies at `5c8c8326`; this B
+branch itself does not compose A's host. Actual coaching quality:
 NOT_RUN. Overall live readiness: NOT_READY.**
 
 The [recovery repair](RECOVERY-20261017.md) fixes stale paused practice, mixed
@@ -19,6 +21,9 @@ actual projected context without renumbering evidence or changing ownership chec
 The [bounded adversarial pass](ADVERSARIAL-20261017.md) records twelve workflow
 goals: eleven structural completions and one blocked actual-entry task, with
 failed baseline traces and two control/settlement repairs.
+The later [independent actual-entry check](ACTUAL-ENTRY-CASE12-20261017.md)
+closes that historical structural blocker using real isolated SQL and three
+Node processes; it also reports one A-owned misleading status message.
 
 The first slice covers early-career software preparation: truthful project
 narrative, static technical reasoning and evidence-based behavioral work. It

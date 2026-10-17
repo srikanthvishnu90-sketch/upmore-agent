@@ -1,0 +1,810 @@
+ "exercise_id": null,
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target:role_family",
+                "version": 0
+              },
+              {
+                "id": "target:level",
+                "version": 0
+              },
+              {
+                "id": "target:company",
+                "version": 0
+              },
+              {
+                "id": "target:stage",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 0
+              },
+              {
+                "id": "resume",
+                "version": 0
+              }
+            ],
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "content_sha256": "6ec907306ba8d30f25dbd33e818f193379a8165dbcbb1dc9e4ad0627d9180a44",
+            "rubric_version": 1,
+            "context_outdated": true,
+            "context_revision": 4,
+            "dependency_basis": "conservative_context_refs",
+            "parent_attempt_id": null,
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target:role_family",
+                "version": 0
+              },
+              {
+                "id": "target:level",
+                "version": 0
+              },
+              {
+                "id": "target:company",
+                "version": 0
+              },
+              {
+                "id": "target:stage",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 0
+              },
+              {
+                "id": "resume",
+                "version": 0
+              }
+            ]
+          },
+          {
+            "at": "2026-10-17T02:18:38.752Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "kind": "initial",
+            "text": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+            "epoch": 0,
+            "index": 2,
+            "status": "active",
+            "version": 1,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "scripted": false,
+            "rubric_id": "project-evidence/v1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "assistance": "none",
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "exercise_id": null,
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "content_sha256": "78d519603d6faa50db5eb3f2a1303e12ae9025fca00d220588690c429ac81360",
+            "rubric_version": 1,
+            "context_outdated": false,
+            "context_revision": 14,
+            "dependency_basis": "conservative_context_refs",
+            "parent_attempt_id": null,
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ]
+          }
+        ],
+        "owner_id": "00000000-0000-4000-8000-0000000000a1",
+        "research": [],
+        "revision": 12,
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "checkpoint": {
+          "active_question": {
+            "id": "project-narrative",
+            "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "family": "project",
+            "rubric": {
+              "id": "project-evidence/v1",
+              "label": "provisional practice judgment; not a hiring score",
+              "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+              "anchors": {
+                "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                "2": "Workable basic account, with an important omission or unsupported step.",
+                "3": "Supported and sound for this task; name any remaining limited gap.",
+                "4": "Supported, justified and robust to this question’s boundary probe.",
+                "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+              },
+              "version": 1,
+              "criteria": {
+                "situation": "A concrete problem and relevant constraints.",
+                "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                "reflection_transfer": "A supported lesson or next improvement.",
+                "personal_contribution": "Distinguishes proposal, implementation and teammate work."
+              },
+              "dimensions": [
+                "situation",
+                "personal_contribution",
+                "reasoning_tradeoffs",
+                "outcome_evidence",
+                "reflection_transfer"
+              ],
+              "coverage_dimensions": [
+                "personal_contribution",
+                "reasoning_tradeoffs",
+                "outcome_evidence"
+              ]
+            },
+            "version": 1,
+            "situation": "past_project",
+            "competency": "project_reasoning"
+          },
+          "unresolved_asks": [],
+          "pending_artifact": null,
+          "pending_research": null,
+          "active_attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+          "pending_reasoning": {
+            "kind": "reasoning",
+            "task": "initial",
+            "turn_id": "independent-retry",
+            "action_id": "ij-c87905cca73b4194be6d40cf",
+            "rubric_id": "project-evidence/v1",
+            "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "input_digest": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+            "resume_stage": "awaiting_answer",
+            "request_digest": "a5eae1db26b2eafe8c98b2d7eebe605786771d95156a52af65252c23f6981d4c",
+            "expected_binding": {
+              "epoch": 0,
+              "owner_id": "00000000-0000-4000-8000-0000000000a1",
+              "thread_id": "00000000-0000-4000-8000-0000000000b1",
+              "context_sha256": "fec7b6355301c2d4de239550fc13af5ce745eef6b53a089001565da153e9cb73",
+              "account_version": 14,
+              "thread_revision": 14,
+              "journey_revision": 11
+            },
+            "selected_draft_id": null,
+            "support_exercise_id": null,
+            "transfer_competency": null,
+            "support_assessment_id": null
+          },
+          "selected_draft_id": null,
+          "interruption_stack": [],
+          "reasoning_recovery": {
+            "at": "2026-10-17T02:18:31.629Z",
+            "status": "failed",
+            "request": {
+              "kind": "reasoning",
+              "task": "initial",
+              "turn_id": "independent-answer",
+              "action_id": "ij-e5289becdfd5a25c9f78fae9",
+              "rubric_id": "project-evidence/v1",
+              "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+              "question_id": "project-narrative",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ],
+              "input_digest": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+              "resume_stage": "awaiting_answer",
+              "request_digest": "f0e1ce1a1c3f7cc0fe56820c7bb46de16490a3609b5c19b6c44bf744922e46c9",
+              "expected_binding": {
+                "epoch": 0,
+                "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+                "account_version": 4,
+                "thread_revision": 4,
+                "journey_revision": 1
+              },
+              "selected_draft_id": null,
+              "support_exercise_id": null,
+              "transfer_competency": null,
+              "support_assessment_id": null
+            },
+            "detached": true,
+            "receipt_id": "4d4678f3-a9e3-45e8-a0b4-67246457b480",
+            "budget_state": "settled",
+            "failure_kind": "generation_timeout",
+            "outcome_status": "failed",
+            "reservation_ref": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+            "usage_receipt_refs": [
+              "634d28cd-f19f-41a8-b2fe-13430cb867a9"
+            ]
+          },
+          "outstanding_reasoning": [
+            {
+              "request": {
+                "kind": "reasoning",
+                "task": "initial",
+                "turn_id": "independent-retry",
+                "action_id": "ij-c87905cca73b4194be6d40cf",
+                "rubric_id": "project-evidence/v1",
+                "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+                "question_id": "project-narrative",
+                "source_refs": [
+                  {
+                    "id": "independent-project",
+                    "version": 0
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "target:role_family",
+                    "version": 1
+                  },
+                  {
+                    "id": "target:level",
+                    "version": 1
+                  },
+                  {
+                    "id": "target:company",
+                    "version": 1
+                  },
+                  {
+                    "id": "target:stage",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume-source:resume",
+                    "version": 1
+                  }
+                ],
+                "input_digest": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+                "resume_stage": "awaiting_answer",
+                "request_digest": "a5eae1db26b2eafe8c98b2d7eebe605786771d95156a52af65252c23f6981d4c",
+                "expected_binding": {
+                  "epoch": 0,
+                  "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                  "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                  "context_sha256": "fec7b6355301c2d4de239550fc13af5ce745eef6b53a089001565da153e9cb73",
+                  "account_version": 14,
+                  "thread_revision": 14,
+                  "journey_revision": 11
+                },
+                "selected_draft_id": null,
+                "support_exercise_id": null,
+                "transfer_competency": null,
+                "support_assessment_id": null
+              },
+              "detached": false,
+              "budget_state": "unresolved"
+            }
+          ]
+        },
+        "completion": {
+          "artifact": null,
+          "unmet_conditions": [
+            "Context changed; build and reopen a current pack"
+          ]
+        },
+        "created_at": "2026-10-17T02:18:13.797Z",
+        "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+        "last_event": {
+          "id": "independent-retry",
+          "reply_plan": {
+            "text": "Your exact answer is retained. Assessment awaits the admitted generation/checker pair.",
+            "status": "planned",
+            "unresolved_asks": []
+          },
+          "input_digest": "c9c616ef8f5fb9fc2a388b7c5d52798d7d491b0a4871459b5bde5cf4805f8a1a",
+          "expected_binding": {
+            "epoch": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "context_sha256": "fec7b6355301c2d4de239550fc13af5ce745eef6b53a089001565da153e9cb73",
+            "account_version": 14,
+            "thread_revision": 14,
+            "journey_revision": 11
+          },
+          "proposed_actions": [
+            {
+              "args": {
+                "request": {
+                  "task": "initial",
+                  "hints": [],
+                  "attempt": {
+                    "at": "2026-10-17T02:18:38.752Z",
+                    "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+                    "kind": "initial",
+                    "text": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "epoch": 0,
+                    "index": 2,
+                    "status": "active",
+                    "version": 1,
+                    "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                    "scripted": false,
+                    "rubric_id": "project-evidence/v1",
+                    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                    "assistance": "none",
+                    "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+                    "exercise_id": null,
+                    "question_id": "project-narrative",
+                    "source_refs": [
+                      {
+                        "id": "independent-project",
+                        "version": 0
+                      },
+                      {
+                        "id": "target",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:role_family",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:level",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:company",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:stage",
+                        "version": 1
+                      },
+                      {
+                        "id": "resume",
+                        "version": 1
+                      },
+                      {
+                        "id": "resume-source:resume",
+                        "version": 1
+                      }
+                    ],
+                    "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+                    "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+                    "content_sha256": "78d519603d6faa50db5eb3f2a1303e12ae9025fca00d220588690c429ac81360",
+                    "rubric_version": 1,
+                    "context_outdated": false,
+                    "context_revision": 14,
+                    "dependency_basis": "conservative_context_refs",
+                    "parent_attempt_id": null,
+                    "retrieved_source_refs": [
+                      {
+                        "id": "independent-project",
+                        "version": 0
+                      },
+                      {
+                        "id": "target",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:role_family",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:level",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:company",
+                        "version": 1
+                      },
+                      {
+                        "id": "target:stage",
+                        "version": 1
+                      },
+                      {
+                        "id": "resume",
+                        "version": 1
+                      },
+                      {
+                        "id": "resume-source:resume",
+                        "version": 1
+                      }
+                    ]
+                  },
+                  "dialogue": [],
+                  "evidence": [
+                    {
+                      "id": "independent-project",
+                      "kind": "project",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": "I wrote CSV boundary validation for a student roster.",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 1
+                      },
+                      "version": 0,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 1
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_report",
+                        "trust": "user_reported",
+                        "revision": 0,
+                        "record_id": "typed-fact:independent-project",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:11.529Z"
+                      }
+                    },
+                    {
+                      "id": "target",
+                      "kind": "target",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": {
+                        "role": "Software engineer intern",
+                        "level": "early-career",
+                        "stage": "technical screen",
+                        "company": "Synthetic Wren Labs",
+                        "role_family": "software_engineering"
+                      },
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 9
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_report",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "typed-fact:target",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:24.342Z"
+                      }
+                    },
+                    {
+                      "id": "target:role_family",
+                      "kind": "interview_guidance",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": "software_engineering",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 9
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_report",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "typed-fact:target",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:24.342Z"
+                      }
+                    },
+                    {
+                      "id": "target:level",
+                      "kind": "interview_guidance",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": "early-career",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 9
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_report",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "typed-fact:target",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:24.342Z"
+                      }
+                    },
+                    {
+                      "id": "target:company",
+                      "kind": "interview_guidance",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": "Synthetic Wren Labs",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 9
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_report",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "typed-fact:target",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:24.342Z"
+                      }
+                    },
+                    {
+                      "id": "target:stage",
+                      "kind": "interview_guidance",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": "technical screen",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 9
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_report",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "typed-fact:target",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:24.342Z"
+                      }
+                    },
+                    {
+                      "id": "resume",
+                      "kind": "resume",
+                      "scope": "thread",
+                      "trust": "user_reported",
+                      "value": {
+                        "sha256": "4f70b4c1467590ce1c906ec5e155e5bb2b80fb4a5b66bc87c643f939d2b675a9",
+                        "artifact_id": "resume-source:resume"
+                      },
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 3
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 10
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_pasted",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "resume-source:resume",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:29.730Z"
+                      },
+                      "source_refs": [
+                        {
+                          "id": "resume-source:resume",
+                          "version": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "resume-source:resume",
+                      "kind": "source",
+                      "scope": "thread",
+                      "trust": "untrusted_source",
+                      "value": {
+                        "excerpt": "Graduation 2030. CSV boundary validation only; no production deployment.",
+                        "source_kind": "user_pasted_text",
+                        "canonical_url": null,
+                        "content_sha256": "4f70b4c1467590ce1c906ec5e155e5bb2b80fb4a5b66bc87c643f939d2b675a9"
+                      },
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 3
+                      },
+                      "version": 1,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 10
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "user_pasted",
+                        "trust": "user_reported",
+                        "revision": 1,
+                        "record_id": "resume-source:resume",
+                        "reference": "Explicit actual statement for this interview journey",
+                        "observed_at": "2026-10-17T02:18:29.730Z"
+                      }
+                    }
+                  ],
+                  "question": {
+                    "id": "project-narrative",
+                    "text": "Choose one project from your experience. What problem mattered, what did you 

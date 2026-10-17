@@ -1,0 +1,52 @@
+{
+  "provenance": {
+    "source_trace": "run/before.trace.json",
+    "source_trace_sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+    "turn_ordinal": 7,
+    "node_pid": 69288,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-pause-1",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "pause"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "paused",
+          "version": "career_interview_entry/v1",
+          "revision": 4,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "605803ec407271bab7d90d281ec457cf705ff608be1908db1c3474cad92b921a",
+            "account_version": 7,
+            "thread_revision": 7
+          },
+          "assessment_status": "not_assessed",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.",
+      "action": null,
+      "turn_key": "independent-pause-1",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"paused\",\"version\":\"career_interview_entry/v1\",\"revision\":4,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"605803ec407271bab7d90d281ec457cf705ff608be1908db1c3474cad92b921a\",\"account_version\":7,\"thread_revision\":7},\"assessment_status\":\"not_assessed\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.\",\"action\":null,\"turn_key\":\"independent-pause-1\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

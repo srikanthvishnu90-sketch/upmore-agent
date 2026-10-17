@@ -1,0 +1,59 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 10,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-pack",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "build_pack"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "pack_ready",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 14,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "5fa9375632a0b1c16798319c1a80d94f5f5f01982af789b066c51cd989f892de",
+            "account_version": 17,
+            "thread_revision": 17
+          },
+          "assessment_status": "checked_advisory",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.",
+      "action": null,
+      "artifact": {
+        "id": "fdc9173b-b040-4493-81c1-6afb84efb1a1",
+        "sha256": "a1985192eba17fe4373cc5ba65e4e958530a256c98b4a281734ea6a45f8c3917",
+        "partial": true,
+        "byte_length": 8279,
+        "download_path": "/career/artifacts/fdc9173b-b040-4493-81c1-6afb84efb1a1"
+      },
+      "turn_key": "independent-pack",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"pack_ready\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":14,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"5fa9375632a0b1c16798319c1a80d94f5f5f01982af789b066c51cd989f892de\",\"account_version\":17,\"thread_revision\":17},\"assessment_status\":\"checked_advisory\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.\",\"action\":null,\"artifact\":{\"id\":\"fdc9173b-b040-4493-81c1-6afb84efb1a1\",\"sha256\":\"a1985192eba17fe4373cc5ba65e4e958530a256c98b4a281734ea6a45f8c3917\",\"partial\":true,\"byte_length\":8279,\"download_path\":\"/career/artifacts/fdc9173b-b040-4493-81c1-6afb84efb1a1\"},\"turn_key\":\"independent-pack\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

@@ -1,0 +1,761 @@
+     ]
+            },
+            "version": 1,
+            "situation": "past_project",
+            "competency": "project_reasoning"
+          },
+          "unresolved_asks": [],
+          "pending_artifact": null,
+          "pending_research": null,
+          "active_attempt_id": null,
+          "pending_reasoning": null,
+          "selected_draft_id": null,
+          "interruption_stack": [
+            {
+              "stage": "awaiting_answer",
+              "active_question": {
+                "id": "project-narrative",
+                "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+                "family": "project",
+                "rubric": {
+                  "id": "project-evidence/v1",
+                  "label": "provisional practice judgment; not a hiring score",
+                  "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                  "anchors": {
+                    "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                    "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                    "2": "Workable basic account, with an important omission or unsupported step.",
+                    "3": "Supported and sound for this task; name any remaining limited gap.",
+                    "4": "Supported, justified and robust to this question’s boundary probe.",
+                    "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                  },
+                  "version": 1,
+                  "criteria": {
+                    "situation": "A concrete problem and relevant constraints.",
+                    "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                    "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                    "reflection_transfer": "A supported lesson or next improvement.",
+                    "personal_contribution": "Distinguishes proposal, implementation and teammate work."
+                  },
+                  "dimensions": [
+                    "situation",
+                    "personal_contribution",
+                    "reasoning_tradeoffs",
+                    "outcome_evidence",
+                    "reflection_transfer"
+                  ],
+                  "coverage_dimensions": [
+                    "personal_contribution",
+                    "reasoning_tradeoffs",
+                    "outcome_evidence"
+                  ]
+                },
+                "version": 1,
+                "situation": "past_project",
+                "competency": "project_reasoning"
+              },
+              "unresolved_asks": [],
+              "active_attempt_id": null
+            }
+          ],
+          "reasoning_recovery": {
+            "at": "2026-10-17T02:18:15.705Z",
+            "status": "unknown",
+            "request": {
+              "kind": "reasoning",
+              "task": "initial",
+              "turn_id": "independent-answer",
+              "action_id": "ij-e5289becdfd5a25c9f78fae9",
+              "rubric_id": "project-evidence/v1",
+              "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+              "question_id": "project-narrative",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ],
+              "input_digest": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+              "resume_stage": "awaiting_answer",
+              "request_digest": "f0e1ce1a1c3f7cc0fe56820c7bb46de16490a3609b5c19b6c44bf744922e46c9",
+              "expected_binding": {
+                "epoch": 0,
+                "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+                "account_version": 4,
+                "thread_revision": 4,
+                "journey_revision": 1
+              },
+              "selected_draft_id": null,
+              "support_exercise_id": null,
+              "transfer_competency": null,
+              "support_assessment_id": null
+            },
+            "detached": false,
+            "receipt_id": "a71ca05c-8540-4841-9507-9dff1d64129c",
+            "budget_state": "uncertain",
+            "failure_kind": "generation_timeout",
+            "outcome_status": "unknown",
+            "reservation_ref": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+            "usage_receipt_refs": []
+          },
+          "outstanding_reasoning": [
+            {
+              "request": {
+                "kind": "reasoning",
+                "task": "initial",
+                "turn_id": "independent-answer",
+                "action_id": "ij-e5289becdfd5a25c9f78fae9",
+                "rubric_id": "project-evidence/v1",
+                "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+                "question_id": "project-narrative",
+                "source_refs": [
+                  {
+                    "id": "independent-project",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:role_family",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:level",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:company",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:stage",
+                    "version": 0
+                  },
+                  {
+                    "id": "target",
+                    "version": 0
+                  },
+                  {
+                    "id": "resume",
+                    "version": 0
+                  }
+                ],
+                "input_digest": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+                "resume_stage": "awaiting_answer",
+                "request_digest": "f0e1ce1a1c3f7cc0fe56820c7bb46de16490a3609b5c19b6c44bf744922e46c9",
+                "expected_binding": {
+                  "epoch": 0,
+                  "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                  "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                  "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+                  "account_version": 4,
+                  "thread_revision": 4,
+                  "journey_revision": 1
+                },
+                "selected_draft_id": null,
+                "support_exercise_id": null,
+                "transfer_competency": null,
+                "support_assessment_id": null
+              },
+              "detached": true,
+              "receipt_id": "a71ca05c-8540-4841-9507-9dff1d64129c",
+              "detached_at": "2026-10-17T02:18:24.342Z",
+              "budget_state": "uncertain",
+              "detached_reason": "context_changed"
+            }
+          ]
+        },
+        "completion": {
+          "artifact": null,
+          "unmet_conditions": [
+            "Context changed; build and reopen a current pack"
+          ]
+        },
+        "created_at": "2026-10-17T02:18:13.797Z",
+        "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+        "last_event": {
+          "id": "independent-target-correction",
+          "reply_plan": {
+            "text": "Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.",
+            "status": "planned",
+            "unresolved_asks": []
+          },
+          "input_digest": "4d4d7368484d42e5e3aa648e1a3119c595b87964d83a0750ad3f77ed2e8feea4",
+          "expected_binding": {
+            "epoch": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "context_sha256": "12c293e3693fe1a15a27464d84699fe150e5d6ee6df4d88606a924c6be6da7fb",
+            "account_version": 9,
+            "thread_revision": 9,
+            "journey_revision": 5
+          },
+          "proposed_actions": []
+        },
+        "resume_ref": {
+          "id": "resume",
+          "version": 0
+        },
+        "target_ref": {
+          "id": "target",
+          "version": 1
+        },
+        "updated_at": "2026-10-17T02:18:24.342Z",
+        "assessments": [],
+        "constraints": {
+          "unknowns": [],
+          "logistics": [],
+          "interview_at": null,
+          "spent_minutes": 0,
+          "available_minutes": 40,
+          "daily_study_minutes": null,
+          "budget_anchor_spent_minutes": 0
+        },
+        "dependencies": [
+          {
+            "id": "independent-project",
+            "version": 0
+          },
+          {
+            "id": "resume",
+            "version": 0
+          },
+          {
+            "id": "target",
+            "version": 1
+          },
+          {
+            "id": "target:role_family",
+            "version": 1
+          },
+          {
+            "id": "target:level",
+            "version": 1
+          },
+          {
+            "id": "target:company",
+            "version": 1
+          },
+          {
+            "id": "target:stage",
+            "version": 1
+          }
+        ],
+        "observations": [],
+        "role_support": "early_career_software",
+        "invalidations": [
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:role_family\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:role_family"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:level\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:level"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:company\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:company"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:stage\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:stage"
+          }
+        ],
+        "content_sha256": "6aa1dd4130f368cea6837c06ca8d8fb55ba219ecd1af02a3fa00daa594cde844",
+        "schema_version": "interview_journey_state/v1",
+        "context_binding": {
+          "epoch": 0,
+          "context_sha256": "12c293e3693fe1a15a27464d84699fe150e5d6ee6df4d88606a924c6be6da7fb",
+          "account_version": 9,
+          "thread_revision": 9
+        },
+        "plan_priorities": [],
+        "processed_events": [
+          {
+            "id": "independent-start",
+            "input_digest": "fae153539cf9ffdb3d76cb33542819a79a183cce2d1a56b5b6185d555ddaadab"
+          },
+          {
+            "id": "independent-answer",
+            "input_digest": "0388729238ac2773c21870ff9e8e1498ead49adbb83d78f716dba3878ea95d65"
+          },
+          {
+            "id": "independent-unknown",
+            "input_digest": "52b3026c6533d09b79fbf104bba9b70b920904dceff1234921d231352e761c63"
+          },
+          {
+            "id": "independent-pause-1",
+            "input_digest": "3e8b1000b909436a215bf04a926523d81789decd9d8e68898062f9436abf864d"
+          },
+          {
+            "id": "independent-pause-2",
+            "input_digest": "dc311463b4b742a6771e57f6acba910360fcac930acd432d238dcc06766f4083"
+          },
+          {
+            "id": "independent-target-correction",
+            "input_digest": "4d4d7368484d42e5e3aa648e1a3119c595b87964d83a0750ad3f77ed2e8feea4"
+          }
+        ]
+      }
+    }
+  ],
+  "accounting": [
+    {
+      "label": "synthetic-campaign-seeded-only-in-owned-db",
+      "campaign": [
+        {
+          "model": "gpt-5-nano",
+          "campaign": "owner-shared-5usd",
+          "provider": "openai",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "expires_at": "2026-10-17T03:18:09.981505+00:00",
+          "reconciled": true,
+          "limit_micros": 5000000,
+          "current_micros": 0,
+          "opening_micros": 0
+        }
+      ],
+      "pairs": [],
+      "legs": [],
+      "cash": [],
+      "monthly": [],
+      "usage": []
+    },
+    {
+      "label": "unknown-obligation-held",
+      "campaign": [
+        {
+          "model": "gpt-5-nano",
+          "campaign": "owner-shared-5usd",
+          "provider": "openai",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "expires_at": "2026-10-17T03:18:09.981505+00:00",
+          "reconciled": true,
+          "limit_micros": 5000000,
+          "current_micros": 1977,
+          "opening_micros": 0
+        }
+      ],
+      "pairs": [
+        {
+          "id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "epoch": 0,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "deadline": "2026-10-17T02:18:35.944732+00:00",
+          "revision": 5,
+          "turn_key": "ij-e5289becdfd5a25c9f78fae9",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:15.944732+00:00",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "account_version": 5,
+          "publication_state": "not_published",
+          "generation_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "parent_bound_micros": 5592,
+          "settlement_revision": 1,
+          "verification_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a"
+        }
+      ],
+      "legs": [
+        {
+          "kind": "generation",
+          "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+          "monthly_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "settled_at": null,
+          "started_at": "2026-10-17T02:18:16.080027+00:00",
+          "input_bound": 17835,
+          "output_bound": 2712,
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "dispatched_input": 17835,
+          "dispatched_output": 2712,
+          "raw_usage_receipt": null,
+          "reserved_envelope": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "dispatched_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "provider_response_id": null,
+          "settlement_request_hash": null
+        },
+        {
+          "kind": "verification",
+          "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+          "monthly_id": null,
+          "settled_at": "2026-10-17T02:18:17.550517+00:00",
+          "started_at": null,
+          "input_bound": 60000,
+          "output_bound": 1536,
+          "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+          "dispatched_input": null,
+          "dispatched_output": null,
+          "raw_usage_receipt": null,
+          "reserved_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+          "dispatched_payload": null,
+          "provider_response_id": null,
+          "settlement_request_hash": "33273176c31ecba6097a42f41412102134299902ce923ac0c2317f9ff2088cdc"
+        }
+      ],
+      "cash": [
+        {
+          "id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "not_sent",
+          "usage": {},
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 5,
+          "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_v",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:18:35.944732+00:00",
+          "cost_micros": 0,
+          "bound_micros": 3615,
+          "payload_hash": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "account_version": 5
+        },
+        {
+          "id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "started",
+          "usage": null,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 5,
+          "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_g",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:18:17.848916+00:00",
+          "cost_micros": null,
+          "bound_micros": 1977,
+          "payload_hash": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "account_version": 5
+        }
+      ],
+      "monthly": [
+        {
+          "id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "step": 0,
+          "model": "gpt-5-nano",
+          "state": "reserved",
+          "usage": null,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:15.935437+00:00",
+          "request_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775"
+        }
+      ],
+      "usage": []
+    },
+    {
+      "label": "target-corrected-before-process-restart",
+      "campaign": [
+        {
+          "model": "gpt-5-nano",
+          "campaign": "owner-shared-5usd",
+          "provider": "openai",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "expires_at": "2026-10-17T03:18:09.981505+00:00",
+          "reconciled": true,
+          "limit_micros": 5000000,
+          "current_micros": 1977,
+          "opening_micros": 0
+        }
+      ],
+      "pairs": [
+        {
+          "id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "epoch": 0,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "deadline": "2026-10-17T02:18:35.944732+00:00",
+          "revision": 5,
+          "turn_key": "ij-e5289becdfd5a25c9f78fae9",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:15.944732+00:00",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "account_version": 5,
+          "publication_state": "not_published",
+          "generation_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "parent_bound_micros": 5592,
+          "settlement_revision": 1,
+          "verification_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a"
+        }
+      ],
+      "legs": [
+        {
+          "kind": "generation",
+          "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+          "monthly_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "settled_at": null,
+          "started_at": "2026-10-17T02:18:16.080027+00:00",
+          "input_bound": 17835,
+          "output_bound": 2712,
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "dispatched_input": 17835,
+          "dispatched_output": 2712,
+          "raw_usage_receipt": null,
+          "reserved_envelope": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "dispatched_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "provider_response_id": null,
+          "settlement_request_hash": null
+        },
+        {
+          "kind": "verification",
+          "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+          "monthly_id": null,
+          "settled_at": "2026-10-17T02:18:17.550517+00:00",
+          "started_at": null,
+          "input_bound": 60000,
+          "output_bound": 1536,
+          "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+          "dispatched_input": null,
+          "dispatched_output": null,
+          "raw_usage_receipt": null,
+          "reserved_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+          "dispatched_payload": null,
+          "provider_response_id": null,
+          "settlement_request_hash": "33273176c31ecba6097a42f41412102134299902ce923ac0c2317f9ff2088cdc"
+        }
+      ],
+      "cash": [
+        {
+          "id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "not_sent",
+          "usage": {},
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 5,
+          "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_v",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:18:35.944732+00:00",
+          "cost_micros": 0,
+          "bound_micros": 3615,
+          "payload_hash": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "account_version": 5
+        },
+        {
+          "id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "started",
+          "usage": null,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 5,
+          "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_g",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:18:17.848916+00:00",
+          "cost_micros": null,
+          "bound_micros": 1977,
+          "payload_hash": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "account_version": 5
+        }
+      ],
+      "monthly": [
+        {
+          "id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "step": 0,
+          "model": "gpt-5-nano",
+          "state": "reserved",
+          "usage": null,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:15.935437+00:00",
+          "request_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775"
+        }
+      ],
+      "usage": []
+    }
+  ],
+  "observations": [],
+  "controlled_provider_calls": 1,
+  "actual_paid_requests": 0,
+  "model_quality": "NOT_RUN"
+}

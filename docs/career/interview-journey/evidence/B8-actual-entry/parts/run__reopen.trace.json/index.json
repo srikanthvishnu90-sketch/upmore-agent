@@ -1,0 +1,26 @@
+{
+  "original_path": "run/reopen.trace.json",
+  "original_sha256": "2ce9c84c6ab864016cd3edb0e4c3839adcacd736921b3a2767595630bf6fc770",
+  "bytes": 67939,
+  "part_limit_bytes": 32768,
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32768,
+      "sha256": "9b436652d2c0a656cf0c7c67f594a4a3f6da77d5719fba4798e74bcc8d69cc0e"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32768,
+      "end_byte_exclusive": 65536,
+      "sha256": "78acf156e021f8483d0d0b39b81eb57de7e5fe57a3509f2f6fb926b844e45e65"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65536,
+      "end_byte_exclusive": 67939,
+      "sha256": "c8a653bab4155fb9f46f44df973e0a5c0b352ac3b92ef5506c26640ebe9701b3"
+    }
+  ]
+}

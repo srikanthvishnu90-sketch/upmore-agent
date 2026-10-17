@@ -1,0 +1,68 @@
+{
+  "original_path": "author-suite.log",
+  "original_sha256": "9aa14caeb79ec6725678aff23a7949e83cc4c8c3b0a8f5db4ab527e54cafd916",
+  "bytes": 313690,
+  "part_limit_bytes": 32768,
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32768,
+      "sha256": "233dbad71a546fdf9e1fd27b3549e57f0f03f79da1bd949de4080066505284fe"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32768,
+      "end_byte_exclusive": 65536,
+      "sha256": "23b79d22a4cbf8e4c305ed13eb142772e06d3bcc69ba7cf30694c17517b0ca2d"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65536,
+      "end_byte_exclusive": 98304,
+      "sha256": "d27820626cf98f33600427bce825f67587b14217c0d4f73653919fbc888f36f3"
+    },
+    {
+      "file": "part-0004.txt",
+      "start_byte": 98304,
+      "end_byte_exclusive": 131072,
+      "sha256": "d243ae6b2a83334bfc504b2049d77fd1888497102e31db96058c919bfe72d215"
+    },
+    {
+      "file": "part-0005.txt",
+      "start_byte": 131072,
+      "end_byte_exclusive": 163840,
+      "sha256": "4ee033462f3b42258a3fcb24ee0fba1049b5bb14ca56ec41dfd0aed8ffcdddb2"
+    },
+    {
+      "file": "part-0006.txt",
+      "start_byte": 163840,
+      "end_byte_exclusive": 196608,
+      "sha256": "d06aa8551ea962d136d5bf96cb93357ec2b52ad42ded6c26acf06d72f0a5c544"
+    },
+    {
+      "file": "part-0007.txt",
+      "start_byte": 196608,
+      "end_byte_exclusive": 229376,
+      "sha256": "3e60ed0010b6b60287fc3a6dfe633242e269f4d18290de4b476ac3375b27bbb4"
+    },
+    {
+      "file": "part-0008.txt",
+      "start_byte": 229376,
+      "end_byte_exclusive": 262144,
+      "sha256": "ec2bba23b5b8a457163c889561e25b1e0a7d19670dc7cd5c588dc691ad584f04"
+    },
+    {
+      "file": "part-0009.txt",
+      "start_byte": 262144,
+      "end_byte_exclusive": 294912,
+      "sha256": "abbf410e0b3f45eeb02ac297eed0e620d834f3609b776e829e662ea37eb3a76b"
+    },
+    {
+      "file": "part-0010.txt",
+      "start_byte": 294912,
+      "end_byte_exclusive": 313690,
+      "sha256": "7643f3a036bfaec45a491235bb0cefc343f60274063a5134d8cd13da54356753"
+    }
+  ]
+}

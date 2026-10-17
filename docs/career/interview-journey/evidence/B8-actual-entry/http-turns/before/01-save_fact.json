@@ -1,0 +1,59 @@
+{
+  "provenance": {
+    "source_trace": "run/before.trace.json",
+    "source_trace_sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+    "turn_ordinal": 1,
+    "node_pid": 69288,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-project",
+    "message": "I wrote CSV boundary validation for a student roster.",
+    "career_journey": {
+      "type": "save_fact",
+      "id": "independent-project",
+      "kind": "project",
+      "expected_version": null,
+      "actual": true
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "context_only",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "f467795a6de6409e9d8ec58f4dab48c376f572212d15304841af0fce8e9495f0",
+            "account_version": 1,
+            "thread_revision": 1
+          },
+          "assessment_status": "not_wired",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Your explicit actual statement was saved as user-reported evidence for this interview journey. Dependent feedback is invalidated when its evidence changes. No assessment or provider call was made.",
+      "action": null,
+      "turn_key": "independent-project",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "context_ref": {
+        "id": "independent-project",
+        "version": 0
+      }
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"context_only\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"context_binding\":{\"epoch\":0,\"context_sha256\":\"f467795a6de6409e9d8ec58f4dab48c376f572212d15304841af0fce8e9495f0\",\"account_version\":1,\"thread_revision\":1},\"assessment_status\":\"not_wired\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Your explicit actual statement was saved as user-reported evidence for this interview journey. Dependent feedback is invalidated when its evidence changes. No assessment or provider call was made.\",\"action\":null,\"turn_key\":\"independent-project\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\",\"context_ref\":{\"id\":\"independent-project\",\"version\":0}}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

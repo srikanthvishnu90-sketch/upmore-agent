@@ -1,0 +1,128 @@
+{
+  "original_path": "run/after.trace.json",
+  "original_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+  "bytes": 649621,
+  "part_limit_bytes": 32768,
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32768,
+      "sha256": "61ed95847c85dd25e1fadabcc602e4fe2a6b55eaa1264c3991e7ac0df66b4822"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32768,
+      "end_byte_exclusive": 65536,
+      "sha256": "44512d92ec7ff0c7c0a58a9fd0e78712094c8793cdacd71d6b94336a1b26e47c"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65536,
+      "end_byte_exclusive": 98304,
+      "sha256": "7408ecd252fd5243afaaba243f2bfb96b832e0448bf734d00832fe4726f4e819"
+    },
+    {
+      "file": "part-0004.txt",
+      "start_byte": 98304,
+      "end_byte_exclusive": 131072,
+      "sha256": "8663bfe0a30811142be5bf2395e37c35658617c73d8c832297c94b5ca3d671fc"
+    },
+    {
+      "file": "part-0005.txt",
+      "start_byte": 131072,
+      "end_byte_exclusive": 163840,
+      "sha256": "a7dad72cb0fe203bf2770db5ad1663f40bc82de99171da71cbb821ccef5fdf13"
+    },
+    {
+      "file": "part-0006.txt",
+      "start_byte": 163840,
+      "end_byte_exclusive": 196608,
+      "sha256": "0d906466a2b92aa6ed8cbcecf1bf93513101d7bc6a56643306294904ea82cc24"
+    },
+    {
+      "file": "part-0007.txt",
+      "start_byte": 196608,
+      "end_byte_exclusive": 229376,
+      "sha256": "a0809b7a514ecc76a2de9d1dbcc39c621a95588624bfb02bd0f75dd9d1651e92"
+    },
+    {
+      "file": "part-0008.txt",
+      "start_byte": 229376,
+      "end_byte_exclusive": 262144,
+      "sha256": "70c6dbb71b59d9c0fba2b64e2552da612966e884855c559e89e82e7c3d80caf4"
+    },
+    {
+      "file": "part-0009.txt",
+      "start_byte": 262144,
+      "end_byte_exclusive": 294912,
+      "sha256": "9d33c3868ca57ce0a099c2b0248c2dfc8c3ad637959738a7ce2023c03714c558"
+    },
+    {
+      "file": "part-0010.txt",
+      "start_byte": 294912,
+      "end_byte_exclusive": 327680,
+      "sha256": "9224b646e6d6b4b52743642b8fa84da282ef9ead48a449c982206d7fb2afb275"
+    },
+    {
+      "file": "part-0011.txt",
+      "start_byte": 327680,
+      "end_byte_exclusive": 360448,
+      "sha256": "ac7c2b925bd5df06c97ba423a6d7e9994ad948f90bf1967632be2c3d5ebedc73"
+    },
+    {
+      "file": "part-0012.txt",
+      "start_byte": 360448,
+      "end_byte_exclusive": 393216,
+      "sha256": "478775bd515d08f4b1f51d352fef4c6cda8bc27fd8639c4fef769587500bdf26"
+    },
+    {
+      "file": "part-0013.txt",
+      "start_byte": 393216,
+      "end_byte_exclusive": 425984,
+      "sha256": "ea24e0246659497efed9f36a27dee311f3e999f0b755fada6527c8bd62e83e56"
+    },
+    {
+      "file": "part-0014.txt",
+      "start_byte": 425984,
+      "end_byte_exclusive": 458752,
+      "sha256": "735aed27edebef6305b553b2f75824e38fd3bdba7f85b47bd155bf1a7f0e0476"
+    },
+    {
+      "file": "part-0015.txt",
+      "start_byte": 458752,
+      "end_byte_exclusive": 491520,
+      "sha256": "42d00556a2b1c07c971cf369446abfb2c5cace1a2557f8c1a5bb908fe1ea07f3"
+    },
+    {
+      "file": "part-0016.txt",
+      "start_byte": 491520,
+      "end_byte_exclusive": 524288,
+      "sha256": "8804119c295c755c6609c8c6d47d19167977a6fd4be3165af3cb2b7e8b0ac515"
+    },
+    {
+      "file": "part-0017.txt",
+      "start_byte": 524288,
+      "end_byte_exclusive": 557056,
+      "sha256": "1eb4e7cf4811675043d5b3eeb049a321b25215c7efb332342080ee308d6c3ec2"
+    },
+    {
+      "file": "part-0018.txt",
+      "start_byte": 557056,
+      "end_byte_exclusive": 589824,
+      "sha256": "68c3649504efd83d886faba67f619a1bf17e841b61cdd0c76380231893f603b9"
+    },
+    {
+      "file": "part-0019.txt",
+      "start_byte": 589824,
+      "end_byte_exclusive": 622592,
+      "sha256": "7b92caa8e9e3ab1b0d28c81131f8415c38e122a45e40a014f764f23dc4bb4741"
+    },
+    {
+      "file": "part-0020.txt",
+      "start_byte": 622592,
+      "end_byte_exclusive": 649621,
+      "sha256": "a4a2021e1606ba453c31dc63355d7aad15660d13fa5bb826c2a79637c133337b"
+    }
+  ]
+}

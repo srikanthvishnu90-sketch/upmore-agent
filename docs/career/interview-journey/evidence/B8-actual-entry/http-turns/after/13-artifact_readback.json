@@ -1,0 +1,53 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 13,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-ack",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "artifact_readback",
+      "receipt_id": "ccda572e-9aad-4803-a6a0-fb6d7defd23b"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "pack_ready",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 15,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "2d581abbdab6a4b296166baceb49b95accf752c4fdeaff8f6aee5ab25405464c",
+            "account_version": 18,
+            "thread_revision": 18
+          },
+          "assessment_status": "checked_advisory",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Your partial pack was reopened and verified; its remaining gaps are explicit.",
+      "action": null,
+      "turn_key": "independent-ack",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"pack_ready\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":15,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"2d581abbdab6a4b296166baceb49b95accf752c4fdeaff8f6aee5ab25405464c\",\"account_version\":18,\"thread_revision\":18},\"assessment_status\":\"checked_advisory\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Your partial pack was reopened and verified; its remaining gaps are explicit.\",\"action\":null,\"turn_key\":\"independent-ack\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

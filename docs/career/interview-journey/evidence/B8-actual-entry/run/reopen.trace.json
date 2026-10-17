@@ -1,0 +1,1551 @@
+{
+  "label": "INDEPENDENT_ACTUAL_HANDLER_CONTROLLED_PROVIDER",
+  "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+  "phase": "reopen",
+  "pid": 76355,
+  "outcome": "completed",
+  "failure": null,
+  "expected": "Durable owned entry, unknown hold, corrections, actual process restart, terminal reconciliation, explicit current-source retry and exact partial-artifact reopen.",
+  "turns": [
+    {
+      "request": null,
+      "options": {
+        "method": "GET",
+        "path": "/career/artifacts/fdc9173b-b040-4493-81c1-6afb84efb1a1"
+      },
+      "response": {
+        "status": 200,
+        "body": null,
+        "text": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Wren Labs; level: early-career; stage: technical screen\n\nResume: resume@1\n\nAvailable minutes: 40\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: \n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 10 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\ntechnical: 14 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\nbehavioral: 9 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\npack: 7 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\n## Truthful story bank\n\nindependent-project@0: I wrote CSV boundary validation for a student roster. — source \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:11.529Z\",\"record\\_id\":\"typed-fact:independent-project\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":0,\"trust\":\"user\\_reported\"\\}\n\n## Original and revised answers\n\ninterview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry / project-narrative / initial; assistance: none; parent: none\nI wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.\nSHA-256: 10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026\n\n## Feedback, practice and transfer\n\ninterview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback; provisional practice judgment by CONTROLLED\\_INDEPENDENT\\_PROVIDER\\_RESPONSES; project\nCONTROLLED INDEPENDENT: keep your validation work separate from the teammate interface; no production-impact claim.\nsituation: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\npersonal contribution: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\nreasoning tradeoffs: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\noutcome evidence: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\nreflection transfer: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\nPriority: Controlled ownership boundary.; uncertainty: No semantic-quality claim.\n\ninitial: personal contribution; assistance: none; outcome: uncertain. No semantic-quality claim. (Attempt interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry)\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 40 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\nNo current evidence-linked answer draft\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney interview-c612946f-bb38-4096-b220-bc163ecd7a70, revision 14; context b0aca08446c4576a5da76746ca031d355605cfcc79e4b5f49360679b250538c4; epoch 0.\n\nindependent-project@0; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:11.529Z\",\"record\\_id\":\"typed-fact:independent-project\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":0,\"trust\":\"user\\_reported\"\\}\n\ntarget@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:role\\_family@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:level@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:company@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:stage@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nresume@1; user\\_reported; provenance \\{\"kind\":\"user\\_pasted\",\"observed\\_at\":\"2026-10-17T02:18:29.730Z\",\"record\\_id\":\"resume-source:resume\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nresume-source:resume@1; untrusted\\_source; provenance \\{\"kind\":\"user\\_pasted\",\"observed\\_at\":\"2026-10-17T02:18:29.730Z\",\"record\\_id\":\"resume-source:resume\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+        "headers": {
+          "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+          "access-control-allow-methods": "GET, OPTIONS",
+          "cache-control": "no-store",
+          "content-disposition": "attachment; filename=\"interview-preparation.md\"",
+          "content-type": "text/markdown; charset=utf-8",
+          "vary": "Origin",
+          "x-upmore-readback-receipt": "453cadfe-00d7-4a26-955a-2dc2b69a86be"
+        }
+      },
+      "state": {
+        "mode": "coaching",
+        "plan": {
+          "items": [
+            {
+              "id": "plan-project",
+              "reason": "Ground a truthful narrative in actual experience.",
+              "minutes": 10,
+              "competency": "project",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 1
+                },
+                {
+                  "id": "target:level",
+                  "version": 1
+                },
+                {
+                  "id": "target:company",
+                  "version": 1
+                },
+                {
+                  "id": "target:stage",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "resume-source:resume",
+                  "version": 1
+                }
+              ]
+            },
+            {
+              "id": "plan-technical",
+              "reason": "Practice role-relevant correctness and recovery reasoning.",
+              "minutes": 14,
+              "competency": "technical",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 1
+                },
+                {
+                  "id": "target:level",
+                  "version": 1
+                },
+                {
+                  "id": "target:company",
+                  "version": 1
+                },
+                {
+                  "id": "target:stage",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "resume-source:resume",
+                  "version": 1
+                }
+              ]
+            },
+            {
+              "id": "plan-behavioral",
+              "reason": "Separate personal contribution, team decisions and evidence.",
+              "minutes": 9,
+              "competency": "behavioral",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 1
+                },
+                {
+                  "id": "target:level",
+                  "version": 1
+                },
+                {
+                  "id": "target:company",
+                  "version": 1
+                },
+                {
+                  "id": "target:stage",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "resume-source:resume",
+                  "version": 1
+                }
+              ]
+            },
+            {
+              "id": "plan-pack",
+              "reason": "Review and save current evidence with unassessed gaps explicit.",
+              "minutes": 7,
+              "competency": "pack",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 1
+                },
+                {
+                  "id": "target:level",
+                  "version": 1
+                },
+                {
+                  "id": "target:company",
+                  "version": 1
+                },
+                {
+                  "id": "target:stage",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "resume-source:resume",
+                  "version": 1
+                }
+              ]
+            }
+          ],
+          "deferrals": [
+            "project: extended work deferred to fit the declared remaining time.",
+            "technical: extended work deferred to fit the declared remaining time.",
+            "behavioral: extended work deferred to fit the declared remaining time.",
+            "pack: extended work deferred to fit the declared remaining time.",
+            "Current company research requires an approved source/capture; missing research does not block experience practice."
+          ],
+          "remaining_minutes": 40
+        },
+        "epoch": 0,
+        "hints": [],
+        "stage": "pack_ready",
+        "briefs": [],
+        "drafts": [],
+        "status": "active",
+        "target": {
+          "role": "Software engineer intern",
+          "level": "early-career",
+          "stage": "technical screen",
+          "company": "Synthetic Wren Labs",
+          "role_family": "software_engineering"
+        },
+        "attempts": [
+          {
+            "at": "2026-10-17T02:18:14.649Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+            "kind": "initial",
+            "text": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+            "epoch": 0,
+            "index": 1,
+            "status": "active",
+            "version": 1,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "scripted": false,
+            "rubric_id": "project-evidence/v1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "assistance": "none",
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "exercise_id": null,
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target:role_family",
+                "version": 0
+              },
+              {
+                "id": "target:level",
+                "version": 0
+              },
+              {
+                "id": "target:company",
+                "version": 0
+              },
+              {
+                "id": "target:stage",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 0
+              },
+              {
+                "id": "resume",
+                "version": 0
+              }
+            ],
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "content_sha256": "6ec907306ba8d30f25dbd33e818f193379a8165dbcbb1dc9e4ad0627d9180a44",
+            "rubric_version": 1,
+            "context_outdated": true,
+            "context_revision": 4,
+            "dependency_basis": "conservative_context_refs",
+            "parent_attempt_id": null,
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target:role_family",
+                "version": 0
+              },
+              {
+                "id": "target:level",
+                "version": 0
+              },
+              {
+                "id": "target:company",
+                "version": 0
+              },
+              {
+                "id": "target:stage",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 0
+              },
+              {
+                "id": "resume",
+                "version": 0
+              }
+            ]
+          },
+          {
+            "at": "2026-10-17T02:18:38.752Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "kind": "initial",
+            "text": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+            "epoch": 0,
+            "index": 2,
+            "status": "active",
+            "version": 1,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "scripted": false,
+            "rubric_id": "project-evidence/v1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "assistance": "none",
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "exercise_id": null,
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "content_sha256": "78d519603d6faa50db5eb3f2a1303e12ae9025fca00d220588690c429ac81360",
+            "rubric_version": 1,
+            "context_outdated": false,
+            "context_revision": 14,
+            "dependency_basis": "conservative_context_refs",
+            "parent_attempt_id": null,
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ]
+          }
+        ],
+        "owner_id": "00000000-0000-4000-8000-0000000000a1",
+        "research": [],
+        "revision": 15,
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "checkpoint": {
+          "next_exercise": {
+            "id": "ownership",
+            "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit.",
+            "minutes": 3,
+            "rationale": "Controlled fixture exercise.",
+            "competency": "personal_contribution",
+            "assessment_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback"
+          },
+          "active_question": {
+            "id": "project-narrative",
+            "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "family": "project",
+            "rubric": {
+              "id": "project-evidence/v1",
+              "label": "provisional practice judgment; not a hiring score",
+              "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+              "anchors": {
+                "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                "2": "Workable basic account, with an important omission or unsupported step.",
+                "3": "Supported and sound for this task; name any remaining limited gap.",
+                "4": "Supported, justified and robust to this question’s boundary probe.",
+                "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+              },
+              "version": 1,
+              "criteria": {
+                "situation": "A concrete problem and relevant constraints.",
+                "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                "reflection_transfer": "A supported lesson or next improvement.",
+                "personal_contribution": "Distinguishes proposal, implementation and teammate work."
+              },
+              "dimensions": [
+                "situation",
+                "personal_contribution",
+                "reasoning_tradeoffs",
+                "outcome_evidence",
+                "reflection_transfer"
+              ],
+              "coverage_dimensions": [
+                "personal_contribution",
+                "reasoning_tradeoffs",
+                "outcome_evidence"
+              ]
+            },
+            "version": 1,
+            "situation": "past_project",
+            "competency": "project_reasoning"
+          },
+          "unresolved_asks": [],
+          "pending_artifact": null,
+          "pending_research": null,
+          "active_attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+          "pending_reasoning": null,
+          "selected_draft_id": null,
+          "interruption_stack": [],
+          "reasoning_recovery": null,
+          "outstanding_reasoning": [],
+          "next_transfer_question_id": "handoff-transfer"
+        },
+        "completion": {
+          "artifact": {
+            "id": "fdc9173b-b040-4493-81c1-6afb84efb1a1",
+            "sha256": "a1985192eba17fe4373cc5ba65e4e958530a256c98b4a281734ea6a45f8c3917",
+            "partial": true,
+            "version": 1,
+            "receipt_id": "ccda572e-9aad-4803-a6a0-fb6d7defd23b",
+            "readback_status": "verified",
+            "coverage_policy_version": "interview-coverage/v2"
+          },
+          "unmet_conditions": [
+            "Research limited: no verified role/company capture",
+            "Source-backed role/company synthesis not assessed",
+            "technical answer not assessed",
+            "behavioral answer not assessed",
+            "practice not assessed",
+            "revision not assessed",
+            "Unassisted transfer not assessed",
+            "No current evidence-linked answer draft",
+            "Host save, authorized open and fresh-session readback required"
+          ]
+        },
+        "created_at": "2026-10-17T02:18:13.797Z",
+        "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+        "last_event": {
+          "id": "independent-ack",
+          "reply_plan": {
+            "text": "Your partial pack was reopened and verified; its remaining gaps are explicit.",
+            "status": "planned",
+            "unresolved_asks": []
+          },
+          "input_digest": "0f2d3c1d03587e8ab7067df27cefb520ef70aa4435c9090fa9e05f3c2e468e98",
+          "expected_binding": {
+            "epoch": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "context_sha256": "5fa9375632a0b1c16798319c1a80d94f5f5f01982af789b066c51cd989f892de",
+            "account_version": 17,
+            "thread_revision": 17,
+            "journey_revision": 14
+          },
+          "proposed_actions": []
+        },
+        "resume_ref": {
+          "id": "resume",
+          "version": 1
+        },
+        "target_ref": {
+          "id": "target",
+          "version": 1
+        },
+        "updated_at": "2026-10-17T02:18:47.396Z",
+        "assessments": [
+          {
+            "at": "2026-10-17T02:18:40.198Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback",
+            "epoch": 0,
+            "family": "project",
+            "status": "active",
+            "version": 1,
+            "feedback": "CONTROLLED INDEPENDENT: keep your validation work separate from the teammate interface; no production-impact claim.",
+            "judgment": "provisional practice inference",
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "strength": {
+              "text": "Controlled fixture strength.",
+              "dimension": "situation"
+            },
+            "generator": "CONTROLLED_INDEPENDENT_PROVIDER_RESPONSES",
+            "rationale": "Controlled fixture exercise.",
+            "rubric_id": "project-evidence/v1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "dimensions": [
+              {
+                "id": "situation",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "personal_contribution",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "reasoning_tradeoffs",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "outcome_evidence",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "reflection_transfer",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              }
+            ],
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "exercise_id": "ownership",
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "uncertainty": "No semantic-quality claim.",
+            "priority_fix": {
+              "text": "Controlled ownership boundary.",
+              "dimension": "personal_contribution"
+            },
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "evidence_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "answer_meaning": "CONTROLLED INDEPENDENT: personal CSV validation work, teammate interface, synthetic examples only.",
+            "content_sha256": "76a4cd5d277f2074e75a85365dc36f5fcad3c205e8a00da10ce41e8f76129d97",
+            "assessment_kind": "answer_feedback",
+            "next_question_id": "handoff-transfer",
+            "validation_receipt": "441a209f-ab77-47f6-ba8e-d439e5de0794",
+            "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ]
+          }
+        ],
+        "constraints": {
+          "unknowns": [],
+          "logistics": [],
+          "interview_at": null,
+          "spent_minutes": 0,
+          "available_minutes": 40,
+          "daily_study_minutes": null,
+          "budget_anchor_spent_minutes": 0
+        },
+        "dependencies": [
+          {
+            "id": "independent-project",
+            "version": 0
+          },
+          {
+            "id": "target",
+            "version": 1
+          },
+          {
+            "id": "target:role_family",
+            "version": 1
+          },
+          {
+            "id": "target:level",
+            "version": 1
+          },
+          {
+            "id": "target:company",
+            "version": 1
+          },
+          {
+            "id": "target:stage",
+            "version": 1
+          },
+          {
+            "id": "resume",
+            "version": 1
+          },
+          {
+            "id": "resume-source:resume",
+            "version": 1
+          }
+        ],
+        "observations": [
+          {
+            "at": "2026-10-17T02:18:40.198Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback:observation",
+            "kind": "initial",
+            "epoch": 0,
+            "status": "observed",
+            "outcome": "uncertain",
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "assistance": "none",
+            "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "competency": "personal_contribution",
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "uncertainty": "No semantic-quality claim.",
+            "assessment_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback",
+            "content_sha256": "1a180cdf8d4577633d322580faba1dc3f99ee201edc6b986fefb48da667807cb"
+          }
+        ],
+        "role_support": "early_career_software",
+        "invalidations": [
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:role_family\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:role_family"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:level\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:level"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:company\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:company"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:stage\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:stage"
+          },
+          {
+            "id": "[\"typed-context:independent-resume-correction\",\"resume\"]",
+            "kind": "resume_replaced",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 10,
+              "record_id": "independent-resume-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:29.730Z"
+            },
+            "evidence_id": "resume"
+          },
+          {
+            "id": "[\"typed-context:independent-resume-correction\",\"resume-source:resume\"]",
+            "kind": "resume_replaced",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 10,
+              "record_id": "independent-resume-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:29.730Z"
+            },
+            "evidence_id": "resume-source:resume"
+          }
+        ],
+        "content_sha256": "7327c7bf5737a0829f3677ac8c2ded2a8c819eb531646b8ab76337e071d0d35f",
+        "schema_version": "interview_journey_state/v1",
+        "context_binding": {
+          "epoch": 0,
+          "context_sha256": "5fa9375632a0b1c16798319c1a80d94f5f5f01982af789b066c51cd989f892de",
+          "account_version": 17,
+          "thread_revision": 17
+        },
+        "plan_priorities": [],
+        "processed_events": [
+          {
+            "id": "independent-start",
+            "input_digest": "fae153539cf9ffdb3d76cb33542819a79a183cce2d1a56b5b6185d555ddaadab"
+          },
+          {
+            "id": "independent-answer",
+            "input_digest": "0388729238ac2773c21870ff9e8e1498ead49adbb83d78f716dba3878ea95d65"
+          },
+          {
+            "id": "independent-unknown",
+            "input_digest": "52b3026c6533d09b79fbf104bba9b70b920904dceff1234921d231352e761c63"
+          },
+          {
+            "id": "independent-pause-1",
+            "input_digest": "3e8b1000b909436a215bf04a926523d81789decd9d8e68898062f9436abf864d"
+          },
+          {
+            "id": "independent-pause-2",
+            "input_digest": "dc311463b4b742a6771e57f6acba910360fcac930acd432d238dcc06766f4083"
+          },
+          {
+            "id": "independent-target-correction",
+            "input_digest": "4d4d7368484d42e5e3aa648e1a3119c595b87964d83a0750ad3f77ed2e8feea4"
+          },
+          {
+            "id": "independent-resume-correction",
+            "input_digest": "52592d9d583325ed97d41d988d18705bc2c6b8dcd0084180ff462b74050d2e88"
+          },
+          {
+            "id": "independent-settle",
+            "input_digest": "ded93c2402717b22d19f888dcf37ed4265e0f69a44370a19dc728afbbff29b6e"
+          },
+          {
+            "id": "independent-resume-work",
+            "input_digest": "f70d907a9af6b8cd44a85b68fd8eb9dfecbc2dde7f8c94577ee4dbc8d5574cc0"
+          },
+          {
+            "id": "independent-other-question",
+            "input_digest": "40516a1280b607c4ad80ab8ea38a391ab0db9e4d17dcdf95a47b85e6e48e27f7"
+          },
+          {
+            "id": "independent-original-question",
+            "input_digest": "b1710881a6638d5ea6c8524e5bbb3e6653b11f399297a02f5b1b06d65bacdaa8"
+          },
+          {
+            "id": "independent-retry",
+            "input_digest": "c9c616ef8f5fb9fc2a388b7c5d52798d7d491b0a4871459b5bde5cf4805f8a1a"
+          },
+          {
+            "id": "independent-feedback",
+            "input_digest": "973811e910beb72a3044e800b4df2431e88965c1ea6f2ff20f382f6a657bdb67"
+          },
+          {
+            "id": "independent-pack",
+            "input_digest": "7773403074c3e37c0cf982d98536a42872481d8f7e6e043a2a7a214cccdb2e52"
+          },
+          {
+            "id": "independent-ack",
+            "input_digest": "0f2d3c1d03587e8ab7067df27cefb520ef70aa4435c9090fa9e05f3c2e468e98"
+          }
+        ]
+      }
+    }
+  ],
+  "accounting": [
+    {
+      "label": "fresh-process-exact-artifact-reopen",
+      "campaign": [
+        {
+          "model": "gpt-5-nano",
+          "campaign": "owner-shared-5usd",
+          "provider": "openai",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "expires_at": "2026-10-17T03:18:09.981505+00:00",
+          "reconciled": true,
+          "limit_micros": 5000000,
+          "current_micros": 48,
+          "opening_micros": 0
+        }
+      ],
+      "pairs": [
+        {
+          "id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "epoch": 0,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "deadline": "2026-10-17T02:18:35.944732+00:00",
+          "revision": 5,
+          "turn_key": "ij-e5289becdfd5a25c9f78fae9",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:15.944732+00:00",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "account_version": 5,
+          "publication_state": "not_published",
+          "generation_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "parent_bound_micros": 5592,
+          "settlement_revision": 2,
+          "verification_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a"
+        },
+        {
+          "id": "504dcf50-efbf-4a70-a44f-93047e6395de",
+          "epoch": 0,
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "deadline": "2026-10-17T02:19:00.45841+00:00",
+          "revision": 15,
+          "turn_key": "ij-c87905cca73b4194be6d40cf",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:40.45841+00:00",
+          "request_hash": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+          "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "account_version": 15,
+          "publication_state": "not_published",
+          "generation_payload": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+          "parent_bound_micros": 5909,
+          "settlement_revision": 2,
+          "verification_envelope": "a9c5cbd6c3b40202ed22e1478aadf9d1154db27f58de69507bb3db571aeacad3"
+        }
+      ],
+      "legs": [
+        {
+          "kind": "verification",
+          "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+          "monthly_id": null,
+          "settled_at": "2026-10-17T02:18:17.550517+00:00",
+          "started_at": null,
+          "input_bound": 60000,
+          "output_bound": 1536,
+          "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+          "dispatched_input": null,
+          "dispatched_output": null,
+          "raw_usage_receipt": null,
+          "reserved_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+          "dispatched_payload": null,
+          "provider_response_id": null,
+          "settlement_request_hash": "33273176c31ecba6097a42f41412102134299902ce923ac0c2317f9ff2088cdc"
+        },
+        {
+          "kind": "generation",
+          "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+          "monthly_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "settled_at": "2026-10-17T02:18:32.363771+00:00",
+          "started_at": "2026-10-17T02:18:16.080027+00:00",
+          "input_bound": 17835,
+          "output_bound": 2712,
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "dispatched_input": 17835,
+          "dispatched_output": 2712,
+          "raw_usage_receipt": {
+            "usage": {
+              "total_tokens": 104,
+              "prompt_tokens": 73,
+              "completion_tokens": 31,
+              "prompt_tokens_details": {
+                "cached_tokens": 7
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 5
+              }
+            },
+            "version": "gateway_usage_receipt/v1",
+            "provider": "openai",
+            "response_id": "chatcmpl-independent-case12-1",
+            "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+            "response_model": "gpt-5-nano",
+            "configured_model": "gpt-5-nano",
+            "request_body_sha256": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+            "response_body_sha256": "98bffafad6e633f2359e80b843b52db7d677d0c3a908c1dd306864d3c5db7420"
+          },
+          "reserved_envelope": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "dispatched_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "provider_response_id": "chatcmpl-independent-case12-1",
+          "settlement_request_hash": "c06ab7eac9238bb585ecac33f0a393ec9e6015dcae0b8001d1e42ebe3af18b56"
+        },
+        {
+          "kind": "generation",
+          "pair_id": "504dcf50-efbf-4a70-a44f-93047e6395de",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "697f49a7-79be-4ca9-9a61-5ee6662b65a8",
+          "monthly_id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+          "settled_at": "2026-10-17T02:18:41.049327+00:00",
+          "started_at": "2026-10-17T02:18:40.609272+00:00",
+          "input_bound": 24179,
+          "output_bound": 2712,
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "dispatched_input": 24179,
+          "dispatched_output": 2712,
+          "raw_usage_receipt": {
+            "usage": {
+              "total_tokens": 104,
+              "prompt_tokens": 73,
+              "completion_tokens": 31,
+              "prompt_tokens_details": {
+                "cached_tokens": 7
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 5
+              }
+            },
+            "version": "gateway_usage_receipt/v1",
+            "provider": "openai",
+            "response_id": "chatcmpl-independent-case12-2",
+            "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+            "response_model": "gpt-5-nano",
+            "configured_model": "gpt-5-nano",
+            "request_body_sha256": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+            "response_body_sha256": "e0fd758ddb093f3c3544b6be416ee82375cb15942e59b97d00ee4c4ead6dc136"
+          },
+          "reserved_envelope": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+          "dispatched_payload": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+          "provider_response_id": "chatcmpl-independent-case12-2",
+          "settlement_request_hash": "bc85cf692c268293f9c4683ec101d11853c1100f9696bfba0db49e43ac30c94d"
+        },
+        {
+          "kind": "verification",
+          "pair_id": "504dcf50-efbf-4a70-a44f-93047e6395de",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "ticket_id": "66f0b7f0-6932-42ca-b483-12d343579a2d",
+          "monthly_id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+          "settled_at": "2026-10-17T02:18:42.014899+00:00",
+          "started_at": "2026-10-17T02:18:41.588339+00:00",
+          "input_bound": 60000,
+          "output_bound": 1536,
+          "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+          "dispatched_input": 27302,
+          "dispatched_output": 1536,
+          "raw_usage_receipt": {
+            "usage": {
+              "total_tokens": 104,
+              "prompt_tokens": 73,
+              "completion_tokens": 31,
+              "prompt_tokens_details": {
+                "cached_tokens": 7
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 5
+              }
+            },
+            "version": "gateway_usage_receipt/v1",
+            "provider": "openai",
+            "response_id": "chatcmpl-independent-case12-3",
+            "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+            "response_model": "gpt-5-nano",
+            "configured_model": "gpt-5-nano",
+            "request_body_sha256": "ae1fe52374eacec9b0b832c2fe82bd6c937bacace9153fa498529b88b570367d",
+            "response_body_sha256": "b79be2b5a72897fcd6373b22c43bf0ac4056535da8c2477955a15a896323d8ec"
+          },
+          "reserved_envelope": "a9c5cbd6c3b40202ed22e1478aadf9d1154db27f58de69507bb3db571aeacad3",
+          "dispatched_payload": "ae1fe52374eacec9b0b832c2fe82bd6c937bacace9153fa498529b88b570367d",
+          "provider_response_id": "chatcmpl-independent-case12-3",
+          "settlement_request_hash": "34149b03395357b4b709a19ef3c67efcf579b8a4927148b03981f3e51ca1fa2a"
+        }
+      ],
+      "cash": [
+        {
+          "id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "not_sent",
+          "usage": {},
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 5,
+          "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_v",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:18:35.944732+00:00",
+          "cost_micros": 0,
+          "bound_micros": 3615,
+          "payload_hash": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "account_version": 5
+        },
+        {
+          "id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "usage": {
+              "total_tokens": 104,
+              "prompt_tokens": 73,
+              "completion_tokens": 31,
+              "prompt_tokens_details": {
+                "cached_tokens": 7
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 5
+              }
+            },
+            "version": "gateway_usage_receipt/v1",
+            "provider": "openai",
+            "response_id": "chatcmpl-independent-case12-1",
+            "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+            "response_model": "gpt-5-nano",
+            "configured_model": "gpt-5-nano",
+            "request_body_sha256": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+            "response_body_sha256": "98bffafad6e633f2359e80b843b52db7d677d0c3a908c1dd306864d3c5db7420"
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 5,
+          "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_g",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:18:17.848916+00:00",
+          "cost_micros": 16,
+          "bound_micros": 1977,
+          "payload_hash": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+          "account_version": 5
+        },
+        {
+          "id": "697f49a7-79be-4ca9-9a61-5ee6662b65a8",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "usage": {
+              "total_tokens": 104,
+              "prompt_tokens": 73,
+              "completion_tokens": 31,
+              "prompt_tokens_details": {
+                "cached_tokens": 7
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 5
+              }
+            },
+            "version": "gateway_usage_receipt/v1",
+            "provider": "openai",
+            "response_id": "chatcmpl-independent-case12-2",
+            "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+            "response_model": "gpt-5-nano",
+            "configured_model": "gpt-5-nano",
+            "request_body_sha256": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+            "response_body_sha256": "e0fd758ddb093f3c3544b6be416ee82375cb15942e59b97d00ee4c4ead6dc136"
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 15,
+          "turn_key": "p2_504dcf50efbf4a70a44f93047e6395de_g",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:19:00.45841+00:00",
+          "cost_micros": 16,
+          "bound_micros": 2294,
+          "payload_hash": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+          "request_hash": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+          "account_version": 15
+        },
+        {
+          "id": "66f0b7f0-6932-42ca-b483-12d343579a2d",
+          "epoch": 0,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "usage": {
+              "total_tokens": 104,
+              "prompt_tokens": 73,
+              "completion_tokens": 31,
+              "prompt_tokens_details": {
+                "cached_tokens": 7
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 5
+              }
+            },
+            "version": "gateway_usage_receipt/v1",
+            "provider": "openai",
+            "response_id": "chatcmpl-independent-case12-3",
+            "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+            "response_model": "gpt-5-nano",
+            "configured_model": "gpt-5-nano",
+            "request_body_sha256": "ae1fe52374eacec9b0b832c2fe82bd6c937bacace9153fa498529b88b570367d",
+            "response_body_sha256": "b79be2b5a72897fcd6373b22c43bf0ac4056535da8c2477955a15a896323d8ec"
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "provider": "openai",
+          "revision": 15,
+          "turn_key": "p2_504dcf50efbf4a70a44f93047e6395de_v",
+          "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "expires_at": "2026-10-17T02:19:00.45841+00:00",
+          "cost_micros": 16,
+          "bound_micros": 3615,
+          "payload_hash": "a9c5cbd6c3b40202ed22e1478aadf9d1154db27f58de69507bb3db571aeacad3",
+          "request_hash": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+          "account_version": 15
+        }
+      ],
+      "monthly": [
+        {
+          "id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "step": 0,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "input_tokens": 66,
+            "output_tokens": 31,
+            "cache_read_tokens": 7,
+            "cache_write_tokens": 0
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:15.935437+00:00",
+          "request_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775"
+        },
+        {
+          "id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+          "step": 0,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "input_tokens": 66,
+            "output_tokens": 31,
+            "cache_read_tokens": 7,
+            "cache_write_tokens": 0
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:40.4445+00:00",
+          "request_id": "504dcf50-efbf-4a70-a44f-93047e6395de"
+        },
+        {
+          "id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+          "step": 1,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "input_tokens": 66,
+            "output_tokens": 31,
+            "cache_read_tokens": 7,
+            "cache_write_tokens": 0
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:40.4445+00:00",
+          "request_id": "504dcf50-efbf-4a70-a44f-93047e6395de"
+        }
+      ],
+      "usage": [
+        {
+          "id": "d580bd0a-339b-4dab-aaa8-f0d8cd878fe9",
+          "model": "gpt-5-nano",
+          "call_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:32.352135+00:00",
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        {
+          "id": "b5b4aca7-52ff-4b72-9cfc-525a602c90fd",
+          "model": "gpt-5-nano",
+          "call_id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:41.037056+00:00",
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        {
+          "id": "78ed986d-0f62-4f09-b761-2eafba856f9d",
+          "model": "gpt-5-nano",
+          "call_id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:42.001521+00:00",
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        }
+      ]
+    }
+  ],
+  "observations": [],
+  "controlled_provider_calls": 3,
+  "actual_paid_requests": 0,
+  "model_quality": "NOT_RUN"
+}

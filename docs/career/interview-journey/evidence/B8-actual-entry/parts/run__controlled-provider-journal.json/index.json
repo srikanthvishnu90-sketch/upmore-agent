@@ -1,0 +1,44 @@
+{
+  "original_path": "run/controlled-provider-journal.json",
+  "original_sha256": "f8ef23da5bd051379eb2791f1e0a39f60b22f6370bbb45ac084e3119279bb337",
+  "bytes": 190510,
+  "part_limit_bytes": 32768,
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32768,
+      "sha256": "7472ea5c91f2d79879f9d29168ba50e9a8656b9746f630df5620018332291e52"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32768,
+      "end_byte_exclusive": 65536,
+      "sha256": "7886f2c9765c5b85a8f4433d11bd2d5b08a58b550f9805e27af26d7c2bc4b7bc"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65536,
+      "end_byte_exclusive": 98304,
+      "sha256": "41721e4681d197e43a0a3150ff74b93e35b1137a126f8f1b282ecf29914b47fe"
+    },
+    {
+      "file": "part-0004.txt",
+      "start_byte": 98304,
+      "end_byte_exclusive": 131072,
+      "sha256": "832533111c6ce01f11609bfef28e8561811ca47ff9ee56d3c238d038aa134698"
+    },
+    {
+      "file": "part-0005.txt",
+      "start_byte": 131072,
+      "end_byte_exclusive": 163840,
+      "sha256": "940e61e15f520f84a566cc927cdc3528b0916f3c6cf892f801912e38202aa563"
+    },
+    {
+      "file": "part-0006.txt",
+      "start_byte": 163840,
+      "end_byte_exclusive": 190510,
+      "sha256": "041db0b562f8ff4c5709043d5db11bf29cb31802cc855dd3d9fcc351fd037179"
+    }
+  ]
+}

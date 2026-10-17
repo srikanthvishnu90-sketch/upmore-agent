@@ -1,0 +1,53 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 4,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-other-question",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "select_question",
+      "question_id": "team-decision"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 10,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "0aa39845f1b6dbfca6bcbdf353f3e20a7b481bfd3ad4901d78373221940fc07a",
+            "account_version": 13,
+            "thread_revision": 13
+          },
+          "assessment_status": "not_assessed",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Switching exercises. Your story bank and previous attempts are retained.\nDescribe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?",
+      "action": null,
+      "turn_key": "independent-other-question",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":10,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"0aa39845f1b6dbfca6bcbdf353f3e20a7b481bfd3ad4901d78373221940fc07a\",\"account_version\":13,\"thread_revision\":13},\"assessment_status\":\"not_assessed\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Switching exercises. Your story bank and previous attempts are retained.\\nDescribe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?\",\"action\":null,\"turn_key\":\"independent-other-question\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

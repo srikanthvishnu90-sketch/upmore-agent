@@ -1,0 +1,5 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-bcase12-0bc4d9f135f664ca","database":"career_test_case12_0bc4d9f135f664ca","marker":"upmore-ci-fixture:0bc4d9f135f664ca"}
+{"phase":"before","outcome":"completed","failure":null,"observations":[],"controlledCalls":1}
+(node:64139) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:64139) ExperimentalWarning: VM Modules is an experimental feature and might change at any time

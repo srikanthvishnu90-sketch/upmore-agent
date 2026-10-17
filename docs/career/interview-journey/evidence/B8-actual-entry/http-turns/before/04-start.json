@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "source_trace": "run/before.trace.json",
+    "source_trace_sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+    "turn_ordinal": 4,
+    "node_pid": 69288,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-start",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "start",
+      "target_ref": {
+        "id": "target",
+        "version": 0
+      },
+      "resume_ref": {
+        "id": "resume",
+        "version": 0
+      },
+      "available_minutes": 40
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 1,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+            "account_version": 4,
+            "thread_revision": 4
+          },
+          "assessment_status": "not_assessed",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Let\u2019s begin with one real project. These are representative practice questions; company/stage gaps remain explicit.\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+      "action": null,
+      "turn_key": "independent-start",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":1,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce\",\"account_version\":4,\"thread_revision\":4},\"assessment_status\":\"not_assessed\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Let\u2019s begin with one real project. These are representative practice questions; company/stage gaps remain explicit.\\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?\",\"action\":null,\"turn_key\":\"independent-start\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

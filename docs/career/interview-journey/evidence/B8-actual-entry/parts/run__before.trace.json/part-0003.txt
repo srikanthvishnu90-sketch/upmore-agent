@@ -1,0 +1,843 @@
+revision": 2,
+                        "record_id": "independent-target",
+                        "reference": "Typed evidence write",
+                        "observed_at": "2026-10-17T02:18:12.247Z"
+                      },
+                      "evidence_id": "target:role_family"
+                    },
+                    {
+                      "id": "[\"typed-context:independent-target\",\"target:level\"]",
+                      "kind": "target_changed",
+                      "scope": "thread",
+                      "trust": "host_authoritative",
+                      "effect": "replace",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 0,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "host_state",
+                        "trust": "host_authoritative",
+                        "revision": 2,
+                        "record_id": "independent-target",
+                        "reference": "Typed evidence write",
+                        "observed_at": "2026-10-17T02:18:12.247Z"
+                      },
+                      "evidence_id": "target:level"
+                    },
+                    {
+                      "id": "[\"typed-context:independent-target\",\"target:company\"]",
+                      "kind": "target_changed",
+                      "scope": "thread",
+                      "trust": "host_authoritative",
+                      "effect": "replace",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 0,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "host_state",
+                        "trust": "host_authoritative",
+                        "revision": 2,
+                        "record_id": "independent-target",
+                        "reference": "Typed evidence write",
+                        "observed_at": "2026-10-17T02:18:12.247Z"
+                      },
+                      "evidence_id": "target:company"
+                    },
+                    {
+                      "id": "[\"typed-context:independent-target\",\"target:stage\"]",
+                      "kind": "target_changed",
+                      "scope": "thread",
+                      "trust": "host_authoritative",
+                      "effect": "replace",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "version": 0,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 2
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "host_state",
+                        "trust": "host_authoritative",
+                        "revision": 2,
+                        "record_id": "independent-target",
+                        "reference": "Typed evidence write",
+                        "observed_at": "2026-10-17T02:18:12.247Z"
+                      },
+                      "evidence_id": "target:stage"
+                    },
+                    {
+                      "id": "[\"typed-context:independent-resume\",\"resume\"]",
+                      "kind": "resume_replaced",
+                      "scope": "thread",
+                      "trust": "host_authoritative",
+                      "effect": "replace",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 3
+                      },
+                      "version": 0,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 3
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "host_state",
+                        "trust": "host_authoritative",
+                        "revision": 3,
+                        "record_id": "independent-resume",
+                        "reference": "Typed evidence write",
+                        "observed_at": "2026-10-17T02:18:12.968Z"
+                      },
+                      "evidence_id": "resume"
+                    },
+                    {
+                      "id": "[\"typed-context:independent-resume\",\"resume-source:resume\"]",
+                      "kind": "resume_replaced",
+                      "scope": "thread",
+                      "trust": "host_authoritative",
+                      "effect": "replace",
+                      "created": {
+                        "event_ordinal": 0,
+                        "account_version": 3
+                      },
+                      "version": 0,
+                      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                      "validity": {
+                        "epoch": 0,
+                        "status": "active"
+                      },
+                      "effective": {
+                        "event_ordinal": 0,
+                        "account_version": 3
+                      },
+                      "freshness": "current",
+                      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                      "provenance": {
+                        "kind": "host_state",
+                        "trust": "host_authoritative",
+                        "revision": 3,
+                        "record_id": "independent-resume",
+                        "reference": "Typed evidence write",
+                        "observed_at": "2026-10-17T02:18:12.968Z"
+                      },
+                      "evidence_id": "resume-source:resume"
+                    }
+                  ],
+                  "side_question": null,
+                  "prior_attempts": [],
+                  "selected_draft": null,
+                  "assessment_kind": "provisional practice inference",
+                  "contract_version": "interview_reasoning_request/v1",
+                  "available_minutes": 40,
+                  "omitted_categories": [
+                    "raw historical chat not requested",
+                    "unrelated facts not selected",
+                    "source bodies outside selected excerpts"
+                  ],
+                  "output_ceiling_tokens": 2200,
+                  "source_content_is_untrusted": true
+                },
+                "prompt_sha256": "0e729e91f0eac525e579ce97d02ef8892a248e00385bef79db824eaab97cacac",
+                "max_output_tokens": 2200
+              },
+              "type": "coach_answer",
+              "owner_id": "00000000-0000-4000-8000-0000000000a1",
+              "action_id": "ij-e5289becdfd5a25c9f78fae9",
+              "thread_id": "00000000-0000-4000-8000-0000000000b1",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ],
+              "input_digest": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+              "capability_id": "interview.coach.v1",
+              "idempotency_key": "e5289becdfd5a25c9f78fae9aa9a8c3f354836dd49050c3bf5e423d4cc4581d7",
+              "contract_version": "career_journey_action/v1",
+              "expected_binding": {
+                "epoch": 0,
+                "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+                "account_version": 4,
+                "thread_revision": 4,
+                "journey_revision": 1
+              },
+              "approval_requirement": "host_derived"
+            }
+          ]
+        },
+        "resume_ref": {
+          "id": "resume",
+          "version": 0
+        },
+        "target_ref": {
+          "id": "target",
+          "version": 0
+        },
+        "updated_at": "2026-10-17T02:18:14.649Z",
+        "assessments": [],
+        "constraints": {
+          "unknowns": [],
+          "logistics": [],
+          "interview_at": null,
+          "spent_minutes": 0,
+          "available_minutes": 40,
+          "daily_study_minutes": null,
+          "budget_anchor_spent_minutes": 0
+        },
+        "dependencies": [
+          {
+            "id": "independent-project",
+            "version": 0
+          },
+          {
+            "id": "target:role_family",
+            "version": 0
+          },
+          {
+            "id": "target:level",
+            "version": 0
+          },
+          {
+            "id": "target:company",
+            "version": 0
+          },
+          {
+            "id": "target:stage",
+            "version": 0
+          },
+          {
+            "id": "target",
+            "version": 0
+          },
+          {
+            "id": "resume",
+            "version": 0
+          }
+        ],
+        "observations": [],
+        "role_support": "early_career_software",
+        "invalidations": [],
+        "content_sha256": "e2408d7ce2fff99501ea66156159f83ac5eeb7a37bbe32117bc2a5aec81c97a7",
+        "schema_version": "interview_journey_state/v1",
+        "context_binding": {
+          "epoch": 0,
+          "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+          "account_version": 4,
+          "thread_revision": 4
+        },
+        "plan_priorities": [],
+        "processed_events": [
+          {
+            "id": "independent-start",
+            "input_digest": "fae153539cf9ffdb3d76cb33542819a79a183cce2d1a56b5b6185d555ddaadab"
+          },
+          {
+            "id": "independent-answer",
+            "input_digest": "0388729238ac2773c21870ff9e8e1498ead49adbb83d78f716dba3878ea95d65"
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "turn_key": "independent-unknown",
+        "message": "Independent interview case12",
+        "career_journey": {
+          "type": "process_assessment",
+          "action_id": "ij-e5289becdfd5a25c9f78fae9"
+        }
+      },
+      "options": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "meta": {
+            "career": true,
+            "career_journey": {
+              "stage": "awaiting_answer",
+              "status": "active",
+              "version": "career_interview_entry/v1",
+              "revision": 3,
+              "context_binding": {
+                "epoch": 0,
+                "context_sha256": "57421320541897496c47ee43d7fc5817de7357972327381ca3390e4baba0b902",
+                "account_version": 6,
+                "thread_revision": 6
+              },
+              "assessment_status": "not_assessed",
+              "actual_model_quality": "NOT_RUN"
+            }
+          },
+          "reply": "The earlier action remains uncertain. The answer and current checkpoint are preserved; no new pair is allowed before terminal host settlement.",
+          "action": null,
+          "turn_key": "independent-unknown",
+          "reminders": [],
+          "thread_id": "00000000-0000-4000-8000-0000000000b1"
+        },
+        "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":3,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"57421320541897496c47ee43d7fc5817de7357972327381ca3390e4baba0b902\",\"account_version\":6,\"thread_revision\":6},\"assessment_status\":\"not_assessed\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"The earlier action remains uncertain. The answer and current checkpoint are preserved; no new pair is allowed before terminal host settlement.\",\"action\":null,\"turn_key\":\"independent-unknown\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+        "headers": {
+          "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+          "access-control-allow-methods": "POST, OPTIONS",
+          "content-type": "application/json",
+          "vary": "Origin"
+        }
+      },
+      "state": {
+        "mode": "coaching",
+        "plan": {
+          "items": [
+            {
+              "id": "plan-project",
+              "reason": "Ground a truthful narrative in actual experience.",
+              "minutes": 10,
+              "competency": "project",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ]
+            },
+            {
+              "id": "plan-technical",
+              "reason": "Practice role-relevant correctness and recovery reasoning.",
+              "minutes": 14,
+              "competency": "technical",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ]
+            },
+            {
+              "id": "plan-behavioral",
+              "reason": "Separate personal contribution, team decisions and evidence.",
+              "minutes": 9,
+              "competency": "behavioral",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ]
+            },
+            {
+              "id": "plan-pack",
+              "reason": "Review and save current evidence with unassessed gaps explicit.",
+              "minutes": 7,
+              "competency": "pack",
+              "reason_kind": "provisional_slice_coverage",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ]
+            }
+          ],
+          "deferrals": [
+            "project: extended work deferred to fit the declared remaining time.",
+            "technical: extended work deferred to fit the declared remaining time.",
+            "behavioral: extended work deferred to fit the declared remaining time.",
+            "pack: extended work deferred to fit the declared remaining time.",
+            "Current company research requires an approved source/capture; missing research does not block experience practice."
+          ],
+          "remaining_minutes": 40
+        },
+        "epoch": 0,
+        "hints": [],
+        "stage": "awaiting_answer",
+        "briefs": [],
+        "drafts": [],
+        "status": "active",
+        "target": {
+          "role": "Software engineer intern",
+          "level": "early-career",
+          "stage": "technical screen",
+          "company": "Synthetic Wren",
+          "role_family": "software_engineering"
+        },
+        "attempts": [
+          {
+            "at": "2026-10-17T02:18:14.649Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+            "kind": "initial",
+            "text": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+            "epoch": 0,
+            "index": 1,
+            "status": "active",
+            "version": 1,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "scripted": false,
+            "rubric_id": "project-evidence/v1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "assistance": "none",
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "exercise_id": null,
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target:role_family",
+                "version": 0
+              },
+              {
+                "id": "target:level",
+                "version": 0
+              },
+              {
+                "id": "target:company",
+                "version": 0
+              },
+              {
+                "id": "target:stage",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 0
+              },
+              {
+                "id": "resume",
+                "version": 0
+              }
+            ],
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "content_sha256": "220dcc10abe3cc71c3d2ac46e6b3882f3880209526485e588a22ab583334f884",
+            "rubric_version": 1,
+            "context_outdated": false,
+            "context_revision": 4,
+            "dependency_basis": "conservative_context_refs",
+            "parent_attempt_id": null,
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target:role_family",
+                "version": 0
+              },
+              {
+                "id": "target:level",
+                "version": 0
+              },
+              {
+                "id": "target:company",
+                "version": 0
+              },
+              {
+                "id": "target:stage",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 0
+              },
+              {
+                "id": "resume",
+                "version": 0
+              }
+            ]
+          }
+        ],
+        "owner_id": "00000000-0000-4000-8000-0000000000a1",
+        "research": [],
+        "revision": 3,
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "checkpoint": {
+          "active_question": {
+            "id": "project-narrative",
+            "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+            "family": "project",
+            "rubric": {
+              "id": "project-evidence/v1",
+              "label": "provisional practice judgment; not a hiring score",
+              "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+              "anchors": {
+                "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                "2": "Workable basic account, with an important omission or unsupported step.",
+                "3": "Supported and sound for this task; name any remaining limited gap.",
+                "4": "Supported, justified and robust to this question’s boundary probe.",
+                "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+              },
+              "version": 1,
+              "criteria": {
+                "situation": "A concrete problem and relevant constraints.",
+                "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                "reflection_transfer": "A supported lesson or next improvement.",
+                "personal_contribution": "Distinguishes proposal, implementation and teammate work."
+              },
+              "dimensions": [
+                "situation",
+                "personal_contribution",
+                "reasoning_tradeoffs",
+                "outcome_evidence",
+                "reflection_transfer"
+              ],
+              "coverage_dimensions": [
+                "personal_contribution",
+                "reasoning_tradeoffs",
+                "outcome_evidence"
+              ]
+            },
+            "version": 1,
+            "situation": "past_project",
+            "competency": "project_reasoning"
+          },
+          "unresolved_asks": [],
+          "pending_artifact": null,
+          "pending_research": null,
+          "active_attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+          "pending_reasoning": null,
+          "selected_draft_id": null,
+          "interruption_stack": [],
+          "reasoning_recovery": {
+            "at": "2026-10-17T02:18:15.705Z",
+            "status": "unknown",
+            "request": {
+              "kind": "reasoning",
+              "task": "initial",
+              "turn_id": "independent-answer",
+              "action_id": "ij-e5289becdfd5a25c9f78fae9",
+              "rubric_id": "project-evidence/v1",
+              "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+              "question_id": "project-narrative",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 0
+                },
+                {
+                  "id": "target:level",
+                  "version": 0
+                },
+                {
+                  "id": "target:company",
+                  "version": 0
+                },
+                {
+                  "id": "target:stage",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 0
+                },
+                {
+                  "id": "resume",
+                  "version": 0
+                }
+              ],
+              "input_digest": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+              "resume_stage": "awaiting_answer",
+              "request_digest": "f0e1ce1a1c3f7cc0fe56820c7bb46de16490a3609b5c19b6c44bf744922e46c9",
+              "expected_binding": {
+                "epoch": 0,
+                "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+                "account_version": 4,
+                "thread_revision": 4,
+                "journey_revision": 1
+              },
+              "selected_draft_id": null,
+              "support_exercise_id": null,
+              "transfer_competency": null,
+              "support_assessment_id": null
+            },
+            "detached": false,
+            "receipt_id": "a71ca05c-8540-4841-9507-9dff1d64129c",
+            "budget_state": "uncertain",
+            "failure_kind": "generation_timeout",
+            "outcome_status": "unknown",
+            "reservation_ref": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+            "usage_receipt_refs": []
+          },
+          "outstanding_reasoning": [
+            {
+              "request": {
+                "kind": "reasoning",
+                "task": "initial",
+                "turn_id": "independent-answer",
+                "action_id": "ij-e5289becdfd5a25c9f78fae9",
+                "rubric_id": "project-evidence/v1",
+                "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+                "question_id": "project-narrative",
+                "source_refs": [
+                  {
+                    "id": "independent-project",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:role_family",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:level",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:company",
+                    "version": 0
+                  },
+                  {
+                    "id": "target:stage",
+                    "version": 0
+                  },
+                  {
+                    "id": "target",
+                    "version": 0
+                  },
+                  {
+                    "id": "resume",
+                    "version": 0
+                  }
+                ],
+                "input_digest": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+                "resume_stage": "awaiting_answer",
+                "request_digest": "f0e1ce1a1c3f7cc0fe56820c7bb46de16490a3609b5c19b6c44bf744922e46c9",
+                "expected_binding": {
+                  "epoch": 0,
+                  "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                  "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                  "context_sha256": "5bfbc38c817945b65548c84ba283dfe58c754ecc4827ff043b2a25fe7939e7ce",
+                  "account_version": 4,
+                  "thread_revision": 4,
+                  "journey_revision": 1
+                },
+                "selected_draft_id": null,
+                "support_exercise_id": null,
+                "transfer_competency": null,
+                "support_assessment_id": null
+              },
+              "detached": false,
+              "receipt_id": "a71ca05c-8540-4841-9507-9dff1d64129c",
+              "budget_state": "uncertain"
+            }
+          ]
+        },
+        "completion": {
+          "artifact": null,
+          "unmet_conditions": [
+            "No saved/readable artifact"
+          ]
+        },
+        "created_at": "2026-10-17T02:18:13.797Z",
+        "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+        "last_event": {
+          "id": "independent-unknown",
+          "reply_plan": {
+            "text": "The earlier action remains uncertain. The answer and current checkpoint are preserved; no new pair is allowed before terminal host settlement.",
+            "reason": "generation_timeout",
+            "status": "unknown"
+          },
+          "input_digest": "52b3026c6533d09b79fbf104bba9b70b920904dceff1234921d231352e761c63",
+          "expected_binding": {
+            "epoch": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "context_sha256": "b0278abc3a8fb6e3f062cf7ea2b199663140343a27b3c802eb06b71d358666af",
+            "account_version": 5,
+            "thread_revision": 5,
+            "journey_revision": 2
+          },
+          "proposed_actions": [
+            {
+              "args": {
+                "action_id": "ij-e5289becdfd5a25c9f78fae9"
+              },
+              "type": "read_action_status",
+              "owner_id": "00000000-0000-4000-8000-0000000000a1",
+              "action_id": "ij-ff37237cfdcc8c1048519a14",
+              "thread_id": "00000000-0000-4000-8000-0000000000b1",
+              "source_refs": [],
+              "input_digest": "1e6a48b61b5a137ab4753284b496596da05df67aafa8632ee9744afad55e3ea3",
+              "capability_id": null,
+              "idempotency_key": "ff37237cfdcc8c1048519a1474f80993fb8742c9fb48478862ff6aa70c5eef92",
+              "contract_version": "career_journey_action/v1",
+              "expected_binding": {
+                "epoch": 0,
+                "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                "context_sha256": "b0

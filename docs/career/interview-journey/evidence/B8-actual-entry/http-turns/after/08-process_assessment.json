@@ -1,0 +1,53 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 8,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-feedback",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "process_assessment",
+      "action_id": "ij-c87905cca73b4194be6d40cf"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "feedback_ready",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 13,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "b0aca08446c4576a5da76746ca031d355605cfcc79e4b5f49360679b250538c4",
+            "account_version": 16,
+            "thread_revision": 16
+          },
+          "assessment_status": "checked_advisory",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "CONTROLLED INDEPENDENT: keep your validation work separate from the teammate interface; no production-impact claim.",
+      "action": null,
+      "turn_key": "independent-feedback",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"feedback_ready\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":13,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"b0aca08446c4576a5da76746ca031d355605cfcc79e4b5f49360679b250538c4\",\"account_version\":16,\"thread_revision\":16},\"assessment_status\":\"checked_advisory\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"CONTROLLED INDEPENDENT: keep your validation work separate from the teammate interface; no production-impact claim.\",\"action\":null,\"turn_key\":\"independent-feedback\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

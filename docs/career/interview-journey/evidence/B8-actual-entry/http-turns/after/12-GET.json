@@ -1,0 +1,27 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 12,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": null,
+  "options": {
+    "method": "GET",
+    "path": "/career/artifacts/fdc9173b-b040-4493-81c1-6afb84efb1a1"
+  },
+  "response": {
+    "status": 404,
+    "body": {
+      "error": "artifact_unavailable"
+    },
+    "text": "{\"error\":\"artifact_unavailable\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "GET, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

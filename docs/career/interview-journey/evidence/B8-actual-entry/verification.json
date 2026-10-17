@@ -1,0 +1,54 @@
+{
+  "label": "INDEPENDENT_ACTUAL_ENTRY_EVIDENCE_VERIFIED",
+  "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+  "B_runtime_source": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+  "case12_outcome": "completed",
+  "http_turns": 23,
+  "distinct_node_pids": [
+    69288,
+    72177,
+    76355
+  ],
+  "controlled_provider_replies": 3,
+  "actual_paid_requests": 0,
+  "synthetic_cost_micros": 48,
+  "known_pairs": 2,
+  "known_billed_legs": 3,
+  "not_sent_legs": 1,
+  "final_uncertain_legs": 0,
+  "artifact": {
+    "sha256": "a1985192eba17fe4373cc5ba65e4e958530a256c98b4a281734ea6a45f8c3917",
+    "byte_length": 8279,
+    "partial": true,
+    "exact_reopen": true
+  },
+  "A_owned_findings": [
+    {
+      "id": "A-status-wording-contradicts-paired-assessment",
+      "outcome": "failed",
+      "expected": "Status wording agrees with enabled paired execution and checked_advisory metadata.",
+      "actual": {
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "turn_key": "independent-status",
+        "reply": "Your saved interview checkpoint is available. Assessment is not wired on this host.",
+        "action": null,
+        "reminders": [],
+        "read_only": true,
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "version": "career_interview_entry/v1",
+            "stage": "feedback_ready",
+            "status": "active",
+            "revision": 13,
+            "assessment_status": "checked_advisory",
+            "actual_model_quality": "NOT_RUN"
+          }
+        }
+      },
+      "owner": "A",
+      "severity": "misleading status text; core journey remains completed"
+    }
+  ],
+  "model_quality": "NOT_RUN"
+}

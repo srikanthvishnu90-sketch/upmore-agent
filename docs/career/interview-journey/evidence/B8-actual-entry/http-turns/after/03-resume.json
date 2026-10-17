@@ -1,0 +1,52 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 3,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-resume-work",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "resume"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 9,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "6ef6312ee90f1219479c3dccfcecdaddf84ff4efde63e5ea95c2bb3163e102b3",
+            "account_version": 12,
+            "thread_revision": 12
+          },
+          "assessment_status": "not_assessed",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Resuming the saved question and latest valid draft.\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+      "action": null,
+      "turn_key": "independent-resume-work",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":9,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"6ef6312ee90f1219479c3dccfcecdaddf84ff4efde63e5ea95c2bb3163e102b3\",\"account_version\":12,\"thread_revision\":12},\"assessment_status\":\"not_assessed\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Resuming the saved question and latest valid draft.\\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?\",\"action\":null,\"turn_key\":\"independent-resume-work\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

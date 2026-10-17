@@ -1,0 +1,192 @@
+{
+  "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+  "actual_handler": true,
+  "controlled_provider_only": true,
+  "full_input_output_records": [
+    {
+      "phase": "before",
+      "ordinal": 1,
+      "type": "save_fact",
+      "http_status": 200,
+      "path": "http-turns/before/01-save_fact.json",
+      "sha256": "c3d40efdf638eec9be4d42eef4c31d780b7cdc068852033f9a40ab0f47e80eb3"
+    },
+    {
+      "phase": "before",
+      "ordinal": 2,
+      "type": "save_fact",
+      "http_status": 200,
+      "path": "http-turns/before/02-save_fact.json",
+      "sha256": "fcfa592de32b5a6d1687fae0eb2109b828e2a31dcacd6629e3f7a70462944e29"
+    },
+    {
+      "phase": "before",
+      "ordinal": 3,
+      "type": "save_resume",
+      "http_status": 200,
+      "path": "http-turns/before/03-save_resume.json",
+      "sha256": "7a17cc32e06981c1424e626466f6f2bb85676740d8f3657b37b8eaec578c350c"
+    },
+    {
+      "phase": "before",
+      "ordinal": 4,
+      "type": "start",
+      "http_status": 200,
+      "path": "http-turns/before/04-start.json",
+      "sha256": "52001d940b589c6ba6c051c027e576dc00142a3bfe1784c9b9078fb36f7c7ab7"
+    },
+    {
+      "phase": "before",
+      "ordinal": 5,
+      "type": "submit_answer",
+      "http_status": 200,
+      "path": "http-turns/before/05-submit_answer.json",
+      "sha256": "74c6b4320e8f519788e1753392ef78f3eb0745fc6c8a8cf8be8999138ae753f6"
+    },
+    {
+      "phase": "before",
+      "ordinal": 6,
+      "type": "process_assessment",
+      "http_status": 200,
+      "path": "http-turns/before/06-process_assessment.json",
+      "sha256": "fa31bcee262514b912e1c277401340c748a3b1b726482332f1ffcb16db433b30"
+    },
+    {
+      "phase": "before",
+      "ordinal": 7,
+      "type": "pause",
+      "http_status": 200,
+      "path": "http-turns/before/07-pause.json",
+      "sha256": "4d64a490b0b614cb956268bd7c667f118de6abb85238342ed63beb4d2984a9ba"
+    },
+    {
+      "phase": "before",
+      "ordinal": 8,
+      "type": "pause",
+      "http_status": 200,
+      "path": "http-turns/before/08-pause.json",
+      "sha256": "9d198ca27cec044182d438f37bc48f71614ff68065c1c5d9f5ac16bafe8a33e7"
+    },
+    {
+      "phase": "before",
+      "ordinal": 9,
+      "type": "save_fact",
+      "http_status": 200,
+      "path": "http-turns/before/09-save_fact.json",
+      "sha256": "fda761c52bdca431d9ebf02291f1cacbc1f4434ab8f5590e1e98ec1543bd48bb"
+    },
+    {
+      "phase": "after",
+      "ordinal": 1,
+      "type": "save_resume",
+      "http_status": 200,
+      "path": "http-turns/after/01-save_resume.json",
+      "sha256": "e7ecfcdcb3d1a1405121acb528f1177cafc83935abfe28466b54c017a5a281e8"
+    },
+    {
+      "phase": "after",
+      "ordinal": 2,
+      "type": "reconcile_assessment",
+      "http_status": 200,
+      "path": "http-turns/after/02-reconcile_assessment.json",
+      "sha256": "6d6e0e3dd2260f048ac47d6daffbb44e10b1e58d876171493b3fef0a4b4359b1"
+    },
+    {
+      "phase": "after",
+      "ordinal": 3,
+      "type": "resume",
+      "http_status": 200,
+      "path": "http-turns/after/03-resume.json",
+      "sha256": "6ef2f12aebd3733c75b4319c36c907df032adf2251bb1ebc9eeab412bd91fc9d"
+    },
+    {
+      "phase": "after",
+      "ordinal": 4,
+      "type": "select_question",
+      "http_status": 200,
+      "path": "http-turns/after/04-select_question.json",
+      "sha256": "a14db8ba5bbfae7fbb7ce5a653b12b59b6274c74890012fc168052791bba873c"
+    },
+    {
+      "phase": "after",
+      "ordinal": 5,
+      "type": "retry_answer",
+      "http_status": 503,
+      "path": "http-turns/after/05-retry_answer.json",
+      "sha256": "240dae763c3972cbc4c46d823ff83b474e7dc6a5d07f42ead6c685414d45079c"
+    },
+    {
+      "phase": "after",
+      "ordinal": 6,
+      "type": "select_question",
+      "http_status": 200,
+      "path": "http-turns/after/06-select_question.json",
+      "sha256": "c2ab8c93c6dc0eb35f3b5f929fd7f8b61e7b1a5b41fad26b3cf085d2701f57dd"
+    },
+    {
+      "phase": "after",
+      "ordinal": 7,
+      "type": "retry_answer",
+      "http_status": 200,
+      "path": "http-turns/after/07-retry_answer.json",
+      "sha256": "c407e674837c5361c9c3bb2f93cea872bfda2fe49c6bddf0f4aac739b9787616"
+    },
+    {
+      "phase": "after",
+      "ordinal": 8,
+      "type": "process_assessment",
+      "http_status": 200,
+      "path": "http-turns/after/08-process_assessment.json",
+      "sha256": "81000edd9a559d6f8759214e83537fce3f686d3917b0078de9f94c9cd935ec24"
+    },
+    {
+      "phase": "after",
+      "ordinal": 9,
+      "type": "status",
+      "http_status": 200,
+      "path": "http-turns/after/09-status.json",
+      "sha256": "7fa5f19df16686f4abf799646b388ecfe84a9a1e80e96e1fee68544914f662c9"
+    },
+    {
+      "phase": "after",
+      "ordinal": 10,
+      "type": "build_pack",
+      "http_status": 200,
+      "path": "http-turns/after/10-build_pack.json",
+      "sha256": "d7d86a4c23e5f2e5ef378b24ac7307d3daa9e94ffa5066ed4e0b0620a1a0a9f3"
+    },
+    {
+      "phase": "after",
+      "ordinal": 11,
+      "type": "GET",
+      "http_status": 200,
+      "path": "http-turns/after/11-GET.json",
+      "sha256": "b5679547739720cace6b7638e2c1e308e63359a4b92cb5e7deec54a118704e02"
+    },
+    {
+      "phase": "after",
+      "ordinal": 12,
+      "type": "GET",
+      "http_status": 404,
+      "path": "http-turns/after/12-GET.json",
+      "sha256": "6034990717fc5fa0b0df73745f9e50bd1aadec1025324ff0e8ef21e02f22d217"
+    },
+    {
+      "phase": "after",
+      "ordinal": 13,
+      "type": "artifact_readback",
+      "http_status": 200,
+      "path": "http-turns/after/13-artifact_readback.json",
+      "sha256": "0bbd578c822bdbbfd6c8499cfe1c402f123816bc3084f0b0b28e092f9b43436d"
+    },
+    {
+      "phase": "reopen",
+      "ordinal": 1,
+      "type": "GET",
+      "http_status": 200,
+      "path": "http-turns/reopen/01-GET.json",
+      "sha256": "9a19e1f768344099449037c6a9dca695b5d4d720537a36e0573e5785da51967f"
+    }
+  ],
+  "state_and_cost_snapshots": "run/*.trace.json; reconstruct large files from parts/ when needed"
+}

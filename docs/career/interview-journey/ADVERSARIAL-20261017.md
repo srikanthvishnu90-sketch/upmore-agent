@@ -9,6 +9,11 @@ These are **structural executions with scripted provider/checker receipts**.
 They measure whether each stated workflow goal finished, not coaching quality,
 real accounting, production durability or independent user conversations.
 
+Later evidence: [actual-entry case 12](ACTUAL-ENTRY-CASE12-20261017.md) closes
+the original entry blocker on A's `5c8c8326` with controlled replies, actual
+isolated PostgreSQL and separate Node processes. The baseline/final ledger and
+traces in this B7 packet remain unchanged historical records.
+
 ## Outcome ledger
 
 | Goal | Baseline | Repaired structural result |

@@ -1,0 +1,52 @@
+{
+  "provenance": {
+    "source_trace": "run/before.trace.json",
+    "source_trace_sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+    "turn_ordinal": 5,
+    "node_pid": 69288,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-answer",
+    "message": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+    "career_journey": {
+      "type": "submit_answer"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 2,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "b0278abc3a8fb6e3f062cf7ea2b199663140343a27b3c802eb06b71d358666af",
+            "account_version": 5,
+            "thread_revision": 5
+          },
+          "assessment_status": "pending",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Your exact answer and complete assessment request are saved. Assessment is pending; no provider call has run from this turn.",
+      "action": null,
+      "turn_key": "independent-answer",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":2,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"b0278abc3a8fb6e3f062cf7ea2b199663140343a27b3c802eb06b71d358666af\",\"account_version\":5,\"thread_revision\":5},\"assessment_status\":\"pending\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Your exact answer and complete assessment request are saved. Assessment is pending; no provider call has run from this turn.\",\"action\":null,\"turn_key\":\"independent-answer\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

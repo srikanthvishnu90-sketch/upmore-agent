@@ -1,0 +1,676 @@
+,\"trust\":\"user\\_reported\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n"
+              },
+              "type": "create_draft",
+              "owner_id": "00000000-0000-4000-8000-0000000000a1",
+              "action_id": "ij-858db17faed6d952f9096fb9",
+              "thread_id": "00000000-0000-4000-8000-0000000000b1",
+              "source_refs": [
+                {
+                  "id": "independent-project",
+                  "version": 0
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "target:role_family",
+                  "version": 1
+                },
+                {
+                  "id": "target:level",
+                  "version": 1
+                },
+                {
+                  "id": "target:company",
+                  "version": 1
+                },
+                {
+                  "id": "target:stage",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "resume-source:resume",
+                  "version": 1
+                }
+              ],
+              "input_digest": "061fd73c9f12eb947fc45d28b00ea74a77889979e2a90a691000b7f7d7dc2a75",
+              "capability_id": "interview.local_draft.v1",
+              "idempotency_key": "858db17faed6d952f9096fb94245a899a48131a8452359b7067372aa4ff9539b",
+              "contract_version": "career_journey_action/v1",
+              "expected_binding": {
+                "epoch": 0,
+                "owner_id": "00000000-0000-4000-8000-0000000000a1",
+                "thread_id": "00000000-0000-4000-8000-0000000000b1",
+                "context_sha256": "b0aca08446c4576a5da76746ca031d355605cfcc79e4b5f49360679b250538c4",
+                "account_version": 16,
+                "thread_revision": 16,
+                "journey_revision": 13
+              },
+              "approval_requirement": "host_derived"
+            }
+          ]
+        },
+        "resume_ref": {
+          "id": "resume",
+          "version": 1
+        },
+        "target_ref": {
+          "id": "target",
+          "version": 1
+        },
+        "updated_at": "2026-10-17T02:18:45.153Z",
+        "assessments": [
+          {
+            "at": "2026-10-17T02:18:40.198Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback",
+            "epoch": 0,
+            "family": "project",
+            "status": "active",
+            "version": 1,
+            "feedback": "CONTROLLED INDEPENDENT: keep your validation work separate from the teammate interface; no production-impact claim.",
+            "judgment": "provisional practice inference",
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "strength": {
+              "text": "Controlled fixture strength.",
+              "dimension": "situation"
+            },
+            "generator": "CONTROLLED_INDEPENDENT_PROVIDER_RESPONSES",
+            "rationale": "Controlled fixture exercise.",
+            "rubric_id": "project-evidence/v1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "dimensions": [
+              {
+                "id": "situation",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "personal_contribution",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "reasoning_tradeoffs",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "outcome_evidence",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              },
+              {
+                "id": "reflection_transfer",
+                "score": 2,
+                "spans": [
+                  {
+                    "end": 167,
+                    "quote": "I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.",
+                    "start": 0
+                  }
+                ],
+                "rationale": "CONTROLLED_STRUCTURAL_ONLY",
+                "uncertainty": "Actual quality NOT_RUN"
+              }
+            ],
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "exercise_id": "ownership",
+            "question_id": "project-narrative",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "uncertainty": "No semantic-quality claim.",
+            "priority_fix": {
+              "text": "Controlled ownership boundary.",
+              "dimension": "personal_contribution"
+            },
+            "answer_sha256": "10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026",
+            "evidence_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "answer_meaning": "CONTROLLED INDEPENDENT: personal CSV validation work, teammate interface, synthetic examples only.",
+            "content_sha256": "76a4cd5d277f2074e75a85365dc36f5fcad3c205e8a00da10ce41e8f76129d97",
+            "assessment_kind": "answer_feedback",
+            "next_question_id": "handoff-transfer",
+            "validation_receipt": "441a209f-ab77-47f6-ba8e-d439e5de0794",
+            "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+            "retrieved_source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ]
+          }
+        ],
+        "constraints": {
+          "unknowns": [],
+          "logistics": [],
+          "interview_at": null,
+          "spent_minutes": 0,
+          "available_minutes": 40,
+          "daily_study_minutes": null,
+          "budget_anchor_spent_minutes": 0
+        },
+        "dependencies": [
+          {
+            "id": "independent-project",
+            "version": 0
+          },
+          {
+            "id": "target",
+            "version": 1
+          },
+          {
+            "id": "target:role_family",
+            "version": 1
+          },
+          {
+            "id": "target:level",
+            "version": 1
+          },
+          {
+            "id": "target:company",
+            "version": 1
+          },
+          {
+            "id": "target:stage",
+            "version": 1
+          },
+          {
+            "id": "resume",
+            "version": 1
+          },
+          {
+            "id": "resume-source:resume",
+            "version": 1
+          }
+        ],
+        "observations": [
+          {
+            "at": "2026-10-17T02:18:40.198Z",
+            "id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback:observation",
+            "kind": "initial",
+            "epoch": 0,
+            "status": "observed",
+            "outcome": "uncertain",
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "assistance": "none",
+            "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry",
+            "competency": "personal_contribution",
+            "journey_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70",
+            "source_refs": [
+              {
+                "id": "independent-project",
+                "version": 0
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "target:role_family",
+                "version": 1
+              },
+              {
+                "id": "target:level",
+                "version": 1
+              },
+              {
+                "id": "target:company",
+                "version": 1
+              },
+              {
+                "id": "target:stage",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "resume-source:resume",
+                "version": 1
+              }
+            ],
+            "uncertainty": "No semantic-quality claim.",
+            "assessment_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback",
+            "content_sha256": "1a180cdf8d4577633d322580faba1dc3f99ee201edc6b986fefb48da667807cb"
+          }
+        ],
+        "role_support": "early_career_software",
+        "invalidations": [
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:role_family\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:role_family"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:level\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:level"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:company\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:company"
+          },
+          {
+            "id": "[\"typed-context:independent-target-correction\",\"target:stage\"]",
+            "kind": "target_changed",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 9
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 9,
+              "record_id": "independent-target-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:24.342Z"
+            },
+            "evidence_id": "target:stage"
+          },
+          {
+            "id": "[\"typed-context:independent-resume-correction\",\"resume\"]",
+            "kind": "resume_replaced",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 10,
+              "record_id": "independent-resume-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:29.730Z"
+            },
+            "evidence_id": "resume"
+          },
+          {
+            "id": "[\"typed-context:independent-resume-correction\",\"resume-source:resume\"]",
+            "kind": "resume_replaced",
+            "scope": "thread",
+            "trust": "host_authoritative",
+            "effect": "replace",
+            "created": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "version": 0,
+            "owner_id": "00000000-0000-4000-8000-0000000000a1",
+            "validity": {
+              "epoch": 0,
+              "status": "active"
+            },
+            "effective": {
+              "event_ordinal": 0,
+              "account_version": 10
+            },
+            "freshness": "current",
+            "thread_id": "00000000-0000-4000-8000-0000000000b1",
+            "provenance": {
+              "kind": "host_state",
+              "trust": "host_authoritative",
+              "revision": 10,
+              "record_id": "independent-resume-correction",
+              "reference": "Typed evidence write",
+              "observed_at": "2026-10-17T02:18:29.730Z"
+            },
+            "evidence_id": "resume-source:resume"
+          }
+        ],
+        "content_sha256": "af1bcd8e600da89a7b3502e6b9d717a346a256c5bbd2e4beeb9e579374e5b77f",
+        "schema_version": "interview_journey_state/v1",
+        "context_binding": {
+          "epoch": 0,
+          "context_sha256": "b0aca08446c4576a5da76746ca031d355605cfcc79e4b5f49360679b250538c4",
+          "account_version": 16,
+          "thread_revision": 16
+        },
+        "plan_priorities": [],
+        "processed_events": [
+          {
+            "id": "independent-start",
+            "input_digest": "fae153539cf9ffdb3d76cb33542819a79a183cce2d1a56b5b6185d555ddaadab"
+          },
+          {
+            "id": "independent-answer",
+            "input_digest": "0388729238ac2773c21870ff9e8e1498ead49adbb83d78f716dba3878ea95d65"
+          },
+          {
+            "id": "independent-unknown",
+            "input_digest": "52b3026c6533d09b79fbf104bba9b70b920904dceff1234921d231352e761c63"
+          },
+          {
+            "id": "independent-pause-1",
+            "input_digest": "3e8b1000b909436a215bf04a926523d81789decd9d8e68898062f9436abf864d"
+          },
+          {
+            "id": "independent-pause-2",
+            "input_digest": "dc311463b4b742a6771e57f6acba910360fcac930acd432d238dcc06766f4083"
+          },
+          {
+            "id": "independent-target-correction",
+            "input_digest": "4d4d7368484d42e5e3aa648e1a3119c595b87964d83a0750ad3f77ed2e8feea4"
+          },
+          {
+            "id": "independent-resume-correction",
+            "input_digest": "52592d9d583325ed97d41d988d18705bc2c6b8dcd0084180ff462b74050d2e88"
+          },
+          {
+            "id": "independent-settle",
+            "input_digest": "ded93c2402717b22d19f888dcf37ed4265e0f69a44370a19dc728afbbff29b6e"
+          },
+          {
+            "id": "independent-resume-work",
+            "input_digest": "f70d907a9af6b8cd44a85b68fd8eb9dfecbc2dde7f8c94577ee4dbc8d5574cc0"
+          },
+          {
+            "id": "independent-other-question",
+            "input_digest": "40516a1280b607c4ad80ab8ea38a391ab0db9e4d17dcdf95a47b85e6e48e27f7"
+          },
+          {
+            "id": "independent-original-question",
+            "input_digest": "b1710881a6638d5ea6c8524e5bbb3e6653b11f399297a02f5b1b06d65bacdaa8"
+          },
+          {
+            "id": "independent-retry",
+            "input_digest": "c9c616ef8f5fb9fc2a388b7c5d52798d7d491b0a4871459b5bde5cf4805f8a1a"
+          },
+          {
+            "id": "independent-feedback",
+            "input_digest": "973811e910beb72a3044e800b4df2431e88965c1ea6f2ff20f382f6a657bdb67"
+          },
+          {
+            "id": "independent-pack",
+            "input_digest": "7773403074c3e37c0cf982d98536a42872481d8f7e6e043a2a7a214cccdb2e52"
+          }
+        ]
+      }
+    },
+    {
+      "request": null,
+      "options": {
+        "method": "GET",
+        "path": "/career/artifacts/fdc9173b-b040-4493-81c1-6afb84efb1a1"
+      },
+      "response": {
+        "status": 200,
+        "body": null,
+        "text": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Wren Labs; level: early-career; stage: technical screen\n\nResume: resume@1\n\nAvailable minutes: 40\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: \n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 10 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\ntechnical: 14 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\nbehavioral: 9 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\npack: 7 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"independent-project\",\"version\":0\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"target:role\\_family\",\"version\":1\\},\\{\"id\":\"target:level\",\"version\":1\\},\\{\"id\":\"target:company\",\"version\":1\\},\\{\"id\":\"target:stage\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"resume-source:resume\",\"version\":1\\}\\]\n\n## Truthful story bank\n\nindependent-project@0: I wrote CSV boundary validation for a student roster. — source \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:11.529Z\",\"record\\_id\":\"typed-fact:independent-project\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":0,\"trust\":\"user\\_reported\"\\}\n\n## Original and revised answers\n\ninterview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry / project-narrative / initial; assistance: none; parent: none\nI wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.\nSHA-256: 10322eef1adcab1dc3bc5cc20ec9c580d2fda396092b4a01fd821d7069579026\n\n## Feedback, practice and transfer\n\ninterview-c612946f-bb38-4096-b220-bc163ecd7a70:assessment:independent-feedback; provisional practice judgment by CONTROLLED\\_INDEPENDENT\\_PROVIDER\\_RESPONSES; project\nCONTROLLED INDEPENDENT: keep your validation work separate from the teammate interface; no production-impact claim.\nsituation: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\npersonal contribution: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\nreasoning tradeoffs: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\noutcome evidence: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\nreflection transfer: 2. CONTROLLED\\_STRUCTURAL\\_ONLY Support: I wrote CSV boundary validation for a student roster; my teammate implemented the import screen. Seventeen synthetic examples passed. I have no production measurement.. Uncertainty: Actual quality NOT\\_RUN\nPriority: Controlled ownership boundary.; uncertainty: No semantic-quality claim.\n\ninitial: personal contribution; assistance: none; outcome: uncertain. No semantic-quality claim. (Attempt interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-retry)\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 40 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\nNo current evidence-linked answer draft\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney interview-c612946f-bb38-4096-b220-bc163ecd7a70, revision 14; context b0aca08446c4576a5da76746ca031d355605cfcc79e4b5f49360679b250538c4; epoch 0.\n\nindependent-project@0; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:11.529Z\",\"record\\_id\":\"typed-fact:independent-project\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":0,\"trust\":\"user\\_reported\"\\}\n\ntarget@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:role\\_family@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:level@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:company@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget:stage@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-17T02:18:24.342Z\",\"record\\_id\":\"typed-fact:target\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nresume@1; user\\_reported; provenance \\{\"kind\":\"user\\_pasted\",\"observed\\_at\":\"2026-10-17T02:18:29.730Z\",\"record\\_id\":\"resume-source:resume\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nresume-source:resume@1; untrusted\\_source; provenance \\{\"kind\":\"user\\_pasted\",\"observed\\_at\":\"2026-10-17T02:18:29.730Z\",\"record\\_id\":\"resume-source:resume\",\"reference\":\"Explicit actual statement for this interview journey\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+        "headers": {
+          "access-control-allow-headers": "authorization, x-client-

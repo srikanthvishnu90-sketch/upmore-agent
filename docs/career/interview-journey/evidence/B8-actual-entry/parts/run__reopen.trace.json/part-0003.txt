@@ -1,0 +1,67 @@
+000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:40.4445+00:00",
+          "request_id": "504dcf50-efbf-4a70-a44f-93047e6395de"
+        },
+        {
+          "id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+          "step": 1,
+          "model": "gpt-5-nano",
+          "state": "recorded",
+          "usage": {
+            "input_tokens": 66,
+            "output_tokens": 31,
+            "cache_read_tokens": 7,
+            "cache_write_tokens": 0
+          },
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:40.4445+00:00",
+          "request_id": "504dcf50-efbf-4a70-a44f-93047e6395de"
+        }
+      ],
+      "usage": [
+        {
+          "id": "d580bd0a-339b-4dab-aaa8-f0d8cd878fe9",
+          "model": "gpt-5-nano",
+          "call_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:32.352135+00:00",
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        {
+          "id": "b5b4aca7-52ff-4b72-9cfc-525a602c90fd",
+          "model": "gpt-5-nano",
+          "call_id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:41.037056+00:00",
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        {
+          "id": "78ed986d-0f62-4f09-b761-2eafba856f9d",
+          "model": "gpt-5-nano",
+          "call_id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+          "user_id": "00000000-0000-4000-8000-0000000000a1",
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "created_at": "2026-10-17T02:18:42.001521+00:00",
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        }
+      ]
+    }
+  ],
+  "observations": [],
+  "controlled_provider_calls": 3,
+  "actual_paid_requests": 0,
+  "model_quality": "NOT_RUN"
+}

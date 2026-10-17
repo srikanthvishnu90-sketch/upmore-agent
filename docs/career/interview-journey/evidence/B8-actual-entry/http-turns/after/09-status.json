@@ -1,0 +1,47 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 9,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-status",
+    "message": "Independent interview case12",
+    "career_journey": {
+      "type": "status"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "turn_key": "independent-status",
+      "reply": "Your saved interview checkpoint is available. Assessment is not wired on this host.",
+      "action": null,
+      "reminders": [],
+      "read_only": true,
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "version": "career_interview_entry/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "revision": 13,
+          "assessment_status": "checked_advisory",
+          "actual_model_quality": "NOT_RUN"
+        }
+      }
+    },
+    "text": "{\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\",\"turn_key\":\"independent-status\",\"reply\":\"Your saved interview checkpoint is available. Assessment is not wired on this host.\",\"action\":null,\"reminders\":[],\"read_only\":true,\"meta\":{\"career\":true,\"career_journey\":{\"version\":\"career_interview_entry/v1\",\"stage\":\"feedback_ready\",\"status\":\"active\",\"revision\":13,\"assessment_status\":\"checked_advisory\",\"actual_model_quality\":\"NOT_RUN\"}}}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

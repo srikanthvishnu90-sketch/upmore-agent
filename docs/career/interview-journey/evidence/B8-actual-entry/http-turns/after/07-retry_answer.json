@@ -1,0 +1,54 @@
+{
+  "provenance": {
+    "source_trace": "run/after.trace.json",
+    "source_trace_sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+    "turn_ordinal": 7,
+    "node_pid": 72177,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-retry",
+    "message": "Retry my original saved answer",
+    "career_journey": {
+      "type": "retry_answer",
+      "attempt_id": "interview-c612946f-bb38-4096-b220-bc163ecd7a70:attempt:independent-answer",
+      "outcome_receipt_id": "4d4678f3-a9e3-45e8-a0b4-67246457b480"
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "active",
+          "version": "career_interview_entry/v1",
+          "revision": 12,
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "22eb92d4918cd0de2cdec2c5421567709603e0ac15ead54e4b65057af3ca6d43",
+            "account_version": 15,
+            "thread_revision": 15
+          },
+          "assessment_status": "pending",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Your exact answer is retained. Assessment awaits the admitted generation/checker pair.",
+      "action": null,
+      "turn_key": "independent-retry",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1"
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"active\",\"version\":\"career_interview_entry/v1\",\"revision\":12,\"context_binding\":{\"epoch\":0,\"context_sha256\":\"22eb92d4918cd0de2cdec2c5421567709603e0ac15ead54e4b65057af3ca6d43\",\"account_version\":15,\"thread_revision\":15},\"assessment_status\":\"pending\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Your exact answer is retained. Assessment awaits the admitted generation/checker pair.\",\"action\":null,\"turn_key\":\"independent-retry\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\"}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

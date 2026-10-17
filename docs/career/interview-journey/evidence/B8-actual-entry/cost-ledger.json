@@ -1,0 +1,428 @@
+{
+  "proof": "REAL_ISOLATED_POSTGRES_WITH_CONTROLLED_PROVIDER_REPLIES",
+  "real_provider_requests": 0,
+  "synthetic_only": true,
+  "cost_micros": 48,
+  "ledger": {
+    "label": "fresh-process-exact-artifact-reopen",
+    "campaign": [
+      {
+        "model": "gpt-5-nano",
+        "campaign": "owner-shared-5usd",
+        "provider": "openai",
+        "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+        "expires_at": "2026-10-17T03:18:09.981505+00:00",
+        "reconciled": true,
+        "limit_micros": 5000000,
+        "current_micros": 48,
+        "opening_micros": 0
+      }
+    ],
+    "pairs": [
+      {
+        "id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+        "epoch": 0,
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "deadline": "2026-10-17T02:18:35.944732+00:00",
+        "revision": 5,
+        "turn_key": "ij-e5289becdfd5a25c9f78fae9",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:15.944732+00:00",
+        "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+        "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "account_version": 5,
+        "publication_state": "not_published",
+        "generation_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+        "parent_bound_micros": 5592,
+        "settlement_revision": 2,
+        "verification_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a"
+      },
+      {
+        "id": "504dcf50-efbf-4a70-a44f-93047e6395de",
+        "epoch": 0,
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "deadline": "2026-10-17T02:19:00.45841+00:00",
+        "revision": 15,
+        "turn_key": "ij-c87905cca73b4194be6d40cf",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:40.45841+00:00",
+        "request_hash": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+        "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "account_version": 15,
+        "publication_state": "not_published",
+        "generation_payload": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+        "parent_bound_micros": 5909,
+        "settlement_revision": 2,
+        "verification_envelope": "a9c5cbd6c3b40202ed22e1478aadf9d1154db27f58de69507bb3db571aeacad3"
+      }
+    ],
+    "legs": [
+      {
+        "kind": "verification",
+        "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "ticket_id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+        "monthly_id": null,
+        "settled_at": "2026-10-17T02:18:17.550517+00:00",
+        "started_at": null,
+        "input_bound": 60000,
+        "output_bound": 1536,
+        "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+        "dispatched_input": null,
+        "dispatched_output": null,
+        "raw_usage_receipt": null,
+        "reserved_envelope": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+        "dispatched_payload": null,
+        "provider_response_id": null,
+        "settlement_request_hash": "33273176c31ecba6097a42f41412102134299902ce923ac0c2317f9ff2088cdc"
+      },
+      {
+        "kind": "generation",
+        "pair_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "ticket_id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+        "monthly_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+        "settled_at": "2026-10-17T02:18:32.363771+00:00",
+        "started_at": "2026-10-17T02:18:16.080027+00:00",
+        "input_bound": 17835,
+        "output_bound": 2712,
+        "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+        "dispatched_input": 17835,
+        "dispatched_output": 2712,
+        "raw_usage_receipt": {
+          "usage": {
+            "total_tokens": 104,
+            "prompt_tokens": 73,
+            "completion_tokens": 31,
+            "prompt_tokens_details": {
+              "cached_tokens": 7
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 5
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-independent-case12-1",
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "response_model": "gpt-5-nano",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "response_body_sha256": "98bffafad6e633f2359e80b843b52db7d677d0c3a908c1dd306864d3c5db7420"
+        },
+        "reserved_envelope": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+        "dispatched_payload": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+        "provider_response_id": "chatcmpl-independent-case12-1",
+        "settlement_request_hash": "c06ab7eac9238bb585ecac33f0a393ec9e6015dcae0b8001d1e42ebe3af18b56"
+      },
+      {
+        "kind": "generation",
+        "pair_id": "504dcf50-efbf-4a70-a44f-93047e6395de",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "ticket_id": "697f49a7-79be-4ca9-9a61-5ee6662b65a8",
+        "monthly_id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+        "settled_at": "2026-10-17T02:18:41.049327+00:00",
+        "started_at": "2026-10-17T02:18:40.609272+00:00",
+        "input_bound": 24179,
+        "output_bound": 2712,
+        "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+        "dispatched_input": 24179,
+        "dispatched_output": 2712,
+        "raw_usage_receipt": {
+          "usage": {
+            "total_tokens": 104,
+            "prompt_tokens": 73,
+            "completion_tokens": 31,
+            "prompt_tokens_details": {
+              "cached_tokens": 7
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 5
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-independent-case12-2",
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "response_model": "gpt-5-nano",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+          "response_body_sha256": "e0fd758ddb093f3c3544b6be416ee82375cb15942e59b97d00ee4c4ead6dc136"
+        },
+        "reserved_envelope": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+        "dispatched_payload": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+        "provider_response_id": "chatcmpl-independent-case12-2",
+        "settlement_request_hash": "bc85cf692c268293f9c4683ec101d11853c1100f9696bfba0db49e43ac30c94d"
+      },
+      {
+        "kind": "verification",
+        "pair_id": "504dcf50-efbf-4a70-a44f-93047e6395de",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "ticket_id": "66f0b7f0-6932-42ca-b483-12d343579a2d",
+        "monthly_id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+        "settled_at": "2026-10-17T02:18:42.014899+00:00",
+        "started_at": "2026-10-17T02:18:41.588339+00:00",
+        "input_bound": 60000,
+        "output_bound": 1536,
+        "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+        "dispatched_input": 27302,
+        "dispatched_output": 1536,
+        "raw_usage_receipt": {
+          "usage": {
+            "total_tokens": 104,
+            "prompt_tokens": 73,
+            "completion_tokens": 31,
+            "prompt_tokens_details": {
+              "cached_tokens": 7
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 5
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-independent-case12-3",
+          "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+          "response_model": "gpt-5-nano",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "ae1fe52374eacec9b0b832c2fe82bd6c937bacace9153fa498529b88b570367d",
+          "response_body_sha256": "b79be2b5a72897fcd6373b22c43bf0ac4056535da8c2477955a15a896323d8ec"
+        },
+        "reserved_envelope": "a9c5cbd6c3b40202ed22e1478aadf9d1154db27f58de69507bb3db571aeacad3",
+        "dispatched_payload": "ae1fe52374eacec9b0b832c2fe82bd6c937bacace9153fa498529b88b570367d",
+        "provider_response_id": "chatcmpl-independent-case12-3",
+        "settlement_request_hash": "34149b03395357b4b709a19ef3c67efcf579b8a4927148b03981f3e51ca1fa2a"
+      }
+    ],
+    "cash": [
+      {
+        "id": "ad97f311-9d17-45ea-9bd5-6c33c9a51148",
+        "epoch": 0,
+        "model": "gpt-5-nano",
+        "state": "not_sent",
+        "usage": {},
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "provider": "openai",
+        "revision": 5,
+        "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_v",
+        "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "expires_at": "2026-10-17T02:18:35.944732+00:00",
+        "cost_micros": 0,
+        "bound_micros": 3615,
+        "payload_hash": "0213c1730bc5d64940fc6ab84ea71742766eab5bda2e020748782a5b9edcf28a",
+        "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+        "account_version": 5
+      },
+      {
+        "id": "634d28cd-f19f-41a8-b2fe-13430cb867a9",
+        "epoch": 0,
+        "model": "gpt-5-nano",
+        "state": "recorded",
+        "usage": {
+          "usage": {
+            "total_tokens": 104,
+            "prompt_tokens": 73,
+            "completion_tokens": 31,
+            "prompt_tokens_details": {
+              "cached_tokens": 7
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 5
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-independent-case12-1",
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "response_model": "gpt-5-nano",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+          "response_body_sha256": "98bffafad6e633f2359e80b843b52db7d677d0c3a908c1dd306864d3c5db7420"
+        },
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "provider": "openai",
+        "revision": 5,
+        "turn_key": "p2_53c1154e018a4c9ba5e4cb0843c5d775_g",
+        "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "expires_at": "2026-10-17T02:18:17.848916+00:00",
+        "cost_micros": 16,
+        "bound_micros": 1977,
+        "payload_hash": "6b1a872e9c42d8c159801d35d8ac0ec20856a8f5189f20454ca475f15b1613ed",
+        "request_hash": "e5444d77256c4d502b340bb1bd5cbd85bd6675ee24eeb39b0e3758b0a0d17943",
+        "account_version": 5
+      },
+      {
+        "id": "697f49a7-79be-4ca9-9a61-5ee6662b65a8",
+        "epoch": 0,
+        "model": "gpt-5-nano",
+        "state": "recorded",
+        "usage": {
+          "usage": {
+            "total_tokens": 104,
+            "prompt_tokens": 73,
+            "completion_tokens": 31,
+            "prompt_tokens_details": {
+              "cached_tokens": 7
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 5
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-independent-case12-2",
+          "config_digest": "234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806",
+          "response_model": "gpt-5-nano",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+          "response_body_sha256": "e0fd758ddb093f3c3544b6be416ee82375cb15942e59b97d00ee4c4ead6dc136"
+        },
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "provider": "openai",
+        "revision": 15,
+        "turn_key": "p2_504dcf50efbf4a70a44f93047e6395de_g",
+        "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "expires_at": "2026-10-17T02:19:00.45841+00:00",
+        "cost_micros": 16,
+        "bound_micros": 2294,
+        "payload_hash": "0535629d0a48fdf4b06de69f223e5489a0659315f8416226bfeb605fcb961aed",
+        "request_hash": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+        "account_version": 15
+      },
+      {
+        "id": "66f0b7f0-6932-42ca-b483-12d343579a2d",
+        "epoch": 0,
+        "model": "gpt-5-nano",
+        "state": "recorded",
+        "usage": {
+          "usage": {
+            "total_tokens": 104,
+            "prompt_tokens": 73,
+            "completion_tokens": 31,
+            "prompt_tokens_details": {
+              "cached_tokens": 7
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 5
+            }
+          },
+          "version": "gateway_usage_receipt/v1",
+          "provider": "openai",
+          "response_id": "chatcmpl-independent-case12-3",
+          "config_digest": "8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a",
+          "response_model": "gpt-5-nano",
+          "configured_model": "gpt-5-nano",
+          "request_body_sha256": "ae1fe52374eacec9b0b832c2fe82bd6c937bacace9153fa498529b88b570367d",
+          "response_body_sha256": "b79be2b5a72897fcd6373b22c43bf0ac4056535da8c2477955a15a896323d8ec"
+        },
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "provider": "openai",
+        "revision": 15,
+        "turn_key": "p2_504dcf50efbf4a70a44f93047e6395de_v",
+        "price_key": "92b480924a973e4d7e3c911bebb88916fc10a152e087644fdc0abb462e27e56b",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "expires_at": "2026-10-17T02:19:00.45841+00:00",
+        "cost_micros": 16,
+        "bound_micros": 3615,
+        "payload_hash": "a9c5cbd6c3b40202ed22e1478aadf9d1154db27f58de69507bb3db571aeacad3",
+        "request_hash": "0e1f03ebea844e12b0b141233cd6d50e4f75921a26d206627d639188aa1c2df5",
+        "account_version": 15
+      }
+    ],
+    "monthly": [
+      {
+        "id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+        "step": 0,
+        "model": "gpt-5-nano",
+        "state": "recorded",
+        "usage": {
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:15.935437+00:00",
+        "request_id": "53c1154e-018a-4c9b-a5e4-cb0843c5d775"
+      },
+      {
+        "id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+        "step": 0,
+        "model": "gpt-5-nano",
+        "state": "recorded",
+        "usage": {
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:40.4445+00:00",
+        "request_id": "504dcf50-efbf-4a70-a44f-93047e6395de"
+      },
+      {
+        "id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+        "step": 1,
+        "model": "gpt-5-nano",
+        "state": "recorded",
+        "usage": {
+          "input_tokens": 66,
+          "output_tokens": 31,
+          "cache_read_tokens": 7,
+          "cache_write_tokens": 0
+        },
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:40.4445+00:00",
+        "request_id": "504dcf50-efbf-4a70-a44f-93047e6395de"
+      }
+    ],
+    "usage": [
+      {
+        "id": "d580bd0a-339b-4dab-aaa8-f0d8cd878fe9",
+        "model": "gpt-5-nano",
+        "call_id": "87af3135-1c78-4691-847b-ca66f6fc24d5",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:32.352135+00:00",
+        "input_tokens": 66,
+        "output_tokens": 31,
+        "cache_read_tokens": 7,
+        "cache_write_tokens": 0
+      },
+      {
+        "id": "b5b4aca7-52ff-4b72-9cfc-525a602c90fd",
+        "model": "gpt-5-nano",
+        "call_id": "2be07b0e-e1d2-46f4-b586-84332ef6a258",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:41.037056+00:00",
+        "input_tokens": 66,
+        "output_tokens": 31,
+        "cache_read_tokens": 7,
+        "cache_write_tokens": 0
+      },
+      {
+        "id": "78ed986d-0f62-4f09-b761-2eafba856f9d",
+        "model": "gpt-5-nano",
+        "call_id": "64c214d4-526a-41e4-ad7b-876430ba4c46",
+        "user_id": "00000000-0000-4000-8000-0000000000a1",
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "created_at": "2026-10-17T02:18:42.001521+00:00",
+        "input_tokens": 66,
+        "output_tokens": 31,
+        "cache_read_tokens": 7,
+        "cache_write_tokens": 0
+      }
+    ]
+  }
+}

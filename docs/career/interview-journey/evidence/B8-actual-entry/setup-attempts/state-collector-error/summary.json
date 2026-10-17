@@ -1,0 +1,47 @@
+{
+  "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+  "B_source": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+  "driver_sha256": "106b936aeb0df94992b9210a3dee9071bc18fe98208e543480eec348d414c549",
+  "controlled_probe_sha256": "b361e15bb391536ec791fa3594a146453b9e64af14cad12807f900e71454d789",
+  "fixture": {
+    "container": "upmore-career-integration-pg-bcase12-7173d7a5bceea796",
+    "database": "career_test_case12_7173d7a5bceea796",
+    "token": "7173d7a5bceea796",
+    "image": "postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+    "network": "none"
+  },
+  "ddl_sha256": {
+    "tests/fixtures/career-persistence-schema.sql": "589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486",
+    "supabase/migrations/20261015020000_career_watch_kv.sql": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a",
+    "supabase/migrations/20261015234000_career_task_intents_v1.sql": "7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "supabase/sql/proposals/career_model_budget_v1.sql": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+    "supabase/sql/proposals/career_model_context_v2.sql": "bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb",
+    "tests/fixtures/model-gateway-independent/monthly-schema.sql": "52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb",
+    "supabase/migrations/20261010110000_model_call_budget.sql": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec",
+    "supabase/sql/proposals/career_interview_entry_v1.sql": "a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e",
+    "supabase/sql/proposals/career_interview_context_write_v1.sql": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+    "supabase/sql/proposals/career_interview_execution_v1.sql": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f"
+  },
+  "runs": [
+    {
+      "phase": "before",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "/workspace/upmore-spec-b/evals/career-interview-journey/actual-entry-case12-phase.cjs",
+        "before"
+      ],
+      "exit_code": 1,
+      "log": "before.log",
+      "sha256": "c706044aebef22b460c83fb9d8f96a1d2487d4299b43fb3602f7693bbc653103"
+    }
+  ],
+  "outcome": "failed",
+  "real_provider_requests": 0,
+  "quality": "NOT_RUN",
+  "A_worktree_after": "",
+  "owned_fixture_removed": true,
+  "finished": "2026-10-17T02:16:25.987Z"
+}

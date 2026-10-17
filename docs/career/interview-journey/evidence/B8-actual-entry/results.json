@@ -1,0 +1,257 @@
+{
+  "label": "INDEPENDENT_B_REVIEW_OF_ACTUAL_PAIRED_ENTRY_CASE12",
+  "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+  "B_runtime_source": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+  "author_documented_runtime": "1adc7eed",
+  "author_command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only",
+    "--sql-file=career-critical-repairs/interview-assessed-entry-postgres.test.cjs"
+  ],
+  "independent_command": [
+    "node",
+    "scripts/career/interview-journey/actual-entry-case12.cjs",
+    "--target",
+    "/workspace/upmore-b-case12-5c8c8326",
+    "--output",
+    "/tmp/upmore-case12-independent-final"
+  ],
+  "offline_verifier": [
+    "node",
+    "evals/career-interview-journey/verify-actual-entry-case12.cjs",
+    "docs/career/interview-journey/evidence/B8-actual-entry/run"
+  ],
+  "author_cases_passed": 3,
+  "independent_case12": "completed",
+  "status_wording_check": "failed; A-owned finding recorded separately",
+  "real_provider_requests": 0,
+  "quality": "NOT_RUN",
+  "actual_handler_source_sha256": {
+    "docs/career/critical-repairs/paired-entry-v1/README.md": "f7c2b8d98f53b1c7d224b2beb33d6548cb293eeacc5cf02a229a49fa6c09782c",
+    "docs/career/critical-repairs/paired-entry-v1/unknown-retry-trace.json": "ef90fd96d3d9bce57ec4c36497fe88021074e6747e60c980f090b07d6e0a4707",
+    "supabase/functions/agent-chat/handler-career.ts": "ef8a35637e94469de9ac8b79d92eabb35c404057ea86ba33690148e6b0eed0ae",
+    "supabase/functions/_shared/career_interview_entry.ts": "a33e897bb978225132ff186a49d698103464528e6a800daa3f68d77dd4317a39",
+    "supabase/functions/_shared/career_interview_reasoner.ts": "f29a0006de387a77c27a9e9955ee1cefa1f0b5ee6cc87011d9f1f8121a169455",
+    "supabase/functions/_shared/model_gateway.ts": "75621ee237cd12cc1d950c980f3c6b0674b16302642a1bac90a5555c8ec549f1",
+    "supabase/functions/_shared/router_core.career.js": "a10390be48140a6184dc99875aca0f65f1978caf9589a40f462d083fe672cfc5",
+    "tests/career-critical-repairs/interview-entry-fixture.cjs": "bc97d4edc4af88c16f82869bca94cd58ab9cea710a0d666006260cb9898e03d1",
+    "tests/career-critical-repairs/interview-controlled-provider.cjs": "9a4085f455fcea57c8653fea52480a193159e179a5f589da0cd6ecbe0e93da52",
+    "scripts/career/critical-repairs/ci-node.cjs": "64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9"
+  },
+  "probe_source_sha256": {
+    "scripts/career/interview-journey/actual-entry-case12.cjs": "106b936aeb0df94992b9210a3dee9071bc18fe98208e543480eec348d414c549",
+    "evals/career-interview-journey/actual-entry-case12-phase.cjs": "26175d3c2db1a644e94ecfe989975e2854cf9abe872d894da45b55245e641aec",
+    "evals/career-interview-journey/verify-actual-entry-case12.cjs": "e571218b3a45b2871a488b0d94e6de75b956075a28e4798621ed5a2035877cd4"
+  },
+  "run": {
+    "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+    "B_source": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+    "driver_sha256": "106b936aeb0df94992b9210a3dee9071bc18fe98208e543480eec348d414c549",
+    "controlled_probe_sha256": "26175d3c2db1a644e94ecfe989975e2854cf9abe872d894da45b55245e641aec",
+    "fixture": {
+      "container": "upmore-career-integration-pg-bcase12-45a48b68c23306ce",
+      "database": "career_test_case12_45a48b68c23306ce",
+      "token": "45a48b68c23306ce",
+      "image": "postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+      "network": "none"
+    },
+    "ddl_sha256": {
+      "tests/fixtures/career-persistence-schema.sql": "589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486",
+      "supabase/migrations/20261015020000_career_watch_kv.sql": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a",
+      "supabase/migrations/20261015234000_career_task_intents_v1.sql": "7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa",
+      "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+      "supabase/sql/proposals/career_model_budget_v1.sql": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+      "supabase/sql/proposals/career_model_context_v2.sql": "bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb",
+      "tests/fixtures/model-gateway-independent/monthly-schema.sql": "52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb",
+      "supabase/migrations/20261010110000_model_call_budget.sql": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9",
+      "supabase/sql/proposals/career_model_pair_budget_v2.sql": "e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec",
+      "supabase/sql/proposals/career_interview_entry_v1.sql": "a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e",
+      "supabase/sql/proposals/career_interview_context_write_v1.sql": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+      "supabase/sql/proposals/career_interview_execution_v1.sql": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f"
+    },
+    "runs": [
+      {
+        "phase": "before",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--experimental-vm-modules",
+          "/workspace/upmore-spec-b/evals/career-interview-journey/actual-entry-case12-phase.cjs",
+          "before"
+        ],
+        "exit_code": 0,
+        "log": "before.log",
+        "sha256": "bc387e905d1d40609b000e8b45528c81f9d42e29faa7f6da2bcc87c9251cb9c4"
+      },
+      {
+        "phase": "after",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--experimental-vm-modules",
+          "/workspace/upmore-spec-b/evals/career-interview-journey/actual-entry-case12-phase.cjs",
+          "after"
+        ],
+        "exit_code": 0,
+        "log": "after.log",
+        "sha256": "c106a679d8110e86d73d8a213e9f74b3cb12838de746a2a67bca430bb39541c2"
+      },
+      {
+        "phase": "reopen",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--experimental-vm-modules",
+          "/workspace/upmore-spec-b/evals/career-interview-journey/actual-entry-case12-phase.cjs",
+          "reopen"
+        ],
+        "exit_code": 0,
+        "log": "reopen.log",
+        "sha256": "6d27a62b6990d03fec3433d44be91889795d693235457d007d144a6e0ea874b2"
+      }
+    ],
+    "outcome": "completed",
+    "real_provider_requests": 0,
+    "quality": "NOT_RUN",
+    "A_worktree_after": "",
+    "owned_fixture_removed": true,
+    "finished": "2026-10-17T02:18:51.722Z"
+  },
+  "verified_result": {
+    "label": "INDEPENDENT_ACTUAL_ENTRY_EVIDENCE_VERIFIED",
+    "target_commit": "5c8c83263e19970e9c7a1485c0249769d453b5d7",
+    "B_runtime_source": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+    "case12_outcome": "completed",
+    "http_turns": 23,
+    "distinct_node_pids": [
+      69288,
+      72177,
+      76355
+    ],
+    "controlled_provider_replies": 3,
+    "actual_paid_requests": 0,
+    "synthetic_cost_micros": 48,
+    "known_pairs": 2,
+    "known_billed_legs": 3,
+    "not_sent_legs": 1,
+    "final_uncertain_legs": 0,
+    "artifact": {
+      "sha256": "a1985192eba17fe4373cc5ba65e4e958530a256c98b4a281734ea6a45f8c3917",
+      "byte_length": 8279,
+      "partial": true,
+      "exact_reopen": true
+    },
+    "A_owned_findings": [
+      {
+        "id": "A-status-wording-contradicts-paired-assessment",
+        "outcome": "failed",
+        "expected": "Status wording agrees with enabled paired execution and checked_advisory metadata.",
+        "actual": {
+          "thread_id": "00000000-0000-4000-8000-0000000000b1",
+          "turn_key": "independent-status",
+          "reply": "Your saved interview checkpoint is available. Assessment is not wired on this host.",
+          "action": null,
+          "reminders": [],
+          "read_only": true,
+          "meta": {
+            "career": true,
+            "career_journey": {
+              "version": "career_interview_entry/v1",
+              "stage": "feedback_ready",
+              "status": "active",
+              "revision": 13,
+              "assessment_status": "checked_advisory",
+              "actual_model_quality": "NOT_RUN"
+            }
+          }
+        },
+        "owner": "A",
+        "severity": "misleading status text; core journey remains completed"
+      }
+    ],
+    "model_quality": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "run/after.log",
+      "bytes": 628,
+      "sha256": "c106a679d8110e86d73d8a213e9f74b3cb12838de746a2a67bca430bb39541c2"
+    },
+    {
+      "path": "run/after.trace.json",
+      "bytes": 649621,
+      "sha256": "e0153c9abae76b36297beac7fdab5b204f80b1ab72f29106c36ed6f0bcfbb51d",
+      "part_index": "parts/run__after.trace.json/index.json"
+    },
+    {
+      "path": "run/artifact.json",
+      "bytes": 9301,
+      "sha256": "f403089777fe8a36e241edc9e7f97fe78226c4ce78606689a02e10eaaa20dafd"
+    },
+    {
+      "path": "run/before.log",
+      "bytes": 581,
+      "sha256": "bc387e905d1d40609b000e8b45528c81f9d42e29faa7f6da2bcc87c9251cb9c4"
+    },
+    {
+      "path": "run/before.trace.json",
+      "bytes": 193670,
+      "sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+      "part_index": "parts/run__before.trace.json/index.json"
+    },
+    {
+      "path": "run/controlled-provider-journal.json",
+      "bytes": 190510,
+      "sha256": "f8ef23da5bd051379eb2791f1e0a39f60b22f6370bbb45ac084e3119279bb337",
+      "part_index": "parts/run__controlled-provider-journal.json/index.json"
+    },
+    {
+      "path": "run/partial-pack.md",
+      "bytes": 8279,
+      "sha256": "a1985192eba17fe4373cc5ba65e4e958530a256c98b4a281734ea6a45f8c3917"
+    },
+    {
+      "path": "run/reopen.log",
+      "bytes": 581,
+      "sha256": "6d27a62b6990d03fec3433d44be91889795d693235457d007d144a6e0ea874b2"
+    },
+    {
+      "path": "run/reopen.trace.json",
+      "bytes": 67939,
+      "sha256": "2ce9c84c6ab864016cd3edb0e4c3839adcacd736921b3a2767595630bf6fc770",
+      "part_index": "parts/run__reopen.trace.json/index.json"
+    },
+    {
+      "path": "run/summary.json",
+      "bytes": 3675,
+      "sha256": "bccdfa29acf2fd12f5c79cd4c9dae2ee1b83d89604db321aa6ca65b2f3870065"
+    },
+    {
+      "path": "author-suite.log",
+      "bytes": 313690,
+      "sha256": "9aa14caeb79ec6725678aff23a7949e83cc4c8c3b0a8f5db4ab527e54cafd916",
+      "part_index": "parts/author-suite.log/index.json"
+    },
+    {
+      "path": "cost-ledger.json",
+      "bytes": 18178,
+      "sha256": "4f65010e3aed9de1825c2232daa33881d730d02ce6394171bcd4051996038ac9"
+    }
+  ],
+  "notes": [
+    "No A runtime/schema/oracle or frozen B runtime changed.",
+    "Three separate Node processes drove real handler requests using controlled replies and actual isolated PostgreSQL.",
+    "Fresh owned network-none container and marked database; synthetic campaign only; removed after each run.",
+    "Initial state-collector and duplicate-key probe setup failures retained; neither is an A product defect.",
+    "Historical B7 case12 blocker remains immutable; this newer actual-A evidence closes that structural task only."
+  ],
+  "readable_http_index": {
+    "path": "http-index.json",
+    "sha256": "b74372059d6c6cf8b8c3051977e1aa82b5a9689217717b93af078602471d856c",
+    "turns": 23
+  },
+  "A_findings_file": {
+    "path": "A-findings.json",
+    "sha256": "1bd43efe262e57f746aa2384116609c5fdaf05f1f81f459ae96db74cce020af7"
+  },
+  "probe_source_commit": "c0bf5d4da2bfed9cf523671c2025d0990cb10afc",
+  "tested_target_preserved": true
+}

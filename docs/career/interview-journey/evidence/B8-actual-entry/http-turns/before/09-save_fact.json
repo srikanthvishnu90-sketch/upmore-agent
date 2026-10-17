@@ -1,0 +1,65 @@
+{
+  "provenance": {
+    "source_trace": "run/before.trace.json",
+    "source_trace_sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+    "turn_ordinal": 9,
+    "node_pid": 69288,
+    "kind": "Derived exact request/options/response fields; full persisted state remains in original phase trace."
+  },
+  "request": {
+    "thread_id": "00000000-0000-4000-8000-0000000000b1",
+    "turn_key": "independent-target-correction",
+    "message": "Software engineer intern",
+    "career_journey": {
+      "type": "save_fact",
+      "id": "target",
+      "kind": "target",
+      "expected_version": 0,
+      "actual": true,
+      "classification": {
+        "role_family": "software_engineering",
+        "level": "early-career",
+        "company": "Synthetic Wren Labs",
+        "stage": "technical screen"
+      }
+    }
+  },
+  "options": {},
+  "response": {
+    "status": 200,
+    "body": {
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "stage": "awaiting_answer",
+          "status": "paused",
+          "version": "career_interview_entry/v1",
+          "context_binding": {
+            "epoch": 0,
+            "context_sha256": "12c293e3693fe1a15a27464d84699fe150e5d6ee6df4d88606a924c6be6da7fb",
+            "account_version": 9,
+            "thread_revision": 9
+          },
+          "assessment_status": "not_wired",
+          "actual_model_quality": "NOT_RUN"
+        }
+      },
+      "reply": "Your explicit actual statement was saved as user-reported evidence for this interview journey. Dependent feedback is invalidated when its evidence changes. No assessment or provider call was made.",
+      "action": null,
+      "turn_key": "independent-target-correction",
+      "reminders": [],
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "context_ref": {
+        "id": "target",
+        "version": 1
+      }
+    },
+    "text": "{\"meta\":{\"career\":true,\"career_journey\":{\"stage\":\"awaiting_answer\",\"status\":\"paused\",\"version\":\"career_interview_entry/v1\",\"context_binding\":{\"epoch\":0,\"context_sha256\":\"12c293e3693fe1a15a27464d84699fe150e5d6ee6df4d88606a924c6be6da7fb\",\"account_version\":9,\"thread_revision\":9},\"assessment_status\":\"not_wired\",\"actual_model_quality\":\"NOT_RUN\"}},\"reply\":\"Your explicit actual statement was saved as user-reported evidence for this interview journey. Dependent feedback is invalidated when its evidence changes. No assessment or provider call was made.\",\"action\":null,\"turn_key\":\"independent-target-correction\",\"reminders\":[],\"thread_id\":\"00000000-0000-4000-8000-0000000000b1\",\"context_ref\":{\"id\":\"target\",\"version\":1}}",
+    "headers": {
+      "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "content-type": "application/json",
+      "vary": "Origin"
+    }
+  }
+}

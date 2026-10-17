@@ -1,0 +1,44 @@
+{
+  "original_path": "run/before.trace.json",
+  "original_sha256": "f15b4d2f4bf87cddeddee476c65931fce5eec9ab1e2db0fdd8a35af67c178b64",
+  "bytes": 193670,
+  "part_limit_bytes": 32768,
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32768,
+      "sha256": "9b685307f6bc2ec34862852e8a54e828242c232ca96903dc7aac6ddd9687160c"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32768,
+      "end_byte_exclusive": 65536,
+      "sha256": "b5a7af89f7210da0cd3bb43567b15e791fd745c94c7068089d9e0a17bead6a00"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65536,
+      "end_byte_exclusive": 98304,
+      "sha256": "6041603846a7550bc1728b3573e3829d0f442aa91a2e7dd7044945450afdd959"
+    },
+    {
+      "file": "part-0004.txt",
+      "start_byte": 98304,
+      "end_byte_exclusive": 131072,
+      "sha256": "e96c5417e7034368945e6053c06ee1b59ca7e07c7d6d3c6a771057865ffa3707"
+    },
+    {
+      "file": "part-0005.txt",
+      "start_byte": 131072,
+      "end_byte_exclusive": 163840,
+      "sha256": "da4acfde2800a519804b4f308750e6713ec27836407e4264b0667754a0daffc8"
+    },
+    {
+      "file": "part-0006.txt",
+      "start_byte": 163840,
+      "end_byte_exclusive": 193670,
+      "sha256": "fe837b21f7e9553eba5682ed8c883e61158fc90f1a7fb7a275b13660ba77ca0a"
+    }
+  ]
+}

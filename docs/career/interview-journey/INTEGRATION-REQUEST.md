@@ -1,5 +1,11 @@
 # Spec A / Muse integration request — blocked consumer boundary
 
+Later actual-entry result: [case 12](ACTUAL-ENTRY-CASE12-20261017.md) completes
+the controlled structural journey on A's exact `5c8c8326`, with real local SQL,
+process restarts and exact artifact reopen. One status-wording defect is
+reported for A. The earlier requests and absent-entry observations below are
+historical; the B branch itself still does not contain A's host composition.
+
 Latest B control repairs and one actual-entry task: [ADVERSARIAL-20261017.md](ADVERSARIAL-20261017.md).
 Consumer proof: [ZERO-VERSIONS-20261017.md](ZERO-VERSIONS-20261017.md).
 Recovery protocol: [RECOVERY-20261017.md](RECOVERY-20261017.md).

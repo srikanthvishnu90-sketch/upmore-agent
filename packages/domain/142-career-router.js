@@ -1325,7 +1325,17 @@ const CareerRouter = (() => {
     if (q) {
       const facts = statedFactsOf(ctx);
       const firmF = facts.find((f) => f.kind === "target_firm");
-      if (firmF && !(q.firms_named && q.firms.length)) {
+      // LF-09 (ii) (BUG-272 / FR-427): the on-record firm may anchor
+      // only an ask that named NO universe of its own. Named firms, a
+      // named set, and a category proposal are the ask's own universe
+      // (124's own note: a category proposal is by construction the
+      // category the USER named) — replacing any of them with the
+      // record's firm silently re-scopes the user's ask and drops the
+      // "universe is the one you named" disclosure (live v227, P7:
+      // "network into healthcare consulting" was planned at Meridian
+      // Capital). Anchoring a universe-less ask (probe (b)) stays.
+      const askedUniverse = (q.firms_named && q.firms.length) || q.firms_source === "set" || (q.proposed_default && q.proposed_default.kind === "category");
+      if (firmF && !askedUniverse) {
         q.firms = [firmF.value]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
       }
       const geoF = facts.find((f) => f.kind === "geography");
@@ -8399,12 +8409,41 @@ const CareerRouter = (() => {
       // A targeting name that is not a known city is not geography —
       // the target_firm chain below claims it.
       if ((m = cl.match(/\btargeting\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/)) && FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("geography", m[1], m[0]);
-      else if ((m = cl.match(/\baiming\s+(?:at|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+firms\b/))) push("geography", m[1], m[0]);
-      else if ((m = cl.match(/\btargeting\s+([a-z]+)\s+firms\b/i))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
+      else if ((m = cl.match(/\baiming\s+(?:at|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+firms\b/)) && FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("geography", m[1], m[0]);
+      else if ((m = cl.match(/\btargeting\s+([a-z]+)\s+firms\b/i)) && FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("geography", m[1].charAt(0).toUpperCase() + m[1].slice(1), m[0]);
       // DEPTH LANE A: "I want New York firms" — the want-frame names
       // the search geography as plainly as "targeting" does.
       else if ((m = cl.match(new RegExp(`\\bwant\\s+(${FACT_CITIES.join("|")})\\s+(?:firms|roles|jobs|banks|companies|offices)\\b`, "i")))) push("geography", m[1], m[0]);
-      else if (/\b(network|target|firms|aiming|looking|move|based)\b/i.test(cl)) { const cm = cl.match(new RegExp(`\\bin\\s+(${FACT_CITIES.join("|")})\\b`)); if (cm) push("geography", cm[1], cm[0]); }
+      // LF-09 (iii) (BUG-273 / FR-428): the bare `in <CITY>` frame used
+      // to fire on any location keyword in the clause (network /
+      // target / firms / aiming / looking / move / based) — so
+      // "looking at data analyst roles in Chicago" (P6 t1, live
+      // v227) overwrote the durable geography a basing statement
+      // ("I'm based in Denver") had written. A JOB's location is not
+      // the user's geography: this frame now fires only when the
+      // clause predicates the city of the USER — a first-person
+      // location verb (I'm based / located / living, I live, I
+      // reside, I'm from, "I'm in <CITY>"), "my home/base is", or a
+      // bare "based in" inside a self-description whose subject is
+      // not a role/job/posting (the Lane A corpus shape "junior
+      // here — economics major, based in Denver btw"). The two
+      // frames above are city-gated for the same reason (LF-08's
+      // named sector misfile: "targeting fintech firms" filed
+      // "Fintech" as geography and evicted the real basing fact
+      // from the single-value slot).
+      else {
+        const cm = cl.match(new RegExp(`\\bin\\s+(${FACT_CITIES.join("|")})\\b`));
+        if (cm) {
+          const before = cl.slice(0, cm.index);
+          const ownLocation =
+            /\b(i'?m|i am|im)\s+(based|located|living|staying)\b[^.]*$/i.test(before)
+            || /\b(i live|i reside|i'?m from|i am from)\b[^.]*$/i.test(before)
+            || /\bmy\s+(home|base|residence|city)\s+is\s*$/i.test(before)
+            || /\b(i'?m|i am)\s*$/i.test(before)
+            || (/\bbased\s*$/i.test(before) && !/\b(role|job|position|posting|opening|gig|team|office|company|it|this|that)\b[^.]*\bbased\s*$/i.test(before));
+          if (ownLocation) push("geography", cm[1], cm[0]);
+        }
+      }
       // LF-08 (BUG-270 / FR-425): "I'm targeting <Firm>" — the most
       // natural target-firm statement there is — had no frame in this
       // chain at all; the geography chain's ungated targeting frame
@@ -9143,17 +9182,31 @@ const CareerRouter = (() => {
       company = (open.length === 1 ? open[0] : rows.length === 1 ? rows[0] : null)?.company || null;
       if (!company && rows.length === 1) company = rows[0].company;
     }
-    if (!company) {
-      const facts = statedFactsOf(ctx);
-      const tf = facts.find((f) => f.kind === "target_firm");
-      if (tf) company = tf.value;
-    }
+    // LF-09 (i) (BUG-271 / FR-426): there is deliberately NO further
+    // fallback. The on-record target_firm used to be read here as the
+    // company of last resort — so an unnamed offer report ("I got an
+    // offer from a fintech startup, 85k…") was recorded FOR the target
+    // firm, with a synthesized applied event (live v227, P1 t1: row
+    // app-meridian-capital-10). A target firm is a PREFERENCE fact —
+    // where the user wants to end up — never an attribution source
+    // for an application, an offer, or an event: a state write needs
+    // the user's own assertion naming the company (or a row their
+    // assertion already opened, above), and without one the event is
+    // recorded company-not-stated by 126's TN-1a path below.
     // The write, inside 126 only: ingest first (its classifier links
     // and moves the row when the report's words carry a signal), and
     // where ingest cannot link a named company's row, 126's own
-    // add/move API lands the user's asserted event on it.
+    // add/move API lands the user's asserted event on it. The message
+    // rides 126's USER channel (source "user-reported", the user's own
+    // text as the body, no synthetic subject): the BUG-217 assertion
+    // gate decides whether the words may write at all, the verbatim
+    // clause is stored as the event's evidence, and a company the
+    // words do not name opens a not-stated row — the write never goes
+    // through dressed as an inbox detection (the v227 row's events
+    // carried source "inbox" and an "offer detected in inbox message"
+    // detail for a chat report).
     let ing = null;
-    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", subject: `${ev} reported in chat`, body: s(text), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
+    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", source: "user-reported", body: s(text), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
     let row = null;
     if (ing && ing.linked && company) row = rows.find((r) => lc(r.company) === lc(company)) || null;
     if (!row && company) {
@@ -9190,7 +9243,7 @@ const CareerRouter = (() => {
     if (ev === "rejected") facts.push("One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.");
     const reply = compose({ headline: `${label} on the record for ${row.company} — the row now shows ${stageNow}.`, facts, nextStep: ev === "interview" ? "Want the prep pack for it now?" : ev === "offer" ? "Want the offer terms laid out and the counter plan started?" : "Want the status of the rest of the tracker?" });
     const res = { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, stage: ev, company: row.company, track_event: { class: ev, stage_after: stageNow, source: "user_reported_chat" } };
-    return emitTrack(ctx, res, { company: row.company, stage: stageNow, event_type: EVENT_FOR_126[ev], source: "inbox", note: `${label} reported by the user in chat` });
+    return emitTrack(ctx, res, { company: row.company, stage: stageNow, event_type: EVENT_FOR_126[ev], source: "user_reported", note: `${label} reported by the user in chat` });
   }
 
   function handleClarifying(text, ctx) {

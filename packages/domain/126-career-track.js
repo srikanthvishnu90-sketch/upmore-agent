@@ -173,6 +173,14 @@ const CareerTrack = (() => {
   // rejection". Capitalized event-context phrases only; sentence-opening
   // fillers are never a company. Inbox text is never mined this way.
   const NOT_A_COMPANY = new Set(["they", "the", "my", "i", "just", "so", "well", "finally", "yesterday", "today", "got", "it", "this", "that", "an", "a", "ugh", "and", "but", "then", "we", "you", "he", "she"]);
+  // LF-09 (BUG-271): a calendar word is never a company. The
+  // from/at/by/with frame mined "by Monday" — the DEADLINE in "they
+  // want an answer by Monday" — as a company name and opened a named
+  // tracker row for "Monday" under the user's offer. A captured name
+  // that IS a weekday or month (single-word) is refused; a genuine
+  // multi-word name that merely starts with one ("Friday Health")
+  // still resolves.
+  const CALENDAR_WORDS = new Set(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "tomorrow", "tonight"])
   function extractNamedCompany(text) {
     const W = "[A-Z][A-Za-z0-9&.'-]*";
     const patterns = [
@@ -185,7 +193,7 @@ const CareerTrack = (() => {
       if (!m) continue;
       const name = m[1].replace(/[?.!,]+$/, "").trim();
       const first = lc(name.split(/\s+/)[0]);
-      if (name && !NOT_A_COMPANY.has(first)) return name;
+      if (name && !NOT_A_COMPANY.has(first) && !CALENDAR_WORDS.has(lc(name))) return name;
     }
     return null;
   }

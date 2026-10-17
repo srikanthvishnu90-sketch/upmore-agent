@@ -1,0 +1,1297 @@
+{
+  "checked_at": "2026-10-17T01:07:03.598393+00:00",
+  "tested_source_commit": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+  "baseline_commit": "bdada1fa505fbdf81cbf110285baf453b9bd499c",
+  "checks": [
+    {
+      "name": "node24-contracts",
+      "command": [
+        "node",
+        "scripts/career/interview-journey/check-contracts.cjs"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "log": "node24-contracts.log",
+      "sha256": "2bb91c9bef773b6c3bb1547b1f7aa3717afcdb7a08254fd57e776fe5ce70e2d0",
+      "counts": {
+        "tests": 145,
+        "pass": 145,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "name": "node22-contracts",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/check-contracts.cjs"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "log": "node22-contracts.log",
+      "sha256": "2ca4ec094436f81a174e8fe9ff0bd94aef22a84cf954469a0d6172c769f9cf6c",
+      "counts": {
+        "tests": 145,
+        "pass": 145,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "name": "actual-A-context",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/interview-journey/projected-context-compatibility.cjs",
+        "--producer-ref",
+        "315158f5314360417266270ec6e6e9e71aad0af8"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "log": "actual-A-context.log",
+      "sha256": "5442c962437749c15d06d3e81d85d6fdd8faf808e7a66f42b77f4f1aa24dc169",
+      "counts": {
+        "pass": 23,
+        "total": 23
+      }
+    },
+    {
+      "name": "bounded-pass",
+      "command": [
+        "node",
+        "scripts/career/interview-journey/adversarial-pass.cjs",
+        "--output",
+        "/tmp/upmore-b7-evidence-run",
+        "--producer-ref",
+        "315158f5314360417266270ec6e6e9e71aad0af8"
+      ],
+      "exit_code": 2,
+      "expected_exit": 2,
+      "log": "bounded-pass.log",
+      "sha256": "317c16f62f66882909395a259a7ca861006668c311ecba5c17042bf18539ef1b"
+    },
+    {
+      "name": "negative-controls",
+      "command": [
+        "node",
+        "scripts/career/interview-journey/negative-controls.cjs",
+        "--output",
+        "/tmp/upmore-b7-evidence-mutants"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "log": "negative-controls.log",
+      "sha256": "8f1a0042f68c9996eac9476818bd8cce62680d74850e8ee65a36e62927d2127c"
+    }
+  ],
+  "frozen_scenarios": {
+    "baseline_commit": "bdada1fa505fbdf81cbf110285baf453b9bd499c",
+    "command": [
+      "node",
+      "scripts/career/interview-journey/adversarial-pass.cjs",
+      "--output",
+      "/tmp/upmore-b7-baseline",
+      "--producer-ref",
+      "315158f5314360417266270ec6e6e9e71aad0af8"
+    ],
+    "exit_code": 1,
+    "counts": {
+      "completed": 6,
+      "failed": 5,
+      "blocked": 1
+    },
+    "files_sha256": {
+      "tests/career-interview-journey/adversarial-compositions.cjs": "0ea4506bd1711ccc662126792e8aeeba19e4927d080939df002879c4e3b7da22",
+      "tests/career-interview-journey/adversarial-compositions.test.cjs": "c0e47fbabfc570749f69f01c57250675f79db81f2210276710f8383bc78117f7",
+      "scripts/career/interview-journey/adversarial-pass.cjs": "194e5b5e1063a41e688e8d20f8320f280a497e6aef69a71e007ce6cc6b8e3a4d"
+    },
+    "provider_calls": 0,
+    "semantic_quality": "NOT_RUN",
+    "initial_run_note": "Initial first-case candidate referenced project version1 after correction to2; B correctly rejected that stale scripted draft. New harness emits current synthetic draft references; no product change was needed for it."
+  },
+  "baseline_ledger": {
+    "label": "BOUNDED_BUILDER_AUTHORED_STRUCTURAL_PASS",
+    "baseline_or_source": "bdada1fa505fbdf81cbf110285baf453b9bd499c",
+    "scenarios": [
+      {
+        "id": "pending-project-correction",
+        "expected": "Correct a pending project, preserve the uncertainty fence through restart, settle passively, ignore its stale candidate, then assess an explicitly submitted fresh answer.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 10,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 9,
+          "attempts": 3,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "pending-project-correction.trace.json",
+        "trace_sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c"
+      },
+      {
+        "id": "repeated-pause-resume",
+        "expected": "Repeated pause creates one recoverable frame; one resume clears it and preserves the valid practice phase.",
+        "outcome": "failed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 9,
+        "terminal": {
+          "status": "active",
+          "stage": "targeted_practice",
+          "revision": 8,
+          "attempts": 1,
+          "outstanding": 0
+        },
+        "failure": {
+          "name": "AssertionError",
+          "message": "Expected values to be strictly equal:\n\n2 !== 0\n",
+          "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n2 !== 0\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:28:249)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+        },
+        "trace": "repeated-pause-resume.trace.json",
+        "trace_sha256": "66887f88e57248626ea4269092ee7914b4d5523b0fc152316ea7976a28fc4aa2"
+      },
+      {
+        "id": "stop-before-invalidation",
+        "expected": "Stop takes effect immediately even when new evidence precedes its typed invalidation; later correction and terminal accounting cannot resume it.",
+        "outcome": "failed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 3,
+        "terminal": {
+          "status": "active",
+          "stage": "awaiting_answer",
+          "revision": 3,
+          "attempts": 1,
+          "outstanding": 1
+        },
+        "failure": {
+          "name": "AssertionError",
+          "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'active'\n- 'partial_at_user_stop'\n",
+          "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'active'\n- 'partial_at_user_stop'\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:31:227)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+        },
+        "trace": "stop-before-invalidation.trace.json",
+        "trace_sha256": "0f613742755dd02f434513c0425538144c974279660f581ec421e9ef0448c2f3"
+      },
+      {
+        "id": "settlement-before-invalidation",
+        "expected": "A trusted unknown and terminal settlement are consumed while evidence versions await typed invalidation; content work stays blocked until invalidation is applied.",
+        "outcome": "failed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 3,
+        "terminal": {
+          "status": "active",
+          "stage": "awaiting_answer",
+          "revision": 3,
+          "attempts": 1,
+          "outstanding": 1
+        },
+        "failure": {
+          "name": "AssertionError",
+          "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'stale_context'\n- 'unknown'\n",
+          "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'stale_context'\n- 'unknown'\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:34:243)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+        },
+        "trace": "settlement-before-invalidation.trace.json",
+        "trace_sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735"
+      },
+      {
+        "id": "changed-target-guided-retry",
+        "expected": "A company change preserves a project-only practice answer but invalidates its guided support; retry rejects stale support without losing the answer, then accepts a fresh initial answer.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 11,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 9,
+          "attempts": 3,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "changed-target-guided-retry.trace.json",
+        "trace_sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24"
+      },
+      {
+        "id": "resume-change-during-retry",
+        "expected": "Replace the resume during an explicitly retried project-only answer, retain the original text, settle the detached request after restart and retry on the current resume version.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 13,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 12,
+          "attempts": 1,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "resume-change-during-retry.trace.json",
+        "trace_sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed"
+      },
+      {
+        "id": "artifact-after-context-change",
+        "expected": "An artifact saved before a target correction cannot finish readback; a rebuilt current partial pack can be read back after JSON restart.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 9,
+        "terminal": {
+          "status": "active",
+          "stage": "pack_ready",
+          "revision": 7,
+          "attempts": 1,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "artifact-after-context-change.trace.json",
+        "trace_sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3"
+      },
+      {
+        "id": "resume-does-not-rewind-selection",
+        "expected": "After repeated controls, an extra resume while active cannot rewind a newly selected technical question.",
+        "outcome": "failed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 7,
+        "terminal": {
+          "status": "active",
+          "stage": "awaiting_answer",
+          "revision": 6,
+          "attempts": 0,
+          "outstanding": 0
+        },
+        "failure": {
+          "name": "AssertionError",
+          "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'project-narrative'\n- 'retry-design'\n",
+          "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'project-narrative'\n- 'retry-design'\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:46:153)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+        },
+        "trace": "resume-does-not-rewind-selection.trace.json",
+        "trace_sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb"
+      },
+      {
+        "id": "long-interrupted-journey",
+        "expected": "Six varied question rounds with repeated interruptions, unknown/terminal reconciliation and explicit retry finish with six immutable attempts, no outstanding action and a readable current partial pack.",
+        "outcome": "failed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 67,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 61,
+          "attempts": 6,
+          "outstanding": 0
+        },
+        "failure": {
+          "name": "AssertionError",
+          "message": "Expected values to be strictly equal:\n\n6 !== 0\n",
+          "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n6 !== 0\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:49:588)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+        },
+        "trace": "long-interrupted-journey.trace.json",
+        "trace_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b"
+      },
+      {
+        "id": "foreign-and-delayed-settlement",
+        "expected": "A foreign terminal receipt cannot release an action; after a valid settlement and new submission, old unknown and candidate callbacks remain passive.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 12,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 10,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "foreign-and-delayed-settlement.trace.json",
+        "trace_sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe"
+      },
+      {
+        "id": "resume-and-target-swap",
+        "expected": "Target and resume changes during paused practice invalidate guidance while retaining a project-only answer; resumed revision is rejected and new feedback binds both current selections.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 12,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 10,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "resume-and-target-swap.trace.json",
+        "trace_sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7"
+      },
+      {
+        "id": "actual-entry-journey",
+        "expected": "A actual career entry routes an owned synthetic interview journey through interruption, terminal settlement, current feedback and authorized artifact readback.",
+        "outcome": "blocked",
+        "proof": "ACTUAL_ENTRY_NOT_RUN",
+        "producer_ref": "315158f5314360417266270ec6e6e9e71aad0af8",
+        "inspected_path": "supabase/functions/agent-chat/handler-career.ts",
+        "sha256": "a404ba94fd11ddd0ab1be7d6464604a22239859d4b2f4a6c0d3f6de3b915f249",
+        "reason": "Published A handler has no B interview registration; context-only projection cannot execute this task.",
+        "required_owner": "A/Muse"
+      }
+    ],
+    "counts": {
+      "completed": 6,
+      "failed": 5,
+      "blocked": 1
+    },
+    "provider_calls": 0,
+    "semantic_quality": "NOT_RUN",
+    "actual_entry": "BLOCKED",
+    "deployment": "NOT_RUN"
+  },
+  "final_ledger": {
+    "label": "BOUNDED_BUILDER_AUTHORED_STRUCTURAL_PASS",
+    "baseline_or_source": "b414b042254ad9764ff546906a32d4aec8bbfe4e",
+    "scenarios": [
+      {
+        "id": "pending-project-correction",
+        "expected": "Correct a pending project, preserve the uncertainty fence through restart, settle passively, ignore its stale candidate, then assess an explicitly submitted fresh answer.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 10,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 9,
+          "attempts": 3,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "pending-project-correction.trace.json",
+        "trace_sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c"
+      },
+      {
+        "id": "repeated-pause-resume",
+        "expected": "Repeated pause creates one recoverable frame; one resume clears it and preserves the valid practice phase.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 11,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 10,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "repeated-pause-resume.trace.json",
+        "trace_sha256": "1c73d2c2e8a9d1addb516264eef3ae79fbb1d6ec75824ed5fe811eb157bd5324"
+      },
+      {
+        "id": "stop-before-invalidation",
+        "expected": "Stop takes effect immediately even when new evidence precedes its typed invalidation; later correction and terminal accounting cannot resume it.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 10,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 9,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "stop-before-invalidation.trace.json",
+        "trace_sha256": "84c0cb5137638c9b4bca727ffa335451eac89ff80c42d510fe45f5e0b9d6c51a"
+      },
+      {
+        "id": "settlement-before-invalidation",
+        "expected": "A trusted unknown and terminal settlement are consumed while evidence versions await typed invalidation; content work stays blocked until invalidation is applied.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 9,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 8,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "settlement-before-invalidation.trace.json",
+        "trace_sha256": "1993b3653f145d080ad357313af31eb803b65cf62bd2427db9b6202c95386ee4"
+      },
+      {
+        "id": "changed-target-guided-retry",
+        "expected": "A company change preserves a project-only practice answer but invalidates its guided support; retry rejects stale support without losing the answer, then accepts a fresh initial answer.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 11,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 9,
+          "attempts": 3,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "changed-target-guided-retry.trace.json",
+        "trace_sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24"
+      },
+      {
+        "id": "resume-change-during-retry",
+        "expected": "Replace the resume during an explicitly retried project-only answer, retain the original text, settle the detached request after restart and retry on the current resume version.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 13,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 12,
+          "attempts": 1,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "resume-change-during-retry.trace.json",
+        "trace_sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed"
+      },
+      {
+        "id": "artifact-after-context-change",
+        "expected": "An artifact saved before a target correction cannot finish readback; a rebuilt current partial pack can be read back after JSON restart.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 9,
+        "terminal": {
+          "status": "active",
+          "stage": "pack_ready",
+          "revision": 7,
+          "attempts": 1,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "artifact-after-context-change.trace.json",
+        "trace_sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3"
+      },
+      {
+        "id": "resume-does-not-rewind-selection",
+        "expected": "After repeated controls, an extra resume while active cannot rewind a newly selected technical question.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 9,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 8,
+          "attempts": 1,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "resume-does-not-rewind-selection.trace.json",
+        "trace_sha256": "47e8f593f281c33d7c962860fcac8fe8fb9e3ca690854c84ee164f99b6de9af9"
+      },
+      {
+        "id": "long-interrupted-journey",
+        "expected": "Six varied question rounds with repeated interruptions, unknown/terminal reconciliation and explicit retry finish with six immutable attempts, no outstanding action and a readable current partial pack.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 70,
+        "terminal": {
+          "status": "active",
+          "stage": "pack_ready",
+          "revision": 63,
+          "attempts": 6,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "long-interrupted-journey.trace.json",
+        "trace_sha256": "67f8fee22d4a5115676a2e8665343d73e27df123f2918ad79499bb668cac9681"
+      },
+      {
+        "id": "foreign-and-delayed-settlement",
+        "expected": "A foreign terminal receipt cannot release an action; after a valid settlement and new submission, old unknown and candidate callbacks remain passive.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 12,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 10,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "foreign-and-delayed-settlement.trace.json",
+        "trace_sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe"
+      },
+      {
+        "id": "resume-and-target-swap",
+        "expected": "Target and resume changes during paused practice invalidate guidance while retaining a project-only answer; resumed revision is rejected and new feedback binds both current selections.",
+        "outcome": "completed",
+        "proof": "STRUCTURAL_ONLY",
+        "events": 12,
+        "terminal": {
+          "status": "active",
+          "stage": "feedback_ready",
+          "revision": 10,
+          "attempts": 2,
+          "outstanding": 0
+        },
+        "failure": null,
+        "trace": "resume-and-target-swap.trace.json",
+        "trace_sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7"
+      },
+      {
+        "id": "actual-entry-journey",
+        "expected": "A actual career entry routes an owned synthetic interview journey through interruption, terminal settlement, current feedback and authorized artifact readback.",
+        "outcome": "blocked",
+        "proof": "ACTUAL_ENTRY_NOT_RUN",
+        "producer_ref": "315158f5314360417266270ec6e6e9e71aad0af8",
+        "inspected_path": "supabase/functions/agent-chat/handler-career.ts",
+        "sha256": "a404ba94fd11ddd0ab1be7d6464604a22239859d4b2f4a6c0d3f6de3b915f249",
+        "reason": "Published A handler has no B interview registration; context-only projection cannot execute this task.",
+        "required_owner": "A/Muse"
+      }
+    ],
+    "counts": {
+      "completed": 11,
+      "failed": 0,
+      "blocked": 1
+    },
+    "provider_calls": 0,
+    "semantic_quality": "NOT_RUN",
+    "actual_entry": "BLOCKED",
+    "deployment": "NOT_RUN"
+  },
+  "negative_controls": {
+    "label": "OFFLINE_SCRIPTED_NEGATIVE_CONTROLS",
+    "controls": [
+      {
+        "id": "foreign_fact",
+        "file": "packages/career-interview-journey/adapters/context.js",
+        "pattern": "foreign fact is refused",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "a9f192afa43043282b585f9727446afd56501c25254420a112edfddd39f3e1f7",
+        "log_sha256": "88e443bccce999d6e239b908e95627e1403fb58160745443168fbc714df5ec16",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "foreign fact is refused",
+          "tests/career-interview-journey/journey.test.cjs"
+        ]
+      },
+      {
+        "id": "revive_invalidated_answer",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "ownership correction invalidates only",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "d35de80f3ef8fba88f2efb18b5a9d0cfd85ff55e415323152ac4472342e53468",
+        "log_sha256": "b16cfa44200cde8fdda09cd07f7c4c51966f713fa973c78dd56c357c4d280083",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "ownership correction invalidates only",
+          "tests/career-interview-journey/invalidation.test.cjs"
+        ]
+      },
+      {
+        "id": "fabricate_tool_success",
+        "file": "packages/career-interview-journey/adapters/research.js",
+        "pattern": "fabricated success and altered source bytes",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "d92676403e0234af2608bf7a7c4055589c6ff07e1ac98efe8efbbafae18b3c71",
+        "log_sha256": "14dea8bc65aad98d0ace34d88511620f24ef2778fc51466262f0c625535eda35",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "fabricated success and altered source bytes",
+          "tests/career-interview-journey/research.test.cjs"
+        ]
+      },
+      {
+        "id": "posting_becomes_personal_skill",
+        "file": "packages/career-interview-journey/adapters/reasoning.js",
+        "pattern": "posting requirements cannot become personal skills",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "8f042a587f79971e0e65dfb9d577406d7fcda7a04c638e0e1f04fb266638a335",
+        "log_sha256": "1e67ca6bf4e5ed2d7047eabf9b3df31eadd720917388b50b243ddd5d22b0a8d4",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "posting requirements cannot become personal skills",
+          "tests/career-interview-journey/research.test.cjs"
+        ]
+      },
+      {
+        "id": "change_answer_after_grading",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "changing an answer after grading",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "283b1bc7ef84c35ac219ff595df93b4b59d3025005a957772389e02b55fa128f",
+        "log_sha256": "8b5c68d16c426bbda3348dae7663cf8c27e6543d61fde385dee2a3506b0b90dd",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "changing an answer after grading",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "drop_interruption_checkpoint",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "pause stores unresolved side question",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "878e9fa7b07e4168c28b172c40fe5a22d020f9295882e6ece2c2fcf77d002767",
+        "log_sha256": "bd7a6f891ce684b1cc20f35e7f682895f7e54e54244b4f10b66a96fcb54e17f2",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "pause stores unresolved side question",
+          "tests/career-interview-journey/journey.test.cjs"
+        ]
+      },
+      {
+        "id": "keyword_wrong_answer_correct",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "keyword-stuffed wrong answer",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "2be01d0464c0d2088cc892cf91efd96c71b4ecda8113b78f6fd91de8180b5677",
+        "log_sha256": "319de79847f66bbbf29fd8a9fd49aff6e9c91f4b7ac7f5aa1848fde2799f58ed",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "keyword-stuffed wrong answer",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "reuse_stale_pack",
+        "file": "packages/domain/interview-journey/pack.js",
+        "pattern": "readable partial pack stays partial and stale pack",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "33d9121cc36e113d74060f60d3a561ec9c9abaa1c7a6b0767a5a01a1fe0297cb",
+        "log_sha256": "e524b7165973a2050f8662f4cb26d2ec5ca13f79fde2d0f3c480e7d3ed85c13e",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "readable partial pack stays partial and stale pack",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "sum_coached_and_transfer_into_improvement",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "complete scripted practice loop",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "63dbc183ece9e0eca6b3e994e5adcac99497c5b25a5b84632975402717eaceda",
+        "log_sha256": "7243bf046549acd1619f9ed8e3e037d1f30c62dbec60236248cd5eeccbb81d03",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "complete scripted practice loop",
+          "tests/career-interview-journey/journey.test.cjs"
+        ]
+      },
+      {
+        "id": "skip_artifact_readback",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "artifact cannot complete on assembly",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "3a4ea96df5cecc4f96c76d1f91845b8e418df272d9d373812134788aecb30243",
+        "log_sha256": "08a16c4f1418c297d5a299d4a137a024d9836a937d9b10b1463d6458c47650ed",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "artifact cannot complete on assembly",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "retain_stale_practice_checkpoint",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "company correction sanitizes a paused practice",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "43bba02d813b437ea935165d9ecbd38076ec0fff5888e9d1429872f8e3763349",
+        "log_sha256": "dd95c1877a76c64a373f45924f74fb6858f09fd5fd61ca5489589fdfb569a2a8",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "company correction sanitizes a paused practice",
+          "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+        ]
+      },
+      {
+        "id": "retry_with_foreign_question",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "retrying a failed saved project answer",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "743f57ae1b4442283438fe71c6486717dcb0a46ac902489448b728b78cecb182",
+        "log_sha256": "8e272a5ab3d491e5a405d2368429a4991023591a9f3a06bed70224ab06eda092",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "retrying a failed saved project answer",
+          "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+        ]
+      },
+      {
+        "id": "discard_outstanding_on_cancel",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "first unknown after control",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "7fdb65a8d08f77edb2d1a56cf4748ad7d2b98c2edce5c247cc13ddddf5d9a58d",
+        "log_sha256": "6fa623e832d1759fd5042841f2854d7cd0ee963493631506d66ae670f9486817",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "first unknown after control",
+          "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+        ]
+      },
+      {
+        "id": "reopen_terminal_settlement",
+        "file": "packages/career-interview-journey/adapters/reasoning.js",
+        "pattern": "detached settlement authenticates",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "c68b1e7e61624fe2e79bdda657345760d31475406ad526a8b690bd10b01a4c41",
+        "log_sha256": "d03f172470c9084eabe9ffa8b85f04219e6ae4d35e8e7a5564bf1f2623174742",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "detached settlement authenticates",
+          "tests/career-interview-journey/recovery-settlement.test.cjs"
+        ]
+      },
+      {
+        "id": "reject_canonical_zero_version",
+        "file": "packages/career-interview-journey/adapters/context.js",
+        "pattern": "facts preserve canonical nonnegative safe version 0",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "cc3909be663fe0d7812da6cc0f2465f229015fd6bb1f908c60c4c23adcec2e57",
+        "log_sha256": "78010fe8605e7d74c29a8d6dfba974fdc185873cbbe09aed581c65f7e9deefd1",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "facts preserve canonical nonnegative safe version 0",
+          "tests/career-interview-journey/context-versions.test.cjs"
+        ]
+      },
+      {
+        "id": "accept_negative_fractional_version",
+        "file": "packages/career-interview-journey/adapters/context.js",
+        "pattern": "facts reject invalid evidence version (-1|0.5)",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "21ba0a38f450c657cb2a0a0b9f3b66f9cc9a4e131b92b6d9990a6f5158fda582",
+        "log_sha256": "4e6db324535962c8d281d73faf88b1c55dabbc6c2134f0683cc67124755e0cd0",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "facts reject invalid evidence version (-1|0.5)",
+          "tests/career-interview-journey/context-versions.test.cjs"
+        ]
+      },
+      {
+        "id": "repeat_pause_frames",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "stop dominates subsequent pause",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "83624bf2ceeeec0e03d52d8d26767f51c708963b72e1783abd3262f90eed9015",
+        "log_sha256": "9c7628fafa2101c0678cea131b7e6646298ae044d67ed2801c225477c707ba5d",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "stop dominates subsequent pause",
+          "tests/career-interview-journey/adversarial-controls.test.cjs"
+        ]
+      },
+      {
+        "id": "retain_resumed_pause_frames",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "resume consumes legacy duplicate",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "b9afac9ce5980b503a2186fa187125f0eda4dde53802d65af5705d799d8ff257",
+        "log_sha256": "d8163ae29264bd362df31cbbd5e3d8d3f58ccef51177b126d755774548b50663",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "resume consumes legacy duplicate",
+          "tests/career-interview-journey/adversarial-controls.test.cjs"
+        ]
+      },
+      {
+        "id": "block_stale_stop",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "stop-before-invalidation",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "e8b77778a7e322856bf9aebb55020ec88c72c4ca1b2bae236e64e2c59a4259ca",
+        "log_sha256": "7984fe740a45008c043f0e679e67a4c81e187f0f69a2f0df37c6e6044cdbda8b",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "stop-before-invalidation",
+          "tests/career-interview-journey/adversarial-compositions.test.cjs"
+        ]
+      },
+      {
+        "id": "discard_stale_settlement",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "settlement-before-invalidation",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "83ae485ee062819d6a0592c3de21d22e27e9b1008b202f38369d0c7aa9c4626b",
+        "log_sha256": "c580a4bc9271f0c828cc3fa2507084e8f5c45a22889ee44c61c002726c556190",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "settlement-before-invalidation",
+          "tests/career-interview-journey/adversarial-compositions.test.cjs"
+        ]
+      }
+    ],
+    "total": 20,
+    "caught": 20,
+    "semantic_accuracy": "NOT_MEASURED",
+    "provider_calls": 0
+  },
+  "source_files_sha256": {
+    "packages/domain/interview-journey/index.js": "97f49d86b4e89fc619713ad702fccdf41e2c2f9c7e3d00dd92180b2061c025a4",
+    "scripts/career/interview-journey/adversarial-pass.cjs": "194e5b5e1063a41e688e8d20f8320f280a497e6aef69a71e007ce6cc6b8e3a4d",
+    "scripts/career/interview-journey/negative-controls.cjs": "47406e468dcd353996993a2686ceb32c9a3c07748d63bd791bc2aa8beb79c215",
+    "tests/career-interview-journey/adversarial-compositions.cjs": "0ea4506bd1711ccc662126792e8aeeba19e4927d080939df002879c4e3b7da22",
+    "tests/career-interview-journey/adversarial-compositions.test.cjs": "c0e47fbabfc570749f69f01c57250675f79db81f2210276710f8383bc78117f7",
+    "tests/career-interview-journey/adversarial-controls.test.cjs": "cb24cf1673d81638640aa417f28eb2a0b4d91def9f6615917135fede639848e9"
+  },
+  "archive": {
+    "file": "traces-and-logs.tar.gz",
+    "sha256": "533c039aef04bc45d76fd7bd4bac146f8984856c98687447310aa5006b88021a",
+    "members": {
+      "actual-A-context.log": {
+        "bytes": 60723,
+        "sha256": "5442c962437749c15d06d3e81d85d6fdd8faf808e7a66f42b77f4f1aa24dc169"
+      },
+      "actual-A-context.meta.json": {
+        "bytes": 447,
+        "sha256": "8f42926d66fb5e77b50232b5487c9b73e8531f44cf29f21b643b87b435f7457b"
+      },
+      "baseline/artifact-after-context-change.trace.json": {
+        "bytes": 301424,
+        "sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3"
+      },
+      "baseline/changed-target-guided-retry.trace.json": {
+        "bytes": 364005,
+        "sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24"
+      },
+      "baseline/foreign-and-delayed-settlement.trace.json": {
+        "bytes": 313034,
+        "sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe"
+      },
+      "baseline/ledger.json": {
+        "bytes": 13719,
+        "sha256": "1a87f69de7678f4f7567bc1c74908440f135fc9efeb60f73f0db1e0537b0e84f"
+      },
+      "baseline/long-interrupted-journey.trace.json": {
+        "bytes": 4969388,
+        "sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b"
+      },
+      "baseline/pending-project-correction.trace.json": {
+        "bytes": 271994,
+        "sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c"
+      },
+      "baseline/repeated-pause-resume.trace.json": {
+        "bytes": 263977,
+        "sha256": "66887f88e57248626ea4269092ee7914b4d5523b0fc152316ea7976a28fc4aa2"
+      },
+      "baseline/resume-and-target-swap.trace.json": {
+        "bytes": 350718,
+        "sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7"
+      },
+      "baseline/resume-change-during-retry.trace.json": {
+        "bytes": 368023,
+        "sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed"
+      },
+      "baseline/resume-does-not-rewind-selection.trace.json": {
+        "bytes": 112351,
+        "sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb"
+      },
+      "baseline/settlement-before-invalidation.trace.json": {
+        "bytes": 81852,
+        "sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735"
+      },
+      "baseline/stop-before-invalidation.trace.json": {
+        "bytes": 80781,
+        "sha256": "0f613742755dd02f434513c0425538144c974279660f581ec421e9ef0448c2f3"
+      },
+      "bounded-pass.log": {
+        "bytes": 95,
+        "sha256": "317c16f62f66882909395a259a7ca861006668c311ecba5c17042bf18539ef1b"
+      },
+      "bounded-pass.meta.json": {
+        "bytes": 391,
+        "sha256": "20e1aac16ac451869a5c7abe1df7dff5714ab02d68af6ec359338ae1d9961a13"
+      },
+      "final/artifact-after-context-change.trace.json": {
+        "bytes": 301424,
+        "sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3"
+      },
+      "final/changed-target-guided-retry.trace.json": {
+        "bytes": 364005,
+        "sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24"
+      },
+      "final/foreign-and-delayed-settlement.trace.json": {
+        "bytes": 313034,
+        "sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe"
+      },
+      "final/ledger.json": {
+        "bytes": 8144,
+        "sha256": "e34c1559ed12527a573496ce94ef5c974b4d6943dea3605df85bad3d57cffa8a"
+      },
+      "final/long-interrupted-journey.trace.json": {
+        "bytes": 4653029,
+        "sha256": "67f8fee22d4a5115676a2e8665343d73e27df123f2918ad79499bb668cac9681"
+      },
+      "final/pending-project-correction.trace.json": {
+        "bytes": 271994,
+        "sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c"
+      },
+      "final/repeated-pause-resume.trace.json": {
+        "bytes": 350582,
+        "sha256": "1c73d2c2e8a9d1addb516264eef3ae79fbb1d6ec75824ed5fe811eb157bd5324"
+      },
+      "final/resume-and-target-swap.trace.json": {
+        "bytes": 350718,
+        "sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7"
+      },
+      "final/resume-change-during-retry.trace.json": {
+        "bytes": 368023,
+        "sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed"
+      },
+      "final/resume-does-not-rewind-selection.trace.json": {
+        "bytes": 181567,
+        "sha256": "47e8f593f281c33d7c962860fcac8fe8fb9e3ca690854c84ee164f99b6de9af9"
+      },
+      "final/settlement-before-invalidation.trace.json": {
+        "bytes": 239618,
+        "sha256": "1993b3653f145d080ad357313af31eb803b65cf62bd2427db9b6202c95386ee4"
+      },
+      "final/stop-before-invalidation.trace.json": {
+        "bytes": 259296,
+        "sha256": "84c0cb5137638c9b4bca727ffa335451eac89ff80c42d510fe45f5e0b9d6c51a"
+      },
+      "final-mutations/accept_negative_fractional_version.log": {
+        "bytes": 1921,
+        "sha256": "4e6db324535962c8d281d73faf88b1c55dabbc6c2134f0683cc67124755e0cd0"
+      },
+      "final-mutations/block_stale_stop.log": {
+        "bytes": 2053,
+        "sha256": "7984fe740a45008c043f0e679e67a4c81e187f0f69a2f0df37c6e6044cdbda8b"
+      },
+      "final-mutations/change_answer_after_grading.log": {
+        "bytes": 1048,
+        "sha256": "8b5c68d16c426bbda3348dae7663cf8c27e6543d61fde385dee2a3506b0b90dd"
+      },
+      "final-mutations/discard_outstanding_on_cancel.log": {
+        "bytes": 2303,
+        "sha256": "6fa623e832d1759fd5042841f2854d7cd0ee963493631506d66ae670f9486817"
+      },
+      "final-mutations/discard_stale_settlement.log": {
+        "bytes": 2071,
+        "sha256": "c580a4bc9271f0c828cc3fa2507084e8f5c45a22889ee44c61c002726c556190"
+      },
+      "final-mutations/drop_interruption_checkpoint.log": {
+        "bytes": 1012,
+        "sha256": "bd7a6f891ce684b1cc20f35e7f682895f7e54e54244b4f10b66a96fcb54e17f2"
+      },
+      "final-mutations/fabricate_tool_success.log": {
+        "bytes": 999,
+        "sha256": "14dea8bc65aad98d0ace34d88511620f24ef2778fc51466262f0c625535eda35"
+      },
+      "final-mutations/foreign_fact.log": {
+        "bytes": 994,
+        "sha256": "88e443bccce999d6e239b908e95627e1403fb58160745443168fbc714df5ec16"
+      },
+      "final-mutations/keyword_wrong_answer_correct.log": {
+        "bytes": 1036,
+        "sha256": "319de79847f66bbbf29fd8a9fd49aff6e9c91f4b7ac7f5aa1848fde2799f58ed"
+      },
+      "final-mutations/posting_becomes_personal_skill.log": {
+        "bytes": 990,
+        "sha256": "1e67ca6bf4e5ed2d7047eabf9b3df31eadd720917388b50b243ddd5d22b0a8d4"
+      },
+      "final-mutations/reject_canonical_zero_version.log": {
+        "bytes": 1833,
+        "sha256": "78010fe8605e7d74c29a8d6dfba974fdc185873cbbe09aed581c65f7e9deefd1"
+      },
+      "final-mutations/reopen_terminal_settlement.log": {
+        "bytes": 1103,
+        "sha256": "d03f172470c9084eabe9ffa8b85f04219e6ae4d35e8e7a5564bf1f2623174742"
+      },
+      "final-mutations/repeat_pause_frames.log": {
+        "bytes": 992,
+        "sha256": "9c7628fafa2101c0678cea131b7e6646298ae044d67ed2801c225477c707ba5d"
+      },
+      "final-mutations/results.json": {
+        "bytes": 14227,
+        "sha256": "5e4be7ca5121900ff6d1ec499dbd6571025f76de9072b534b4e8cab96d61e4f8"
+      },
+      "final-mutations/retain_resumed_pause_frames.log": {
+        "bytes": 1026,
+        "sha256": "d8163ae29264bd362df31cbbd5e3d8d3f58ccef51177b126d755774548b50663"
+      },
+      "final-mutations/retain_stale_practice_checkpoint.log": {
+        "bytes": 1130,
+        "sha256": "dd95c1877a76c64a373f45924f74fb6858f09fd5fd61ca5489589fdfb569a2a8"
+      },
+      "final-mutations/retry_with_foreign_question.log": {
+        "bytes": 1161,
+        "sha256": "8e272a5ab3d491e5a405d2368429a4991023591a9f3a06bed70224ab06eda092"
+      },
+      "final-mutations/reuse_stale_pack.log": {
+        "bytes": 989,
+        "sha256": "e524b7165973a2050f8662f4cb26d2ec5ca13f79fde2d0f3c480e7d3ed85c13e"
+      },
+      "final-mutations/revive_invalidated_answer.log": {
+        "bytes": 1073,
+        "sha256": "b16cfa44200cde8fdda09cd07f7c4c51966f713fa973c78dd56c357c4d280083"
+      },
+      "final-mutations/skip_artifact_readback.log": {
+        "bytes": 2021,
+        "sha256": "08a16c4f1418c297d5a299d4a137a024d9836a937d9b10b1463d6458c47650ed"
+      },
+      "final-mutations/sum_coached_and_transfer_into_improvement.log": {
+        "bytes": 1062,
+        "sha256": "7243bf046549acd1619f9ed8e3e037d1f30c62dbec60236248cd5eeccbb81d03"
+      },
+      "initial-metadata/initial-freeze.json": {
+        "bytes": 850,
+        "sha256": "beba4fffe57303fb2acfbbf7f9e18a7b2a71ec9f924d56e739a8341aa1105750"
+      },
+      "initial-metadata/initial-run.log": {
+        "bytes": 94,
+        "sha256": "36b9e281ace03ea360461354c08898427fc13c9b9f38d54969395e9b4aabc766"
+      },
+      "initial-mutations/accept_negative_fractional_version.log": {
+        "bytes": 1924,
+        "sha256": "3eb42546ec9e085782ce81386e291f151af0428e6eaa1c5aff466d49ef4bbfc7"
+      },
+      "initial-mutations/change_answer_after_grading.log": {
+        "bytes": 1049,
+        "sha256": "614b006fdbcf159bc6d1af774fb79d9d83aff06d4ed8959e75423d2e235ea9fb"
+      },
+      "initial-mutations/discard_outstanding_on_cancel.log": {
+        "bytes": 2303,
+        "sha256": "6dfa5024fb173ca71369d8182d0fdd11889814cad949eeaca8a71ae349d599d4"
+      },
+      "initial-mutations/drop_interruption_checkpoint.log": {
+        "bytes": 1012,
+        "sha256": "74d4d0ff2f53c4ed6e48f33a3bf8ea17487763a8b404ba020c4b693a088c81fe"
+      },
+      "initial-mutations/fabricate_tool_success.log": {
+        "bytes": 1001,
+        "sha256": "d23d4696f36aa1c29721b3bbef7d9d1d746ecf400ffe28d94043c4ee58d31348"
+      },
+      "initial-mutations/foreign_fact.log": {
+        "bytes": 993,
+        "sha256": "864ae1df93eb7c986263a7f103c69c7b9be623c9cc0978b95ace2db049070925"
+      },
+      "initial-mutations/keyword_wrong_answer_correct.log": {
+        "bytes": 1035,
+        "sha256": "d07b1eb25f44814f04ad794cb8799a5ed902164ea7e560d18cd6759ddbb8218c"
+      },
+      "initial-mutations/posting_becomes_personal_skill.log": {
+        "bytes": 988,
+        "sha256": "1faa503e3f5ce11babe73c188b45dde109c4eaf7f80197edf252b998720bb3ec"
+      },
+      "initial-mutations/reject_canonical_zero_version.log": {
+        "bytes": 1831,
+        "sha256": "e6ffc2e38d504d593eaae98e16b0af9b4895b7f712519c0e3a04bfada37aa27a"
+      },
+      "initial-mutations/reopen_terminal_settlement.log": {
+        "bytes": 1105,
+        "sha256": "2a22226aa8a84021ba14ef7b57be67af312fb60fbe0239e355c097370327838b"
+      },
+      "initial-mutations/repeat_pause_frames.log": {
+        "bytes": 176,
+        "sha256": "6b1bd45221ae3e4e743c3202f72b590878f553a978ec55aded309a8e2f49d806"
+      },
+      "initial-mutations/results.json": {
+        "bytes": 12144,
+        "sha256": "2be50876dc1a128ede39ff532d40effb7ac8d5f36501d43a100864710d7c5f65"
+      },
+      "initial-mutations/retain_stale_practice_checkpoint.log": {
+        "bytes": 1130,
+        "sha256": "4116766fc563eda1906cd95ae1f4744dc63e19bab871a6fce9875a93b274310f"
+      },
+      "initial-mutations/retry_with_foreign_question.log": {
+        "bytes": 1161,
+        "sha256": "c508bfb2c6e1e1d78d8d19fbc93347e9ad7351c877dc0635f23cdc8943405512"
+      },
+      "initial-mutations/reuse_stale_pack.log": {
+        "bytes": 990,
+        "sha256": "81fef1c0382cf8b56ed9dd6c04acba2f288db996b61f62ee0591a49b9db6c031"
+      },
+      "initial-mutations/revive_invalidated_answer.log": {
+        "bytes": 1068,
+        "sha256": "7ef5e66e19fb16b5e21f12daaccef145c3486d6399e36a78febe7789232a5c94"
+      },
+      "initial-mutations/skip_artifact_readback.log": {
+        "bytes": 2021,
+        "sha256": "263b7efb192d04cdcc287e9a0ae6de6de59bb5bff1d56323fc671a54b14316f3"
+      },
+      "initial-mutations/sum_coached_and_transfer_into_improvement.log": {
+        "bytes": 1062,
+        "sha256": "544d9722afcda6a8e5066fd53faf412f5a5b898abb4efed8cf79743570b0b638"
+      },
+      "initial-scenario-run/artifact-after-context-change.trace.json": {
+        "bytes": 301424,
+        "sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3"
+      },
+      "initial-scenario-run/changed-target-guided-retry.trace.json": {
+        "bytes": 364005,
+        "sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24"
+      },
+      "initial-scenario-run/foreign-and-delayed-settlement.trace.json": {
+        "bytes": 313034,
+        "sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe"
+      },
+      "initial-scenario-run/ledger.json": {
+        "bytes": 14969,
+        "sha256": "7efdb612417b50a9983f5d97105e178b2814df8998c2ec52e92bd6ea0ee56d68"
+      },
+      "initial-scenario-run/long-interrupted-journey.trace.json": {
+        "bytes": 4969388,
+        "sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b"
+      },
+      "initial-scenario-run/pending-project-correction.trace.json": {
+        "bytes": 245760,
+        "sha256": "67ef54f496a12afe1f955718bde657859f7fcbc644b43679352b11316aff7063"
+      },
+      "initial-scenario-run/repeated-pause-resume.trace.json": {
+        "bytes": 263977,
+        "sha256": "66887f88e57248626ea4269092ee7914b4d5523b0fc152316ea7976a28fc4aa2"
+      },
+      "initial-scenario-run/resume-and-target-swap.trace.json": {
+        "bytes": 350718,
+        "sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7"
+      },
+      "initial-scenario-run/resume-change-during-retry.trace.json": {
+        "bytes": 368023,
+        "sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed"
+      },
+      "initial-scenario-run/resume-does-not-rewind-selection.trace.json": {
+        "bytes": 112351,
+        "sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb"
+      },
+      "initial-scenario-run/settlement-before-invalidation.trace.json": {
+        "bytes": 81852,
+        "sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735"
+      },
+      "initial-scenario-run/stop-before-invalidation.trace.json": {
+        "bytes": 80781,
+        "sha256": "0f613742755dd02f434513c0425538144c974279660f581ec421e9ef0448c2f3"
+      },
+      "negative-controls.log": {
+        "bytes": 47,
+        "sha256": "8f1a0042f68c9996eac9476818bd8cce62680d74850e8ee65a36e62927d2127c"
+      },
+      "negative-controls.meta.json": {
+        "bytes": 336,
+        "sha256": "68b83d03b255113f2fb808752cfd90ab00081a9dcb24a142eec08223ace2826a"
+      },
+      "node22-contracts.log": {
+        "bytes": 30641,
+        "sha256": "2ca4ec094436f81a174e8fe9ff0bd94aef22a84cf954469a0d6172c769f9cf6c"
+      },
+      "node22-contracts.meta.json": {
+        "bytes": 409,
+        "sha256": "03fa5ad6555579d23e64d2edd481be3aa79f931d1b82ce3c572509dab1af53c3"
+      },
+      "node24-contracts.log": {
+        "bytes": 12949,
+        "sha256": "2bb91c9bef773b6c3bb1547b1f7aa3717afcdb7a08254fd57e776fe5ce70e2d0"
+      },
+      "node24-contracts.meta.json": {
+        "bytes": 363,
+        "sha256": "65e5aa27195ba13b9668a187581536045e9ed5c85277231acd87e369cc6b2659"
+      },
+      "prior-final-checks/actual-A-context.log": {
+        "bytes": 60723,
+        "sha256": "7b90b04fd0293dd018f1bd1174e08c5301cd2c74108d340a1d1416f00293e311"
+      },
+      "prior-final-checks/bounded-pass.log": {
+        "bytes": 95,
+        "sha256": "317c16f62f66882909395a259a7ca861006668c311ecba5c17042bf18539ef1b"
+      },
+      "prior-final-checks/negative-controls.log": {
+        "bytes": 47,
+        "sha256": "8f1a0042f68c9996eac9476818bd8cce62680d74850e8ee65a36e62927d2127c"
+      },
+      "prior-final-checks/node22-contracts.log": {
+        "bytes": 30625,
+        "sha256": "f8e2ccfd8e3a3d87a2a07b41339bda6d975cdb198ba352f085e85de128139068"
+      },
+      "prior-final-checks/node24-contracts.log": {
+        "bytes": 12930,
+        "sha256": "5e7bf1f3fc62e14688787628cb0aeb354edf570d42f40ccfcb8ce6b15dcbe375"
+      }
+    }
+  },
+  "proof_scope": "Builder-authored provider-disabled structural executions with full public-reducer event/output traces; no semantic, actual-accounting, artifact-storage or end-to-end entry proof.",
+  "A_files_modified": false,
+  "provider_calls": 0,
+  "semantic_quality": "NOT_RUN",
+  "actual_entry": "BLOCKED at A producer 315158f5314360417266270ec6e6e9e71aad0af8; handler lacks B registration",
+  "broader_repository_CI": "NOT_RERUN; prior B4/B5/B6 evidence retained",
+  "deployment": "NOT_RUN",
+  "collector_note": "Initial collection could not parse experimental warnings preceding JSON; its raw logs are retained under prior-final-checks. Final collection separates stdout/stderr and persists per-command metadata."
+}

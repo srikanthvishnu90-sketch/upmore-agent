@@ -102,6 +102,13 @@ entry-path journey, A should drive the operations from
 `resume-change-during-retry.trace.json`, then append the pack delivery/readback
 operations demonstrated in `artifact-after-context-change.trace.json`:
 
+Exact tested B source: `b414b042254ad9764ff546906a32d4aec8bbfe4e`. The following
+publication commit adds evidence and this source pointer only. Preserve the
+whole B snapshot when replacing older embedded code. A's callback dispatcher
+must allow authenticated accounting settlement for the original action even
+when content evidence has changed; use the original admission digests and a
+current validation binding, and keep content work behind typed invalidation.
+
 1. Seed an owned synthetic canonical target, resume and project; enter the
    interview through the actual career entry and save an exact project answer.
 2. Supply a trusted, provider-disabled terminal failure; switch exercises and

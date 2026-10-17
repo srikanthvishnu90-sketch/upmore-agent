@@ -6,6 +6,7 @@ const root=path.resolve(__dirname,'../../..'),label=process.argv[2];if(!/^[-a-z0
 const out=path.join(root,'docs/career/critical-repairs/b-composition',label);fs.mkdirSync(out);
 const file='packages/career-contracts/interview-context-compat-v1.ts';
 const cases=[
+ ['version_zero','canonical version zero survives','x.item_version>=0','x.item_version>0'],
  ['owner','changed context bytes and foreign evidence',"if(!validateJourneyContractV1('CareerContextSnapshotV1',input).ok)",'if(false)'],
  ['context_digest','changed context bytes and foreign evidence','if(await interviewContextDigestV1(s)!==s.binding.context_sha256)','if(false)'],
  ['source_digest','actual source bytes must match','if(await digest(source.content,true)!==source.source_sha256)','if(false)'],

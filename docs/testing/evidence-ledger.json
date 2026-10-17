@@ -63155,6 +63155,32 @@
     "Fresh full39-file SQL and exact CI still active.",
     "No live model, browser, employer or deployment proof."
    ]
+  },
+  {
+   "id": "mass-image-copy-closure-20261017",
+   "observed_at": "2026-10-17T16:08:48.223144+00:00",
+   "command": [
+    "node",
+    "--test",
+    "tests/career-worker-image-closure.test.cjs"
+   ],
+   "source_hashes": {
+    "workers/career-browser/deploy/Dockerfile.proposal": "03227202368fea23e46ba9a1d26bba04fcc3ad1b44ba16a280a2a725e108492c",
+    "tests/career-worker-image-closure.test.cjs": "7ac0214a1cbb1b6401426faa505b34a63a618611414ccacb0f7287ab2d56cfc4"
+   },
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 1,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/image-copy-after.log",
+   "log_sha256": "f27b9eaa3ed25bdc20ec15b5175186e3dba0fb3c342179401e109fe4f3cb9403",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "COPY filesystem staging and real module loads only; no Docker image built or pulled.",
+    "No normal-browser or employer proof."
+   ]
   }
  ],
  "limitations": [

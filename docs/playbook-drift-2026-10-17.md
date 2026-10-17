@@ -101,3 +101,6 @@ Recovery runtimec8722e97 now has full clean source4771 pass/40skip/0fail and7/7 
 
 
 Full clean runner runtimef74812b3 source completed4773 passed/40 skipped/0 failed. The exact10/100 packaged test also passes after strengthening the UNKNOWN-before-restart order. Fresh full39-file SQL and exact CI39047577375 remain active; predecessor351/351 and focused recovery7/7 are distinct evidence, not substituted as this runtime's completed broad SQL result.
+
+
+Dockerfile COPY closure reproduced a missing121 module under its actual staged filesystem. The proposal now copies121/122/132/148/151 and the complete modeled native preflight graph, preserving its supplied-base, UID1000 and no-RUN/sandbox policy. The build contract stages the literal COPY instructions and loads real dependencies (including lazy132 dependency122) without image pull/build, browser or network.1/1 passes; original failure retained. This does not prove an approved base image exists or runs Chromium.

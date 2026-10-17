@@ -12,7 +12,8 @@ function sample(t,options={}){
  const scope={accountVersion:4,privacyEpoch:2,postingKey:'local:test-role',resumeSha256:hash(bytes)};
  const confirmation={confirmed:true,userId:'user-a',ref:'synthetic-confirmation-1',at:'2026-10-15T12:00:00Z'};
  const fact=(key,value,extra={})=>({kind:'fact',userId:'user-a',privacyEpoch:2,key,value,confirmation:{...confirmation},...extra});
- const records={version:'career_owned_equipment/v1',userId:'user-a',accountVersion:4,privacyEpoch:2,artifact:{id:'owned-resume-1',userId:'user-a',privacyEpoch:2,versionId:'resume-v1',filename:'resume.txt',contentType:'text/plain',bytes:bytes.length,sha256:hash(bytes),confirmation:{...confirmation}},facts:[fact('name','Synthetic Test'),fact('email','synthetic@example.test')]};
+ const records={version:'career_owned_equipment/v2',userId:'user-a',accountVersion:4,privacyEpoch:2,artifact:{id:'owned-resume-1',userId:'user-a',privacyEpoch:2,versionId:'resume-v1',filename:'resume.txt',contentType:'text/plain',bytes:bytes.length,sha256:hash(bytes),confirmation:{...confirmation}},facts:[fact('name','Synthetic Test'),fact('email','synthetic@example.test')]};
+ Object.defineProperty(records,'latestConfirmedArtifact',{enumerable:true,configurable:true,get:()=>({userId:records.userId,privacyEpoch:records.privacyEpoch,id:records.artifact.id,versionId:records.artifact.versionId,sha256:records.artifact.sha256,confirmationRef:records.artifact.confirmation.ref})});
  let reads=0;const load=()=>records,read=()=>{reads++;return {userId:'user-a',artifactId:'owned-resume-1',versionId:'resume-v1',bytes};};
  resolver=createOwnedEquipmentResolver({root:cache,authority:{current:()=>account},loadOwnedRecords:options.load||load,readOwnedBytes:options.read||read,...options});
  return {root,cache,bytes,account,scope,records,fact,confirmation,resolver,resolve:()=>resolver.resolveEquipment('user-a','owned-resume-1',scope),reads:()=>reads};
@@ -53,7 +54,7 @@ test('bounded copy TTL and explicit close remove resume bytes without a backend 
  let callback;const f=sample(t,{schedule:(fn,ms)=>{assert.equal(ms,900000);callback=fn;return null;}}),e=f.resolve();f.account.exists=false;callback();assert.equal(fs.existsSync(e.resumePath),false);assert.deepEqual(fs.readdirSync(f.cache),[]);
 });
 test('real worker uses fresh scoped equipment for preparation and approval and releases both copies',t=>{
- const f=sample(t);let fixture,reads=0;const resolver=createOwnedEquipmentResolver({root:path.join(f.root,'worker-copies'),authority:{current:user=>fixture.authority.current(user)},loadOwnedRecords(user,id,scope){reads++;return {...f.records,userId:user,accountVersion:scope.accountVersion,privacyEpoch:scope.privacyEpoch,artifact:{...f.records.artifact,userId:user,privacyEpoch:scope.privacyEpoch},facts:f.records.facts.map(x=>({...x,userId:user,privacyEpoch:scope.privacyEpoch}))};},readOwnedBytes:()=>({userId:'user-a',artifactId:'owned-resume-1',versionId:'resume-v1',bytes:f.bytes})});
+ const f=sample(t);let fixture,reads=0;const resolver=createOwnedEquipmentResolver({root:path.join(f.root,'worker-copies'),authority:{current:user=>fixture.authority.current(user)},loadOwnedRecords(user,id,scope){reads++;return {...f.records,userId:user,accountVersion:scope.accountVersion,privacyEpoch:scope.privacyEpoch,latestConfirmedArtifact:{...f.records.latestConfirmedArtifact,userId:user,privacyEpoch:scope.privacyEpoch},artifact:{...f.records.artifact,userId:user,privacyEpoch:scope.privacyEpoch},facts:f.records.facts.map(x=>({...x,userId:user,privacyEpoch:scope.privacyEpoch}))};},readOwnedBytes:()=>({userId:'user-a',artifactId:'owned-resume-1',versionId:'resume-v1',bytes:f.bytes})});
  t.after(()=>resolver.close());fixture=require('./fixtures/owned-worker-fixture.cjs').fixture(path.join(f.root,'worker'),{resolveEquipment:resolver.resolveEquipment});const q=fixture.worker.receive('user-a',fixture.input),r=fixture.worker.prepare('user-a',q.id);assert.equal(r.status,'review_ready');assert.deepEqual(fs.readdirSync(path.join(f.root,'worker-copies')),[]);const done=fixture.worker.approve('user-a',q.id,fixture.approval(r));assert.equal(done.status,'completed');assert.equal(reads,2);assert.equal(fixture.count().clicks,1);assert.deepEqual(fs.readdirSync(path.join(f.root,'worker-copies')),[]);
 });
 for(const [type,method,filename]of [['application/pdf','renderPdf','resume.pdf'],['application/vnd.openxmlformats-officedocument.wordprocessingml.document','renderDocx','resume.docx']])test('real locally rendered '+filename+' bytes survive owned resolution exactly',t=>{
@@ -75,4 +76,28 @@ test('restart schedules inherited young resume copies and preserves their remain
  assert.equal(fs.existsSync(inherited),true,'restart must preserve a young copy');
  await new Promise(resolve=>setTimeout(resolve,205));
  assert.equal(fs.existsSync(inherited),false,'inherited bytes must expire while restarted worker stays alive');assert.ok(callbacks>0,'startup must enroll inherited bytes in cleanup');
+});
+
+for(const [title,patch]of [['missing pointer',null],['another owner',{userId:'other'}],['another epoch',{privacyEpoch:9}],['historical artifact',{id:'newest-resume'}],['historical version',{versionId:'resume-v2'}],['changed digest',{sha256:'b'.repeat(64)}],['changed confirmation',{confirmationRef:'newer-confirmation'}]])test('latest confirmed artifact blocks '+title+' (SYNTHETIC local store contract)',t=>{
+ const f=sample(t),pointer=f.records.latestConfirmedArtifact;Object.defineProperty(f.records,'latestConfirmedArtifact',{value:patch===null?null:{...pointer,...patch}});
+ assert.throws(f.resolve,{code:'LATEST_CONFIRMED_RESUME_REQUIRED'});assert.equal(f.reads(),0);assert.deepEqual(fs.readdirSync(f.cache),[]);
+});
+
+
+test('explicit close erases inherited young copies (SYNTHETIC local bytes)',t=>{
+ const f=sample(t),dir=path.join(f.cache,'resume-'+'b'.repeat(16)+'-ABC123');fs.mkdirSync(dir);fs.writeFileSync(path.join(dir,'resume-bytes'),'SYNTHETIC');f.resolver.close();assert.equal(fs.existsSync(dir),false);
+});
+test('transient delete failure stays tracked and retries without an uncaught timer error (SYNTHETIC local bytes)',async t=>{
+ const f=sample(t),e=f.resolve(),original=fs.rmSync;let failures=0;
+ fs.rmSync=function(target,...args){if(target===path.dirname(e.resumePath)&&failures++===0)throw Object.assign(new Error('synthetic transient busy'),{code:'EBUSY'});return original.call(this,target,...args);};
+ t.after(()=>{fs.rmSync=original;});
+ assert.throws(e.release,{code:'EQUIPMENT_CLEANUP_PENDING'});assert.equal(fs.existsSync(e.resumePath),true);assert.equal(f.resolver.cleanupStatus().pending,1);
+ await new Promise(resolve=>setTimeout(resolve,250));assert.equal(fs.existsSync(e.resumePath),false);assert.equal(f.resolver.cleanupStatus().pending,0);
+});
+test('TTL deletion errors are contained with bounded retries and visible pending cleanup (SYNTHETIC)',t=>{
+ const callbacks=[],f=sample(t,{schedule:(fn,ms)=>{callbacks.push({fn,ms});return null;}}),e=f.resolve(),original=fs.rmSync;let deletes=0;
+ fs.rmSync=function(target,...args){if(target===path.dirname(e.resumePath)){deletes++;throw Object.assign(new Error('SYNTHETIC persistent busy'),{code:'EBUSY'});}return original.call(this,target,...args);};
+ try{while(callbacks.length){const c=callbacks.shift();assert.doesNotThrow(c.fn);assert.ok(deletes<=5);}assert.equal(deletes,5);assert.equal(f.resolver.cleanupStatus().pending,1);assert.equal(fs.existsSync(e.resumePath),true);}
+ finally{fs.rmSync=original;}
+ e.release();assert.equal(f.resolver.cleanupStatus().pending,0);assert.equal(fs.existsSync(e.resumePath),false);
 });

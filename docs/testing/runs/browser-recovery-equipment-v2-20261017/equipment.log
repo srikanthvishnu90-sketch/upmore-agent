@@ -1,0 +1,39 @@
+✔ confirmed owned bytes materialize privately and release without changing their hash (16.802071ms)
+✔ equipment refuses foreign record owner before creating an upload copy (1.269092ms)
+✔ equipment refuses stale record version before creating an upload copy (0.595489ms)
+✔ equipment refuses foreign artifact owner before creating an upload copy (0.61412ms)
+✔ equipment refuses unconfirmed resume version before creating an upload copy (0.666456ms)
+✔ equipment refuses future confirmation before creating an upload copy (0.63273ms)
+✔ equipment refuses changed declared bytes before creating an upload copy (0.628015ms)
+✔ equipment refuses unsafe upload filename before creating an upload copy (0.668408ms)
+✔ equipment refuses paused owner before creating an upload copy (0.530877ms)
+✔ equipment refuses revoked epoch before creating an upload copy (0.543669ms)
+✔ unconfirmed, foreign and stale facts are omitted rather than inferred (0.723682ms)
+✔ answers and attestations bind the posting and exact observed wording (1.151044ms)
+✔ conflicting confirmed facts and unsupported secret-like fields fail closed (0.560252ms)
+✔ byte ownership, immutable version and actual digest are independently checked (1.252327ms)
+✔ erase or correction during byte retrieval prevents materialization (0.707535ms)
+✔ bounded copy TTL and explicit close remove resume bytes without a backend call (1.821415ms)
+✔ real worker uses fresh scoped equipment for preparation and approval and releases both copies (37.645145ms)
+✔ real locally rendered resume.pdf bytes survive owned resolution exactly (6.585402ms)
+✔ real locally rendered resume.docx bytes survive owned resolution exactly (2.181097ms)
+✔ worker validation failure releases equipment without opening a page (1.906044ms)
+✔ restart schedules inherited young resume copies and preserves their remaining TTL (SYNTHETIC local bytes) (206.979304ms)
+✔ latest confirmed artifact blocks missing pointer (SYNTHETIC local store contract) (0.684865ms)
+✔ latest confirmed artifact blocks another owner (SYNTHETIC local store contract) (0.331621ms)
+✔ latest confirmed artifact blocks another epoch (SYNTHETIC local store contract) (0.301276ms)
+✔ latest confirmed artifact blocks historical artifact (SYNTHETIC local store contract) (0.259177ms)
+✔ latest confirmed artifact blocks historical version (SYNTHETIC local store contract) (0.220168ms)
+✔ latest confirmed artifact blocks changed digest (SYNTHETIC local store contract) (0.209468ms)
+✔ latest confirmed artifact blocks changed confirmation (SYNTHETIC local store contract) (0.243975ms)
+✔ explicit close erases inherited young copies (SYNTHETIC local bytes) (0.389823ms)
+✔ transient delete failure stays tracked and retries without an uncaught timer error (SYNTHETIC local bytes) (253.744982ms)
+✔ TTL deletion errors are contained with bounded retries and visible pending cleanup (SYNTHETIC) (1.590777ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 630.555637

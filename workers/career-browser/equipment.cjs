@@ -11,7 +11,9 @@ const canonical=x=>Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Obje
 function createOwnedEquipmentResolver({authority,loadOwnedRecords,readOwnedBytes,root,maxBytes=10485760,ttlMs=900000,now=Date.now,schedule=setTimeout}){
  if(typeof authority?.current!=='function'||typeof loadOwnedRecords!=='function'||typeof readOwnedBytes!=='function'||!path.isAbsolute(root)||!Number.isInteger(maxBytes)||maxBytes<1||maxBytes>10485760||!Number.isInteger(ttlMs)||ttlMs<100||ttlMs>900000)throw fail('EQUIPMENT_CONFIGURATION_INVALID');
  fs.mkdirSync(root,{recursive:true,mode:0o700});const s=fs.lstatSync(root);if(!s.isDirectory()||s.isSymbolicLink()||(s.mode&0o077)||fs.realpathSync(root)!==path.resolve(root))throw fail('EQUIPMENT_PRIVATE_DIRECTORY_REQUIRED');
- const active=new Map();let inheritedTimer;
+ const active=new Map(),cleanupFailures=new Map();let inheritedTimer,closing=false;
+ const retryDelay=attempts=>Math.min(1000,100*2**(attempts-1));
+ function removeCopy(p){try{fs.rmSync(p,{recursive:true,force:true});cleanupFailures.delete(p);return true;}catch(error){const attempts=(cleanupFailures.get(p)?.attempts||0)+1;cleanupFailures.set(p,{attempts,code:error.code||'DELETE_FAILED'});return false;}}
  function account(userId,scope){const a=authority.current(userId);if(a?.then||!a?.exists||a.paused||a.version!==scope.accountVersion||a.epoch!==scope.privacyEpoch)throw fail('STALE_EQUIPMENT_AUTHORITY');return a;}
  function confirmation(record,userId,epoch){const c=record.confirmation;return record.userId===userId&&record.privacyEpoch===epoch&&c?.confirmed===true&&c.userId===userId&&KEY.test(c.ref||'')&&Number.isFinite(Date.parse(c.at))&&Date.parse(c.at)<=now();}
  function value(v){if(typeof v==='string')return v.length<=12000&&!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(v);if(typeof v==='boolean')return true;if(typeof v==='number')return Number.isFinite(v);return Array.isArray(v)&&v.length<=25&&v.every(x=>typeof x==='string'&&x.length<=1000&&!/[\x00-\x1f\x7f]/.test(x));}
@@ -24,7 +26,7 @@ function createOwnedEquipmentResolver({authority,loadOwnedRecords,readOwnedBytes
    if(s.isSymbolicLink()||!s.isDirectory())throw fail('EQUIPMENT_PATH_INVALID');
    if(active.has(p))continue; // own active copies already have exact release timers
    const left=ttlMs-(now()-s.mtimeMs);
-   if(left<=0)fs.rmSync(p,{recursive:true,force:true});else remaining=Math.min(remaining,left);
+   if(closing||left<=0){if(!removeCopy(p)){const attempt=cleanupFailures.get(p).attempts;if(attempt<5)remaining=Math.min(remaining,retryDelay(attempt));}}else remaining=Math.min(remaining,left);
   }
   // A restart must enroll young inherited copies, not just sweep old ones.
   // Recheck their age at the deadline; never erase a still-young copy early.
@@ -33,12 +35,17 @@ function createOwnedEquipmentResolver({authority,loadOwnedRecords,readOwnedBytes
  purgeExpired();
  function resolveEquipment(userId,artifactId,scope){
   if(typeof userId!=='string'||!userId||!KEY.test(artifactId||'')||!scope||!Number.isSafeInteger(scope.accountVersion)||!Number.isSafeInteger(scope.privacyEpoch)||(typeof scope.postingKey!=='string'||!scope.postingKey||scope.postingKey.length>512||/[\x00-\x1f\x7f]/.test(scope.postingKey))||!/^[a-f0-9]{64}$/.test(scope.resumeSha256||''))throw fail('EQUIPMENT_SCOPE_REQUIRED');
+  if(closing)throw fail('EQUIPMENT_RESOLVER_CLOSED');
   account(userId,scope);
   const records=loadOwnedRecords(userId,artifactId,clone(scope));
   if(records?.then)throw fail('SYNC_EQUIPMENT_ADAPTER_REQUIRED');
-  if(records?.version!=='career_owned_equipment/v1'||records.userId!==userId||records.accountVersion!==scope.accountVersion||records.privacyEpoch!==scope.privacyEpoch||!Array.isArray(records.facts)||records.facts.length>200||records.facts.some(f=>!f||typeof f!=='object'||Array.isArray(f)))throw fail('EQUIPMENT_OWNER_MISMATCH');
+  if(records?.version!=='career_owned_equipment/v2'||records.userId!==userId||records.accountVersion!==scope.accountVersion||records.privacyEpoch!==scope.privacyEpoch||!Array.isArray(records.facts)||records.facts.length>200||records.facts.some(f=>!f||typeof f!=='object'||Array.isArray(f)))throw fail('EQUIPMENT_OWNER_MISMATCH');
   const artifact=records.artifact;
   if(!artifact||artifact.id!==artifactId||!KEY.test(artifact.versionId||'')||!confirmation(artifact,userId,scope.privacyEpoch))throw fail('RESUME_CONFIRMATION_REQUIRED');
+  // This pointer must come from the same authoritative account-store snapshot,
+  // never the task's requested historical artifact or a caller-sorted list.
+  const latest=records.latestConfirmedArtifact;
+  if(!latest||latest.userId!==userId||latest.privacyEpoch!==scope.privacyEpoch||latest.id!==artifact.id||latest.versionId!==artifact.versionId||latest.sha256!==artifact.sha256||latest.confirmationRef!==artifact.confirmation.ref)throw fail('LATEST_CONFIRMED_RESUME_REQUIRED');
   if(!/^[^\x00-\x1f\x7f/\\]{1,180}$/.test(artifact.filename||'')||['.','..'].includes(artifact.filename)||!TYPES.has(artifact.contentType)||!Number.isSafeInteger(artifact.bytes)||artifact.bytes<1||artifact.bytes>maxBytes||artifact.sha256!==scope.resumeSha256)throw fail('RESUME_ARTIFACT_INVALID');
   const profile={},attestations={},accepted=[],seen=new Set();
   for(const fact of records.facts.slice().sort((a,b)=>String(a.kind+':'+a.key).localeCompare(String(b.kind+':'+b.key)))){
@@ -63,13 +70,22 @@ function createOwnedEquipmentResolver({authority,loadOwnedRecords,readOwnedBytes
   if((artifact.contentType==='application/pdf'&&bytes.subarray(0,5).toString()!=='%PDF-')||(artifact.contentType.includes('wordprocessingml')&&bytes.subarray(0,4).toString('hex')!=='504b0304')||(artifact.contentType==='text/plain'&&bytes.includes(0)))throw fail('RESUME_CONTENT_TYPE_MISMATCH');
   account(userId,scope); // a correction/erase during either read must block
   profile.resume={filename:artifact.filename,sha256:artifact.sha256,contentType:artifact.contentType,bytes:artifact.bytes};
-  profile._provenanceSha256=hash(canonical({artifact,accepted}));
+  profile._provenanceSha256=hash(canonical({artifact,latest,accepted}));
   const dir=fs.mkdtempSync(path.join(root,'resume-'+hash(userId).slice(0,16)+'-')),resumePath=path.join(dir,'resume-bytes');let timer;
-  const release=()=>{clearTimeout(timer);active.delete(dir);fs.rmSync(dir,{recursive:true,force:true});};
-  try{const fd=fs.openSync(resumePath,'wx',0o600);try{fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}account(userId,scope);timer=schedule(release,ttlMs);active.set(dir,release);}
+  const release=()=>{
+   clearTimeout(timer);timer=undefined;
+   if(removeCopy(dir)){active.delete(dir);return;}
+   const attempt=cleanupFailures.get(dir).attempts;
+   // Keep tracking until deletion succeeds. Timer errors are contained; after
+   // five failed attempts the operator can inspect pending cleanup and retry
+   // close explicitly. Never pretend an undeleted copy was released.
+   if(attempt<5){timer=schedule(()=>{try{release();}catch(_){}},retryDelay(attempt));timer?.unref?.();}
+   throw fail('EQUIPMENT_CLEANUP_PENDING');
+  };
+  try{const fd=fs.openSync(resumePath,'wx',0o600);try{fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}account(userId,scope);timer=schedule(()=>{try{release();}catch(_){}},ttlMs);active.set(dir,release);}
   catch(e){release();throw e;}
   return {userId,accountVersion:scope.accountVersion,privacyEpoch:scope.privacyEpoch,profile:canonical(profile),attestations,resumePath,release,artifactVersion:artifact.versionId,artifactSha256:artifact.sha256};
  }
- return {resolveEquipment,purgeExpired,close:()=>{for(const release of [...active.values()])release();purgeExpired();}};
+ return {resolveEquipment,purgeExpired,cleanupStatus:()=>({pending:cleanupFailures.size,failures:[...cleanupFailures.values()].map(x=>({...x}))}),close:()=>{closing=true;for(const release of [...active.values()]){try{release();}catch(_){}}purgeExpired();if(cleanupFailures.size)throw fail('EQUIPMENT_CLEANUP_PENDING');}};
 }
 module.exports={createOwnedEquipmentResolver};

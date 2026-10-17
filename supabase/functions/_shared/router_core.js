@@ -44026,7 +44026,18 @@ const CareerRouter = (() => {
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
-    const push = (kind, value, clause) => { if (recordThreadFact(ctx, kind, value, clause)) added.push({ kind, value: s(value).trim() }); };
+    // BUG-272: a fact stated AGAIN, identical to the one on record,
+    // writes nothing (recordThreadFact's dedupe returns false) — but
+    // the turn is not empty: the user restated their own record.
+    // Track restatements apart from additions so the reply layer can
+    // acknowledge the fact as already on record instead of dropping
+    // the turn to the generic fallback (v227 live verification).
+    const restated = [];
+    const push = (kind, value, clause) => {
+      if (recordThreadFact(ctx, kind, value, clause)) { added.push({ kind, value: s(value).trim() }); return; }
+      const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
+      if (clean && statedFactsOf(ctx).some((f) => f.kind === kind && lc(f.value) === lc(clean)) && !restated.some((r) => r.kind === kind)) restated.push({ kind, value: clean });
+    };
     // (0) Explicit corrections REPLACE the fact they correct — the
     // correction clause itself is the assertion ("make it Chicago
     // not New York", "actually Denver, not Boston").
@@ -44260,6 +44271,8 @@ const CareerRouter = (() => {
     }
     if (added.length) ctx._factsAddedThisTurn = added;
     else delete ctx._factsAddedThisTurn;
+    if (restated.length) ctx._factsRestatedThisTurn = restated;
+    else delete ctx._factsRestatedThisTurn;
     return added;
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
@@ -44296,7 +44309,26 @@ const CareerRouter = (() => {
   }
   function handleStatedFactsReply(text, ctx) {
     const added = ctx._factsAddedThisTurn;
-    if (!added || !added.length) return null;
+    if (!added || !added.length) {
+      // BUG-272: nothing new was written this turn, but the user
+      // RESTATED a fact the record already holds ("I'm based in
+      // Denver" with Denver on record). The journey acknowledges
+      // the fact as already on record — read back from the record
+      // itself — instead of falling to the generic fallback. It
+      // writes nothing and claims no fresh capture: the headline
+      // says "already", never "recorded now". A turn carrying any
+      // other ask (a question, a find, an action verb) stands down
+      // and keeps its own owner.
+      const restated = ctx._factsRestatedThisTurn;
+      if (!restated || !restated.length) return null;
+      if (/\?/.test(s(text))) return null;
+      if (s(text).split(/\s+/).length > 14) return null;
+      if (/\b(find|search|show|list|get|give|tailor|draft|prep|track|watch|apply|send|write|help|what|how|why|when|which|who)\b/.test(lc(text))) return null;
+      const all = statedFactsOf(ctx);
+      const lines = restated.map((r) => { const f = all.find((x) => x.kind === r.kind && lc(x.value) === lc(r.value)); return f ? factLine(f) : `${r.kind}: ${r.value}`; });
+      const reply = compose({ headline: "Already on your record — nothing changed.", facts: [`On record: ${lines.join("; ")} — exactly as you stated it before, so this turn writes nothing new.`, `Your full record as it stands: ${all.map(factLine).join("; ")}.`], nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all, restated_facts: restated };
+    }
     if (/\?/.test(s(text))) return null;
     if (s(text).split(/\s+/).length > 22) return null;
     const all = statedFactsOf(ctx);

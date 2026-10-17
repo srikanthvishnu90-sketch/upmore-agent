@@ -63092,6 +63092,69 @@
    "limitations": [
     "No employer receipt, browser, deployment or paid-call claim."
    ]
+  },
+  {
+   "id": "mass-checkpoint-full-source-20261017",
+   "commit": "c8722e971fc5fe8682ab69effa4e95d858fa5a44",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 4771,
+    "failed": 0,
+    "skipped": 40
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/c872-full-source.log",
+   "log_sha256": "a9dbd0cc413bf9730401c3c446ebac38d4ed7b5a7f232239b1d7866a389c47b2",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Packaged entry with synthetic board/authority; local PostgreSQL independently tested7/7.",
+    "100 preparations are not100 admissions, suitable openings or submissions.",
+    "No live model quality, employer receipt or deployment proof."
+   ]
+  },
+  {
+   "id": "mass-packaged-role-windows-20261017",
+   "commit": "f74812b3dda211edbada9a5be604b65af2e09e50",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 2,
+    "failed": 0,
+    "syntheticRolesPrepared": 100,
+    "separateExact10Roles": 10,
+    "employerReceipts": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/packaged-queue-staged-after.log",
+   "log_sha256": "5f0f43431a632c9458eaa42c52cab65f80507fe88464ff68563e7364a401d2c1",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Packaged entry with synthetic board/authority; local PostgreSQL independently tested7/7.",
+    "100 preparations are not100 admissions, suitable openings or submissions.",
+    "No live model quality, employer receipt or deployment proof."
+   ]
+  },
+  {
+   "id": "mass-runner-full-source-20261017",
+   "commit": "f74812b3dda211edbada9a5be604b65af2e09e50",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--source-only"
+   ],
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 4773,
+    "failed": 0,
+    "skipped": 40
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/f748-full-source.log",
+   "log_sha256": "2d09cf78349aa22334e6ee3ab9d78180df9b1b4220cf07bb81390e219102984b",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Fresh full39-file SQL and exact CI still active.",
+    "No live model, browser, employer or deployment proof."
+   ]
   }
  ],
  "limitations": [

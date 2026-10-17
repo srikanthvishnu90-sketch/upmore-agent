@@ -30,6 +30,14 @@
       "summary": "evidence/checkpoint-postgres-after-summary.json",
       "log": "evidence/checkpoint-postgres-after.log",
       "sourceSha256MatchesRuntime": true
+    },
+    "fullCommittedSource": {
+      "head": "c8722e971fc5fe8682ab69effa4e95d858fa5a44",
+      "passed": 4771,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/c872-full-source-summary.json",
+      "log": "evidence/c872-full-source.log"
     }
   },
   "paidCalls": 0,

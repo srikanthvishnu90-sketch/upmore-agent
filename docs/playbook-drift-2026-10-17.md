@@ -95,3 +95,9 @@ Independent recovery review reproduced a missing-checkpoint defect with deletion
 
 
 Packaged-runner review reproduced queue starvation using the actual built/extracted run.cjs entry: only1/10 roles reached review, and100 preparations never progressed past the first role. Explicit per_role scheduling now yields waiting application checkpoints to the existing queue without requeue, authority renewal or a higher maxTasks. Existing single-task lifecycle contracts pass16/16. Actual packaged rerun is pending at this source commit. Checkpoint-loss SQL after-fix passes7/7 with no additional dispatch/admission.
+
+
+Recovery runtimec8722e97 now has full clean source4771 pass/40skip/0fail and7/7 actual checkpoint-loss SQL contracts. Packaged runner runtimef74812b3 passes exact10 and controlled100 queue/restart contracts; the strengthened10 sequence makes the first role UNKNOWN before restart, then advances eight healthy roles plus one held role without another submit. The exact-commit release inventory pins SQL/function/client/package graphs and calls out the stale Dockerfile COPY closure as blocked. Parent independently verified643e471 exact CI39046183352 Node/Deno/database all40 source/SQL runs success, archives still fail.
+
+
+Full clean runner runtimef74812b3 source completed4773 passed/40 skipped/0 failed. The exact10/100 packaged test also passes after strengthening the UNKNOWN-before-restart order. Fresh full39-file SQL and exact CI39047577375 remain active; predecessor351/351 and focused recovery7/7 are distinct evidence, not substituted as this runtime's completed broad SQL result.

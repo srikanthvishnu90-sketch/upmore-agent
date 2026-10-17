@@ -1,0 +1,10 @@
+✔ packaged per-role runner progresses healthy roles past a held role and UNKNOWN across restart (271.671455ms)
+✔ packaged 100-role preparation uses two bounded windows and restart, without fabricated submissions (10221.397027ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10568.84414

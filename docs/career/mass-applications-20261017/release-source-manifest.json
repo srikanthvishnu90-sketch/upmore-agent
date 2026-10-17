@@ -1,0 +1,445 @@
+{
+  "runtime": "f74812b3dda211edbada9a5be604b65af2e09e50",
+  "observedAt": "2026-10-17T16:00:21.604421+00:00",
+  "status": "BLOCKED_SOURCE_HANDOFF_NOT_DEPLOYED",
+  "branch": "codex/mass-applications-20261017",
+  "project": {
+    "id": "prj_ilcOTTXLkUoAI1XpkZ981ozYaWKn",
+    "name": "upmore",
+    "teamId": "team_mn5D4XBK4MgqL0KgNlzvzfky",
+    "sandboxRead": "403 forbidden; no runtime identifier known"
+  },
+  "functions": [
+    {
+      "entry": "supabase/functions/agent-chat/index.ts",
+      "filesSha256": {
+        "supabase/functions/_shared/agent_core.js": "680dbfa0a1842083781f8aff1fcd886684f3c0729d9771686f253e03a7d9303d",
+        "supabase/functions/_shared/biller_service.ts": "ce98e3be6e8c5639ef0f54a7fdb80f22f6a2c4d56517d8ad6880f2d5e534fecf",
+        "supabase/functions/_shared/career_host.js": "1871bbc29a780d031b1c54876f3beb0999e8604c20cd2b0f980b4e17e45e6422",
+        "supabase/functions/_shared/claim_guard.ts": "6dea3271b93bfbe72aa8b4ddd4066dcb2bb8d819ca30413adf8a023af77f4439",
+        "supabase/functions/_shared/financial_planner.ts": "9271e3c7f8df465d5df4d7e14164c5ec98e927b32612ca785af5dbb19fedc09b",
+        "supabase/functions/_shared/financial_service.ts": "ba0fe85b0742a9bd40f9f2d2367f7cd853038fe29ab90d5aadd804ba59cae046",
+        "supabase/functions/_shared/financial_tools.ts": "4f421d6b2ee97ce6b8c4a8d9a6cb725993118128059bfd0c47df79ff1049d807",
+        "supabase/functions/_shared/flow_router.ts": "7806adce248cd0f97dba99bd8c8f556d31a89ddbfdab9334de75de6b442d7698",
+        "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
+        "supabase/functions/_shared/model_calls.ts": "13c144f240f310f1c076dbbcd9ee83dcc8435a802b2c967e613fb0d8d40ef91d",
+        "supabase/functions/_shared/model_gateway.ts": "75621ee237cd12cc1d950c980f3c6b0674b16302642a1bac90a5555c8ec549f1",
+        "supabase/functions/_shared/payment_service.ts": "100fb2f3cb232fec6a83d32678873c2dff4b27e9d05393fdc18767457cf267bf",
+        "supabase/functions/_shared/proactive.ts": "6aa3281cf682b73cbcab7e7fddd7d00a8956c328b7439946174cf7f2e0ca90c4",
+        "supabase/functions/_shared/recent_transactions.ts": "f9d420dd3ed3bbf1b8a36fd6559ea7a778ebe191a88157a71ee038978a5d7bd0",
+        "supabase/functions/_shared/recovery_service.ts": "a55b113f709d0438540950a4a76a01389e22490d10c9941319065d65261528eb",
+        "supabase/functions/_shared/router_core.js": "dc5ceca55bfd311a4e968abfd489b3c1d24fe96d91a6cdf0399dc1c77b1b33ad",
+        "supabase/functions/_shared/workflow_service.ts": "5f73a6e5665e27ec0098267bc1e27c09af6bc24a0f68f0e312fffb432f0744d8",
+        "supabase/functions/agent-chat/_shared/agent.ts": "380b2b8f68cf0d6c25801aece68ab4c64917a66cd44a99b941ad2281ea14a61c",
+        "supabase/functions/agent-chat/_shared/airline_answer.ts": "db5ab52d70b1f3be7ae17838472e8fa39a5e4a088e01857cdda03e80c12009b4",
+        "supabase/functions/agent-chat/_shared/annual_checkup_answer.ts": "0c9c1b4cf0b075768ee838c49f34725acd02fe040a00c6b2fff1dfd42b4cb7db",
+        "supabase/functions/agent-chat/_shared/budget_answer.ts": "6217fccea143fec081ac5e4f00d632f248d8c0b71f5f5dcaff0da4f300181a16",
+        "supabase/functions/agent-chat/_shared/bureau_answer.ts": "87e9c9f79f7e113447c355448be6bc323993dfacbfa17f641303d69aff3d0906",
+        "supabase/functions/agent-chat/_shared/cancel_paths.ts": "7deb2385a10ed350ba574590946864d5bed47cabccf899b7c7e4136263cd4569",
+        "supabase/functions/agent-chat/_shared/capabilities.ts": "a64d2c087b1cdba72b7e47dd28111075983c2b2b31277a6d7188afde32ef267c",
+        "supabase/functions/agent-chat/_shared/card_offers_answer.ts": "b89b20287ce02a2f31e0fee72cf8fffcd9b0960f285e4f3bbd87f44432abff37",
+        "supabase/functions/agent-chat/_shared/chat_cors.ts": "ba442629ada47af34b549559bd924f1c7a6aae1410e95fca2d60e3661b496272",
+        "supabase/functions/agent-chat/_shared/chat_input.ts": "1929990c0e2f3ce56c59b67b413c6026aab0e15ae6b44daa3578076c17da2662",
+        "supabase/functions/agent-chat/_shared/chat_lesson_write.ts": "20be4fd5434c07f002a37b936c0a8b685af069dcaf644024301a9701a45b3255",
+        "supabase/functions/agent-chat/_shared/chat_session.ts": "25aee5ae5b24d3150a8551ebfbe0db98297aed75fbb3a8b0423b52b2b29ec623",
+        "supabase/functions/agent-chat/_shared/crypto_tax_answer.ts": "105b144b3cde52a9c3ffe1071614235c14d63dbbf6455926d2cb483bafd91970",
+        "supabase/functions/agent-chat/_shared/deadlines_answer.ts": "49f710e27cb733ae8627e627ba7237aa7c0ea49a25614aeb48f27fdd56edbd2f",
+        "supabase/functions/agent-chat/_shared/direct_answers.ts": "59485300b313172cc3c72704b8728d1cee70cbed5596b0986e44cdff9aa820a7",
+        "supabase/functions/agent-chat/_shared/dispute_answer.ts": "3eb487c145a885bdff0c7152368d0d22ebeea35cef2f928ae691871a079e69cd",
+        "supabase/functions/agent-chat/_shared/fee_audit_answer.ts": "fb1bd1883a6b477382808f5cbc0edb40a17d3d8c92dc95c0fee9554ea67fac1f",
+        "supabase/functions/agent-chat/_shared/finance_facts.ts": "cfcfbceed34bf167e53cb24d0d05d115a5c3085abde8a5c38105a5d2e4570c86",
+        "supabase/functions/agent-chat/_shared/form1099_answer.ts": "ca750fbc8b051fb74479ca58a1bede63a51e49c4c4fbf8bf09d5ebf207ee323c",
+        "supabase/functions/agent-chat/_shared/goal_answer.ts": "969c5dea09dfbe7b978bacdd5975de8566416f9ef91dd86e614b6166bd8652b5",
+        "supabase/functions/agent-chat/_shared/government_answer.ts": "2fa157f139534bdd64f78ceea5da2bc5e5789a4a6b017911b08d02de3637ab2a",
+        "supabase/functions/agent-chat/_shared/lessons.ts": "d551b585a8a4bf7f755db0702848b76829f846ac9bf39cf69edacf65d34b440a",
+        "supabase/functions/agent-chat/_shared/market_answer.ts": "ce3c4156e17088799f8eae191bd642dbfcfb03508fcc9689b107fd2a9f11b87a",
+        "supabase/functions/agent-chat/_shared/money_answers.ts": "7d7db990dfadc13c4e4eb44ea07323e8394f31127539682a24fd1666cb116f2e",
+        "supabase/functions/agent-chat/_shared/money_owed_answer.ts": "81a8a08b3367fd91bf116a148433015747b1b0cfae3b7bdfc99a95de0d442ab4",
+        "supabase/functions/agent-chat/_shared/paycheck_answer.ts": "092c25d02d05c0a06fffd37ae9f8fe28d32beb2efc1a698a1903f6aeb59bd6ed",
+        "supabase/functions/agent-chat/_shared/paycheck_send.ts": "599ecd233c57f1fb1d03452e025016afebc7f66f285ca0f29b68b2946dfb5b46",
+        "supabase/functions/agent-chat/_shared/payroll_answer.ts": "a44ea4034f67392a853bb89fd151dd9f849f038ae0812d8d7644c661fe332ab7",
+        "supabase/functions/agent-chat/_shared/price_drop_answer.ts": "0144dbadf57344a2dcdfbb171f9d5e518093b1f54f60090ea2abc965de72c8c6",
+        "supabase/functions/agent-chat/_shared/rewards_answer.ts": "a5063b85eb350ecd4d7fc7349a095b19879a5bfb3d920905d0658e428cea108b",
+        "supabase/functions/agent-chat/_shared/subscription_answer.ts": "3f15f1829835c5995cf77a89643fb590f17bd88fdbbb065026bebea5898c4d99",
+        "supabase/functions/agent-chat/_shared/substitutes_answer.ts": "a729f1aa9eea3999eb6118f50ce5a92026ee4ef1fc62ff0018cb13464bd9b035",
+        "supabase/functions/agent-chat/_shared/tip_fees_answer.ts": "6658108854c8ef751cc0c99d8c9184332c830b0ecf18e50a51d358b0defd3413",
+        "supabase/functions/agent-chat/_shared/unclaimed_answer.ts": "5caf8b82517c43b032db5e687c4de66a8297bfa3cbf96860230ddc159e689076",
+        "supabase/functions/agent-chat/_shared/whats_new_answer.ts": "3b8cb5d6e1696ee32c9c69b4330e5890440f0cd4ba1b40fe13681f95ae485a24",
+        "supabase/functions/agent-chat/_shared/win_back_answer.ts": "f731f70af6aef8f4db5af058fa8296d897822af193bbb0a27ea9983fd989ead9",
+        "supabase/functions/agent-chat/agent_core.js": "680dbfa0a1842083781f8aff1fcd886684f3c0729d9771686f253e03a7d9303d",
+        "supabase/functions/agent-chat/handler.ts": "2f81dfe87731830af74e2b9c27e49c08c5a1ce944265e8289be8137f85cb4bb1",
+        "supabase/functions/agent-chat/index.ts": "d8d72b49bce355e33c5f96b8653bf0c148e3ba82045370b3df934a17ad39e873",
+        "supabase/functions/agent-exec/merchant-catalog.ts": "509407a5d61d575def37d755708b63b5413bf5c3f74a6ac470f82cf75e18bba3"
+      },
+      "unresolvedStaticImports": []
+    },
+    {
+      "entry": "supabase/functions/career-applicant/index.ts",
+      "filesSha256": {
+        "supabase/functions/_shared/career_applicant_format.js": "3703ddc6b8b02a0f44ed248189b29565f6385af0828daac8d28b936bebc4dd52",
+        "supabase/functions/_shared/career_applicant_ingress.js": "bac8ba867af8ede6530a74e47699b459772ffdd5bb229561a8a637a1e0c72e53",
+        "supabase/functions/_shared/career_persistence.js": "e38f82a283a5e0eb7014564fba684f1c8d66959d96a913151d9ee1a6613952f1",
+        "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
+        "supabase/functions/_shared/router_core.career.js": "acafeebcf0f9b8df0ce589d807dbc7e3373862fb4999568bd85614a62a905f82",
+        "supabase/functions/career-applicant/index.ts": "d3f129b06c83f10cf5c0b0ba15b2b119d1b2f68cd90cbc192c501d21d15e987b"
+      },
+      "unresolvedStaticImports": []
+    },
+    {
+      "entry": "supabase/functions/career-batch/index.ts",
+      "filesSha256": {
+        "supabase/functions/_shared/career_application_batch.js": "56020cc33283b54be90bbacf5d31ca1fec4787dab00f27e045770242c9daa625",
+        "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
+        "supabase/functions/career-batch/index.ts": "3a73242598e23b51a8764e5d818a2d09a7f995eefaaa874cc692a94f591da934"
+      },
+      "unresolvedStaticImports": []
+    }
+  ],
+  "sqlSourceOrder": [
+    {
+      "path": "supabase/migrations/20261015020000_career_watch_kv.sql",
+      "sha256": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/migrations/20261015234000_career_task_intents_v1.sql",
+      "sha256": "7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_public_research_v1.sql",
+      "sha256": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "sha256": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "sha256": "bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/migrations/20261010110000_model_call_budget.sql",
+      "sha256": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "sha256": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "sha256": "b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "sha256": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "sha256": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "sha256": "a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "sha256": "21bc9997661374aa2e5a25a8bd9958ae253bd6a92bd69d9446495b08279cf119",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "sha256": "87b4340ec038ebb9b10d130890b439e40b0e9839a75729a772424288efcbcc71",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "sha256": "f7e570e858eba160bc1928e480e0bedde2e1ab3eaff5c120bfbc531ba31145e7",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "sha256": "d02f86ac132020d8ec34cf6f0b96897f9ba47f4978cd0b8681be0a83ee814fe4",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "sha256": "bcf68d1d3e0fd5e22bc1f63be31e71383f1e86938cecc7322f5cfd49c542903d",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "sha256": "6518ea1ecee58ef45a4df2b77cc160c7a584bff72ab9c14960bf3b9fa2f9b50b",
+      "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
+    }
+  ],
+  "frontendSha256": {
+    "src/upmore-app-template.html": "3a9930237b2372d0f0f215d41b545e9e15592948713e3086289eb82ce82c5380",
+    "src/career-applicant-controller.js": "17c0036609754c5f9cf16ce3d3dee4cef8eb27364daeb540d9dd727473e21d7a",
+    "src/career-applicant-ui.js": "540098fc10d593fba852a4c4b65ca17e80409240f7ecc0aac501a692c3639504",
+    "src/upmore-app.html": "887e90afe7fa444cc64227322a3bd762a4458772e71fe1c45391894b07262155",
+    "index.html": "887e90afe7fa444cc64227322a3bd762a4458772e71fe1c45391894b07262155",
+    "src/sw.js": "700fd76f51087a443eb130952e02cab43f91361212e34513bae0acd28ed1553d",
+    "sw.js": "8a511b1abd81428a1d61e67e70edcffc96ffb4d4b6131ecdb254f056c9bf9e21",
+    "vercel.json": "094f27e9c51310c5f04b986c7ae8cbfa21292a4a42c9ac53540a4ede370cfe1e"
+  },
+  "externalStaticImports": [
+    "https://deno.land/std@0.208.0/http/server.ts",
+    "https://esm.sh/@supabase/supabase-js@2.117.1",
+    "node:buffer",
+    "node:zlib"
+  ],
+  "staticInventoryLimitation": "Literal ESM import/export declarations only; bundled CommonJS require calls resolve internally and are not treated as filesystem imports; runtime config, installed schema, external dependencies and Auth/origins require operator verification. No credential values read.",
+  "workerBuild": {
+    "output": "/tmp/upmore-worker-f74812b3-source.tgz",
+    "sha256": "9fa62e55b72fc1fc36a2b76c95a9569e86bfa7554317d975f1934bceeea9510c",
+    "files": 39,
+    "codeSha": "f74812b3dda211edbada9a5be604b65af2e09e50"
+  },
+  "workerManifest": {
+    "version": "upmore_owned_worker_source/v1",
+    "codeSha": "f74812b3dda211edbada9a5be604b65af2e09e50",
+    "verification": "SOURCE_ONLY_NOT_DEPLOYED",
+    "files": [
+      {
+        "path": "packages/domain/121-career-jobs.js",
+        "sha256": "fd63d6f36638b621b1fbd87c99aa12049d14d87a1146b1e9f6383267dd797012"
+      },
+      {
+        "path": "packages/domain/122-career-profile.js",
+        "sha256": "799c8396313ffa8ae80badd6e5c6de7ac4d8392e76faf77b17b394ab3b21342f"
+      },
+      {
+        "path": "packages/domain/132-career-apply.js",
+        "sha256": "467200dfdd7dd64f67851deec78c90d388d394ceca8253b8b617bf4b4063c54c"
+      },
+      {
+        "path": "packages/domain/148-career-render.js",
+        "sha256": "2d86aa47b953cde7a7a0b07b077b244494e5c53d62909794fd9c28553fec76fd"
+      },
+      {
+        "path": "packages/domain/149-career-portal-apply.js",
+        "sha256": "2268a2173a51f69e27202791591d6b2a44059a0348a32667eecccc3b3dce2c58"
+      },
+      {
+        "path": "packages/domain/150-career-portal-browser.js",
+        "sha256": "9ceecbdf559ff92cd1af878a96433b101fc5bc85923d902f230c9ea85d7b87c7"
+      },
+      {
+        "path": "packages/domain/151-career-alert-watch.js",
+        "sha256": "a2e8ee5743ef641d402a2b90b03aba6944c1b62f6054d8746d2caf8b9e306a2a"
+      },
+      {
+        "path": "scripts/career/build-owned-worker.cjs",
+        "sha256": "a3252e77673520e3fa2db0c781199a6f0b42acf8a5d3a7b02ada0f65f77b7b19"
+      },
+      {
+        "path": "scripts/career/portal-browser-helper.cjs",
+        "sha256": "7aaa4a883b0199a0b9586952c8c4e0c6ef3ff8e2ad4cc9d75d2e77ad7e79a840"
+      },
+      {
+        "path": "supabase/functions/_shared/career_research_policy.js",
+        "sha256": "0ff3ee111216493c0eac19ecbe6cc028ee4b0f9314f3e9142654b7c5b9c9a44a"
+      },
+      {
+        "path": "tests/career-greenhouse-native-browser.test.cjs",
+        "sha256": "35c1028995424ef271eb508e0be80b87a5257189486bf7dda165fcc00e0d10ab"
+      },
+      {
+        "path": "tests/career-owned-worker-browser.test.cjs",
+        "sha256": "1b8fb7d97a9b8ae55ebabf0f1537604f6e74f8f26aea440003bf3f0789a19995"
+      },
+      {
+        "path": "tests/fixtures/greenhouse-native/equipment.cjs",
+        "sha256": "a0b6a4a903fb4a7524481926d1fb5a38b1a3601593e391d84b373abf5cefca55"
+      },
+      {
+        "path": "tests/fixtures/greenhouse-native/form.html",
+        "sha256": "e97e7a3aa708aaaeaf037299fb0530b379977e63c15b574a7a9445f9ddc60421"
+      },
+      {
+        "path": "tests/fixtures/greenhouse-native/manifest.cjs",
+        "sha256": "5995dc02376d9b8a89487e3d238d576d611db3f6dba45a20b82f76f4997b8b04"
+      },
+      {
+        "path": "tests/fixtures/greenhouse-native/server.cjs",
+        "sha256": "64b08ceb48205b17156437b97a69cf65a3da999ebab51fb88166411231cc0ab8"
+      },
+      {
+        "path": "tests/fixtures/owned-portal.cjs",
+        "sha256": "a2f426207113f07e5ed9af1cf40b089a93dd88cbf18d7324fb8900997e2c3d6d"
+      },
+      {
+        "path": "tests/fixtures/owned-worker-authority.cjs",
+        "sha256": "ffe28e7fb806cae2e004a471e6a55c845b09911c5c03621e8939cdda4411dcf3"
+      },
+      {
+        "path": "workers/career-browser/applicant-store.cjs",
+        "sha256": "267fcbf4af019808c391e9bbdb6c33b05d275acece8420b04019744d2258de67"
+      },
+      {
+        "path": "workers/career-browser/authority.cjs",
+        "sha256": "b61646eb69c9eea664fa34647c47e28e01400fe103d9443b168d557574caccf7"
+      },
+      {
+        "path": "workers/career-browser/batch-context.cjs",
+        "sha256": "acf1fb8e9871c9f5839628e248fe493d0952c77e011df3f9ca0dca99692c2dfb"
+      },
+      {
+        "path": "workers/career-browser/equipment.cjs",
+        "sha256": "41a76ba5f886f64364b3ca0efa275a22aab86581274553daa604694acd3a8c42"
+      },
+      {
+        "path": "workers/career-browser/evidence.cjs",
+        "sha256": "5d57617cb4eb94b53e273a5fcea079b14f3b32010666cb8b8de2f22b4bb030b8"
+      },
+      {
+        "path": "workers/career-browser/greenhouse-native.cjs",
+        "sha256": "30b7ec0acdf99c637e4c7e76f999df72b1cd64d47ff85712887ea4e10d58ed9c"
+      },
+      {
+        "path": "workers/career-browser/helper-runtime.cjs",
+        "sha256": "4e50b76c9bf07e9fdde50de877607b512f0bfe9564314a7907cb1880915e4a5b"
+      },
+      {
+        "path": "workers/career-browser/http.cjs",
+        "sha256": "7f3499aa8cefa75ade85ba6e3533ef13dc909c2c1eba5ea2ac5c27e687f5a5a6"
+      },
+      {
+        "path": "workers/career-browser/private-retention.cjs",
+        "sha256": "1c4caf548bc6ecece9726a89259f1ad2d1e347874c6e9ed2baabb403e2626452"
+      },
+      {
+        "path": "workers/career-browser/protocol.cjs",
+        "sha256": "8c6237a6b0e38c15835fa73d32f139001d79807b1d0ec8a3a4e4a023af30f00b"
+      },
+      {
+        "path": "workers/career-browser/pull-runner.cjs",
+        "sha256": "6d23bd00b7ab6067187694397ef0474780bbe8f2450dab8b39b13c3e62de5b63"
+      },
+      {
+        "path": "workers/career-browser/receipt.cjs",
+        "sha256": "2835a3ccfbd1bd5e4c531959a7d32793bd1abcbe796b40e3cfd003a0b9b14e31"
+      },
+      {
+        "path": "workers/career-browser/research-network.cjs",
+        "sha256": "cce1aa7e2b35bbf5c711cc08cf8f71d1eca2aa4ac1fbcf5baadd8062af03e0fc"
+      },
+      {
+        "path": "workers/career-browser/research-png.cjs",
+        "sha256": "8bc8c15f7750535dbc46fbb59433c63f4ea9dbf588071944f22732d2b5a3fd63"
+      },
+      {
+        "path": "workers/career-browser/rpc-client.cjs",
+        "sha256": "52a9451b73c4dd1386d729cd8c1be107121ab975d17e8886e03aa0646e455957"
+      },
+      {
+        "path": "workers/career-browser/rpc-helper.cjs",
+        "sha256": "2133bb312ad27c1de3d3c8392efd35e6271be7a85102e412f114cf262f1a6a48"
+      },
+      {
+        "path": "workers/career-browser/rpc-transport.cjs",
+        "sha256": "4e86d287b7af8cebfc70e64f83efed2268de20c18c14c44604dddefd1cbb152e"
+      },
+      {
+        "path": "workers/career-browser/run.cjs",
+        "sha256": "887bf0384eb10b39527f1fee8cc16458344c76f8bca9058f991fc81402d11baf"
+      },
+      {
+        "path": "workers/career-browser/service.cjs",
+        "sha256": "6606b033f483e44fbc20c8d1ffd45921c081ed0575d85669e54a98f43c8b6ee4"
+      },
+      {
+        "path": "workers/career-browser/store.cjs",
+        "sha256": "494c1766e3944e5819a5603058ccccb4db59cab4d4f19dc0a57b13f6d1dee855"
+      },
+      {
+        "path": "workers/career-browser/worker-identity.cjs",
+        "sha256": "ac774375576f4283efea1e33fddb9cdfc5d9db2addc641a978782343c3c9169c"
+      }
+    ]
+  },
+  "checks": {
+    "checkpointRuntime": {
+      "head": "c8722e971fc5fe8682ab69effa4e95d858fa5a44",
+      "sourcePassed": 4771,
+      "sourceSkipped": 40,
+      "sourceFailed": 0,
+      "checkpointSQLPassed": 7,
+      "checkpointSQLFailed": 0
+    },
+    "predecessorFullSQL": {
+      "head": "5cf56311bc3c9b3e2f6b8aa457e71962c3648007",
+      "passed": 351,
+      "files": 39,
+      "failed": 0
+    },
+    "packagedRunner": {
+      "passed": 2,
+      "failed": 0,
+      "roles": {
+        "exact10": "9 review-ready,1 held;1 subsequent UNKNOWN; restart no resend",
+        "controlled100": "99 review-ready,1 held in2 bounded50-role windows;0 submissions"
+      },
+      "log": "evidence/packaged-queue-after.log",
+      "strongerAfterRestartProof": {
+        "log": "evidence/packaged-queue-staged-after.log",
+        "testSha256": "7880d3822ea8124e0325dbc329386208366fc632939296e043a0da98836922e3",
+        "passed": 2,
+        "failed": 0,
+        "sequence": "First role becomes UNKNOWN; restart; held role and remaining eight healthy roles progress; original dispatch count remains1."
+      }
+    },
+    "runtimeFullSource": {
+      "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
+      "passed": 4773,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/f748-full-source-summary.json",
+      "log": "evidence/f748-full-source.log"
+    },
+    "predecessorExactCI": {
+      "head": "643e471a62464f632ca7786f8558b2f0cb187445",
+      "run": 39046183352,
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "runs": 40,
+      "sqlFiles": 39,
+      "archiveGate": "failure",
+      "source": "parent independent exact CI verification"
+    },
+    "runtimeExactCI": {
+      "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
+      "run": 39047577375,
+      "status": "IN_PROGRESS",
+      "checkedAt": "2026-10-17T16:04:03.190640+00:00"
+    },
+    "runtimeFullPostgres": {
+      "status": "IN_PROGRESS",
+      "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
+      "files": 39,
+      "log": "/tmp/upmore-runner-full-postgres.log",
+      "worktree": "/workspace/upmore-mass-next",
+      "sourceGraphFrozen": true
+    }
+  },
+  "paidCalls": 0,
+  "liveDatabaseMutations": 0,
+  "deployments": 0,
+  "employerSubmissions": 0,
+  "operatorSourceSha256": {
+    "workers/career-browser/deploy/Dockerfile.proposal": "42b3ae1b4037bc6ac05f92a5a7baa43eb401e2720f34aff10a858c15be6a17ab",
+    "workers/career-browser/deploy/operator-config.example.cjs": "db518542a05ed07e522b429e145b926bd8cce430ad62f84e30d3c458d4380883"
+  },
+  "imageProposalBlocker": "Dockerfile.proposal COPY closure predates batch/native dependencies. Source artifact closure is complete; no image was built or validated. Do not deploy this Dockerfile unchanged."
+}

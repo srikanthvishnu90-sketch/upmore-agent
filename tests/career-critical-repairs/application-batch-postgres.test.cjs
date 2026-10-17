@@ -78,6 +78,19 @@ if(!process.env.CAREER_TEST_CONTAINER){test('durable batch actual entry/SQL/work
   const next=await ok('create',{taskIds:ids});assert.ok(next.roles.every(v=>v.status==='unknown_outcome'));assert.equal((await command('review',{batchId:next.batchId})).status,409);assert.equal(run().length,0);
   console.log(JSON.stringify({evidence:'ACTUAL_BATCH_ENTRY_SQL_WORKER_SYNTHETIC_BOARD',healthyRolesProgressed:2,answerContinued:1,admissions:3,physicalSyntheticDispatches:3,employerReceipts:0,modelCalls:0,sharedAccountVersion:1}));
  });
+ test('reconciliation queued after checkpoint deletion durably records unavailable readback without redispatch',async()=>{
+  const batch=await prepared(),r=await review(batch);await approve(batch,r);run();
+  assert.deepEqual(clicks,{a:1,c:1});
+  worker.releaseEvidence({immediate:true});fs.rmSync(path.join(root,'tasks'),{recursive:true,force:true});
+  await ok('reconcile',{batchId:batch,taskId:ids[0],message:'Reconcile batch role '+ids[0]});
+  worker=makeWorker();const recovered=run();assert.equal(recovered.length,1);
+  assert.equal(recovered[0].status,'unknown_outcome');assert.equal(recovered[0].blocker,'DESTINATION_READBACK_UNAVAILABLE');
+  const status=await ok('status',{batchId:batch}),role=status.roles.find(v=>v.taskId===ids[0]);
+  assert.equal(role.status,'unknown_outcome');assert.equal(role.task.blocker,'DESTINATION_READBACK_UNAVAILABLE');assert.equal(role.employerConfirmed,false);
+  assert.equal(db.sql("select state from career_task_intents_v1 where binding->>'action'='reconcile'"),'completed');
+  assert.equal(run().length,0);assert.deepEqual(clicks,{a:1,c:1});assert.equal(db.sql('select count(*)from career_application_admissions_v1'),'2');
+  const next=await ok('create',{taskIds:ids});assert.ok(next.roles.filter(v=>[ids[0],ids[2]].includes(v.taskId)).every(v=>v.status==='unknown_outcome'));
+ });
  test('one changed included role rolls back every approval in the immutable batch',async()=>{
   const batch=await prepared(),r=await review(batch),changed=r.manifest.roles[1];
   assert.equal((await command('approve',{batchId:batch,reviewHash:r.reviewHash,message:r.approvalPhrase,manifest:{forged:true}})).status,400);

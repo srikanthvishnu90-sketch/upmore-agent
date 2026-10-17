@@ -1,0 +1,48 @@
+{"syntheticBatchRpcFailure":"ERROR:  exact fresh batch approval required\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 54 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  exact role answer confirmation required\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 72 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  no batch roles ready\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 46 at RAISE\n"}
+{"evidence":"ACTUAL_BATCH_ENTRY_SQL_WORKER_SYNTHETIC_BOARD","healthyRolesProgressed":2,"answerContinued":1,"admissions":3,"physicalSyntheticDispatches":3,"employerReceipts":0,"modelCalls":0,"sharedAccountVersion":1}
+{"syntheticBatchRpcFailure":"ERROR:  unknown batch command field\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 13 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch review changed\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 58 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 9 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 9 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 9 at RAISE\n"}
+(node:696472) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:696472) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ one exact batch approval progresses healthy roles while one answer continues independently; lost acknowledgements never duplicate intents (35970.832058ms)
+✖ reconciliation queued after checkpoint deletion durably records unavailable readback without redispatch (21734.974409ms)
+✔ one changed included role rolls back every approval in the immutable batch (10892.89923ms)
+✔ changed wording re-asks only the affected role and requires a new exact approval (18472.604111ms)
+✔ foreign owner, stale shared context, pause and erase refuse batch commands and clear private continuations (11141.511564ms)
+✔ closed current posting is held before any browser open; surviving roles remain reviewable (8553.963024ms)
+✔ unregistered destination is durably blocked without starving supported roles (8578.969326ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 115462.556515
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/application-batch-postgres.test.cjs:81:2
+✖ reconciliation queued after checkpoint deletion durably records unavailable readback without redispatch (21734.974409ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'blocked'
+  - 'unknown_outcome'
+  
+      at TestContext.<anonymous> (/workspace/upmore-mass-next/tests/career-critical-repairs/application-batch-postgres.test.cjs:87:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'blocked',
+    expected: 'unknown_outcome',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

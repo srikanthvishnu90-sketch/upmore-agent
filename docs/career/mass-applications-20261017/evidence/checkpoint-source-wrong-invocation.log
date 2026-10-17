@@ -1,0 +1,63 @@
+✖ actual batch entry authenticates owner and excludes injected profile, owner and posting data (3.111437ms)
+✖ lost batch acknowledgement asks for the same request ID; explicit role answers cannot contain identity digits (0.283925ms)
+✔ changed question wording refuses a scoped answer; missing eligibility is not invented (14.875856ms)
+✔ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (7.088625ms)
+✔ checkpoint absence cannot bypass owner, action, task or current-context authority (2.079715ms)
+✔ Receive deduplicates duplicate webhooks and the same seat across different event IDs (13.302734ms)
+✔ Equip checks actual file bytes and artifact owner before a browser opens (6.431849ms)
+✔ Execute/Check checkpoints persist and each action reserves then settles its budget (16.272985ms)
+✔ action schema and observation references reject unknown tools, stale nodes, disabled fields and wrong origin/frame (0.959436ms)
+✔ wrong-user read, prepare, approval and reconciliation are refused without browser actions (17.770487ms)
+✔ explicit approval binds exact review, resume bytes, destination and expiration (12.825095ms)
+✔ duplicate approval after restart returns the checked receipt with exactly one click (23.641549ms)
+✔ changed confirmed profile after review creates a new review and spends no approval (14.236072ms)
+✔ timeouts and exhausted budgets stop before submission and settle attempted actions (4.425181ms)
+✔ a captured success without destination proof remains unknown and never retries (24.426036ms)
+✔ real worker-process death after the click recovers the lease and reconciles without a second click (90.117767ms)
+✔ wrong-user destination proof cannot turn an uncertain write into a receipt (20.719778ms)
+✔ HTTP task endpoint authenticates existing identity, rejects service role and body impersonation (24.850645ms)
+✔ worker refuses employer destinations even if the older driver recognizes their ATS (0.980747ms)
+✔ 149 repeatedly observes conditional fields and page transitions before final review (1.835696ms)
+✔ 149 stops at newly revealed unknown required fields and refuses unobserved or altered answers (0.575003ms)
+✔ controlled local portal reads real multipart file bytes, checks the approved hash and refuses duplicate receipts (47.011977ms)
+✔ confirmation parser requires an explicit reference label (3.265178ms)
+✔ actual 150 adapter extracts explicit application reference, never success prose (3.535507ms)
+✔ actual 150 receipt capture binds the private submit capture and refuses absent PNG (1.371683ms)
+✔ one-application runner remains alive through review, approval uncertainty and reconciliation (1.768629ms)
+✔ idle review checkpoint is purged on ordinary polling after epoch revocation (20.709618ms)
+✔ browser helper gets a benign environment and managed lifetime, never backend markers (1.329273ms)
+✔ service calls the actual 150 immutable receipt seam for the exact destination ID (40.519926ms)
+✔ idle revocation purges private evidence but preserves an unknown-submit tombstone (24.858109ms)
+✔ runner bounds idle and uncertain waits and preserves the same checkpoint on restart (1.046541ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 29
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 423.671961
+
+✖ failing tests:
+
+test at tests/career-application-batch.test.cjs:5:1
+✖ actual batch entry authenticates owner and excludes injected profile, owner and posting data (3.111437ms)
+  Error: Use --experimental-vm-modules
+      at entry (/workspace/upmore-mass-next/tests/helpers/application-batch-entry.cjs:5:32)
+      at TestContext.<anonymous> (/workspace/upmore-mass-next/tests/career-application-batch.test.cjs:6:78)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+
+test at tests/career-application-batch.test.cjs:13:1
+✖ lost batch acknowledgement asks for the same request ID; explicit role answers cannot contain identity digits (0.283925ms)
+  Error: Use --experimental-vm-modules
+      at entry (/workspace/upmore-mass-next/tests/helpers/application-batch-entry.cjs:5:32)
+      at TestContext.<anonymous> (/workspace/upmore-mass-next/tests/career-application-batch.test.cjs:14:66)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)

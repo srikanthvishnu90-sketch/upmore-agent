@@ -63024,6 +63024,57 @@
     "Full39-suite SQL selection still in progress.",
     "No live employer, browser or paid-model quality claim."
    ]
+  },
+  {
+   "id": "mass-batch-full-sql-20261017",
+   "observed_at": "2026-10-17T15:56:17.081168+00:00",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only"
+   ],
+   "commit": "5cf56311bc3c9b3e2f6b8aa457e71962c3648007",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 351,
+    "failed": 0,
+    "suites": 39
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/5cf-full-postgres-summary.json",
+   "log_sha256": "5cdb7aebd636a55c336c682c233b96b4f1dcf7ed1841e4ffb154d4dbbfbe9b21",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No live employer receipt, paid calls or deployment.",
+    "Checkpoint-loss PostgreSQL before/after evidence tracked separately."
+   ]
+  },
+  {
+   "id": "mass-checkpoint-loss-source-20261017",
+   "observed_at": "2026-10-17T15:56:17.081364+00:00",
+   "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "tests/career-owned-worker.test.cjs",
+    "tests/career-worker-review-regressions.test.cjs",
+    "tests/career-checkpoint-readback.test.cjs",
+    "tests/career-application-batch.test.cjs"
+   ],
+   "commit": "643e471a plus source hashes in checkpoint-recovery-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 31,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/checkpoint-source-focused.log",
+   "log_sha256": "a9e21ca4751222d71c9ef45040dc8bbee4623ed30fa18a6e09f576ff8b13e597",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No live employer receipt, paid calls or deployment.",
+    "Checkpoint-loss PostgreSQL before/after evidence tracked separately."
+   ]
   }
  ],
  "limitations": [

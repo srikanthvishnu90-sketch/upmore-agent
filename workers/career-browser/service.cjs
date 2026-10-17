@@ -395,6 +395,18 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   }
   function reconcile(userId, id, options = {}) {
     return store.withLock(id, () => {
+      if (!store.get(id)) {
+        // The durable queue remains authoritative after local private-state
+        // loss. Claim only this owner's exact readback intent. Without the
+        // original payload/attempt we cannot validate a destination receipt;
+        // complete the readback request truthfully, retaining UNKNOWN and the
+        // central submit fence instead of rebuilding or re-clicking anything.
+        const grant=authority.claim({userId,intentId:options.intentId,taskId:id,expected:{action:'reconcile',task_id:id}});
+        const unavailable={version:'career_task/v1',id,userId,status:'unknown_outcome',phase:'check',review:null,result:null,asks:[],
+          blocker:'DESTINATION_READBACK_UNAVAILABLE',readback:{status:'unavailable',reason:'LOCAL_CHECKPOINT_MISSING',resubmitAuthorized:false}};
+        if(authority.finish(grant,unavailable).state!=='completed')throw fail('TASK_RESULT_UNCONFIRMED');
+        return unavailable;
+      }
       const t = owned(id, userId);
       checkAuthority(t, true);
       if(t.kind==="public_research/v1")throw fail("RESEARCH_ACTION_REFUSED");

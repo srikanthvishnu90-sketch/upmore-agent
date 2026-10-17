@@ -1,0 +1,10 @@
+✔ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (6.460292ms)
+✔ checkpoint absence cannot bypass owner, action, task or current-context authority (1.884627ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.983299

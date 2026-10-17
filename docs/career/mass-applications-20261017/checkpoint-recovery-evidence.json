@@ -1,0 +1,32 @@
+{
+  "base": "643e471a62464f632ca7786f8558b2f0cb187445",
+  "observedAt": "2026-10-17T15:56:02.147061+00:00",
+  "sourceSha256": {
+    "workers/career-browser/service.cjs": "6606b033f483e44fbc20c8d1ffd45921c081ed0575d85669e54a98f43c8b6ee4",
+    "tests/career-checkpoint-readback.test.cjs": "19fe343fc56ec71b2f1f31cdbbefcf8580411fe4bcd12f32895850c834666818",
+    "tests/career-critical-repairs/application-batch-postgres.test.cjs": "79b230bd32956f821bb145c9f4e333dbb21a348f330efefb314778cd55480084"
+  },
+  "baselineServiceSha256": "1b7d3293072254ea14ba61fa0eafe847252637347daca0cbc40a2c9d0fc04843",
+  "checks": {
+    "unitBefore": {
+      "pass": 1,
+      "fail": 1,
+      "log": "evidence/checkpoint-unit-before.log"
+    },
+    "postgresBefore": {
+      "pass": 6,
+      "fail": 1,
+      "summary": "evidence/checkpoint-postgres-before-summary.json",
+      "log": "evidence/checkpoint-postgres-before.log"
+    },
+    "focusedSource": {
+      "pass": 31,
+      "fail": 0,
+      "log": "evidence/checkpoint-source-focused.log"
+    },
+    "postgresAfter": "IN_PROGRESS"
+  },
+  "paidCalls": 0,
+  "employerReceipts": 0,
+  "externalSubmissions": 0
+}

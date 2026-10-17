@@ -1,0 +1,42 @@
+(node:746841) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:746841) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual batch entry authenticates owner and excludes injected profile, owner and posting data (137.987427ms)
+✔ lost batch acknowledgement asks for the same request ID; explicit role answers cannot contain identity digits (13.845943ms)
+✔ changed question wording refuses a scoped answer; missing eligibility is not invented (14.195883ms)
+✔ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (6.593376ms)
+✔ checkpoint absence cannot bypass owner, action, task or current-context authority (1.897874ms)
+✔ Receive deduplicates duplicate webhooks and the same seat across different event IDs (11.117466ms)
+✔ Equip checks actual file bytes and artifact owner before a browser opens (4.622255ms)
+✔ Execute/Check checkpoints persist and each action reserves then settles its budget (13.079721ms)
+✔ action schema and observation references reject unknown tools, stale nodes, disabled fields and wrong origin/frame (0.935432ms)
+✔ wrong-user read, prepare, approval and reconciliation are refused without browser actions (17.702786ms)
+✔ explicit approval binds exact review, resume bytes, destination and expiration (15.284563ms)
+✔ duplicate approval after restart returns the checked receipt with exactly one click (23.313923ms)
+✔ changed confirmed profile after review creates a new review and spends no approval (18.091209ms)
+✔ timeouts and exhausted budgets stop before submission and settle attempted actions (5.449603ms)
+✔ a captured success without destination proof remains unknown and never retries (26.760914ms)
+✔ real worker-process death after the click recovers the lease and reconciles without a second click (116.148683ms)
+✔ wrong-user destination proof cannot turn an uncertain write into a receipt (23.524459ms)
+✔ HTTP task endpoint authenticates existing identity, rejects service role and body impersonation (24.864673ms)
+✔ worker refuses employer destinations even if the older driver recognizes their ATS (0.720818ms)
+✔ 149 repeatedly observes conditional fields and page transitions before final review (1.446634ms)
+✔ 149 stops at newly revealed unknown required fields and refuses unobserved or altered answers (0.62122ms)
+✔ controlled local portal reads real multipart file bytes, checks the approved hash and refuses duplicate receipts (43.508142ms)
+✔ confirmation parser requires an explicit reference label (3.542652ms)
+✔ actual 150 adapter extracts explicit application reference, never success prose (4.015862ms)
+✔ actual 150 receipt capture binds the private submit capture and refuses absent PNG (1.45457ms)
+✔ one-application runner remains alive through review, approval uncertainty and reconciliation (1.541933ms)
+✔ idle review checkpoint is purged on ordinary polling after epoch revocation (27.796023ms)
+✔ browser helper gets a benign environment and managed lifetime, never backend markers (0.81223ms)
+✔ service calls the actual 150 immutable receipt seam for the exact destination ID (36.872625ms)
+✔ idle revocation purges private evidence but preserves an unknown-submit tombstone (24.655229ms)
+✔ runner bounds idle and uncertain waits and preserves the same checkpoint on restart (0.551298ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 442.916943

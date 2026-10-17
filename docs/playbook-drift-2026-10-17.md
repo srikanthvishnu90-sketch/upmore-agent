@@ -86,3 +86,9 @@ Batch continuation source: prior single-task chat approvals advanced shared cont
 
 
 Committed exact-batch runtime5cf56311 full source passes4769 with40 skips and no failures, including deterministic packaging. Prior fixture correction a9157c4e is now exact-CI Node/Deno/database green (39043650555), including all38 SQL files; this supersedes only the old known fixture failure, preserving its failure evidence. Updated39-suite batch SQL selection is still active. Original archival assets remain missing; nothing was fabricated or waived.
+
+
+Full runtime5cf56311 PostgreSQL validation completed all39 suites:351 passed,0 failures, owned network-none fixture removed. The previously unretained normal-sandbox state now has a retained about:blank failure: existing Chromium aborts on the helper configuration. Read-only Vercel project discovery succeeded; exact-project sandbox listing returned403 and stopped without fallback or provisioning. No authorized running runtime identifier is known.
+
+
+Independent recovery review reproduced a missing-checkpoint defect with deletion before reconciliation enqueue/restart: the actual SQL/worker contract returned blocked TASK_NOT_FOUND and stranded the request (6 prior contracts pass; new seventh fails). A readback-only owner-bound grant now publishes deterministic UNKNOWN/DESTINATION_READBACK_UNAVAILABLE without reconstructing private state or emitting any browser effect. Source regression proves exact task/action/owner/current-context fences. Focused source initially omitted required VM-module flag (2 harness errors); corrected invocation passes31/31, preserving the failed command evidence.

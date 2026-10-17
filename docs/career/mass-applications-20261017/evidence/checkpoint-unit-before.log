@@ -1,0 +1,28 @@
+✖ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (4.878736ms)
+✔ checkpoint absence cannot bypass owner, action, task or current-context authority (2.031815ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88.284582
+
+✖ failing tests:
+
+test at tests/career-checkpoint-readback.test.cjs:9:1
+✖ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (4.878736ms)
+  Error: TASK_NOT_FOUND
+      at fail (/workspace/upmore-mass-next/workers/career-browser/store.cjs:6:54)
+      at owned (/workspace/upmore-mass-next/workers/career-browser/service.cjs:52:91)
+      at /workspace/upmore-mass-next/workers/career-browser/service.cjs:398:17
+      at Object.withLock (/workspace/upmore-mass-next/workers/career-browser/store.cjs:45:19)
+      at Object.reconcile (/workspace/upmore-mass-next/workers/career-browser/service.cjs:397:18)
+      at TestContext.<anonymous> (/workspace/upmore-mass-next/tests/career-checkpoint-readback.test.cjs:11:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    code: 'TASK_NOT_FOUND'
+  }

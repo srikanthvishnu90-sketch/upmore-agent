@@ -1,0 +1,211 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"14e4911fd2c486bf","commit":"850ab29224363189a4ed4dfc055b115fe11d3efb","preflightDirtyFiles":"","harnessSha256":"4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad","testSourceSha256":{"career-critical-repairs/interview-background-refresh-postgres.test.cjs":"f0626d720cf8bfc2ba132f043739ffe2ade0590f1ecab5aadb99161509efb8bb"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":380,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-background-refresh-postgres.test.cjs"],"started":"2026-10-17T03:31:28.998Z","runs":[],"out":"/tmp/upmore-ci-node-RHKhF9","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/interview-background-refresh-postgres.test.cjs","database":"career_test_ci_14e4911fd2c486bf_0","marker":"upmore-ci-fixture:14e4911fd2c486bf"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-14e4911fd2c486bf","database":"career_test_ci_14e4911fd2c486bf_0","marker":"upmore-ci-fixture:14e4911fd2c486bf"}
+# (node:1470964) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1470964) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: actual multiwrite alert cycles preserve interview read, correction and resume writes without fabricated chat receipts
+not ok 1 - actual multiwrite alert cycles preserve interview read, correction and resume writes without fabricated chat receipts
+  ---
+  duration_ms: 2389.011339
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:36:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 4
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 4
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:46:43)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: direct alert-store write followed by ordinary host turns cannot leave a permanent counter mismatch
+not ok 2 - direct alert-store write followed by ordinary host turns cannot leave a permanent counter mismatch
+  ---
+  duration_ms: 1780.285838
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:58:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"read"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:22:9)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:60:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: concurrent background and context writes preserve both values after explicit stale-fence retry
+not ok 3 - concurrent background and context writes preserve both values after explicit stale-fence retry
+  ---
+  duration_ms: 1768.899877
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:63:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:70:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: two concurrent alert-store fences admit one write, reject the stale write, and retain its explicit retry
+not ok 4 - two concurrent alert-store fences admit one write, reject the stale write, and retain its explicit retry
+  ---
+  duration_ms: 1740.56661
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:75:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"two-background-read"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:22:9)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:80:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unwitnessed owner edits remain blocked after legitimate background and later host writes
+not ok 5 - unwitnessed owner edits remain blocked after legitimate background and later host writes
+  ---
+  duration_ms: 1459.576178
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:82:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"legitimate"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:22:9)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:83:67)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a watch commit invalidates an outstanding refresh CAS proposal without overwriting context
+not ok 6 - a watch commit invalidates an outstanding refresh CAS proposal without overwriting context
+  ---
+  duration_ms: 2041.905244
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:90:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"cas-current"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:22:9)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:95:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: foreign witnesses and client roles cannot authorize an owner context or write mutation journals
+ok 7 - foreign witnesses and client roles cannot authorize an owner context or write mutation journals
+  ---
+  duration_ms: 2385.148516
+  type: 'test'
+  ...
+# Subtest: pause and erase retain admission and epoch fences; erasure removes all old mutation witnesses
+not ok 8 - pause and erase retain admission and epoch fences; erasure removes all old mutation witnesses
+  ---
+  duration_ms: 1506.32868
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:105:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"before-pause"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:22:9)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:106:67)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: failed multiwrite cycles roll back background values, account counter and mutation witnesses atomically
+ok 9 - failed multiwrite cycles roll back background values, account counter and mutation witnesses atomically
+  ---
+  duration_ms: 1889.671213
+  type: 'test'
+  ...
+# Subtest: background profile changes stale account-scoped evidence until explicit repair instead of retagging it fresh
+not ok 10 - background profile changes stale account-scoped evidence until explicit repair instead of retagging it fresh
+  ---
+  duration_ms: 1795.045456
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:122:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'current' !== 'stale'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'stale'
+  actual: 'current'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs:126:92)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 2
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18947.843649
+{"token":"14e4911fd2c486bf","commit":"850ab29224363189a4ed4dfc055b115fe11d3efb","preflightDirtyFiles":"","harnessSha256":"4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad","testSourceSha256":{"career-critical-repairs/interview-background-refresh-postgres.test.cjs":"f0626d720cf8bfc2ba132f043739ffe2ade0590f1ecab5aadb99161509efb8bb"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":380,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-background-refresh-postgres.test.cjs"],"started":"2026-10-17T03:31:28.998Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/interview-background-refresh-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-RHKhF9","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837","supabase/sql/proposals/career_interview_entry_v1.sql":"b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f","supabase/sql/proposals/career_interview_context_refresh_v1.sql":"2f4573a8cf2827d2d3805e6c4d1690a9f2167b999e61c6b65104da3b28118791"},"fixture":{"container":"upmore-career-integration-pg-ci-14e4911fd2c486bf","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T03:31:54.783Z","pass":false}

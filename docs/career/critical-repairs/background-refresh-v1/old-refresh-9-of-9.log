@@ -1,0 +1,72 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"41184f91c8eda67c","commit":"cfe8d8547ff269a9a4bdbada8a37ea337a8896f3","preflightDirtyFiles":"M supabase/sql/proposals/career_interview_context_refresh_v1.sql","harnessSha256":"4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad","testSourceSha256":{"career-critical-repairs/interview-thread-refresh-postgres.test.cjs":"29beb83da78611eda78b6eb572505c2155e2b676308b9ecd0db47993784ab249"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":380,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"started":"2026-10-17T03:34:17.161Z","runs":[],"out":"/tmp/upmore-ci-node-BjsawK","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/interview-thread-refresh-postgres.test.cjs","database":"career_test_ci_41184f91c8eda67c_0","marker":"upmore-ci-fixture:41184f91c8eda67c"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-41184f91c8eda67c","database":"career_test_ci_41184f91c8eda67c_0","marker":"upmore-ci-fixture:41184f91c8eda67c"}
+# (node:1496702) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1496702) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# {"case":"TWO_OWNED_THREADS","a":{"facts":[{"id":"project","kind":"project","scope":{"kind":"thread","owner_id":"00000000-0000-4000-8000-0000000000a1","thread_id":"00000000-0000-4000-8000-0000000000b1"},"value":"Thread A actual calculator.","status":"active","created":{"event_ordinal":0,"account_version":1},"effective":{"event_ordinal":0,"account_version":1},"freshness":"current","provenance":{"kind":"user_report","trust":"user_reported","revision":0,"record_id":"typed-fact:project","reference":"Explicit actual statement for this interview journey","observed_at":"2026-10-17T03:34:24.558Z"},"source_refs":[],"item_version":0}],"goals":[],"binding":{"epoch":0,"context_sha256":"19a73353c7c81a7c0d3038b8dac9953290bec715ce476a066fdd2a4291f8a372","account_version":2,"thread_revision":1},"sources":[],"dialogue":[],"owner_id":"00000000-0000-4000-8000-0000000000a1","receipts":[],"artifacts":[],"thread_id":"00000000-0000-4000-8000-0000000000b1","assessments":[],"captured_at":"2026-10-17T03:34:26.075Z","tool_status":[],"capabilities":[{"reason":"Owned interview question host","availability":"available","capability_id":"career.ask_question"},{"reason":"Owned artifact storage required at execution","availability":"available","capability_id":"career.create_draft"},{"reason":"Separate host configuration and paired budget admission required","availability":"available","capability_id":"career.coach_answer"}],"pending_asks":[],"current_draft":null,"invalidations":[{"id":"typed-context:a","scope":{"kind":"thread","owner_id":"00000000-0000-4000-8000-0000000000a1","thread_id":"00000000-0000-4000-8000-0000000000b1"},"effect":"replace","reason":"fact_corrected","created":{"event_ordinal":0,"account_version":1},"effective":{"event_ordinal":0,"account_version":1},"freshness":"current","provenance":{"kind":"host_state","trust":"host_authoritative","revision":1,"record_id":"a","reference":"Typed evidence write","observed_at":"2026-10-17T03:34:24.558Z"},"target_ids":["project"],"item_version":0,"dependency_impact":"targets_and_dependents"}],"contract_version":"career_journey_context/v1"},"b":{"facts":[{"id":"project","kind":"project","scope":{"kind":"thread","owner_id":"00000000-0000-4000-8000-0000000000a1","thread_id":"00000000-0000-4000-8000-0000000000b2"},"value":"Thread B actual parser.","status":"active","created":{"event_ordinal":0,"account_version":2},"effective":{"event_ordinal":0,"account_version":2},"freshness":"current","provenance":{"kind":"user_report","trust":"user_reported","revision":0,"record_id":"typed-fact:project","reference":"Explicit actual statement for this interview journey","observed_at":"2026-10-17T03:34:25.340Z"},"source_refs":[],"item_version":0}],"goals":[],"binding":{"epoch":0,"context_sha256":"67f63441267019417a0967e5cacc2dbd5c88068df09209a82b03a4c8cf08cd5b","account_version":2,"thread_revision":1},"sources":[],"dialogue":[],"owner_id":"00000000-0000-4000-8000-0000000000a1","receipts":[],"artifacts":[],"thread_id":"00000000-0000-4000-8000-0000000000b2","assessments":[],"captured_at":"2026-10-17T03:34:25.340Z","tool_status":[],"capabilities":[{"reason":"Owned interview question host","availability":"available","capability_id":"career.ask_question"},{"reason":"Owned artifact storage required at execution","availability":"available","capability_id":"career.create_draft"},{"reason":"Separate host configuration and paired budget admission required","availability":"available","capability_id":"career.coach_answer"}],"pending_asks":[],"current_draft":null,"invalidations":[{"id":"typed-context:b","scope":{"kind":"thread","owner_id":"00000000-0000-4000-8000-0000000000a1","thread_id":"00000000-0000-4000-8000-0000000000b2"},"effect":"replace","reason":"fact_corrected","created":{"event_ordinal":0,"account_version":2},"effective":{"event_ordinal":0,"account_version":2},"freshness":"current","provenance":{"kind":"host_state","trust":"host_authoritative","revision":2,"record_id":"b","reference":"Typed evidence write","observed_at":"2026-10-17T03:34:25.340Z"},"target_ids":["project"],"item_version":0,"dependency_impact":"targets_and_dependents"}],"contract_version":"career_journey_context/v1"},"accountVersion":"2"}
+# Subtest: two owned interview contexts can be read without weakening strict counter equality or bumping turns
+ok 1 - two owned interview contexts can be read without weakening strict counter equality or bumping turns
+  ---
+  duration_ms: 4156.801299
+  type: 'test'
+  ...
+# Subtest: a writer can repair its own version after another thread changes the owner counter
+ok 2 - a writer can repair its own version after another thread changes the owner counter
+  ---
+  duration_ms: 3193.902141
+  type: 'test'
+  ...
+# Subtest: ordinary owned counter/control changes refresh context while preserving pause admission
+ok 3 - ordinary owned counter/control changes refresh context while preserving pause admission
+  ---
+  duration_ms: 3497.010169
+  type: 'test'
+  ...
+# Subtest: concurrent owned corrections retain both item updates after explicit CAS-conflict retry
+ok 4 - concurrent owned corrections retain both item updates after explicit CAS-conflict retry
+  ---
+  duration_ms: 4887.832483
+  type: 'test'
+  ...
+# Subtest: semantic source changes remain invalidated until an explicit owned repair, rather than being retagged current
+ok 5 - semantic source changes remain invalidated until an explicit owned repair, rather than being retagged current
+  ---
+  duration_ms: 4106.842359
+  type: 'test'
+  ...
+# Subtest: foreign ownership and privacy erase cannot use refresh to resurrect old context
+ok 6 - foreign ownership and privacy erase cannot use refresh to resurrect old context
+  ---
+  duration_ms: 3848.333112
+  type: 'test'
+  ...
+# Subtest: unrelated thread counter changes preserve exact owned artifact readback and later verified reopen
+ok 7 - unrelated thread counter changes preserve exact owned artifact readback and later verified reopen
+  ---
+  duration_ms: 5617.110593
+  type: 'test'
+  ...
+# Subtest: refresh itself rejects stale CAS proposals, foreign owners, value edits and client-role invocation
+ok 8 - refresh itself rejects stale CAS proposals, foreign owners, value edits and client-role invocation
+  ---
+  duration_ms: 2823.63917
+  type: 'test'
+  ...
+# Subtest: account-scoped canonical source corrections in another thread cannot be silently rebased as fresh
+ok 9 - account-scoped canonical source corrections in another thread cannot be silently rebased as fresh
+  ---
+  duration_ms: 3638.293929
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 35962.469452
+{"token":"41184f91c8eda67c","commit":"cfe8d8547ff269a9a4bdbada8a37ea337a8896f3","preflightDirtyFiles":"M supabase/sql/proposals/career_interview_context_refresh_v1.sql","harnessSha256":"4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad","testSourceSha256":{"career-critical-repairs/interview-thread-refresh-postgres.test.cjs":"29beb83da78611eda78b6eb572505c2155e2b676308b9ecd0db47993784ab249"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":380,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"started":"2026-10-17T03:34:17.161Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"exitCode":0}],"out":"/tmp/upmore-ci-node-BjsawK","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837","supabase/sql/proposals/career_interview_entry_v1.sql":"b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f","supabase/sql/proposals/career_interview_context_refresh_v1.sql":"a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780"},"fixture":{"container":"upmore-career-integration-pg-ci-41184f91c8eda67c","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T03:34:59.545Z","pass":true}

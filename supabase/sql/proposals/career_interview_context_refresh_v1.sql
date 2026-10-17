@@ -1,15 +1,37 @@
 -- Owner-review proposal only. Keep the strict context equality RPC unchanged.
 -- Counter-only refresh requires an owned source-basis witness and CAS.
+-- Replace only the existing watch RPC in this unapplied proposal. Its original
+-- validation, owner lock, CAS and pause/epoch fences remain. A typed value-free
+-- witness commits with the watch value and counter; it is never a chat receipt.
+create or replace function public.career_watch_write(p_user uuid,p_key text,p_value jsonb,p_version bigint,p_epoch bigint) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare a jsonb;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';a:=coalesce(a,'{"version":0,"epoch":0}'::jsonb);
+ if (a->>'version')::bigint is distinct from p_version or (a->>'epoch')::bigint is distinct from p_epoch or a->'paused'='true'::jsonb then raise exception 'stale or paused career worker';end if;
+ if p_user is null or p_key is null or not (p_key in ('career:watch-profile:'||p_user,'career:reminder-queue:'||p_user,'career:reminder-history:'||p_user) or (p_key like 'career:jobs:snapshot:board:%' and right(p_key,37)=':'||p_user)) or p_value is null or octet_length(p_value::text)>1048576 then raise exception 'invalid watch state';end if;
+ if p_key='career:watch-profile:'||p_user and p_value->>'user_id' is distinct from p_user::text then raise exception 'watch owner mismatch';end if;
+ insert into career_watch_kv(user_id,key,value) values(p_user,p_key,p_value) on conflict(user_id,key) do update set value=excluded.value,updated_at=now();
+ a:=a||jsonb_build_object('version',p_version+1);
+ insert into career_watch_kv(user_id,key,value) values(p_user,'career:account',a) on conflict(user_id,key) do update set value=excluded.value,updated_at=now();
+ insert into career_watch_kv(user_id,key,value)values(p_user,'career:owner-mutation:'||p_epoch||':'||(p_version+1),jsonb_build_object('kind','career_watch_write/v1','owner_id',p_user,'epoch',p_epoch,'account_version',p_version+1,'key_sha256',encode(sha256(convert_to(p_key,'UTF8')),'hex')));
+ return jsonb_build_object('version',p_version+1,'epoch',p_epoch);
+end $$;
+revoke all on function public.career_watch_write(uuid,text,jsonb,bigint,bigint)from public,anon,authenticated;
+grant execute on function public.career_watch_write(uuid,text,jsonb,bigint,bigint)to service_role;
 create function public.career_journey_context_basis_v1(p_user uuid,p_thread uuid)
 returns jsonb language sql stable security invoker set search_path=public,pg_temp as $$
  with stores as(select thread_id,coalesce(state#>'{career,stores}','{}'::jsonb)-'interviewJourney'-'globalPause' as value from agent_flow_state where user_id=p_user),
  account_items as(select k.key,v.item-'freshness' as item from career_watch_kv k cross join lateral jsonb_array_elements(
   coalesce(k.value->'facts','[]'::jsonb)||coalesce(k.value->'sources','[]'::jsonb)||coalesce(k.value->'dialogue','[]'::jsonb)||coalesce(k.value->'goals','[]'::jsonb)||coalesce(k.value->'pending_asks','[]'::jsonb)||coalesce(k.value->'tool_status','[]'::jsonb)||coalesce(k.value->'receipts','[]'::jsonb)||coalesce(k.value->'artifacts','[]'::jsonb)||coalesce(k.value->'assessments','[]'::jsonb)||case when jsonb_typeof(k.value->'current_draft')='object'then jsonb_build_array(k.value->'current_draft')else '[]'::jsonb end)v(item)
-  where k.user_id=p_user and k.key~'^career:journey-context:[a-f0-9-]{36}$'and v.item#>>'{scope,kind}'='account')
+  where k.user_id=p_user and k.key~'^career:journey-context:[a-f0-9-]{36}$'and v.item#>>'{scope,kind}'='account'),
+ mutation_counts as(select count(*)filter(where key like 'career:turn:%')as turns,
+  count(*)filter(where key='career:owner-mutation:'||(value->>'epoch')||':'||(value->>'account_version')and value->>'kind'='career_watch_write/v1'and value->>'owner_id'=p_user::text and value->>'epoch'=coalesce((select value->>'epoch'from career_watch_kv where user_id=p_user and key='career:account'),'0')and jsonb_typeof(value->'account_version')='number'and value->>'account_version'~'^[0-9]{1,19}$'and value->>'key_sha256'~'^[a-f0-9]{64}$')as background
+  from career_watch_kv where user_id=p_user)
  select jsonb_build_object(
-  'turn_count',(select count(*)from career_watch_kv where user_id=p_user and key like 'career:turn:%'),
+  'turn_count',turns,'mutation_count',turns+background,
   'thread_sha',encode(sha256(convert_to(coalesce((select value from stores where thread_id=p_thread),'{}'::jsonb)::text,'UTF8')),'hex'),
-  'account_sha',encode(sha256(convert_to(jsonb_build_object('stores',coalesce((select jsonb_agg(jsonb_build_array(thread_id,value)order by thread_id)from stores where value<>'{}'::jsonb),'[]'::jsonb),'canonical',coalesce((select jsonb_agg(jsonb_build_array(key,item)order by key,item->>'id')from account_items),'[]'::jsonb),'preferences',coalesce((select value-'version'-'epoch'-'paused' from career_watch_kv where user_id=p_user and key='career:account'),'{}'::jsonb))::text,'UTF8')),'hex'));
+  'account_sha',encode(sha256(convert_to(jsonb_build_object('stores',coalesce((select jsonb_agg(jsonb_build_array(thread_id,value)order by thread_id)from stores where value<>'{}'::jsonb),'[]'::jsonb),'canonical',coalesce((select jsonb_agg(jsonb_build_array(key,item)order by key,item->>'id')from account_items),'[]'::jsonb),'watch_profile',(select value from career_watch_kv where user_id=p_user and key='career:watch-profile:'||p_user),'preferences',coalesce((select value-'version'-'epoch'-'paused' from career_watch_kv where user_id=p_user and key='career:account'),'{}'::jsonb))::text,'UTF8')),'hex'))from mutation_counts;
 $$;
 create function public.career_journey_context_cursor_v1()returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
 declare t uuid;s jsonb;pending jsonb;b jsonb;
@@ -25,7 +47,7 @@ begin
  b:=career_journey_context_basis_v1(NEW.user_id,t)||jsonb_build_object('context_sha256',NEW.value#>'{binding,context_sha256}','pending_invalidation_ids',pending);
  -- An explicit owned import can still carry its older projection clock.
  -- Anchor its receipt watermark to that clock, rather than the import time.
- b:=b||jsonb_build_object('turn_count',(b->>'turn_count')::bigint-coalesce((select(value->>'version')::bigint from career_watch_kv where user_id=NEW.user_id and key='career:account'),0)+(NEW.value#>>'{binding,account_version}')::bigint);
+ b:=b||jsonb_build_object('mutation_count',(b->>'mutation_count')::bigint-coalesce((select(value->>'version')::bigint from career_watch_kv where user_id=NEW.user_id and key='career:account'),0)+(NEW.value#>>'{binding,account_version}')::bigint);
  insert into career_watch_kv(user_id,key,value)values(NEW.user_id,'career:journey-context-cursor:'||t,b)on conflict(user_id,key)do update set value=excluded.value,updated_at=now();
  return NEW;
 end $$;
@@ -64,13 +86,13 @@ begin
  if old#>'{binding,epoch}' is distinct from loaded#>'{binding,epoch}'then return jsonb_build_object('error','privacy_epoch_changed');end if;
  if old#>>'{binding,context_sha256}' is distinct from p_expected_hash or loaded->'binding' is distinct from p_binding or loaded->'basis' is distinct from p_basis then return jsonb_build_object('error','revision_conflict');end if;
  -- A source fingerprint alone cannot authorize an unexplained counter edit.
- -- Host commits add one durable owner receipt and one account version atomically.
+ -- Each version must have either an atomic host receipt or typed watch witness.
  -- Unsupported writers or missing witnesses fail closed; do not infer a turn.
  cursor_value:=loaded->'cursor';
  if (old->'binding')-'context_sha256' is distinct from p_binding and(
-  cursor_value->>'context_sha256' is distinct from p_expected_hash or not(cursor_value?'turn_count')
+  cursor_value->>'context_sha256' is distinct from p_expected_hash or coalesce(cursor_value->'mutation_count',cursor_value->'turn_count')is null
   or (p_binding->>'account_version')::bigint<(old#>>'{binding,account_version}')::bigint
-  or (p_binding->>'account_version')::bigint-(old#>>'{binding,account_version}')::bigint is distinct from (p_basis->>'turn_count')::bigint-(cursor_value->>'turn_count')::bigint
+  or (p_binding->>'account_version')::bigint-(old#>>'{binding,account_version}')::bigint is distinct from (p_basis->>'mutation_count')::bigint-coalesce(cursor_value->>'mutation_count',cursor_value->>'turn_count')::bigint
   or (p_binding->>'thread_revision')::bigint<(old#>>'{binding,thread_revision}')::bigint
   or (p_binding->>'thread_revision')::bigint-(old#>>'{binding,thread_revision}')::bigint>(p_binding->>'account_version')::bigint-(old#>>'{binding,account_version}')::bigint
  )then return jsonb_build_object('error','journey_context_unavailable');end if;

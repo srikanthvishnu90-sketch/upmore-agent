@@ -1,0 +1,23 @@
+{
+  "frozenOracleHead": "cfe8d8547ff269a9a4bdbada8a37ea337a8896f3",
+  "runtimeState": "uncommitted proposal change on frozen oracle head",
+  "sourceSha256": {
+    "tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs": "0d7a261fffac8a6de7628e4b4f84cf56abe27384c41a943735aa03fd73f87522",
+    "supabase/sql/proposals/career_interview_context_refresh_v1.sql": "a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780",
+    "supabase/migrations/20261015020000_career_watch_kv.sql": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a",
+    "scripts/career/alerts-host.mjs": "afa649e656218c7525b0d7662b6d4deb7af12857daa254b2f77fe1dc21a4ccdf"
+  },
+  "evidenceSha256": {
+    "before-initial-2-of-10.log": "2af4ef3bd74600879c27d57d634780fa6ea55440c30d91fd39ecf8de4ee2c509",
+    "before-final-2-of-10.log": "eb4f094fc18a48d01d524e0e15f0726f4a002e3960bbaedbd12c9fdf70a8cf22",
+    "after-10-of-10.log": "12074f9b8c2e384975c43e19b973b1a48e233c0ca000904894f827346c402b5f",
+    "old-entry-10-of-10.log": "2975197de9f43ace90ee91f94f5a14eebe2c68531b6f85e8a2ca9031144e8b44",
+    "old-refresh-9-of-9.log": "dcddf0c9008d293dd50bc8d6e95b2b7c7606927466ed5d4a3dda046ce79ebc88"
+  },
+  "originalWatchBodyPreservedApartFromAtomicWitnessInsert": true,
+  "originalMigrationAndAlertsHostUnchanged": true,
+  "paidCalls": 0,
+  "browserOutcomes": 0,
+  "productionMutations": 0,
+  "separateEvaluatorAllocationUsed": 0
+}

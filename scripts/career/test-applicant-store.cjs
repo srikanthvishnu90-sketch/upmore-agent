@@ -15,6 +15,6 @@ try{
  const files=['tests/fixtures/career-persistence-schema.sql','supabase/migrations/20261015020000_career_watch_kv.sql','supabase/migrations/20261015234000_career_task_intents_v1.sql','supabase/sql/proposals/career_public_research_v1.sql','supabase/sql/proposals/career_owned_claim_recovery_v1.sql','supabase/sql/proposals/career_applicant_resume_store_v1.sql'];
  for(const f of files)sql(fs.readFileSync(path.join(root,f),'utf8'),database);
  console.log(JSON.stringify({verification:'ISOLATED_POSTGRES_SYNTHETIC_APPLICANT_DATA',image,network:'none',persistentVolumes:0,sourceFiles:files,productionMutations:0}));
- const result=spawnSync(process.execPath,['--experimental-vm-modules','--test','tests/career-applicant-store-postgres.test.cjs'],{cwd:root,env:{...process.env,CAREER_TEST_CONTAINER:container,CAREER_TEST_DATABASE:database},stdio:'inherit'});process.exitCode=result.status??1;
+ const result=spawnSync(process.execPath,['--experimental-vm-modules','--test','--test-concurrency=1','tests/career-applicant-store-postgres.test.cjs','tests/career-public-research-postgres.test.cjs','tests/career-claim-recovery-postgres.test.cjs'],{cwd:root,env:{...process.env,CAREER_TEST_CONTAINER:container,CAREER_TEST_DATABASE:database},stdio:'inherit'});process.exitCode=result.status??1;
 }catch(error){console.error('Applicant-store local verification failed: '+String(error.stderr||error.message));process.exitCode=1;}
 finally{if(created){try{docker(['rm','-f',container]);}catch(_){console.error('LOCAL_CONTAINER_CLEANUP_FAILED '+container);process.exitCode=1;}}}

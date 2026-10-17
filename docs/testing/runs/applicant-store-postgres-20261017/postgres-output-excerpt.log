@@ -1,0 +1,42 @@
+Captured stdout excerpt: first two passing PDF/DOCX rows and initial runner metadata were delivered in earlier tool chunks; this excerpt preserves all subsequent test rows and the complete final summary. All candidate inputs and provider/auth identities are synthetic. PostgreSQL/functions are actual isolated source migrations/proposals.
+✔ actual staged authenticated handler commits the exact confirmation hash used by the proposed writer (3671.037407ms)
+✔ legacy snapshot artifact labels cannot resolve as resume bytes without the new confirmed store (924.610894ms)
+✔ caller boolean, generic yes, wrong turn or foreign receipt cannot mint a confirmation (994.301803ms)
+✔ confirmation binds real bytes and immutable version, with an idempotent replay (759.656673ms)
+✔ delayed confirmation of an old owner turn cannot supersede newer account activity (587.190051ms)
+✔ latest confirmed resume is chosen by server sequence, never requested historical ID/hash (2699.302601ms)
+✔ task owner, lease, posting, digest and account version are independently scoped (2403.594938ms)
+✔ STOP revokes resolution and ERASE deletes server bytes without another owner loss (1596.805136ms)
+✔ correction between metadata and byte RPC prevents materialization (1137.308086ms)
+✔ SQL gates expired owned lease and unclaimed task; no bytes are returned (1485.686507ms)
+✔ actual service forwards the claimed task/lease to source adapter and asks for missing confirmed facts (2757.809674ms)
+✔ legacy receipts without a server account-version stamp are refused; invalid MIME/size never persists (2546.757577ms)
+✔ client roles cannot read/write bytes or call either service RPC; no SECURITY DEFINER (1018.816158ms)
+✔ lost committed claim acknowledgement is read back once without redispatch (939.796541ms)
+✔ death before task checkpoint recovers on the same durable worker identity and prepares once (4038.815047ms)
+✔ foreign owner, worker, request and live-lease takeover are refused (927.572502ms)
+✔ expired queued checkpoint refreshes its local lease before the first browser command (6560.370253ms)
+✔ expired claim requires generation CAS, rotates lease and fences stale worker (1037.087916ms)
+✔ unknown submit fence survives missing checkpoint and can never be reclaimed or repeated (1121.421376ms)
+✔ active approval progresses beyond 60 older unrelated intents (12524.556716ms)
+✔ active reconciliation progresses beyond 60 older unrelated intents (12469.459879ms)
+✔ scoped SQL pending binds owner, worker and epoch and preserves pause and client guards (5194.722553ms)
+✔ new recovery RPCs remain inaccessible to client roles (647.000132ms)
+(node:46483) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:46483) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ research intent commits without posting/profile/artifact and replays one turn pair (1836.367777ms)
+✔ late research response rejection rolls back messages, account, state and intent (946.752035ms)
+✔ research grant only admits the typed public read effect and enforces ownership (1120.166213ms)
+✔ research rejects applicant data or changed immutable question in SQL (893.124068ms)
+✔ actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status (2330.45731ms)
+✔ failed actual chat commit makes no task intent, browser command or successful queued reply (523.518342ms)
+✔ actual committed STOP before dispatch cancels research without any MOCK read (724.500359ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81302.441939

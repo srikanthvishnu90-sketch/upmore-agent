@@ -47,7 +47,13 @@
    5/vendor/day; 1/company/30 days) and are ENFORCED here (MI-110): a run
    or submit that would exceed one stops CAP_REACHED naming the cap and
    the count, counted from the submissions ledger this module writes;
-   the never-twice-to-the-same-job rule (§8.3) is enforced alongside.
+   the never-twice-to-the-same-job rule (§8.3) is enforced alongside —
+   and since MI-108 it also reads past the ledger: a prior MANUAL
+   application to the same canonical job, shown by the tracker (126)
+   or the user's own statement, stops the run (and, re-checked, the
+   submit) with ALREADY_APPLIED_BY_USER naming the source of the
+   knowledge (manualDuplicateCheck; contract
+   docs/career/contracts/mi-108-manual-duplicate-check.md).
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
@@ -493,6 +499,187 @@ const CareerPortalApply = (() => {
       .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
+  // ---------- MI-108: pre-submit duplicate check against the user's own manual applications ----------
+  // §8.3's never-twice rule above (the `dup` check in prepareRound)
+  // sees only THIS module's submissions ledger — the product's own
+  // applications. A job the user already applied to BY HAND is not in
+  // that ledger; it lives in the tracker (126), written from the
+  // user's own report, or in a statement the user makes in the run.
+  // This check reads both, and a hit stops the run with the typed
+  // ALREADY_APPLIED_BY_USER code NAMING the source of the knowledge —
+  // before the board is ever opened, and again at the submit gate
+  // (submitDoorstep), because a manual record can land between the
+  // doorstep and the click. The matching logic mirrors 126's
+  // manualApplicationCheck (the modules are standalone in the bundle,
+  // so each carries its own copy — the same duplication precedent as
+  // capCheck/vendorOf): canonical key / URL / job id are EXACT (the
+  // same opening; a completed application blocks at any stage), the
+  // company + role path is fuzzy (normalized, a role mismatch never
+  // matches, and a terminal Rejected/Withdrawn row never blocks there
+  // — reapply-after-rejection is 126 reapplyCheck's cooldown lane).
+  // A tracker row counts only when it evidences a completed
+  // application: an applied stage or an applied/confirmation event.
+  const APPLIED_LIVE_STAGES = ["Submitted", "Confirmed", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer", "Accepted", "Ghosted", "applied"];
+  const APPLIED_TERMINAL_STAGES = ["Rejected", "Withdrawn"];
+  function manualProvenanceOf(row) {
+    const strings = [row.source, row.origin, row.channel, row.applied_via, row.application_source, row.event_source]
+      .map((x) => String(x == null ? "" : x).toLowerCase()).join(" ");
+    let manual = row.manual === true || row.manual_application === true || row.applied_manually === true
+      || /\bmanual\b/.test(strings) || /user[-_ ]reported|user[-_ ]statement|disclosed/.test(strings);
+    let fromStatement = /user[-_ ]reported|user[-_ ]statement|disclosed/.test(strings);
+    for (const e of row.events || []) {
+      const es = String((e && e.source) || "").toLowerCase(), ed = String((e && e.detail) || "").toLowerCase();
+      if (/user[-_ ]reported|manual/.test(es) || /\bmanual(ly)?\b/.test(ed)) manual = true;
+      if (/user[-_ ]reported/.test(es)) fromStatement = true;
+    }
+    return { manual, kind: fromStatement ? "user_statement" : manual ? "manual_marker" : "tracker_record" };
+  }
+  function manualRowEvidences(row, exact) {
+    if (APPLIED_TERMINAL_STAGES.includes(row.stage)) return !!exact;
+    if (APPLIED_LIVE_STAGES.includes(row.stage)) return true;
+    return (row.events || []).some((e) => e && (e.type === "applied" || e.type === "confirmation"));
+  }
+  function manualMatchRow(row, posting) {
+    const tKey = posting.canonicalKey || posting.canonical_key || null;
+    const rKey = row.canonicalKey || row.canonical_key || row.postingKey || null;
+    if (tKey && rKey && tKey === rKey) return { matchedBy: "canonical_key", exact: true };
+    const tUrl = posting.url ? String(posting.url).toLowerCase().trim().replace(/\/+$/, "") : "";
+    const rUrl = row.url ? String(row.url).toLowerCase().trim().replace(/\/+$/, "") : "";
+    if (tUrl && rUrl && tUrl === rUrl) return { matchedBy: "url", exact: true };
+    const tJob = posting.job_id || posting.jobId || posting.id || null;
+    const rJob = row.job_id || row.jobId || null;
+    if (tJob && rJob && String(tJob) === String(rJob)) return { matchedBy: "job_id", exact: true };
+    const tc = normName(posting.company), rc = normName(row.company);
+    if (!tc || !rc || tc !== rc) return null;
+    const tr = normName(posting.role || posting.title), rr = normName(row.role);
+    if (tr && rr && tr !== rr && !tr.includes(rr) && !rr.includes(tr)) return null;
+    return { matchedBy: tr && rr ? "company_role" : "company", exact: false };
+  }
+  function manualTrackerHit(row, posting) {
+    const m = manualMatchRow(row, posting);
+    if (!m || !manualRowEvidences(row, m.exact)) return null;
+    const prov = manualProvenanceOf(row);
+    const when = row.applied_at ? ` on ${String(row.applied_at).slice(0, 10)}` : "";
+    const sourceDetail = prov.kind === "user_statement"
+      ? `tracker record ${row.app_id || "(no id)"} — a manual application recorded from your own report${when} (stage ${row.stage || "unknown"})`
+      : prov.manual
+        ? `tracker record ${row.app_id || "(no id)"} — a manual application recorded in your tracker${when} (stage ${row.stage || "unknown"})`
+        : `tracker record ${row.app_id || "(no id)"} — an application recorded in your tracker${when} (stage ${row.stage || "unknown"})`;
+    return { code: "ALREADY_APPLIED_BY_USER", source: "tracker", knowledgeSource: "tracker",
+      sourceDetail, source_detail: sourceDetail, matchedBy: m.matchedBy, matched_by: m.matchedBy,
+      app_id: row.app_id || null, at: row.applied_at || null, company: row.company || posting.company || null,
+      role: row.role || posting.role || null, canonicalKey: posting.canonicalKey || null,
+      manual: prov.manual, provenance: prov.kind, application: row, evidence: sourceDetail };
+  }
+  // A statement counts only as the user's own ASSERTION (the BUG-169 /
+  // RCA discipline 126/142 already enforce): quoted spans are someone
+  // else's speech, negated and hypothetical forms assert nothing, and
+  // a statement naming a different company does not bind this posting.
+  // A statement with no company named is scoped by the caller to this
+  // posting — the same scoping 141's prior-application lists use.
+  function manualStatementHit(raw, posting) {
+    const original = String(raw == null ? "" : raw).trim();
+    if (!original) return null;
+    const unquoted = original.replace(/["“][^"”]*["”]/g, " ");
+    const t = unquoted.toLowerCase();
+    if (/\b(didn'?t|did not|doesn'?t|do not|haven'?t|hasn'?t|never)\b[^.!?]{0,40}\b(applied|submitted|apply)\b/.test(t)) return null;
+    if (/\b(if|suppose|imagine|what if)\b[^.!?]*\b(applied|submitted)\b/.test(t)) return null;
+    if (/\?\s*$/.test(original.trim()) && !/\b(already|manually|yesterday|last (week|month)|on their site)\b/.test(t)) return null;
+    const asserted = /\bi (already )?(applied|submitted)\b/.test(t)
+      || /\b(applied|submitted) (manually|myself|by hand)\b/.test(t)
+      || /\bmy application (to|at|for)\b/.test(t);
+    if (!asserted) return null;
+    // Scope: a company named beside the application verb must be THIS
+    // posting's company; the posting company mentioned anywhere also
+    // binds. No company named at all = caller-scoped to this posting.
+    const coNorm = normName(posting.company);
+    const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+(?:[A-Z][A-Za-z0-9&.'-]+|&)){0,2})";
+    const named = original.match(new RegExp(`\\b(?:applied|submitted)\\b[^.!?]*?\\b(?:to|at|for)\\s+(?:the\\s+)?${cap}`))
+      || original.match(new RegExp(`\\bmy\\s+${cap}\\s+application\\b`));
+    if (named) {
+      const namedNorm = normName(named[1].replace(/[?.!,]+$/, ""));
+      if (coNorm && namedNorm && namedNorm !== coNorm) return null;
+    }
+    const sourceDetail = `your statement: "${original.slice(0, 160)}"`;
+    return { code: "ALREADY_APPLIED_BY_USER", source: "user_statement", knowledgeSource: "user_statement",
+      sourceDetail, source_detail: sourceDetail, matchedBy: named ? "statement_company" : "statement_scoped",
+      matched_by: named ? "statement_company" : "statement_scoped",
+      app_id: null, at: null, company: posting.company || null, role: posting.role || posting.title || null,
+      canonicalKey: posting.canonicalKey || null, manual: true, provenance: "user_statement", evidence: original };
+  }
+  function manualRecordHit(rec, posting) {
+    if (!rec || typeof rec !== "object") return null;
+    const disclosed = rec.disclosed === true || rec.manual === true || rec.applied === true;
+    if (!disclosed && !rec.stage && !rec.events) return null;
+    const m = manualMatchRow(rec, posting);
+    if (!m) return null;
+    if (rec.stage || rec.events) { if (!manualRowEvidences(rec, m.exact)) return null; }
+    const bits = ["a manual application disclosed by you"];
+    if (rec.channel) bits.push(`via ${rec.channel}`);
+    if (rec.at) bits.push(`on ${rec.at}`);
+    const sourceDetail = `your statement — ${bits.join(", ")}`;
+    return { code: "ALREADY_APPLIED_BY_USER", source: "user_statement", knowledgeSource: "user_statement",
+      sourceDetail, source_detail: sourceDetail, matchedBy: m.matchedBy, matched_by: m.matchedBy,
+      app_id: rec.app_id || null, at: rec.at || null, company: rec.company || posting.company || null,
+      role: rec.role || posting.role || null, canonicalKey: posting.canonicalKey || null,
+      manual: true, provenance: "user_statement", evidence: sourceDetail };
+  }
+  function rowsFromValue(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.filter((r) => r && typeof r === "object");
+    if (Array.isArray(v.rows)) return v.rows.filter((r) => r && typeof r === "object");
+    return [];
+  }
+  function manualDuplicateCheck(posting, sources) {
+    if (!posting) return null;
+    const src = sources || {};
+    const rowLists = [];
+    if (Array.isArray(src) || Array.isArray(src.rows)) rowLists.push(rowsFromValue(src));
+    for (const key of ["tracker", "trackStore", "trackerStore", "track", "trackerRows", "manualApplications", "priorApplications", "applications"]) {
+      if (src[key]) rowLists.push(rowsFromValue(src[key]));
+    }
+    const seen = new Set();
+    for (const rows of rowLists) {
+      for (const row of rows) {
+        if (seen.has(row)) continue; seen.add(row);
+        const hit = manualTrackerHit(row, posting);
+        if (hit) return hit;
+      }
+    }
+    for (const key of ["userStatement", "userStatements", "statement", "statements"]) {
+      const v = src[key]; if (!v) continue;
+      for (const text of Array.isArray(v) ? v : [v]) {
+        if (typeof text !== "string") continue;
+        const hit = manualStatementHit(text, posting);
+        if (hit) return hit;
+      }
+    }
+    for (const key of ["priorApplication", "manualApplication", "manualApplyDisclosure", "manual_apply_disclosure"]) {
+      const hit = manualRecordHit(src[key], posting);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  // The source keys a run input (runApply) or a submit context
+  // (submitDoorstep) may carry — one picker for both surfaces.
+  function manualSourcesFrom(container) {
+    const c = container || {};
+    return {
+      tracker: c.tracker || c.trackStore || c.trackerStore || c.track || null,
+      manualApplications: c.manualApplications || null,
+      priorApplications: c.priorApplications || null,
+      applications: c.applications || null,
+      userStatement: c.userStatement || c.statement || null,
+      userStatements: c.userStatements || null,
+      priorApplication: c.priorApplication || c.manualApplication || c.manualApplyDisclosure || c.manual_apply_disclosure || null,
+    };
+  }
+  function manualStopFields(hit) {
+    return { source: hit.source, knowledgeSource: hit.source, sourceDetail: hit.sourceDetail, source_detail: hit.sourceDetail,
+      matchedBy: hit.matchedBy, matched_by: hit.matched_by, manualApplication: hit, evidence: hit.evidence,
+      reason: `you already applied to this job yourself — ${hit.sourceDetail}; a second application from here would be the duplicate §8.3 forbids, so this run stops before any submission` };
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
@@ -538,6 +725,17 @@ const CareerPortalApply = (() => {
     // step 1/§8.3: never twice to the same job (unique (user, posting canonical key))
     const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
     if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
+    // step 1/MI-108: never twice — including by the user's own hand.
+    // The ledger above sees only product submissions; the tracker or
+    // the user's own statement can show a prior MANUAL application to
+    // the same canonical job. That stop names its source and lands
+    // before the board is opened: no form is read or filled for a job
+    // the user already applied to themselves.
+    const manualHit = manualDuplicateCheck(posting, manualSourcesFrom(inp));
+    if (manualHit) {
+      logStep("manual_duplicate_stop", { source: manualHit.source, matchedBy: manualHit.matchedBy, app_id: manualHit.app_id || null });
+      return blocked("ALREADY_APPLIED_BY_USER", manualStopFields(manualHit));
+    }
 
     // open the board; a challenge here stops everything (§6.3)
     const opened = continued ? {} : board.open();
@@ -820,6 +1018,21 @@ const CareerPortalApply = (() => {
     if (!session.doorstep) {
       return { resultStatus: "blocked", code: "NO_DOORSTEP", reason: "no prepared doorstep payload in this session" };
     }
+    // MI-108 at the gate: a prior MANUAL application can be recorded
+    // between the doorstep and the click (the user mentions it, the
+    // tracker ingests it) — re-check here, before the payload gate,
+    // the caps, the binding, or the arming wire. A hit never arms and
+    // never clicks.
+    const manualHit = manualDuplicateCheck({
+      canonicalKey: session.doorstep.postingKey,
+      company: session.doorstep.company || (c.posting && c.posting.company) || null,
+      role: (c.posting && (c.posting.role || c.posting.title)) || null,
+      url: (c.posting && c.posting.url) || null,
+      id: (c.posting && c.posting.id) || null,
+    }, manualSourcesFrom(c));
+    if (manualHit) {
+      return Object.assign({ resultStatus: "blocked", code: "ALREADY_APPLIED_BY_USER" }, manualStopFields(manualHit));
+    }
     // D13 (BUG-209 / FR-365) at the gate itself (ported from the
     // submit-path lineage): the stored doorstep payload is re-verified
     // before caps, binding, or arming — every required field the
@@ -1023,6 +1236,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, manualDuplicateCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

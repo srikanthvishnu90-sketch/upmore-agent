@@ -233,7 +233,7 @@ const CareerBatchApply = (() => {
       if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
       const session = Portal.createPortalSession({ userId: run.userId, board });
       rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      const res = Portal.runApply(session, Object.assign({ posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} }, manualSourcesOf(d)));
       absorbPrepareResult(run, app, res);
     }
 
@@ -248,6 +248,17 @@ const CareerBatchApply = (() => {
     run.summary = summarizeRun(run);
     event(run, "prepared", { doorstep: doorstepApps.length, status: run.status });
     return run;
+  }
+
+  // MI-108: the manual-application sources the caller hands the batch
+  // (tracker store / user statements / disclosed records) ride through
+  // to 149 unchanged — the batch drive gets the same
+  // ALREADY_APPLIED_BY_USER stop the single drive gets.
+  function manualSourcesOf(d) {
+    return { tracker: d.tracker || d.trackStore || d.trackerStore || null,
+      manualApplications: d.manualApplications || null, priorApplications: d.priorApplications || null,
+      userStatement: d.userStatement || null, userStatements: d.userStatements || null,
+      priorApplication: d.priorApplication || null };
   }
 
   function profileFor(d, posting) {
@@ -365,7 +376,7 @@ const CareerBatchApply = (() => {
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
-          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+          const prep = Portal.runApply(session, Object.assign({ posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} }, manualSourcesOf(d)));
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
         // The approval carries the batch approvalRef minted at the
@@ -373,7 +384,7 @@ const CareerBatchApply = (() => {
         // ctx.approvalRef) at its arming wire — a real board arms
         // only under it. A run approved in the pre-fix shape (hashes
         // only, approvalRef null) still stops at the board, named.
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, Object.assign({ log, now, posting, approvalRef: run.approvalRef || null }, manualSourcesOf(d)));
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);

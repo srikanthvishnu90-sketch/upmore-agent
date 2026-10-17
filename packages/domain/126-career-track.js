@@ -66,6 +66,15 @@ const CareerTrack = (() => {
       stage: input.stage || "Submitted",
       offer_deadline: input.offer_deadline || null, assessment_deadline: input.assessment_deadline || null,
       cooldown_until: input.cooldown_until || null,
+      // MI-108: identity/provenance the caller hands over is preserved,
+      // so a row written today can be exact-matched tomorrow — the
+      // canonical key of the posting applied to, the board's job id, a
+      // manual-application flag and its channel. Absent input keeps the
+      // historical row shape byte-for-byte.
+      ...((input.canonicalKey || input.canonical_key) ? { canonicalKey: input.canonicalKey || input.canonical_key } : {}),
+      ...((input.job_id || input.jobId) ? { job_id: input.job_id || input.jobId } : {}),
+      ...(input.manual === true ? { manual: true } : {}),
+      ...(input.channel ? { channel: s(input.channel) } : {}),
       events: [{ type: "applied", at: input.applied_at || new Date(at).toISOString(), source: input.event_source || "system", detail: notStated ? "record opened from a detected job event — the source names no company, so the company is recorded as not stated" : `applied (${input.source === "referred" ? "referred" : "cold"}, resume ${input.resume_version || "?"})`, evidence: input.url || null }],
     };
     rows.push(app); return app;
@@ -604,6 +613,84 @@ const CareerTrack = (() => {
     const confirmation = hits.find(({ c }) => c.class === "confirmation");
     return { company, in_log: !!app, log_stage: app ? app.stage : null, inbox_evidence: hits.map(({ c, m }) => ({ message_id: m.id || null, class: c.class, subject: m.subject || null, at: m.at || null })), already_applied: !!app || !!confirmation, answer: confirmation ? `Yes — inbox confirmation found (${confirmation.m.id || "message"}: "${confirmation.m.subject || ""}").` : app ? `Yes — the log has a ${company} application at stage ${app.stage}; no inbox confirmation was found in the messages searched.` : "No log row and no inbox confirmation found in the messages searched." };
   }
+  // ---------- MI-108: pre-submit duplicate check against the user's own manual applications ----------
+  // The tracker-side half of Spec 2 §8.3's never-twice rule: 149's own
+  // ledger sees only product submissions, so a job the user applied to
+  // BY HAND lives here, if anywhere. manualApplicationCheck(store,
+  // target) answers whether this store already records an application
+  // to the target job, and names the source of that knowledge.
+  // Target: { canonicalKey, company, role/title, url, job_id/id }.
+  // Matching, strongest first: canonical key / URL / job id are EXACT
+  // (the same opening — a completed application blocks at any stage,
+  // including a terminal one); company + role is the fuzzy path (both
+  // normalized, a role mismatch never matches, and a terminal row
+  // never blocks there — reapply after rejection is reapplyCheck's
+  // cooldown lane below, not a duplicate). A row counts only when it
+  // evidences a completed application: an applied stage or an
+  // applied/confirmation event. Saved/Tailoring/Ready rows with no
+  // applied event are leads, not applications.
+  const APPLIED_LIVE_STAGES = ["Submitted", "Confirmed", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer", "Accepted", "Ghosted", "applied"];
+  const APPLIED_TERMINAL_STAGES = ["Rejected", "Withdrawn"];
+  const normRole = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const normUrl = (v) => lc(v).trim().replace(/\/+$/, "");
+  function manualProvenanceOf(row) {
+    const strings = [row.source, row.origin, row.channel, row.applied_via, row.application_source, row.event_source]
+      .map((x) => lc(x || "")).join(" ");
+    let manual = row.manual === true || row.manual_application === true || row.applied_manually === true
+      || /\bmanual\b/.test(strings) || /user[-_ ]reported|user[-_ ]statement|disclosed/.test(strings);
+    let fromStatement = /user[-_ ]reported|user[-_ ]statement|disclosed/.test(strings);
+    for (const e of row.events || []) {
+      const es = lc((e && e.source) || ""), ed = lc((e && e.detail) || "");
+      if (/user[-_ ]reported|manual/.test(es) || /\bmanual(ly)?\b/.test(ed)) manual = true;
+      if (/user[-_ ]reported/.test(es)) fromStatement = true;
+    }
+    return { manual, kind: fromStatement ? "user_statement" : manual ? "manual_marker" : "tracker_record" };
+  }
+  function rowEvidencesApplication(row, exact) {
+    // A terminal row is a closed application: it proves the SAME
+    // opening was applied to (exact match), but on the fuzzy path the
+    // reapply/cooldown lane owns it — its applied event must not
+    // resurrect it into a duplicate block.
+    if (APPLIED_TERMINAL_STAGES.includes(row.stage)) return !!exact;
+    if (APPLIED_LIVE_STAGES.includes(row.stage)) return true;
+    return (row.events || []).some((e) => e && (e.type === "applied" || e.type === "confirmation"));
+  }
+  function matchApplicationRow(row, target) {
+    const t = target || {};
+    const tKey = t.canonicalKey || t.canonical_key || t.postingKey || null;
+    const rKey = row.canonicalKey || row.canonical_key || row.postingKey || null;
+    if (tKey && rKey && tKey === rKey) return { matched_by: "canonical_key", exact: true };
+    const tUrl = t.url ? normUrl(t.url) : "", rUrl = row.url ? normUrl(row.url) : "";
+    if (tUrl && rUrl && tUrl === rUrl) return { matched_by: "url", exact: true };
+    const tJob = t.job_id || t.jobId || t.id || null;
+    const rJob = row.job_id || row.jobId || null;
+    if (tJob && rJob && String(tJob) === String(rJob)) return { matched_by: "job_id", exact: true };
+    const tc = normCo(t.company), rc = normCo(row.company);
+    if (!tc || !rc || tc !== rc) return null;
+    const tr = normRole(t.role || t.title), rr = normRole(row.role);
+    if (tr && rr && tr !== rr && !tr.includes(rr) && !rr.includes(tr)) return null;
+    return { matched_by: tr && rr ? "company_role" : "company", exact: false };
+  }
+  function manualApplicationCheck(store, target) {
+    const miss = { found: false, already_applied: false, source: null, source_detail: null, matched_by: null, manual: false, provenance: null, application: null };
+    if (!store || !target) return miss;
+    let rows; try { rows = rowsOf(store); } catch { return miss; }
+    for (const row of rows) {
+      const m = matchApplicationRow(row, target);
+      if (!m) continue;
+      if (!rowEvidencesApplication(row, m.exact)) continue;
+      const prov = manualProvenanceOf(row);
+      const when = row.applied_at ? ` on ${String(row.applied_at).slice(0, 10)}` : "";
+      const source_detail = prov.kind === "user_statement"
+        ? `tracker record ${row.app_id || "(no id)"} — a manual application recorded from your own report${when} (stage ${row.stage || "unknown"})`
+        : prov.manual
+          ? `tracker record ${row.app_id || "(no id)"} — a manual application recorded in your tracker${when} (stage ${row.stage || "unknown"})`
+          : `tracker record ${row.app_id || "(no id)"} — an application recorded in your tracker${when} (stage ${row.stage || "unknown"})`;
+      return { found: true, already_applied: true, source: "tracker", source_detail, matched_by: m.matched_by, manual: prov.manual, provenance: prov.kind, application: row };
+    }
+    return miss;
+  }
+
   function reapplyCheck(store, company, opts) {
     opts = opts || {}; const now = opts.now || Date.now();
     const cooldownDays = opts.cooldownDays != null ? opts.cooldownDays : DEFAULT_COOLDOWN_DAYS;
@@ -660,6 +747,6 @@ const CareerTrack = (() => {
     quietReport, markGhosted, draftNudge, draftThankYou, draftRecruiterReply, ghostedOptions,
     weeklyDigest, dailyDigest, planDelivery, funnelAnalytics, rejectionAnalysis, resumeVersionVerdict,
     deadlineRadar, extractCirDeadlines, offerCountdown, offerEscalation, extractMessageDate,
-    duplicateCheck, reapplyCheck, withdrawalDrafts, confirmWithdrawals, seedTestLog };
+    duplicateCheck, manualApplicationCheck, reapplyCheck, withdrawalDrafts, confirmWithdrawals, seedTestLog };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTrack;

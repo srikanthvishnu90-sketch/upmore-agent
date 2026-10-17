@@ -428,7 +428,48 @@ function matchOption(options, value) {
     if (hit) return hit;
   }
   hit = options.find((o) => normOpt(o.label).startsWith(v) || v.startsWith(normOpt(o.label)) && normOpt(o.label).length > 1);
-  return hit || null;
+  if (hit) return hit;
+  // R3-Sezzle containment (coordinator ruling 2026-10-17, under the
+  // owner's answer-delegation): the tiers above are exact and
+  // equivalence matches. What remains is the composite-fact case —
+  // the confirmed fact joins components ("Computer Science and
+  // Finance", "Native or bilingual proficiency") and the board's
+  // vocabulary offers only a COMPONENT of it. Picking an option
+  // whose every token is one of the fact's tokens states a strict
+  // subset of the truth and invents nothing, so it is permitted —
+  // as the WEAKEST tier, only when nothing above matched. An option
+  // carrying any token outside the fact (a superset, a different
+  // fact, or the same tokens reordered — an equal claim, not a
+  // lesser one) is NEVER picked here. Deterministic: an option
+  // equal to the fact's first component wins; else the longest
+  // qualifying option; else list order. Composite facts only (a
+  // fact of one or two tokens has no component to subset).
+  const pick = containmentPick(options.map((o) => ({ opt: o, text: normOpt(o.label) })), v)
+    || containmentPick(options.map((o) => ({ opt: o, text: normOpt(o.value) })), v);
+  return pick ? pick.opt : null;
+}
+/* The containment chooser, in normalized space: entries are
+ * { opt, text } with text already normalized; v is the normalized
+ * fact value. Returns the winning entry or null. Kept pure so the
+ * rule is one definition; driveWidget's in-page matcher carries the
+ * same definition inline (it is serialized into the page). */
+function containmentPick(entries, v) {
+  const vToks = v.split(" ").filter(Boolean);
+  if (vToks.length < 3) return null;
+  const vSet = new Set(vToks);
+  const cut = vToks.findIndex((t) => t === "and" || t === "or");
+  const firstComp = (cut === -1 ? vToks : vToks.slice(0, cut)).join(" ");
+  let best = null;
+  for (const e of entries) {
+    const o = e.text;
+    if (!o || o === v) continue;
+    const oSet = new Set(o.split(" ").filter(Boolean));
+    if (!oSet.size || oSet.size >= vSet.size) continue; // strict token subset only
+    if (![...oSet].every((t) => vSet.has(t))) continue; // a foreign token adds a claim the fact never made
+    const rank = o === firstComp ? 0 : 1;
+    if (!best || rank < best.rank || (rank === best.rank && o.length > best.text.length)) best = { opt: e.opt, text: o, rank };
+  }
+  return best;
 }
 
 /* ---- v224 combine: R-1 (BUG-237/FR-395) fill semantics, ported onto
@@ -643,13 +684,26 @@ async function driveWidget(board, cmd) {
       // normalized PREFIX of the wanted value. Weaker hits are used
       // only when nothing stronger exists anywhere in the list.
       const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
-      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null, websiteHit = null;
+      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null, websiteHit = null, containHit = null;
       const isDecline = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
       const wantedDecline = isDecline(full);
       // R3-Gusto: the board's own-website option is brand-named
       // ("Gusto Website") for the generic confirmed fact ("Company
       // Website") — same referent, weakest tier, exact wins above.
       const websiteClass = (s) => /^[a-z0-9 ]+ website$/.test(s) && s !== "website";
+      // R3-Sezzle containment (coordinator ruling 2026-10-17): the
+      // weakest tier, mirroring matchOption's containmentPick — an
+      // option whose every token is one of the composite fact's
+      // tokens states a strict subset of the truth and invents
+      // nothing; any foreign token (superset, different fact, or
+      // the same tokens reordered) never qualifies. An option
+      // equal to the fact's first component wins, else the longest
+      // qualifying option, else list order — deterministic.
+      const fullNorm = norm(full);
+      const vToks = fullNorm.split(" ").filter(Boolean);
+      const vSet = new Set(vToks);
+      const cut = vToks.findIndex((x) => x === "and" || x === "or");
+      const firstComp = (cut === -1 ? vToks : vToks.slice(0, cut)).join(" ");
       for (const sel of pools) {
         for (const el of Array.from(document.querySelectorAll(sel))) {
           if (!vis(el)) continue;
@@ -661,9 +715,17 @@ async function driveWidget(board, cmd) {
           if (!tokenHit && t.toLowerCase().includes(tok)) tokenHit = { el, t };
           if (!prefixHit && norm(t).length >= 4 && norm(full).startsWith(norm(t))) prefixHit = { el, t };
           if (!websiteHit && ((norm(full) === "company website" && websiteClass(norm(t))) || (websiteClass(norm(full)) && norm(t) === "company website"))) websiteHit = { el, t };
+          if (vToks.length >= 3) {
+            const nt = norm(t);
+            const oSet = new Set(nt.split(" ").filter(Boolean));
+            if (nt && nt !== fullNorm && oSet.size && oSet.size < vSet.size && [...oSet].every((x) => vSet.has(x))) {
+              const rank = nt === firstComp ? 0 : 1;
+              if (!containHit || rank < containHit.rank || (rank === containHit.rank && nt.length > containHit.len)) containHit = { el, t, rank, len: nt.length };
+            }
+          }
         }
       }
-      const hit = segHit || declineHit || tokenHit || prefixHit || websiteHit;
+      const hit = segHit || declineHit || tokenHit || prefixHit || websiteHit || containHit;
       if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
       return null;
     }, { tok, full: wanted }).catch(() => null);

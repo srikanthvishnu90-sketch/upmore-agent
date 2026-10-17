@@ -133,12 +133,60 @@ drives — both CAPTCHA_HANDOFF, asks [].
   bachelor's…") misclassifies as `education_degree` (the /bachelor/
   rule takes a Yes/No widget) — classifier lane, named here, not
   fixed by this branch.
-- Sezzle's two vocabulary-gap selects (degree discipline, English
-  level): dispositioned in the ledger; the owner's in-page picks
-  are named in the finish kit. No containment-pick policy exists —
-  that would be a coordinator ruling, not a driver guess.
+- Sezzle's two vocabulary-gap selects: the containment ruling the
+  ledger disposition anticipated was ISSUED and implemented the
+  same day — see the follow-up section below. Both fields still
+  remain owner picks on this board: its actual option lists
+  qualify under neither field (verbatim lists below).
 - A board that canonicalizes a widget pick after the 3.6s verify
   window still produces an honest doorstep mismatch — by design.
+
+## Follow-up (2026-10-17): Sezzle containment ruling + re-drive
+
+Coordinator ruling (under the owner's answer-delegation): when a
+select's bound answer has no exact/containment match, the driver
+MAY pick an option whose normalized text is a strict token subset
+of a composite fact — it states part of the truth and invents
+nothing. Never a superset, never a foreign token, never the
+fact's tokens reordered (an equal claim, not a lesser one);
+preference is deterministic (the fact's first component, else
+the longest qualifying option, else list order); composite
+facts only (≥3 tokens).
+
+Implemented as the weakest tier in both option matchers — where
+the decline/website equivalence classes already live:
+`containmentPick` in the helper's `matchOption` and the mirrored
+tier in `driveWidget`'s in-page matcher
+(`scripts/career/portal-browser-helper.cjs`, commented with the
+ruling at both sites). Modules 149/150 needed no change. Guards:
+`tests/career-portal-containment.test.cjs` over the new
+`/gh-containment` fixture (6 widgets + 4 native selects) —
+fail-first 2 positive tests red on base 0c02148, 4/4 green
+post-fix; 2 pins (honest failure with no qualifying option;
+superset/foreign/reordered refusals) green on both code states.
+
+Live Sezzle probe (scoped, read-only, 2026-10-17) captured the
+board's actual option lists verbatim:
+- Degree question ("Are you currently pursuing a degree in
+  Computer Science, Data Science, Artificial Intelligence or
+  related discipline?"): options exactly `["Yes", "No"]` — a
+  yes/no widget bound to `education_discipline`. No token subset
+  exists; the rule correctly does not fire. The record-supported
+  owner pick is "Yes". (The mis-binding is the same classifier
+  family as the Gemini leftover above — classifier lane.)
+- English question ("What is your English level?"): options
+  exactly `["A1 - beginner", "A2 - Pre-Intermediate",
+  "B1- Intermediate", "B2 - Upper-intermediate", "C1- Advanced",
+  "C2- Mastery"]` — a CEFR scale. No option is token-contained
+  in "Native or bilingual proficiency", and mapping the fact
+  onto a scale band would add a claim the fact does not state —
+  forbidden by the ruling. The record-supported owner pick is
+  "C2 - Mastery".
+
+Sezzle re-driven on the fixed tree (doorstep-only, never
+submitted): CAPTCHA_HANDOFF, asks [], 18 fills, the same two
+fillFailures — now explained by the lists above. The finish
+kit's Sezzle entry was corrected to the verbatim lists.
 
 ## Verification summary
 

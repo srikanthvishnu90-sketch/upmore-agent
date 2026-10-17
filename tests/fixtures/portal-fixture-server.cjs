@@ -681,7 +681,99 @@ document.getElementById('application').addEventListener('change', () => {
 </script></body></html>`;
 
 const attachLog = [];
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/gh-multifile": GH_MULTIFILE, "/gh-capped-essay": GH_CAPPED_ESSAY, "/gh-widget-late-render": GH_WIDGET_LATE_RENDER, "/gh-gusto-shapes": GH_GUSTO_SHAPES, "/gh-gusto-shapes-neg": GH_GUSTO_SHAPES_NEG, "/gh-file-chip": GH_FILE_CHIP, "/gh-review-remount": GH_REVIEW_REMOUNT };const server = http.createServer((req, res) => {
+// R3-Sezzle containment fixture (2026-10-17, coordinator ruling the
+// same day): boards whose option vocabularies offer only a COMPONENT
+// of a composite confirmed fact — the live Sezzle shape, where the
+// degree fact "Computer Science and Finance" and the English fact
+// "Native or bilingual proficiency" meet option lists that contain
+// neither phrase. The widgets below are Greenhouse-shaped
+// react-selects (static menus, like GH_WIDGET_LATE_RENDER — the
+// matcher judgment is what is guarded, not the board's filter);
+// the native selects exercise matchOption directly. Fields:
+//   degree widget main   [Finance, Computer Science, Data Science,
+//     Mathematics] — first component present, listed SECOND: the
+//     pick must be "Computer Science" (first-component preference,
+//     never list order).
+//   degree widget alt    [Finance, Data Science, Mathematics] —
+//     only a mid-string component exists: containment must pick
+//     "Finance" (pre-fix: no tier reaches it, honest failure).
+//   english widget main  [Fluent, Bilingual proficiency,
+//     Conversational, Basic] — "Bilingual proficiency" is token-
+//     contained mid-string (not a prefix of the fact): containment
+//     must pick it (pre-fix: honest failure).
+//   english widget native [Native, Fluent] — the first component
+//     itself: the pick must be "Native".
+//   english widget neg   [Fluent, Conversational, Basic] — no
+//     option is token-contained: the fill must fail honestly.
+//   degree widget superset [Advanced Computer Science, Finance and
+//     Mathematics, Finance and Computer Science] — a superset, a
+//     foreign-token option, and the fact's tokens reordered (an
+//     equal claim): containment must refuse all three.
+//   degree select main/alt + english select longest + degree
+//     select superset — the same four shapes through matchOption.
+function containmentWidget(id, label, options) {
+  const opts = options.map((t) => `    <div class="select__option">${t}</div>`).join("\n");
+  return `  <div class="ghx-field"><label id="${id}-label" for="${id}">${label}</label>
+  <div><div class="select__control"><div class="select__value-container">
+    <div class="select__placeholder">Select...</div>
+    <div class="select__input-container" data-value=""><input class="select__input" id="${id}" type="text" role="combobox" aria-expanded="false" autocomplete="off" value=""></div>
+  </div><div class="select__indicators"><button type="button" tabindex="-1">v</button></div></div>
+  <div class="select__menu" style="display:none"><div class="select__menu-list">
+${opts}
+  </div></div></div></div>`;
+}
+function containmentSelect(id, label, options) {
+  const opts = options.map((t, i) => `<option value="${id}_${i}">${t}</option>`).join("");
+  return `  <div><label for="${id}">${label}</label>
+    <select id="${id}" name="${id}" required><option value="">Select...</option>${opts}</select></div>`;
+}
+const GH_CONTAINMENT = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>A.I. Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" type="file" required></div>
+${containmentWidget("question_degree_main", "Degree discipline — main", ["Finance", "Computer Science", "Data Science", "Mathematics"])}
+${containmentWidget("question_degree_alt", "Degree discipline — alt", ["Finance", "Data Science", "Mathematics"])}
+${containmentWidget("question_english_main", "English level — main", ["Fluent", "Bilingual proficiency", "Conversational", "Basic"])}
+${containmentWidget("question_english_native", "English level — native", ["Native", "Fluent"])}
+${containmentWidget("question_english_neg", "English level — no match", ["Fluent", "Conversational", "Basic"])}
+${containmentWidget("question_degree_superset", "Degree discipline — superset traps", ["Advanced Computer Science", "Finance and Mathematics", "Finance and Computer Science"])}
+${containmentSelect("degree_select_main", "Degree discipline (select)", ["Finance", "Computer Science", "Data Science"])}
+${containmentSelect("degree_select_alt", "Degree discipline (select, alt)", ["Finance", "Data Science"])}
+${containmentSelect("english_select_longest", "English level (select)", ["Bilingual", "Proficiency"])}
+${containmentSelect("degree_select_superset", "Degree discipline (select, superset traps)", ["Advanced Computer Science", "Finance and Computer Science"])}
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+document.querySelectorAll('.ghx-field').forEach((wrap) => {
+  const inp = wrap.querySelector('.select__input');
+  const menu = wrap.querySelector('.select__menu');
+  const vc = wrap.querySelector('.select__value-container');
+  if (!inp || !menu) return;
+  const close = () => { menu.style.display = 'none'; inp.setAttribute('aria-expanded', 'false'); };
+  const open = () => {
+    document.querySelectorAll('.select__menu').forEach((m) => { if (m !== menu) m.style.display = 'none'; });
+    menu.style.display = 'block'; inp.setAttribute('aria-expanded', 'true');
+  };
+  inp.addEventListener('click', open);
+  inp.addEventListener('input', open);
+  inp.addEventListener('blur', () => setTimeout(close, 0));
+  menu.querySelectorAll('.select__option').forEach((o) => o.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    let sv = vc.querySelector('.select__single-value');
+    if (!sv) { sv = document.createElement('div'); sv.className = 'select__single-value'; vc.insertBefore(sv, vc.querySelector('.select__input-container')); }
+    sv.textContent = o.textContent; sv.style.display = 'block';
+    const ph = vc.querySelector('.select__placeholder'); if (ph) ph.style.display = 'none';
+    inp.value = '';
+    close();
+  }));
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelectorAll('.select__menu').forEach((m) => { m.style.display = 'none'; });
+});
+</script></body></html>`;
+const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/gh-multifile": GH_MULTIFILE, "/gh-capped-essay": GH_CAPPED_ESSAY, "/gh-widget-late-render": GH_WIDGET_LATE_RENDER, "/gh-gusto-shapes": GH_GUSTO_SHAPES, "/gh-gusto-shapes-neg": GH_GUSTO_SHAPES_NEG, "/gh-file-chip": GH_FILE_CHIP, "/gh-review-remount": GH_REVIEW_REMOUNT, "/gh-containment": GH_CONTAINMENT };
+const server = http.createServer((req, res) => {
   // R3 attach evidence (see GH_MULTIFILE): the page beacons every
   // file-input change here; the guard reads the log back and proves
   // which SLOT received the file.

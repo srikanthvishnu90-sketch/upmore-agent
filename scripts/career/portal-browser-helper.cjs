@@ -446,7 +446,43 @@ function matchOption(options, value) {
   // fact of one or two tokens has no component to subset).
   const pick = containmentPick(options.map((o) => ({ opt: o, text: normOpt(o.label) })), v)
     || containmentPick(options.map((o) => ({ opt: o, text: normOpt(o.value) })), v);
-  return pick ? pick.opt : null;
+  if (pick) return pick.opt;
+  // Sezzle final-two-fields CEFR tier (coordinator ruling
+  // 2026-10-17, under the owner's answer-delegation): below even
+  // containment — the one case where NO option is a subset of the
+  // fact's words, because the board's vocabulary is an ordinal
+  // SCALE, not phrasing. When the confirmed fact is native-class
+  // (it carries the token "native" — his English fact is "Native
+  // or bilingual proficiency") and the options form the CEFR
+  // ladder (at least two options whose labels begin with a CEFR
+  // band), the top band present is the only point on the scale
+  // the fact can honestly occupy: a native speaker sits at the
+  // top of any proficiency ladder. Narrow by construction: ONLY
+  // the CEFR prefix pattern, ONLY native-class facts — a
+  // non-native fact ("Fluent") never scale-maps, and a list of
+  // proficiency words without band prefixes is not a ladder.
+  const cefr = cefrTopPick(options.map((o) => ({ opt: o, text: normOpt(o.label) })), v)
+    || cefrTopPick(options.map((o) => ({ opt: o, text: normOpt(o.value) })), v);
+  return cefr ? cefr.opt : null;
+}
+/* The CEFR chooser, in normalized space (entries { opt, text },
+ * v the normalized fact value): the highest-band entry when the
+ * fact is native-class and the entries form a CEFR ladder (two or
+ * more DISTINCT bands — one stray banded option is not a scale);
+ * null otherwise. Kept pure; driveWidget's in-page matcher carries
+ * the same definition inline (it is serialized into the page). */
+const CEFR_BANDS = ["a1", "a2", "b1", "b2", "c1", "c2"];
+function cefrTopPick(entries, v) {
+  if (!v.split(" ").includes("native")) return null;
+  const bandsSeen = new Set();
+  let best = null;
+  for (const e of entries) {
+    const band = CEFR_BANDS.indexOf((e.text.split(" ")[0] || ""));
+    if (band === -1) continue;
+    bandsSeen.add(band);
+    if (!best || band > best.band) best = { opt: e.opt, band };
+  }
+  return bandsSeen.size >= 2 && best ? best : null;
 }
 /* The containment chooser, in normalized space: entries are
  * { opt, text } with text already normalized; v is the normalized
@@ -684,7 +720,16 @@ async function driveWidget(board, cmd) {
       // normalized PREFIX of the wanted value. Weaker hits are used
       // only when nothing stronger exists anywhere in the list.
       const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
-      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null, websiteHit = null, containHit = null;
+      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null, websiteHit = null, containHit = null, cefrHit = null;
+      // Sezzle final-two-fields CEFR tier (coordinator ruling
+      // 2026-10-17): the weakest tier, mirroring matchOption's
+      // cefrTopPick — a native-class wanted value on a CEFR ladder
+      // (options whose labels begin A1/A2/B1/B2/C1/C2, at least two
+      // DISTINCT bands) takes the top band present; a non-native
+      // value never scale-maps.
+      const cefrBands = ["a1", "a2", "b1", "b2", "c1", "c2"];
+      const cefrBandsSeen = new Set();
+      let cefrBest = null;
       const isDecline = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
       const wantedDecline = isDecline(full);
       // R3-Gusto: the board's own-website option is brand-named
@@ -723,9 +768,17 @@ async function driveWidget(board, cmd) {
               if (!containHit || rank < containHit.rank || (rank === containHit.rank && nt.length > containHit.len)) containHit = { el, t, rank, len: nt.length };
             }
           }
+          if (vToks.includes("native")) {
+            const band = cefrBands.indexOf((norm(t).split(" ")[0] || ""));
+            if (band !== -1) {
+              cefrBandsSeen.add(band);
+              if (!cefrBest || band > cefrBest.band) cefrBest = { el, t, band };
+            }
+          }
         }
       }
-      const hit = segHit || declineHit || tokenHit || prefixHit || websiteHit || containHit;
+      if (cefrBandsSeen.size >= 2 && cefrBest) cefrHit = cefrBest;
+      const hit = segHit || declineHit || tokenHit || prefixHit || websiteHit || containHit || cefrHit;
       if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
       return null;
     }, { tok, full: wanted }).catch(() => null);

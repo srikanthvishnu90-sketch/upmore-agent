@@ -231,6 +231,7 @@ const CareerPortalApply = (() => {
     office_location_preference: ["application_answer"],
     reside_near_posting: ["application_answer"], // company-scoped facts ONLY (the answer is posting-relative: his Chicago residence vs the posting's city, per board) — deriveAnswers never emits a company-scoped fact; the drive host merges it for its company, the application_text pattern
     graduation_year_or_later: ["education"], // fill-time resolution: the label's year against the education fact's graduation year (the mirror of full_time_readiness — "graduating in YEAR or later" is Yes when gradYear >= the label's year)
+    degree_pursuit: ["education"], // fill-time resolution (coordinator ruling 2026-10-17): a yes/no "pursuing a degree in <fields>" question — Yes iff a field the question names token-matches the education fact's disciplines, an honest No iff none do, nothing when the question names no fields or no discipline is on record
     relocate_bay_area: ["application_answer"],
     relocate_new_york: ["application_answer"],
     relocation_required: ["application_answer"], // coordinator ruling 2026-10-17 (P0b): the generic "Do you require relocation?" takes the bank's F-082 Yes — his delegated relocation pattern (every place-named sibling is Yes)
@@ -717,6 +718,13 @@ const CareerPortalApply = (() => {
   //  - full_time_readiness: the label's year against the education
   //    fact's graduation year (ready in year Y iff graduation <= Y);
   //    no year in the label or no graduation year on file, no answer.
+  //  - degree_pursuit: the label's named field list against the
+  //    education fact's disciplines (coordinator ruling 2026-10-17,
+  //    the mirror image of the label-year resolutions: the question
+  //    text itself carries one side of the comparison). Yes iff a
+  //    named field token-matches a discipline on record; an honest
+  //    No iff fields are named and none match; nothing when the
+  //    label names no fields or no discipline is on file.
   function resolveScreeningFromRecord(f, profile, posting, inp, log) {
     const key = f && f.question_key;
     const company = posting && posting.company ? String(posting.company) : "";
@@ -770,7 +778,57 @@ const CareerPortalApply = (() => {
       if (!Number.isFinite(gradYear) || !Number.isFinite(askedYear)) return null;
       return { value: gradYear >= askedYear ? "Yes" : "No", how: `graduation year ${gradYear} from the education fact against the question's "in ${askedYear} or later"` };
     }
+    if (key === "degree_pursuit") {
+      // Coordinator ruling 2026-10-17 (Sezzle's degree question): the
+      // question names fields; the education fact names his
+      // disciplines ("Computer Science and Finance"). A field
+      // token-matches a discipline when their token sets are equal
+      // or one is entirely inside the other (the field named more
+      // shortly than the record, or the record more shortly than
+      // the field). A partial overlap that is neither — "Data
+      // Science" against "Computer Science", sharing only the
+      // generic token — matches nothing: foreign tokens on either
+      // side refuse the Yes, and the No that follows is the honest
+      // answer to the question as asked.
+      const fields = degreePursuitFieldsOf(f && f.label);
+      const disc = profileValue(profile, "education_discipline");
+      if (!fields || !disc) return null;
+      const disciplines = String(disc).split(/\s*(?:,|&|\/|\band\b|\bor\b)\s*/)
+        .map((s) => normTokenList(s)).filter((t) => t.length);
+      if (!disciplines.length) return null;
+      const hit = fields.some((fld) => {
+        const ft = normTokenList(fld);
+        if (!ft.length) return false;
+        return disciplines.some((dt) => {
+          const a = new Set(ft), b = new Set(dt);
+          return [...a].every((t) => b.has(t)) || [...b].every((t) => a.has(t));
+        });
+      });
+      return { value: hit ? "Yes" : "No", how: hit
+        ? `a field named in the question token-matches the education fact's disciplines ("${disc}")`
+        : `no field named in the question matches the education fact's disciplines ("${disc}") — an honest No` };
+    }
     return null;
+  }
+  // The label side of the degree_pursuit resolution: the fields the
+  // question names, parsed exactly as module 150's classifier parses
+  // them (the two parses must agree on what a field is — a trailing
+  // "related discipline(s)" tail is the board's filler, not a
+  // field; a question naming no fields resolves nothing).
+  function degreePursuitFieldsOf(label) {
+    const eff = String(label || "").toLowerCase().replace(/[*✱]\s*$/, "").trim();
+    if (!/\b(are you|do you)\b[^?]*\b(pursuing|studying|enrolled|working toward|completing)\b/.test(eff)) return null;
+    const m = eff.match(/\bdegree\b[^?]*?\bin\s+(.+)$/);
+    if (!m) return null;
+    const fields = m[1].replace(/\?\s*$/, "").split(/\s*,\s*|\s+or\s+|\s+and\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s && !/^(a\s+|an\s+|the\s+)?(related|other|similar)\b/.test(s)
+        && !/^(discipline|field|area|program)s?$/.test(s)
+        && !/^(in\s+the\s+)?(near\s+)?future$/.test(s));
+    return fields.length ? fields : null;
+  }
+  function normTokenList(s) {
+    return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(/\s+/).filter(Boolean);
   }
 
   // ---------- §6.1 pipeline over the board seam ----------

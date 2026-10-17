@@ -816,3 +816,84 @@ test("P0b pin: without the absence-of-grant fact, the region key derives NOTHING
   noF82.facts = noF82.facts.filter((f) => f.id !== "F-082");
   assert.equal(Portal.deriveAnswers(noF82, NOW).answers.relocation_required, undefined, "the relocation answer likewise exists only from its own fact");
 });
+
+// ---------- Sezzle final two fields (2026-10-17): the degree-pursuit ruling ----------
+// Coordinator ruling 2026-10-17 (owner answer-all delegation), forced
+// by Sezzle's finish drive: the board's degree question is a YES/NO
+// widget ("Are you currently pursuing a degree in Computer Science,
+// Data Science, Artificial Intelligence or related discipline?",
+// options exactly ["Yes","No"]) that the classifier bound to
+// education_discipline — the driver tried to fill the discipline
+// VALUE into it and stopped value_did_not_persist, although the
+// record settles the question: he IS pursuing a Computer Science
+// degree. The ruling: a yes/no question of this form binds to a
+// degree-pursuit derivation, NOT to education_discipline — Yes iff
+// at least one field the question names token-matches a discipline
+// on record (his: Computer Science, Finance); an honest No iff none
+// match; nothing (an ask) when the question names NO fields or no
+// discipline is on record. A plain discipline select keeps binding
+// education_discipline exactly as today. The CEFR half of the same
+// drive (the English scale) is guarded in
+// tests/career-portal-cefr.test.cjs.
+// Fail-first: the classification + Yes/No resolution assertions are
+// RED on base d477103 (the key does not exist; the label routes to
+// education_discipline); the no-fields / text-shape / visible-
+// vocabulary assertions are pins (green on both code states).
+const SEZZLE_DEGREE_LABEL = "Are you currently pursuing a degree in Computer Science, Data Science, Artificial Intelligence or related discipline?";
+const PURSUIT_PROFILE = {
+  name: "Sam Synthetic", email: "sam@example.test", phone: "+1 000 555 0100", location: "Chicago, IL",
+  resume: { filename: "resume.pdf", sha256: "b".repeat(64) },
+  answers: {},
+  education: { school: "Synthetic University", degree: "Bachelors", discipline: "Computer Science and Finance", graduation_year: "2029" },
+};
+function pursuitRun(label, profile) {
+  const { defs } = BrowserBoard.classifyFields([
+    { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+    { label, name: "q_dp", id: "q_dp", inputType: "text", tag: "input", cls: "select__input", selector: "#q_dp", required: true },
+  ]);
+  const board = stubBoard(defs);
+  const session = Portal.createPortalSession({ userId: "u-test", board });
+  const r = Portal.runApply(session, { posting: POSTING, profile: profile || PURSUIT_PROFILE, log: { records: [] } });
+  return { defs, board, r };
+}
+
+test("degree-pursuit classification: Sezzle's verbatim yes/no label routes to degree_pursuit, never the discipline value", () => {
+  const combo = clsR3(SEZZLE_DEGREE_LABEL, "text", { cls: "select__input" });
+  assert.equal(combo.kind, "screening");
+  assert.equal(combo.question_key, "degree_pursuit", "the react-select combobox shape (Sezzle's live shape) takes the pursuit key");
+  assert.equal(combo.profile_key, undefined, "the discipline VALUE is never the answer to a yes/no question");
+  const sel = clsR3(SEZZLE_DEGREE_LABEL, "select", { tag: "select", options: [{ value: "Yes", label: "Yes" }, { value: "No", label: "No" }] });
+  assert.equal(sel.question_key, "degree_pursuit", "a native select whose visible options are exactly Yes/No takes the pursuit key too");
+  const unrelated = clsR3("Are you currently pursuing a degree in Law, Medicine or related discipline?", "text", { cls: "select__input" });
+  assert.equal(unrelated.question_key, "degree_pursuit", "an unrelated-fields pursuit question classifies the same — the RESOLUTION answers it No");
+});
+
+test("degree-pursuit pins: no-fields, free-text shape, visible discipline vocabulary, and the plain discipline select are untouched", () => {
+  const noFields = clsR3("Are you currently pursuing a degree?", "text", { cls: "select__input" });
+  assert.notEqual(noFields.question_key, "degree_pursuit", "a pursuit question naming NO fields stays unbound — an honest ask, never a guessed Yes/No");
+  const textShape = clsR3(SEZZLE_DEGREE_LABEL, "text");
+  assert.notEqual(textShape.question_key, "degree_pursuit", "a free-text field is not a yes/no widget — the pursuit key requires a choice shape");
+  const vocab = clsR3("Are you currently pursuing a degree in Computer Science or Finance?", "select", { tag: "select", options: [{ value: "cs", label: "Computer Science" }, { value: "fin", label: "Finance" }] });
+  assert.notEqual(vocab.question_key, "degree_pursuit", "visible options that are NOT Yes/No keep the label on its old path — the board is asking for the discipline, not a yes/no");
+  const plain = clsR3("Degree discipline", "select", { tag: "select", options: [{ value: "cs", label: "Computer Science" }, { value: "fin", label: "Finance" }] });
+  assert.equal(plain.profile_key, "education_discipline", "a plain discipline select binds education_discipline exactly as today");
+});
+
+test("degree-pursuit end to end: a named field on record fills Yes; unrelated fields fill an honest No; no discipline on record stays an ask", () => {
+  const yes = pursuitRun(SEZZLE_DEGREE_LABEL);
+  const yesDef = yes.defs.find((d) => d.question_key === "degree_pursuit");
+  assert.ok(yesDef, "classified degree_pursuit");
+  assert.equal(yes.board.held[yesDef.field_id], "Yes", "Computer Science is named in the question and is a discipline on record");
+  const step = (yes.r.stepLog || []).find((s) => s.field_id === yesDef.field_id && s.action === "fill");
+  assert.equal(step && step.source, "derived_from_confirmed_record", "the fill is the record resolution, traced like its siblings");
+  const no = pursuitRun("Are you currently pursuing a degree in Law, Medicine or related discipline?");
+  const noDef = no.defs.find((d) => d.question_key === "degree_pursuit");
+  assert.ok(noDef, "classified degree_pursuit");
+  assert.equal(no.board.held[noDef.field_id], "No", "no named field matches his disciplines — an honest No, not silence and not a guess");
+  const bare = JSON.parse(JSON.stringify(PURSUIT_PROFILE)); delete bare.education;
+  const ask = pursuitRun(SEZZLE_DEGREE_LABEL, bare);
+  const askDef = ask.defs.find((d) => d.question_key === "degree_pursuit");
+  assert.ok(askDef, "classified degree_pursuit");
+  assert.equal(ask.board.held[askDef.field_id], undefined, "no discipline on record derives nothing — the field stays an ask");
+  assert.ok((ask.r.asks || []).some((a) => a.field_id === askDef.field_id), "the stop names the field");
+});

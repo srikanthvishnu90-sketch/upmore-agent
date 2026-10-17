@@ -772,7 +772,68 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') document.querySelectorAll('.select__menu').forEach((m) => { m.style.display = 'none'; });
 });
 </script></body></html>`;
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/gh-multifile": GH_MULTIFILE, "/gh-capped-essay": GH_CAPPED_ESSAY, "/gh-widget-late-render": GH_WIDGET_LATE_RENDER, "/gh-gusto-shapes": GH_GUSTO_SHAPES, "/gh-gusto-shapes-neg": GH_GUSTO_SHAPES_NEG, "/gh-file-chip": GH_FILE_CHIP, "/gh-review-remount": GH_REVIEW_REMOUNT, "/gh-containment": GH_CONTAINMENT };
+// Sezzle final-two-fields fixture (2026-10-17, coordinator ruling
+// the same day): the CEFR scale — the verbatim option list of
+// Sezzle's live English question. The confirmed fact is native-class
+// ("Native or bilingual proficiency"); no option is token-contained
+// in it, so every pre-ruling tier fails honestly. The ruling adds
+// ONE narrow tier: a native-class fact on a CEFR ladder (options
+// whose labels begin A1/A2/B1/B2/C1/C2) takes the top band present.
+// Fields:
+//   english CEFR widget (verbatim list) — the pick must be
+//     "C2 - Mastery" (pre-fix: value_did_not_persist).
+//   english CEFR widget, ladder ending at C1 — the pick must be
+//     "C1 - Advanced", the highest band PRESENT.
+//   english CEFR widget, verbatim list, filled with a NON-native
+//     fact ("Fluent") — pin: no scale map, honest failure.
+//   english CEFR native select (verbatim list) — matchOption's
+//     tier: the pick must be "C2 - Mastery" (pre-fix:
+//     option_not_found).
+//   english plain select (["Beginner","Intermediate","Advanced",
+//     "Mastery"] — proficiency words with NO CEFR band prefixes) —
+//     pin: not a CEFR ladder, no pick, option_not_found.
+const CEFR_LIST = ["A1 - beginner", "A2 - Pre-Intermediate", "B1- Intermediate", "B2 - Upper-intermediate", "C1 - Advanced", "C2 - Mastery"];
+const GH_CEFR = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>A.I. Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" type="file" required></div>
+${containmentWidget("question_english_cefr", "What is your English level?", CEFR_LIST)}
+${containmentWidget("question_english_cefr_c1", "English level — ladder to C1", CEFR_LIST.slice(0, 5))}
+${containmentWidget("question_english_cefr_fluent", "English level — fluent pin", CEFR_LIST)}
+${containmentSelect("english_cefr_select", "English level (select)", CEFR_LIST)}
+${containmentSelect("english_plain_select", "English level (plain scale)", ["Beginner", "Intermediate", "Advanced", "Mastery"])}
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+document.querySelectorAll('.ghx-field').forEach((wrap) => {
+  const inp = wrap.querySelector('.select__input');
+  const menu = wrap.querySelector('.select__menu');
+  const vc = wrap.querySelector('.select__value-container');
+  if (!inp || !menu) return;
+  const close = () => { menu.style.display = 'none'; inp.setAttribute('aria-expanded', 'false'); };
+  const open = () => {
+    document.querySelectorAll('.select__menu').forEach((m) => { if (m !== menu) m.style.display = 'none'; });
+    menu.style.display = 'block'; inp.setAttribute('aria-expanded', 'true');
+  };
+  inp.addEventListener('click', open);
+  inp.addEventListener('input', open);
+  inp.addEventListener('blur', () => setTimeout(close, 0));
+  menu.querySelectorAll('.select__option').forEach((o) => o.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    let sv = vc.querySelector('.select__single-value');
+    if (!sv) { sv = document.createElement('div'); sv.className = 'select__single-value'; vc.insertBefore(sv, vc.querySelector('.select__input-container')); }
+    sv.textContent = o.textContent; sv.style.display = 'block';
+    const ph = vc.querySelector('.select__placeholder'); if (ph) ph.style.display = 'none';
+    inp.value = '';
+    close();
+  }));
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelectorAll('.select__menu').forEach((m) => { m.style.display = 'none'; });
+});
+</script></body></html>`;
+const pages = { "/gh-cefr": GH_CEFR, "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/gh-multifile": GH_MULTIFILE, "/gh-capped-essay": GH_CAPPED_ESSAY, "/gh-widget-late-render": GH_WIDGET_LATE_RENDER, "/gh-gusto-shapes": GH_GUSTO_SHAPES, "/gh-gusto-shapes-neg": GH_GUSTO_SHAPES_NEG, "/gh-file-chip": GH_FILE_CHIP, "/gh-review-remount": GH_REVIEW_REMOUNT, "/gh-containment": GH_CONTAINMENT };
 const server = http.createServer((req, res) => {
   // R3 attach evidence (see GH_MULTIFILE): the page beacons every
   // file-input change here; the guard reads the log back and proves

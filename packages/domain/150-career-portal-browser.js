@@ -171,7 +171,7 @@ const CareerPortalBrowser = (() => {
     // DIFFERENT machine names (country / country_2, school / school_0)
     // for the same human question. Slug-derived question_keys are
     // unstable across duplicates, so only canonical keys count.
-    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "work_authorization_other_region", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "reside_near_posting", "graduation_year_or_later", "relocate_bay_area", "relocate_new_york", "relocation_required", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
+    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "work_authorization_other_region", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "reside_near_posting", "graduation_year_or_later", "degree_pursuit", "relocate_bay_area", "relocate_new_york", "relocation_required", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
 
     for (const f of raws) {
       if (consumed.has(f)) continue;
@@ -189,7 +189,10 @@ const CareerPortalBrowser = (() => {
         const members = groups.get(groupOf.get(f));
         const gLabel = groupLabel || f.name;
         const gHay = (gLabel + " " + f.name).toLowerCase();
-        const kind = classifyKind(gHay, "group");
+        // The members' option labels ride along (degree-pursuit
+        // ruling, 2026-10-17): a grouped yes/no widget's vocabulary
+        // is visible at classification only through its members.
+        const kind = classifyKind(gHay, "group", { options: members.map((m) => (m.label || "").replace(/[*✱]\s*$/, "").trim() || m.value || "") });
         for (const m of members) consumed.add(m);
         if (seenSem.has(semKeyFor(kind, gLabel))) continue; // D6 duplicate group
         seenSem.add(semKeyFor(kind, gLabel));
@@ -228,6 +231,26 @@ const CareerPortalBrowser = (() => {
       }
     }
     return { defs, bindings };
+  }
+  // Degree-pursuit field extraction (Sezzle final-two-fields
+  // ruling, coordinator 2026-10-17): the fields a "pursuing a
+  // degree in <fields>" label NAMES, or null when the label is not
+  // that question or names no field. A trailing "related
+  // discipline(s)" (or other/similar) tail is the board's filler,
+  // not a field; a pursuit question naming NO fields stays
+  // unbound (an honest ask), so the empty parse is a refusal, not
+  // an empty list. Module 149 carries the mirror parse for its
+  // fill-time resolution — the two must agree on what a field is.
+  function degreePursuitFields(eff) {
+    if (!/\b(are you|do you)\b[^?]*\b(pursuing|studying|enrolled|working toward|completing)\b/.test(eff)) return null;
+    const m = eff.match(/\bdegree\b[^?]*?\bin\s+(.+)$/);
+    if (!m) return null;
+    const fields = m[1].replace(/\?\s*$/, "").split(/\s*,\s*|\s+or\s+|\s+and\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s && !/^(a\s+|an\s+|the\s+)?(related|other|similar)\b/.test(s)
+        && !/^(discipline|field|area|program)s?$/.test(s)
+        && !/^(in\s+the\s+)?(near\s+)?future$/.test(s));
+    return fields.length ? fields : null;
   }
   function classifyKind(hay, inputType, f) {
     // D7 (BUG-065): a profile value binds ONLY when the field's LABEL
@@ -378,6 +401,31 @@ const CareerPortalBrowser = (() => {
     // boards name these fields by machine name (hispanic_ethnicity)
     // as often as by label ("Are you Hispanic/Latino?").
     if (/gender|race|ethnic|veteran|disability|sexual orientation|pronouns|lgbt|hispanic|latino/.test(hay)) return { kind: "eeo", question_key: slug(eff).slice(0, 32) || "eeo" };
+    // Sezzle final-two-fields ruling (coordinator, 2026-10-17): a
+    // yes/no question of the form "are you (currently) pursuing a
+    // degree in <field list>" binds to the degree_pursuit
+    // derivation, NOT to education_discipline — Sezzle's board
+    // bound it to the discipline and the driver tried to fill
+    // "Computer Science and Finance" into a Yes/No widget
+    // (value_did_not_persist) although the record settles the
+    // question. Narrow on purpose: pursuit phrasing + a NAMED field
+    // list (degreePursuitFields) + a choice-shaped widget. When
+    // the board's options are visible at classification (native
+    // select via f.options, radio/checkbox group via its members)
+    // they must be exactly Yes/No — a pursuit-worded label over a
+    // discipline vocabulary keeps its old binding; when they are
+    // not visible (a react-select combobox) the shape + label
+    // carry it, and the derived Yes/No can only land on a widget
+    // that actually offers it — any other vocabulary fails the
+    // fill honestly. Module 149 resolves the key at fill time
+    // against the education fact's disciplines; no discipline on
+    // record derives nothing.
+    if (choiceShaped && degreePursuitFields(eff)) {
+      const visibleOpts = (f && Array.isArray(f.options) ? f.options : [])
+        .map((o) => String((o && (o.label !== undefined ? o.label : o.value !== undefined ? o.value : o)) || "").toLowerCase().trim())
+        .filter(Boolean);
+      if (!visibleOpts.length || (visibleOpts.length === 2 && visibleOpts.every((x) => x === "yes" || x === "no"))) return { kind: "screening", question_key: "degree_pursuit" };
+    }
     // D4 (BUG-062): education + country keys — the answers exist in the
     // fact bank (F-001 shape) and now have keys to carry them.
     if (/preferred name|preferred first name/.test(eff)) return { kind: "standard", profile_key: "preferred_name" };

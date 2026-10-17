@@ -201,3 +201,108 @@ kit's Sezzle entry was corrected to the verbatim lists.
 - Bundles regenerated (full + career-only) after the 149 changes.
 - Full sweep numbers are recorded in the closing BUILD-STATUS note
   on this branch.
+
+## Follow-up 2 (2026-10-17): Sezzle's final two fields — degree-pursuit + CEFR rulings
+
+The containment follow-up above closed with both Sezzle fields
+still honestly empty, because the board's actual lists qualify
+under no word-based tier: the degree question is a Yes/No widget
+(mis-bound to `education_discipline`), and the English question
+is a CEFR scale. The coordinator ruled on both the same day
+(owner answer-all delegation); this lane implemented the rulings
+and re-drove Sezzle to a clean doorstep.
+
+### Ruling 1 — degree-pursuit yes/no questions
+
+A yes/no question of the form "are you (currently) pursuing /
+studying / enrolled in a degree in <field list>" binds to a
+degree-pursuit derivation, NOT to `education_discipline`:
+
+- Module 150 `classifyKind` → `{ screening, degree_pursuit }`,
+  narrowly: pursuit phrasing + "degree in" + at least one NAMED
+  field (`degreePursuitFields` — a trailing "related discipline"
+  is filler, not a field; a question naming NO fields stays
+  unbound, an honest ask) + a choice-shaped widget. When the
+  board's options are visible at classification (native select
+  `f.options`; radio/checkbox group members, now passed into the
+  group classification) they must be exactly Yes/No — a
+  pursuit-worded label over a discipline vocabulary keeps its
+  old binding. When they are not visible (react-select combobox)
+  the shape + label carry it, and the derived Yes/No can only
+  land on a widget that actually offers it — any other vocabulary
+  fails the fill honestly, so the fill remains the final arbiter.
+  `degree_pursuit` joins the semKeyFor canonical list. A plain
+  discipline select binds `education_discipline` exactly as
+  before (pin).
+- Module 149: `degree_pursuit: ["education"]` in
+  ANSWER_KEY_SOURCES; `resolveScreeningFromRecord` resolves it
+  at fill time: the label's fields (mirror parse — the two
+  parses must agree on what a field is) token-match against the
+  education fact's disciplines ("Computer Science and Finance" →
+  {Computer Science, Finance}); token-match = equal token sets
+  or one entirely inside the other. Yes iff any field matches;
+  an honest No iff fields are named and none match; nothing
+  when no discipline is on record (the field stays an ask).
+
+### Ruling 2 — native proficiency onto an ordinal scale
+
+When a language-level fact is native-class (its normalized
+value carries the token "native") and the board's options form
+the CEFR ladder (labels beginning A1/A2/B1/B2/C1/C2, at least
+two DISTINCT bands present), the driver picks the top band
+present — C2 when offered, else the highest offered. Basis: a
+native speaker sits at the top of any ordinal proficiency scale
+the board offers; the pick adds no claim the fact does not
+state. Narrow: ONLY the CEFR prefix pattern, ONLY native-class
+facts — a non-native fact (e.g. "Fluent") never scale-maps
+(pin), and a proficiency list without band prefixes is not a
+ladder (pin). Implemented as the WEAKEST tier in both option
+matchers — the helper's `matchOption` (pure `cefrTopPick`,
+below subset-containment: a literal subset of the fact's words
+always outranks a scale translation) and `driveWidget`'s
+in-page mirror (distinct-band counting, so one option seen
+through several selector pools cannot fake a ladder).
+
+### Guards (fail-first, verified on base d477103)
+
+- `tests/career-portal-answer-map.test.cjs`, degree-pursuit
+  section (3 tests): Sezzle's verbatim label classifies
+  degree_pursuit on the combobox shape AND on a native select
+  with visible Yes/No options (RED on base); pins — no-fields
+  stays unbound, free-text shape untouched, visible discipline
+  vocabulary keeps its binding, plain discipline select
+  unchanged (green on both); end-to-end over a stub board —
+  Yes for the Sezzle list, honest No for Law/Medicine, ask
+  when no discipline is on record (RED on base).
+- `tests/career-portal-cefr.test.cjs` over the new `/gh-cefr`
+  fixture (the verbatim Sezzle ladder): widget → "C2 - Mastery"
+  and ladder-to-C1 widget → "C1 - Advanced" and native select →
+  "C2 - Mastery" (all RED on base); pins — "Fluent" on the same
+  ladder picks nothing (value_did_not_persist), a non-CEFR
+  proficiency select picks nothing (option_not_found) — green
+  on both code states. 3/3 green post-fix; containment guards
+  4/4 (no stronger tier disturbed).
+
+### Sweep + live proof
+
+- Portal suites all green. Full sweep on the fixed tree:
+  4,437 tests — 4,407 pass, 5 fail, 25 skipped. The 5 fails are
+  the 2 tolerated SC-300 pins plus the 3 portal-browser
+  environment fails, PROVEN IDENTICAL on pristine d477103 in
+  the same environment (`career-portal-browser` 11/14 there
+  too, same names, same signatures) — zero regressions. The +6
+  tests over the d477103 baseline (4,431) are this lane's new
+  guards. Bundles regenerated (full + career-only; 149
+  changed) and verified with `--check`.
+- LIVE: Sezzle re-driven doorstep-only (tier 2, NEVER
+  submitted) on the fixed tree — CAPTCHA_HANDOFF, asks [],
+  ZERO fillFailures (both prior runs: the same two). The
+  degree widget renders "Yes" and the English widget renders
+  "C2 - Mastery", both visible on the final screenshot with
+  the form stopped at the captcha. Record:
+  submissions/redrive-r3-finish-2026-10-17/30-sezzle/record.json
+  (run `run-2026-10-17-finish-followup2`; the prior record is
+  preserved as `record.previous.json`). The finish kit's
+  Sezzle entry now names captcha + submit as the only
+  remaining steps, and the ledger's Sezzle DISPOSITION row is
+  closed (superseded by this lane's PENDING-ALLOCATION row).

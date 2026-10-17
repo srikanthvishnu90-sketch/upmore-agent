@@ -14,7 +14,6 @@ function pdf(bytes){
  // offsets stay intact. Compressed object dialects are outside this policy.
  const prohibited=new Set(['Encrypt','JavaScript','JS','Launch','EmbeddedFile','OpenAction','AA','XFA','ObjStm','XRef']);
  for(const [token]of text.matchAll(/\/[^\x00\x09\x0a\x0c\x0d ()<>\[\]{}/%]+/g)){
-  if(/#(?![a-f\d]{2})/i.test(token))fail('PDF_DIALECT_UNSUPPORTED');
   const name=token.slice(1).replace(/#([a-f\d]{2})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)));
   if(prohibited.has(name))fail('PDF_DIALECT_UNSUPPORTED');
  }

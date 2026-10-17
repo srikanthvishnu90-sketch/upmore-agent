@@ -1,0 +1,37 @@
+✖ bounded composition: stop-before-invalidation (28.519098ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 124.838825
+
+✖ failing tests:
+
+test at tests/career-interview-journey/adversarial-compositions.test.cjs:4:25
+✖ bounded composition: stop-before-invalidation (28.519098ms)
+  AssertionError [ERR_ASSERTION]: Stop takes effect immediately even when new evidence precedes its typed invalidation; later correction and terminal accounting cannot resume it.
+  {
+    "name": "AssertionError",
+    "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'active'\n- 'partial_at_user_stop'\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'active'\n- 'partial_at_user_stop'\n\n    at Object.run (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/adversarial-compositions.cjs:31:227)\n    at runCase (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/adversarial-compositions.test.cjs:4:75)\n    at Test.runInAsyncScope (node:async_hooks:227:14)\n    at Test.run (node:internal/test_runner/test:1382:25)\n    at Test.start (node:internal/test_runner/test:1242:17)\n    at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+  }
+  + actual - expected
+  
+  + 'failed'
+  - 'completed'
+  
+      at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/adversarial-compositions.test.cjs:4:96)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'failed',
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

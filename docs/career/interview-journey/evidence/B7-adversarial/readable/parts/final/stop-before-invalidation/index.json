@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "final/stop-before-invalidation.trace.json",
+  "original_path": "original/final/stop-before-invalidation.trace.json",
+  "original_bytes": 259296,
+  "original_sha256": "84c0cb5137638c9b4bca727ffa335451eac89ff80c42d510fe45f5e0b9d6c51a",
+  "expected": "Stop takes effect immediately even when new evidence precedes its typed invalidation; later correction and terminal accounting cannot resume it.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 8,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "ee366e9cf276b94ec5157fb1bb364b19227e3c9618a5d1d767a40494df83ae6d",
+      "first_ordinal": 1,
+      "last_ordinal": 8
+    }
+  ],
+  "event_count": 10,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "ff69e65c6404496493d573f4cf0b80874f74f2f0d23f0323cddbe31e3764435a",
+      "first_ordinal": 1,
+      "last_ordinal": 10
+    }
+  ]
+}

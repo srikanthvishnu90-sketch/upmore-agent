@@ -1,0 +1,299 @@
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 2
+            }
+          ],
+          "drafts": [
+            {
+              "id": "synthetic-journey:draft:settlement-before-invalidation:7",
+              "version": 1,
+              "text": "I assembled boundary test inputs.",
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:settlement-before-invalidation:6"
+              ],
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 2
+                }
+              ],
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 2
+                }
+              ],
+              "validation_receipt": "receipt-1",
+              "edits": [],
+              "status": "active",
+              "context_revision": 2,
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "950d38ead3ad1092a63001474128d354ec6da3a34a1e188f58c0121adc8cb36f"
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "resume",
+              "id": "settlement-before-invalidation:change:2",
+              "kind": "resume_replaced",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "settlement-before-invalidation:7",
+            "input_digest": "5f05a202c6d7cc0fbbef486d2926acf04a221cb84a8bcdd908816d1117ced731",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "5ce2e3574812efacc26f0759ec28bafeb432023b325d7eaf6f27a3764efa40b1",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 7
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "id": "synthetic-journey:assessment:settlement-before-invalidation:7:observation",
+              "kind": "initial",
+              "competency": "personal_contribution",
+              "assistance": "none",
+              "status": "observed",
+              "outcome": "uncertain",
+              "attempt_id": "synthetic-journey:attempt:settlement-before-invalidation:6",
+              "assessment_id": "synthetic-journey:assessment:settlement-before-invalidation:7",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 2
+                }
+              ],
+              "uncertainty": "Scripted development only.",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "14a1399b0cb24eae0de9461d849b893c30f5918d3b2316f188787bd34243ab3f"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "settlement-before-invalidation:1",
+              "input_digest": "d76b600e7013f20902d4ba4eadf1e602975d9bc962a12639110e8c45eefc77b9"
+            },
+            {
+              "id": "settlement-before-invalidation:2",
+              "input_digest": "d5fbc39baed10e4fa382ec2df67bf690fca8ca3296794f9954bfa7eea93d343e"
+            },
+            {
+              "id": "settlement-before-invalidation:3",
+              "input_digest": "8130b51217816e1e303a7f9c56c5a025fbb41334994350da01ed93ba24bcb151"
+            },
+            {
+              "id": "settlement-before-invalidation:4",
+              "input_digest": "5a2a22383e2de6947ce1c869f14b7bd8a4d9abf78de009253ae933a8586eff73"
+            },
+            {
+              "id": "settlement-before-invalidation:5",
+              "input_digest": "b218ae8d5f095714ab4cff4a26796b608da250d2c3df58d58abfe11596e71bac"
+            },
+            {
+              "id": "settlement-before-invalidation:6",
+              "input_digest": "ade6647da9916927e742c93fc70c71061215d7398a26106a338da19a0dadc430"
+            },
+            {
+              "id": "settlement-before-invalidation:7",
+              "input_digest": "5f05a202c6d7cc0fbbef486d2926acf04a221cb84a8bcdd908816d1117ced731"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 2
+          },
+          "revision": 8,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Larch",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

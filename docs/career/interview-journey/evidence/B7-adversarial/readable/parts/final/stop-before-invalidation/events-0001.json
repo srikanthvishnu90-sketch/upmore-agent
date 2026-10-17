@@ -1,0 +1,113 @@
+{
+  "archive_member": "final/stop-before-invalidation.trace.json",
+  "original_sha256": "84c0cb5137638c9b4bca727ffa335451eac89ff80c42d510fe45f5e0b9d6c51a",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3119,
+      "end_byte_exclusive": 19679,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "stop-before-invalidation:1",
+      "type": "submit_answer",
+      "start_byte": 19685,
+      "end_byte_exclusive": 62677,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "stop-before-invalidation:2",
+      "type": "stop",
+      "start_byte": 62683,
+      "end_byte_exclusive": 80889,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "stop-before-invalidation:3",
+      "type": "context_changed",
+      "start_byte": 80895,
+      "end_byte_exclusive": 99642,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "stop-before-invalidation:4",
+      "type": "reasoning_result",
+      "start_byte": 99648,
+      "end_byte_exclusive": 122328,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 122334,
+      "end_byte_exclusive": 122465,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "stop-before-invalidation:5",
+      "type": "reasoning_result",
+      "start_byte": 122471,
+      "end_byte_exclusive": 144869,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": "stop-before-invalidation:6",
+      "type": "resume",
+      "start_byte": 144875,
+      "end_byte_exclusive": 169753,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "stop-before-invalidation:7",
+      "type": "submit_answer",
+      "start_byte": 169759,
+      "end_byte_exclusive": 222146,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "stop-before-invalidation:8",
+      "type": "model_candidate",
+      "start_byte": 222152,
+      "end_byte_exclusive": 259289,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    }
+  ]
+}

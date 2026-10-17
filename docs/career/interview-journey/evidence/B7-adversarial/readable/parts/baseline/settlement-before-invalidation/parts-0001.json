@@ -1,0 +1,27 @@
+{
+  "archive_member": "baseline/settlement-before-invalidation.trace.json",
+  "original_sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735",
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32764,
+      "bytes": 32764,
+      "sha256": "785b56c096570569f6c26b22ab7ad66547694efa9802b83b530755f324b49a33"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32764,
+      "end_byte_exclusive": 65530,
+      "bytes": 32766,
+      "sha256": "5980a832a4bf1d19c4e7d683776cb8bd05e8a636a996b1f55b34ab40e2609877"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65530,
+      "end_byte_exclusive": 81852,
+      "bytes": 16322,
+      "sha256": "724a63384abbc1d6815a2a755b712df23e1002cc16126907f9abd807ed67be5c"
+    }
+  ]
+}

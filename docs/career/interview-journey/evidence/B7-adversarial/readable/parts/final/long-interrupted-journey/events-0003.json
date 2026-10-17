@@ -1,0 +1,204 @@
+{
+  "archive_member": "final/long-interrupted-journey.trace.json",
+  "original_sha256": "67f8fee22d4a5115676a2e8665343d73e27df123f2918ad79499bb668cac9681",
+  "events": [
+    {
+      "ordinal": 33,
+      "event_id": "long-interrupted-journey:29",
+      "type": "retry_assessment",
+      "start_byte": 1247514,
+      "end_byte_exclusive": 1331949,
+      "parts": [
+        "part-0039.txt",
+        "part-0040.txt",
+        "part-0041.txt"
+      ]
+    },
+    {
+      "ordinal": 34,
+      "event_id": "long-interrupted-journey:30",
+      "type": "model_candidate",
+      "start_byte": 1331955,
+      "end_byte_exclusive": 1401571,
+      "parts": [
+        "part-0041.txt",
+        "part-0042.txt",
+        "part-0043.txt"
+      ]
+    },
+    {
+      "ordinal": 35,
+      "event_id": "long-interrupted-journey:31",
+      "type": "select_question",
+      "start_byte": 1401577,
+      "end_byte_exclusive": 1469802,
+      "parts": [
+        "part-0043.txt",
+        "part-0044.txt",
+        "part-0045.txt"
+      ]
+    },
+    {
+      "ordinal": 36,
+      "event_id": "long-interrupted-journey:32",
+      "type": "submit_answer",
+      "start_byte": 1469808,
+      "end_byte_exclusive": 1566001,
+      "parts": [
+        "part-0045.txt",
+        "part-0046.txt",
+        "part-0047.txt",
+        "part-0048.txt"
+      ]
+    },
+    {
+      "ordinal": 37,
+      "event_id": "long-interrupted-journey:33",
+      "type": "pause",
+      "start_byte": 1566007,
+      "end_byte_exclusive": 1639448,
+      "parts": [
+        "part-0048.txt",
+        "part-0049.txt",
+        "part-0050.txt",
+        "part-0051.txt"
+      ]
+    },
+    {
+      "ordinal": 38,
+      "event_id": "long-interrupted-journey:34",
+      "type": "pause",
+      "start_byte": 1639454,
+      "end_byte_exclusive": 1713072,
+      "parts": [
+        "part-0051.txt",
+        "part-0052.txt",
+        "part-0053.txt"
+      ]
+    },
+    {
+      "ordinal": 39,
+      "event_id": "long-interrupted-journey:35",
+      "type": "time_change",
+      "start_byte": 1713078,
+      "end_byte_exclusive": 1786902,
+      "parts": [
+        "part-0053.txt",
+        "part-0054.txt",
+        "part-0055.txt"
+      ]
+    },
+    {
+      "ordinal": 40,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 1786908,
+      "end_byte_exclusive": 1787039,
+      "parts": [
+        "part-0055.txt"
+      ]
+    },
+    {
+      "ordinal": 41,
+      "event_id": "long-interrupted-journey:36",
+      "type": "reasoning_result",
+      "start_byte": 1787045,
+      "end_byte_exclusive": 1865136,
+      "parts": [
+        "part-0055.txt",
+        "part-0056.txt",
+        "part-0057.txt"
+      ]
+    },
+    {
+      "ordinal": 42,
+      "event_id": "long-interrupted-journey:37",
+      "type": "resume",
+      "start_byte": 1865142,
+      "end_byte_exclusive": 1942322,
+      "parts": [
+        "part-0057.txt",
+        "part-0058.txt",
+        "part-0059.txt",
+        "part-0060.txt"
+      ]
+    },
+    {
+      "ordinal": 43,
+      "event_id": "long-interrupted-journey:38",
+      "type": "reasoning_result",
+      "start_byte": 1942328,
+      "end_byte_exclusive": 2016789,
+      "parts": [
+        "part-0060.txt",
+        "part-0061.txt",
+        "part-0062.txt"
+      ]
+    },
+    {
+      "ordinal": 44,
+      "event_id": "long-interrupted-journey:39",
+      "type": "retry_assessment",
+      "start_byte": 2016795,
+      "end_byte_exclusive": 2118879,
+      "parts": [
+        "part-0062.txt",
+        "part-0063.txt",
+        "part-0064.txt",
+        "part-0065.txt"
+      ]
+    },
+    {
+      "ordinal": 45,
+      "event_id": "long-interrupted-journey:40",
+      "type": "model_candidate",
+      "start_byte": 2118885,
+      "end_byte_exclusive": 2205469,
+      "parts": [
+        "part-0065.txt",
+        "part-0066.txt",
+        "part-0067.txt",
+        "part-0068.txt"
+      ]
+    },
+    {
+      "ordinal": 46,
+      "event_id": "long-interrupted-journey:41",
+      "type": "select_question",
+      "start_byte": 2205475,
+      "end_byte_exclusive": 2291040,
+      "parts": [
+        "part-0068.txt",
+        "part-0069.txt",
+        "part-0070.txt"
+      ]
+    },
+    {
+      "ordinal": 47,
+      "event_id": "long-interrupted-journey:42",
+      "type": "submit_answer",
+      "start_byte": 2291046,
+      "end_byte_exclusive": 2405081,
+      "parts": [
+        "part-0070.txt",
+        "part-0071.txt",
+        "part-0072.txt",
+        "part-0073.txt",
+        "part-0074.txt"
+      ]
+    },
+    {
+      "ordinal": 48,
+      "event_id": "long-interrupted-journey:43",
+      "type": "pause",
+      "start_byte": 2405087,
+      "end_byte_exclusive": 2496035,
+      "parts": [
+        "part-0074.txt",
+        "part-0075.txt",
+        "part-0076.txt",
+        "part-0077.txt"
+      ]
+    }
+  ]
+}

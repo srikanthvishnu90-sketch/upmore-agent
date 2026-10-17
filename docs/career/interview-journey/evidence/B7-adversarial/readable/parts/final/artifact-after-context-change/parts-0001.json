@@ -1,0 +1,76 @@
+{
+  "archive_member": "final/artifact-after-context-change.trace.json",
+  "original_sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3",
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32759,
+      "bytes": 32759,
+      "sha256": "6a1dae2f11a786e9cfc2323159e25ab45f059f97bd0f8b88d893a9317ab3284f"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32759,
+      "end_byte_exclusive": 65503,
+      "bytes": 32744,
+      "sha256": "c9fc18308a00a9ad54055353b3a278fbd1bde56b8486513f4207502d43b0b8e5"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65503,
+      "end_byte_exclusive": 98270,
+      "bytes": 32767,
+      "sha256": "a009174fa1b4ccf5aab785f830e4687f700c220d27e4074a37625e0274d11f6e"
+    },
+    {
+      "file": "part-0004.txt",
+      "start_byte": 98270,
+      "end_byte_exclusive": 131022,
+      "bytes": 32752,
+      "sha256": "98fa211395d1455cd1369d9068c1fc397ca991bebc8da1f392f43f1d7ff7f4fd"
+    },
+    {
+      "file": "part-0005.txt",
+      "start_byte": 131022,
+      "end_byte_exclusive": 160333,
+      "bytes": 29311,
+      "sha256": "0d6605c99ea110701e30742e5caec94a811f840428aaa448d1ac3715ed284291"
+    },
+    {
+      "file": "part-0006.txt",
+      "start_byte": 160333,
+      "end_byte_exclusive": 193037,
+      "bytes": 32704,
+      "sha256": "4b2dbcf5aaf424b87e214e9038bde939b3ec20e75bb268e605b9d639ff3dda53"
+    },
+    {
+      "file": "part-0007.txt",
+      "start_byte": 193037,
+      "end_byte_exclusive": 225804,
+      "bytes": 32767,
+      "sha256": "2eafd2c939d8fc740ee39ccc866bfbf1a9485c5b169ff91f358ccc80f01d6085"
+    },
+    {
+      "file": "part-0008.txt",
+      "start_byte": 225804,
+      "end_byte_exclusive": 258550,
+      "bytes": 32746,
+      "sha256": "cf794de783d2c9c20fa6724742c4571e04d42fb82d3faedd73804777f63db971"
+    },
+    {
+      "file": "part-0009.txt",
+      "start_byte": 258550,
+      "end_byte_exclusive": 291307,
+      "bytes": 32757,
+      "sha256": "ffed3a8e56d0b9d7e8dcbc59c2bf2343816644c3b6b42d99ac57d92e8db1e30e"
+    },
+    {
+      "file": "part-0010.txt",
+      "start_byte": 291307,
+      "end_byte_exclusive": 301424,
+      "bytes": 10117,
+      "sha256": "cc26c4818bd2b219bf0da7b342ba0a11a4b9f6407b8c3bba1985a2e81db160f8"
+    }
+  ]
+}

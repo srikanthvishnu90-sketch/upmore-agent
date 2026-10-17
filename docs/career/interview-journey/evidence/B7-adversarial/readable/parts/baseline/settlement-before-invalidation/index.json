@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/settlement-before-invalidation.trace.json",
+  "original_path": "original/baseline/settlement-before-invalidation.trace.json",
+  "original_bytes": 81852,
+  "original_sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735",
+  "expected": "A trusted unknown and terminal settlement are consumed while evidence versions await typed invalidation; content work stays blocked until invalidation is applied.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 3,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "7c07f955e035b85b3cbc4883d64dd0b285ab8d9f4321ca4ee9461cc045d8fb80",
+      "first_ordinal": 1,
+      "last_ordinal": 3
+    }
+  ],
+  "event_count": 3,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "5e4590406b6878ae78c0e2276955012349d7923ddb05788fe11075bedc91f587",
+      "first_ordinal": 1,
+      "last_ordinal": 3
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+✖ pause: first unknown after control keeps the detached action fenced through restart (33.016527ms)
+✖ stop: first unknown after control keeps the detached action fenced through restart (22.607889ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 179.022088
+
+✖ failing tests:
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:23:78
+✖ pause: first unknown after control keeps the detached action fenced through restart (33.016527ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'stale_context'
+  - 'unknown'
+  
+      at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/recovery-checkpoints.test.cjs:26:81)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'stale_context',
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:23:78
+✖ stop: first unknown after control keeps the detached action fenced through restart (22.607889ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'stale_context'
+  - 'unknown'
+  
+      at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/recovery-checkpoints.test.cjs:26:81)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at node:internal/test_runner/test:1285:31
+      at node:internal/process/task_queues:151:7
+      at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+      at AsyncResource.runMicrotask (node:internal/process/task_queues:148:8) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'stale_context',
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

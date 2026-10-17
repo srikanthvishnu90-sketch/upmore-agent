@@ -1,0 +1,70 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/long-interrupted-journey.trace.json",
+  "original_path": "original/baseline/long-interrupted-journey.trace.json",
+  "original_bytes": 4969388,
+  "original_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b",
+  "expected": "Six varied question rounds with repeated interruptions, unknown/terminal reconciliation and explicit retry finish with six immutable attempts, no outstanding action and a readable current partial pack.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "event_count": 67,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "516148adb5fff8275db28a8401b97558f220a282194a0b87bde6a1c23bc340bb",
+      "first_ordinal": 1,
+      "last_ordinal": 16
+    },
+    {
+      "file": "events-0002.json",
+      "sha256": "577d916fc82ff97060bbcd5c29733ef90fa0fafdde777114dd833e08f3cbab67",
+      "first_ordinal": 17,
+      "last_ordinal": 32
+    },
+    {
+      "file": "events-0003.json",
+      "sha256": "51128348892f344338122beb589a2b74815c264ae33c8c218672acd8916c2ece",
+      "first_ordinal": 33,
+      "last_ordinal": 48
+    },
+    {
+      "file": "events-0004.json",
+      "sha256": "04ee9c984eb8a457d96b636d29085dcf9c39cd4a638ded56e9dd6d6a8111f9c0",
+      "first_ordinal": 49,
+      "last_ordinal": 64
+    },
+    {
+      "file": "events-0005.json",
+      "sha256": "853a4cb2eba94b7996ca9523800cd066b048b04e7cab0aec761cc821530a2c01",
+      "first_ordinal": 65,
+      "last_ordinal": 67
+    }
+  ],
+  "part_count": 152,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "a0e80278979379b2a658c2ff3c151f5c3aa6ddba72d5dcce86c946307fe070d5",
+      "first_ordinal": 1,
+      "last_ordinal": 40
+    },
+    {
+      "file": "parts-0002.json",
+      "sha256": "c28aed4d4f390d327898f713bb3f15afe8db1c254d25dd6884eb6de1a94aec49",
+      "first_ordinal": 41,
+      "last_ordinal": 80
+    },
+    {
+      "file": "parts-0003.json",
+      "sha256": "38350e0fae1682f75a2ed81feb8f8d81f59cbdf440a90280ad48090bd6c3dc85",
+      "first_ordinal": 81,
+      "last_ordinal": 120
+    },
+    {
+      "file": "parts-0004.json",
+      "sha256": "f1cb45ca454e050cccc9c0c6415ac99e198b2406319193f7f16f73c25b9a9e94",
+      "first_ordinal": 121,
+      "last_ordinal": 152
+    }
+  ]
+}

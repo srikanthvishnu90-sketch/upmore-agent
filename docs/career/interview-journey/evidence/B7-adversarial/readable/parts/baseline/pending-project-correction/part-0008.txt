@@ -1,0 +1,812 @@
+                    "omitted_count": 0,
+                    "reason": "last six eligible turns"
+                  },
+                  {
+                    "category": "hints",
+                    "omitted_count": 0,
+                    "reason": "different question or unscoped legacy hint"
+                  },
+                  {
+                    "category": "facts",
+                    "omitted_count": 0,
+                    "reason": "only host-scoped journey dependencies selected"
+                  }
+                ],
+                "omitted_categories": [
+                  "raw historical chat not requested",
+                  "unrelated facts not selected",
+                  "source bodies outside selected excerpts"
+                ],
+                "output_ceiling_tokens": 2200,
+                "pending_asks": [],
+                "prior_attempts": [
+                  {
+                    "answer_sha256": "22b7762b4bdc07d7c6cb3da6c8ae0cced299120eaeabba8425bb4961f8c34e23",
+                    "assistance": "none",
+                    "id": "synthetic-journey:attempt:pending-project-correction:4",
+                    "text": "Additional detail held while uncertain."
+                  }
+                ],
+                "prompt_id": "interview-assessment/v2",
+                "question": {
+                  "competency": "project_reasoning",
+                  "exercise_id": null,
+                  "family": "project",
+                  "id": "project-narrative",
+                  "rubric": {
+                    "anchors": {
+                      "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                      "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                      "2": "Workable basic account, with an important omission or unsupported step.",
+                      "3": "Supported and sound for this task; name any remaining limited gap.",
+                      "4": "Supported, justified and robust to this question’s boundary probe.",
+                      "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                    },
+                    "coverage_dimensions": [
+                      "personal_contribution",
+                      "reasoning_tradeoffs",
+                      "outcome_evidence"
+                    ],
+                    "criteria": {
+                      "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                      "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                      "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                      "reflection_transfer": "A supported lesson or next improvement.",
+                      "situation": "A concrete problem and relevant constraints."
+                    },
+                    "dimensions": [
+                      "situation",
+                      "personal_contribution",
+                      "reasoning_tradeoffs",
+                      "outcome_evidence",
+                      "reflection_transfer"
+                    ],
+                    "id": "project-evidence/v1",
+                    "label": "provisional practice judgment; not a hiring score",
+                    "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                    "version": 1
+                  },
+                  "situation": "past_project",
+                  "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+                  "version": 1
+                },
+                "selected_draft": null,
+                "side_question": null,
+                "source_content_is_untrusted": true,
+                "task": "initial"
+              }
+            },
+            "approval_requirement": "host_derived"
+          }
+        ]
+      }
+    },
+    {
+      "event": {
+        "id": "pending-project-correction:8",
+        "type": "model_candidate",
+        "at": "2026-10-16T12:01:00Z",
+        "action_id": "ij-b3810cfb866b56a3150280c8",
+        "receipt_id": "receipt-1",
+        "candidate": {
+          "attempt_id": "synthetic-journey:attempt:pending-project-correction:7",
+          "answer_sha256": "923f4c523a32e49c8812f9ab68a336ba66e767e20679335204bb1e83e3fbb938",
+          "question_id": "project-narrative",
+          "rubric_id": "project-evidence/v1",
+          "evidence_refs": [
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            },
+            {
+              "id": "project",
+              "version": 2
+            }
+          ],
+          "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+          "dimensions": [
+            {
+              "id": "situation",
+              "score": 2,
+              "rationale": "Synthetic boundary response; no real quality judgment.",
+              "uncertainty": "Not independently assessed",
+              "spans": [
+                {
+                  "start": 0,
+                  "end": 47,
+                  "quote": "My contribution was documenting the comparison."
+                }
+              ]
+            },
+            {
+              "id": "personal_contribution",
+              "score": 2,
+              "rationale": "Synthetic boundary response; no real quality judgment.",
+              "uncertainty": "Not independently assessed",
+              "spans": [
+                {
+                  "start": 0,
+                  "end": 47,
+                  "quote": "My contribution was documenting the comparison."
+                }
+              ]
+            },
+            {
+              "id": "reasoning_tradeoffs",
+              "score": 2,
+              "rationale": "Synthetic boundary response; no real quality judgment.",
+              "uncertainty": "Not independently assessed",
+              "spans": [
+                {
+                  "start": 0,
+                  "end": 47,
+                  "quote": "My contribution was documenting the comparison."
+                }
+              ]
+            },
+            {
+              "id": "outcome_evidence",
+              "score": 2,
+              "rationale": "Synthetic boundary response; no real quality judgment.",
+              "uncertainty": "Not independently assessed",
+              "spans": [
+                {
+                  "start": 0,
+                  "end": 47,
+                  "quote": "My contribution was documenting the comparison."
+                }
+              ]
+            },
+            {
+              "id": "reflection_transfer",
+              "score": 2,
+              "rationale": "Synthetic boundary response; no real quality judgment.",
+              "uncertainty": "Not independently assessed",
+              "spans": [
+                {
+                  "start": 0,
+                  "end": 47,
+                  "quote": "My contribution was documenting the comparison."
+                }
+              ]
+            }
+          ],
+          "strength": {
+            "dimension": "situation",
+            "text": "Scripted strength linked to an elicited dimension."
+          },
+          "priority_fix": {
+            "dimension": "personal_contribution",
+            "text": "Scripted gap: inspect the relevant boundary."
+          },
+          "exercise_id": "ownership",
+          "next_question_id": "handoff-transfer",
+          "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+          "uncertainty": "Scripted development only.",
+          "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "draft": {
+            "text": "My contribution was documenting the comparison.",
+            "fact_refs": [
+              {
+                "id": "project",
+                "version": 2
+              }
+            ]
+          }
+        }
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 2,
+          "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 2,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I documented the format comparison; I did not implement the importer.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "role": "Software engineer intern",
+              "level": "early-career",
+              "company": "Synthetic Harbor",
+              "stage": null,
+              "role_family": "software_engineering"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [
+          {
+            "id": "pending-project-correction:change:2",
+            "kind": "correction",
+            "evidence_id": "project",
+            "previous_version": 1
+          }
+        ],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "pending-project-correction:receipt:3",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-a57d4aa015ba51ed0ec06071",
+            "input_digest": "dbeae54d30fa9968518c045e538e9a0a802367df305322328ab497650717c520",
+            "request_digest": "ecd2bca0efde335bd27698edfaf50412f89f67140a0bb980952d6d46d746cd7b",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 3
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-pending-project-correction",
+            "usage_receipt_refs": [
+              "synthetic-accounting-pending-project-correction"
+            ]
+          },
+          {
+            "id": "pending-project-correction:receipt:6",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-a57d4aa015ba51ed0ec06071",
+            "input_digest": "dbeae54d30fa9968518c045e538e9a0a802367df305322328ab497650717c520",
+            "request_digest": "ecd2bca0efde335bd27698edfaf50412f89f67140a0bb980952d6d46d746cd7b",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 5
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-pending-project-correction",
+            "usage_receipt_refs": [
+              "synthetic-accounting-pending-project-correction"
+            ]
+          },
+          {
+            "id": "receipt-1",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-b3810cfb866b56a3150280c8",
+            "input_digest": "5b75823d6bad628bc5447e44c0a01da6f7fc2f0a6c86eee3c8d33dd614f47ad2",
+            "request_digest": "c927acaf9f673a182b321ce4d6b73a63f1f29b76369eae5ccb80b69baa27fcdf",
+            "candidate_sha256": "436a8ba45998654b513c0f9ad848c9cde5b27fab4024cd1e2073ee8873f034fc",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 7
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 8
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          }
+        ],
+        "artifacts": [],
+        "assessments": [],
+        "capabilities": [
+          {
+            "id": "interview.coach.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+          "epoch": 1,
+          "thread_revision": 2,
+          "journey_revision": 8
+        },
+        "next_state": {
+          "assessments": [
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "923f4c523a32e49c8812f9ab68a336ba66e767e20679335204bb1e83e3fbb938",
+              "attempt_id": "synthetic-journey:attempt:pending-project-correction:7",
+              "dimensions": [
+                {
+                  "id": "situation",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 47,
+                      "quote": "My contribution was documenting the comparison.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "personal_contribution",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 47,
+                      "quote": "My contribution was documenting the comparison.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 47,
+                      "quote": "My contribution was documenting the comparison.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "outcome_evidence",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 47,
+                      "quote": "My contribution was documenting the comparison.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reflection_transfer",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 47,
+                      "quote": "My contribution was documenting the comparison.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "evidence_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "exercise_id": "ownership",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "next_question_id": "handoff-transfer",
+              "priority_fix": {
+                "dimension": "personal_contribution",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "project-narrative",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "rubric_id": "project-evidence/v1",
+              "strength": {
+                "dimension": "situation",
+                "text": "Scripted strength linked to an elicited dimension."
+              },
+              "uncertainty": "Scripted development only.",
+              "id": "synthetic-journey:assessment:pending-project-correction:8",
+              "version": 1,
+              "status": "active",
+              "assessment_kind": "answer_feedback",
+              "family": "project",
+              "source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "retrieved_source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "validation_receipt": "receipt-1",
+              "judgment": "provisional practice inference",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "d821928d1be91b6336ad3758ddc9c6c5dcd170c6d104f1be2f302206ba28c2d1"
+            }
+          ],
+          "attempts": [
+            {
+              "answer_sha256": "43510d03ae88bd39e2968bb6f418bf52046061821a33dd984b9a6040177780e4",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "d287fd2769e8e0bf465be3f2322a9160349bd76198b05108d64af0aa428d3e14",
+              "context_outdated": true,
+              "context_revision": 1,
+              "dependency_basis": "host_declared_answer_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:pending-project-correction:1",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "I compared the formats; a teammate wrote the importer.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            },
+            {
+              "answer_sha256": "22b7762b4bdc07d7c6cb3da6c8ae0cced299120eaeabba8425bb4961f8c34e23",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "92fefee8730b34ffb7f7407b6d94e7fdbd0baca17210baf1ab7b75135c9e235f",
+              "context_outdated": false,
+              "context_revision": 2,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:pending-project-correction:4",
+              "index": 2,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "status": "active",
+              "text": "Additional detail held while uncertain.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            },
+            {
+              "answer_sha256": "923f4c523a32e49c8812f9ab68a336ba66e767e20679335204bb1e83e3fbb938",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "e298b807401352f6fda0832f8875ed88856052914318f43a95c2f9459a06b478",
+              "context_outdated": false,
+              "context_revision": 2,
+              "dependency_basis": "host_declared_answer_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:pending-project-correction:7",
+              "index": 3,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": "synthetic-journey:attempt:pending-project-correction:4",
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "status": "active",
+              "text": "My contribution was documenting the comparison.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": "synthetic-journey:attempt:pending-project-correction:7",
+            "active_question": {
+              "competency": "project_reasoning",
+              "family": "project",
+              "id": "project-narrative",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence"
+                ],
+                "criteria": {
+                  "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                  "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                  "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                  "reflection_transfer": "A supported lesson or next improvement.",
+                  "situation": "A concrete problem and relevant constraints."
+                },
+                "dimensions": [
+                  "situation",
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence",
+                  "reflection_transfer"
+                ],
+                "id": "project-evidence/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "past_project",
+              "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "outstanding_reasoning": [],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": null,
+            "selected_draft_id": "synthetic-journey:draft:pending-project-correction:8",
+            "unresolved_asks": [],
+            "next_exercise": {
+              "competency": "personal_contribution",
+              "id": "ownership",
+              "minutes": 3,
+              "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit.",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "assessment_id": "synthetic-journey:assessment:pending-project-correction:8"
+            },
+            "next_transfer_question_id": "handoff-transfer"
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "Context changed; build and reopen a current pack"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 30,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "2e699f92490a339144f10ee810a1fea0048d3b3f9dc9ba741e2ebd9b3af66913",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+            "epoch": 1,
+            "thread_revision": 2
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            },
+            {
+              "id": "project",
+              "version": 2
+            }
+          ],
+          "drafts": [
+            {
+              "id": "synthetic-journey:draft:pending-project-correction:8",

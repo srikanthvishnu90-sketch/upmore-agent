@@ -1,0 +1,17 @@
+{
+  "name": "node22-contracts",
+  "command": [
+    "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+    "scripts/career/interview-journey/check-contracts.cjs"
+  ],
+  "exit_code": 0,
+  "expected_exit": 0,
+  "log": "node22-contracts.log",
+  "sha256": "2ca4ec094436f81a174e8fe9ff0bd94aef22a84cf954469a0d6172c769f9cf6c",
+  "counts": {
+    "tests": 145,
+    "pass": 145,
+    "fail": 0,
+    "skipped": 0
+  }
+}

@@ -1,0 +1,764 @@
+              "input_digest": "df0b8d87e745ce4d9d8b1b5b02e2f5f2bc4ab55525f33f70840411e63964aa50"
+            },
+            {
+              "id": "long-interrupted-journey:48",
+              "input_digest": "5d9d4180e81d65f56e7714c0afaa3d8194aa0f8ae0f168905c2c7745c297e418"
+            },
+            {
+              "id": "long-interrupted-journey:49",
+              "input_digest": "e3c3772af25c3542f9840c52d9bc555248b7ff26d4a0c1c7be104d94bdac7ae1"
+            },
+            {
+              "id": "long-interrupted-journey:50",
+              "input_digest": "b6fa2544549e70aa0b3cb47ca23c5f92585308bba8b9c5bcaf9d49eb39de2047"
+            },
+            {
+              "id": "long-interrupted-journey:51",
+              "input_digest": "ecd9b254234643c67b25a7456f6e5f4460914284a1dc8e4286380cf26e8e72bb"
+            },
+            {
+              "id": "long-interrupted-journey:52",
+              "input_digest": "4e4bd85ce62321652a7c9de24cf80609b07db7fb544347d919afefd7b2c638bc"
+            },
+            {
+              "id": "long-interrupted-journey:53",
+              "input_digest": "35b8b7817b28b01c4da60355dd70f2582d1cb50caa6be67047592e90d8fbd955"
+            },
+            {
+              "id": "long-interrupted-journey:54",
+              "input_digest": "1413714d4999da4e033c1f4e5ec7c3615f0e42baedbb75dad37bee01aaa6bb7c"
+            },
+            {
+              "id": "long-interrupted-journey:55",
+              "input_digest": "3a871af3cd34dca4f888a7fb0a2e05ba437081a2f098aa726fb30e076ae1da31"
+            },
+            {
+              "id": "long-interrupted-journey:56",
+              "input_digest": "27fcda7b0dd3e4cdcf8abf782dbbd205f8287d08b347dceee75bce6b60d00dd1"
+            },
+            {
+              "id": "long-interrupted-journey:57",
+              "input_digest": "059a4d7d5fce8ec5bab23158f3506721a6cb6bde27abed7827dfabced37087e6"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 58,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "awaiting_answer",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Aspen",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Resuming the saved question and latest valid draft.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": [
+          {
+            "contract_version": "career_journey_action/v1",
+            "action_id": "ij-8a07200ddca0bc3263322edb",
+            "type": "ask_question",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 57
+            },
+            "idempotency_key": "8a07200ddca0bc3263322edb615babbf42b833b91e72a1744f056bf7c89f8ef7",
+            "input_digest": "0213077ef390e1b4cbfc84d2ac5e53e732d62c3d6ad9d69a9ec8015b8858646c",
+            "source_refs": [],
+            "capability_id": null,
+            "args": {
+              "question_id": "team-decision",
+              "representative_practice": true,
+              "text": "Describe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?"
+            },
+            "approval_requirement": "host_derived"
+          }
+        ]
+      }
+    },
+    {
+      "event": {
+        "id": "long-interrupted-journey:58",
+        "type": "reasoning_result",
+        "at": "2026-10-16T12:01:00Z",
+        "action_id": "ij-94f8dccb120390abf46a7513",
+        "receipt_id": "long-interrupted-journey:receipt:64"
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 1,
+          "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I maintained synthetic fixtures for a student scheduling project.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "role": "Software engineer intern",
+              "level": "early-career",
+              "company": "Synthetic Aspen",
+              "stage": null,
+              "role_family": "software_engineering"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "long-interrupted-journey:receipt:7",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-092f9fb022987029888134d2",
+            "input_digest": "cd9b3126a08b7ab4ec64957a011afe6fd9ade86fb0983d532e8959558e68bee0",
+            "request_digest": "63e936e7cb3440f4b296c304ccf1464718a1c5ff09410d9a9bb173a631d4e5d3",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 6
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:9",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-092f9fb022987029888134d2",
+            "input_digest": "cd9b3126a08b7ab4ec64957a011afe6fd9ade86fb0983d532e8959558e68bee0",
+            "request_digest": "63e936e7cb3440f4b296c304ccf1464718a1c5ff09410d9a9bb173a631d4e5d3",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 8
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-1",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-1bd5b780bb34996632b9a474",
+            "input_digest": "fed6b8756ff92db9b5397a5e0184a931070f9de8c54e1719efc21786409d411e",
+            "request_digest": "5fd32815f44f2a12044df5c126777fe20bc19cadcfc700e8ebd418f255436321",
+            "candidate_sha256": "a0ceb2fa4f23fc7cad3fab5f2881cf6b497a3c0a8a6003fb0c929506f5c2acf7",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 9
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 10
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:18",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-db259deb780698c34cdac7fd",
+            "input_digest": "57d413c77b006d35452f16d838936ebbfddc449c44fac78ae2fa99a219cee4b1",
+            "request_digest": "68b78a325bb6e28c3cb34ae3cda4bcf195d47dae359877d3d157468c118f6981",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 12
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 16
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:20",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-db259deb780698c34cdac7fd",
+            "input_digest": "57d413c77b006d35452f16d838936ebbfddc449c44fac78ae2fa99a219cee4b1",
+            "request_digest": "68b78a325bb6e28c3cb34ae3cda4bcf195d47dae359877d3d157468c118f6981",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 12
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 18
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-2",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-afb2efa5a71465bb74f99452",
+            "input_digest": "8f682eb120f23edba64dbe4a245f6a6502ec54748506ae302e28d65cbb25d838",
+            "request_digest": "fa661627b9b56868ffa0b5d2b376d70f5c0bb7ed854a2841df026f656912db62",
+            "candidate_sha256": "a91cca72d5cb94faf0ee6ea27e32587a8c182351b4587c064bc4d35f4910a7ed",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 19
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 20
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:29",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-73da49ea84a0bd4f1331ce06",
+            "input_digest": "d72c2f31d95438995a93226ee088b48413fb3e9d6e52019e363fd331efd05745",
+            "request_digest": "7c263250b55442dab957b2a33cd06a4a314dd3dd3d845a6150dcf98a454fcc8f",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 22
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 26
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:31",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-73da49ea84a0bd4f1331ce06",
+            "input_digest": "d72c2f31d95438995a93226ee088b48413fb3e9d6e52019e363fd331efd05745",
+            "request_digest": "7c263250b55442dab957b2a33cd06a4a314dd3dd3d845a6150dcf98a454fcc8f",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 22
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 28
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-3",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-305cd81d52106cd66eb4578c",
+            "input_digest": "40c1f5a8ba8d398c311cfc50a30394f2fe396521e217378e0979782b9dce07e7",
+            "request_digest": "04ffefc0e0d8f685e65f74859afafec0298c2646be4d62427baee662e8d65e1d",
+            "candidate_sha256": "87d26dd285495324c18871a723ba3a28bd0113fec2d5de5e4e91c91d6d24d266",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 29
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 30
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:40",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-8e10783d7be22701852ff0c8",
+            "input_digest": "ce0fc4ad5b722b6a3a6f8eefb6e5ebc6cf0f4287d58f5419d517cb10bf507c20",
+            "request_digest": "16ae9a24c1209101c06ad0016eed06ad54fb75e072ca236469d333d1b9f31a94",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 32
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 36
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:42",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-8e10783d7be22701852ff0c8",
+            "input_digest": "ce0fc4ad5b722b6a3a6f8eefb6e5ebc6cf0f4287d58f5419d517cb10bf507c20",
+            "request_digest": "16ae9a24c1209101c06ad0016eed06ad54fb75e072ca236469d333d1b9f31a94",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 32
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 38
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-4",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-d5681d0cc0ad7651bfb67799",
+            "input_digest": "440b4241f6dccc4d828e4bcc2c9e2f7e22aadd9daa535b2b2ef7f88b229d3513",
+            "request_digest": "ba75e57546dee5ea48da471ebd0243fdb181f4d6db8cf5d4e2c33aaf6fe5c097",
+            "candidate_sha256": "b18aa1dcbfbb16a362b03d388475836d017f8d53b396b1c6c0087cc6e188542b",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 39
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 40
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:51",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-f1e2bc4d7b586c511bb345c2",
+            "input_digest": "751fcdb8ad2f16b00b10e7797a0aba64cdfc871d6807f21cac2486a6eb12af70",
+            "request_digest": "6373a635708d6247a74a2cf93a4f21ac89ac0074546bac967870b474a2abd935",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 42
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 46
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:53",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-f1e2bc4d7b586c511bb345c2",
+            "input_digest": "751fcdb8ad2f16b00b10e7797a0aba64cdfc871d6807f21cac2486a6eb12af70",
+            "request_digest": "6373a635708d6247a74a2cf93a4f21ac89ac0074546bac967870b474a2abd935",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 42
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 48
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-5",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-50e76edcb855e176d5660c26",
+            "input_digest": "8378fb500bce6f6a21301a6bcf2988613877b2d9a2f58d68c53f6fd1ec66a26c",
+            "request_digest": "db6aae9f253d571d0d2e0cded848a32c10df5db9eebf7d3ef224a532674627d1",
+            "candidate_sha256": "9c5024952821038fe9f7038f4395534a06b1b1599ed76244c0930cb4e0dc6a11",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 49
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 50
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:62",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-94f8dccb120390abf46a7513",
+            "input_digest": "5ca417f5fcb9e639dec7fc02b6d940c034e693609421c8bf301cdba838072586",
+            "request_digest": "187c7d89feeb5859de5535c950c216a9eac04c8f9d60e06d30861caeab6c6675",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 52
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 56
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:64",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-94f8dccb120390abf46a7513",
+            "input_digest": "5ca417f5fcb9e639dec7fc02b6d940c034e693609421c8bf301cdba838072586",
+            "request_digest": "187c7d89feeb5859de5535c950c216a9eac04c8f9d60e06d30861caeab6c6675",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 52
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 58
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",

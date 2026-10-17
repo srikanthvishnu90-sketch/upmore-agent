@@ -1,0 +1,32 @@
+✖ retrying a failed saved project answer restores its matching question and rubric after an exercise switch (46.987395ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 159.738193
+
+✖ failing tests:
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:17:1
+✖ retrying a failed saved project answer restores its matching question and rubric after an exercise switch (46.987395ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'retry-design'
+  - 'project-narrative'
+  
+      at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/recovery-checkpoints.test.cjs:20:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'retry-design',
+    expected: 'project-narrative',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

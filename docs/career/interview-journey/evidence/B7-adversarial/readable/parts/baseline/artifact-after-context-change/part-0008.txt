@@ -1,0 +1,566 @@
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "stale",
+              "text": "I drafted the demo checklist.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "target",
+              "id": "artifact-after-context-change:change:2",
+              "kind": "target_changed",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "artifact-after-context-change:6",
+            "input_digest": "b6a0cde037242409f62147cbad8d0856e3dfb49c2b8dfd041b84bbee6b050649",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 5
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": [
+              {
+                "action_id": "ij-2906d195f48bc93d293957f6",
+                "approval_requirement": "host_derived",
+                "args": {
+                  "kind": "interview_prep_pack",
+                  "manifest": {
+                    "byte_length": 3351,
+                    "encoding": "utf-8",
+                    "filename": "interview-preparation.md",
+                    "mime_type": "text/markdown; charset=utf-8",
+                    "sha256": "b99297d3ad05280e6d13618340999f733c7729ac3b83b4ee389f1248eb745b00",
+                    "structured_sha256": "faa5c36f11c0b750e6005cce712920e99eba02542f02131576c2b312b2a8e8fd"
+                  },
+                  "markdown": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Spruce Tools; level: early-career; stage: unknown\n\nResume: resume@1\n\nAvailable minutes: 30\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: interview stage\n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 8 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\ntechnical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\nbehavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\npack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\n## Truthful story bank\n\nproject@1: I drafted a deployment checklist for a demo. — source \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\n## Original and revised answers\n\nNot yet supplied or assessed.\n\n## Feedback, practice and transfer\n\nNot yet supplied or assessed.\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 30 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\nproject answer not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\nNo current evidence-linked answer draft\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney synthetic-journey, revision 6; context c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e; epoch 1.\n\nproject@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nresume@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\ntarget@2; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+                  "pack": {
+                    "context_binding": {
+                      "account_version": 1,
+                      "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+                      "epoch": 1,
+                      "journey_revision": 6,
+                      "owner_id": "synthetic-owner-a",
+                      "thread_id": "synthetic-thread-a",
+                      "thread_revision": 2
+                    },
+                    "coverage_policy_version": "interview-coverage/v2",
+                    "epoch": 1,
+                    "journey_id": "synthetic-journey",
+                    "journey_revision": 6,
+                    "owner_id": "synthetic-owner-a",
+                    "resume_ref": {
+                      "id": "resume",
+                      "version": 1
+                    },
+                    "schema_version": "interview_prep_pack/v1",
+                    "sections": [
+                      {
+                        "content": [
+                          "Role: Software engineer intern; company: Synthetic Spruce Tools; level: early-career; stage: unknown",
+                          "Resume: resume@1",
+                          "Available minutes: 30",
+                          "Interview timing: not supplied",
+                          "Daily study minutes: null",
+                          "Unknowns: interview stage"
+                        ],
+                        "id": "target",
+                        "title": "Target and constraints"
+                      },
+                      {
+                        "content": [
+                          "Research limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice."
+                        ],
+                        "id": "brief",
+                        "title": "Role and company brief"
+                      },
+                      {
+                        "content": [
+                          "project: 8 minutes. Ground a truthful narrative in actual experience. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]",
+                          "technical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]",
+                          "behavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]",
+                          "pack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]"
+                        ],
+                        "id": "plan",
+                        "title": "Prioritized preparation plan"
+                      },
+                      {
+                        "content": [
+                          "project@1: I drafted a deployment checklist for a demo. — source {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}"
+                        ],
+                        "id": "stories",
+                        "title": "Truthful story bank"
+                      },
+                      {
+                        "content": [
+                          "Not yet supplied or assessed."
+                        ],
+                        "id": "answers",
+                        "title": "Original and revised answers"
+                      },
+                      {
+                        "content": [
+                          "Not yet supplied or assessed."
+                        ],
+                        "id": "feedback",
+                        "title": "Feedback, practice and transfer"
+                      },
+                      {
+                        "content": [
+                          "Remaining declared time: 30 minutes. Time spent is user/host reported, never inferred.",
+                          "project: extended work deferred to fit the declared remaining time.",
+                          "technical: extended work deferred to fit the declared remaining time.",
+                          "behavioral: extended work deferred to fit the declared remaining time.",
+                          "pack: extended work deferred to fit the declared remaining time.",
+                          "Current company research requires an approved source/capture; missing research does not block experience practice.",
+                          "Research limited: no verified role/company capture",
+                          "Source-backed role/company synthesis not assessed",
+                          "project answer not assessed",
+                          "technical answer not assessed",
+                          "behavioral answer not assessed",
+                          "practice not assessed",
+                          "revision not assessed",
+                          "Unassisted transfer not assessed",
+                          "No current evidence-linked answer draft"
+                        ],
+                        "id": "remaining",
+                        "title": "Remaining preparation and deferrals"
+                      },
+                      {
+                        "content": [
+                          "Generic, not company-specific: What would a successful first project look like for someone at this level?",
+                          "Generic, not company-specific: How does the team review design choices and validate changes?"
+                        ],
+                        "id": "interviewer_questions",
+                        "title": "Questions to ask the interviewer"
+                      },
+                      {
+                        "content": [
+                          "Appointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation."
+                        ],
+                        "id": "logistics",
+                        "title": "Day-of checklist"
+                      },
+                      {
+                        "content": [
+                          "Journey synthetic-journey, revision 6; context c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e; epoch 1.",
+                          "project@1; user_supplied; provenance {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}",
+                          "resume@1; user_supplied; provenance {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}",
+                          "target@2; user_supplied; provenance {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}",
+                          "Assisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated."
+                        ],
+                        "id": "evidence",
+                        "title": "Evidence and version appendix"
+                      }
+                    ],
+                    "source_refs": [
+                      {
+                        "id": "project",
+                        "version": 1
+                      },
+                      {
+                        "id": "resume",
+                        "version": 1
+                      },
+                      {
+                        "id": "target",
+                        "version": 2
+                      }
+                    ],
+                    "status": "partial",
+                    "target_ref": {
+                      "id": "target",
+                      "version": 2
+                    },
+                    "thread_id": "synthetic-thread-a",
+                    "unmet_conditions": [
+                      "Research limited: no verified role/company capture",
+                      "Source-backed role/company synthesis not assessed",
+                      "project answer not assessed",
+                      "technical answer not assessed",
+                      "behavioral answer not assessed",
+                      "practice not assessed",
+                      "revision not assessed",
+                      "Unassisted transfer not assessed",
+                      "No current evidence-linked answer draft"
+                    ]
+                  }
+                },
+                "capability_id": "interview.local_draft.v1",
+                "contract_version": "career_journey_action/v1",
+                "expected_binding": {
+                  "account_version": 1,
+                  "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+                  "epoch": 1,
+                  "journey_revision": 5,
+                  "owner_id": "synthetic-owner-a",
+                  "thread_id": "synthetic-thread-a",
+                  "thread_revision": 2
+                },
+                "idempotency_key": "2906d195f48bc93d293957f6dac2de509888e376de4fbfb0821a5c003707ae0f",
+                "input_digest": "52146e88ecdc7ccab8b6a56e27adf3ae402a941ebb348e59b39558da78e21f4c",
+                "owner_id": "synthetic-owner-a",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ],
+                "thread_id": "synthetic-thread-a",
+                "type": "create_draft"
+              }
+            ]
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "content_sha256": "9e664df2d065247ce60898a314f8c0842daeea9f3645cd3c9b2e32a2fad99972",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:artifact-after-context-change:2:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "stale",
+              "thread_id": "synthetic-thread-a"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "artifact-after-context-change:1",
+              "input_digest": "9e7cd26c0b51532df3a435859e807da0b53a26b9821670caaed8d823b722f026"
+            },
+            {
+              "id": "artifact-after-context-change:2",
+              "input_digest": "c2b9bfb0a8f84c42a100371e4ac7ae848e64c53a304a68d7fe0836fd19795888"
+            },
+            {
+              "id": "artifact-after-context-change:3",
+              "input_digest": "2d62294dfb750736ba202b3780be4bd1ed42fabe4e4f9f666e1f43c67b7d575d"
+            },
+            {
+              "id": "artifact-after-context-change:4",
+              "input_digest": "23bdf2a876a03d3d0ba7fffb169506289f9c2bddb187648ba1840f671e1f2786"
+            },
+            {
+              "id": "artifact-after-context-change:6",
+              "input_digest": "b6a0cde037242409f62147cbad8d0856e3dfb49c2b8dfd041b84bbee6b050649"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 6,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "pack_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Spruce Tools",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 2
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": [
+          {
+            "contract_version": "career_journey_action/v1",
+            "action_id": "ij-2906d195f48bc93d293957f6",
+            "type": "create_draft",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 5
+            },
+            "idempotency_key": "2906d195f48bc93d293957f6dac2de509888e376de4fbfb0821a5c003707ae0f",
+            "input_digest": "52146e88ecdc7ccab8b6a56e27adf3ae402a941ebb348e59b39558da78e21f4c",
+            "source_refs": [
+              {
+                "id": "project",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              },
+              {
+                "id": "target",
+                "version": 2
+              }
+            ],
+            "capability_id": "interview.local_draft.v1",
+            "args": {
+              "kind": "interview_prep_pack",
+              "manifest": {
+                "byte_length": 3351,
+                "encoding": "utf-8",
+                "filename": "interview-preparation.md",
+                "mime_type": "text/markdown; charset=utf-8",
+                "sha256": "b99297d3ad05280e6d13618340999f733c7729ac3b83b4ee389f1248eb745b00",
+                "structured_sha256": "faa5c36f11c0b750e6005cce712920e99eba02542f02131576c2b312b2a8e8fd"
+              },
+              "markdown": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Spruce Tools; level: early-career; stage: unknown\n\nResume: resume@1\n\nAvailable minutes: 30\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: interview stage\n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 8 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\ntechnical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\nbehavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\npack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\},\\{\"id\":\"target\",\"version\":2\\}\\]\n\n## Truthful story bank\n\nproject@1: I drafted a deployment checklist for a demo. — source \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\n## Original and revised answers\n\nNot yet supplied or assessed.\n\n## Feedback, practice and transfer\n\nNot yet supplied or assessed.\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 30 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\nproject answer not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\nNo current evidence-linked answer draft\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney synthetic-journey, revision 6; context c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e; epoch 1.\n\nproject@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nresume@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\ntarget@2; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+              "pack": {
+                "context_binding": {
+                  "account_version": 1,
+                  "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+                  "epoch": 1,
+                  "journey_revision": 6,
+                  "owner_id": "synthetic-owner-a",
+                  "thread_id": "synthetic-thread-a",
+                  "thread_revision": 2
+                },
+                "coverage_policy_version": "interview-coverage/v2",
+                "epoch": 1,
+                "journey_id": "synthetic-journey",
+                "journey_revision": 6,
+                "owner_id": "synthetic-owner-a",
+                "resume_ref": {
+                  "id": "resume",
+                  "version": 1
+                },
+                "schema_version": "interview_prep_pack/v1",
+                "sections": [
+                  {
+                    "content": [
+                      "Role: Software engineer intern; company: Synthetic Spruce Tools; level: early-career; stage: unknown",
+                      "Resume: resume@1",
+                      "Available minutes: 30",
+                      "Interview timing: not supplied",
+                      "Daily study minutes: null",
+                      "Unknowns: interview stage"
+                    ],
+                    "id": "target",
+                    "title": "Target and constraints"
+                  },
+                  {
+                    "content": [
+                      "Research limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice."
+                    ],
+                    "id": "brief",
+                    "title": "Role and company brief"
+                  },
+                  {
+                    "content": [
+                      "project: 8 minutes. Ground a truthful narrative in actual experience. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]",
+                      "technical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]",
+                      "behavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]",
+                      "pack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"resume\",\"version\":1},{\"id\":\"target\",\"version\":2}]"
+                    ],
+                    "id": "plan",
+                    "title": "Prioritized preparation plan"
+                  },
+                  {
+                    "content": [
+                      "project@1: I drafted a deployment checklist for a demo. — source {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}"
+                    ],
+                    "id": "stories",
+                    "title": "Truthful story bank"
+                  },
+                  {
+                    "content": [
+                      "Not yet supplied or assessed."
+                    ],
+                    "id": "answers",
+                    "title": "Original and revised answers"
+                  },
+                  {
+                    "content": [
+                      "Not yet supplied or assessed."
+                    ],
+                    "id": "feedback",
+                    "title": "Feedback, practice and transfer"
+                  },
+                  {
+                    "content": [
+                      "Remaining declared time: 30 minutes. Time spent is user/host reported, never inferred.",
+                      "project: extended work deferred to fit the declared remaining time.",
+                      "technical: extended work deferred to fit the declared remaining time.",
+                      "behavioral: extended work deferred to fit the declared remaining time.",
+                      "pack: extended work deferred to fit the declared remaining time.",
+                      "Current company research requires an approved source/capture; missing research does not block experience practice.",
+                      "Research limited: no verified role/company capture",
+                      "Source-backed role/company synthesis not assessed",
+                      "project answer not assessed",
+                      "technical answer not assessed",
+                      "behavioral answer not assessed",
+                      "practice not assessed",
+                      "revision not assessed",
+                      "Unassisted transfer not assessed",
+                      "No current evidence-linked answer draft"
+                    ],
+                    "id": "remaining",
+                    "title": "Remaining preparation and deferrals"
+                  },
+                  {

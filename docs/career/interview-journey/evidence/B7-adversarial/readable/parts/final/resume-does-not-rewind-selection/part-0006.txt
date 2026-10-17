@@ -1,0 +1,454 @@
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "validation_receipt": "receipt-1",
+              "judgment": "provisional practice inference",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "48a4364d115c5261be80c5acc1eba4cbd0795aebc8dd673f7e7d75d351071050"
+            }
+          ],
+          "attempts": [
+            {
+              "answer_sha256": "35e3f11412299b6953876936a1633bbfade1c6d25266e1efe3438f1a1138a632",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "3c7130ec688c9dba81c5278a56ecba4d5555362da716c3109d12ac0f8ec59eb1",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:resume-does-not-rewind-selection:6",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "retry-design",
+              "question_text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "retry-correctness/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "An idempotency token belongs to one operation and payload.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": "synthetic-journey:attempt:resume-does-not-rewind-selection:6",
+            "active_question": {
+              "competency": "correctness_invariant",
+              "family": "technical",
+              "id": "retry-design",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "requirements_assumptions",
+                  "correctness_invariant",
+                  "validation_recovery"
+                ],
+                "criteria": {
+                  "clear_approach": "Explains the causal sequence sufficiently to inspect correctness.",
+                  "correctness_invariant": "Explains atomic uniqueness/deduplication and concurrent retries; accepts other sound designs.",
+                  "reasoning_tradeoffs": "Explains storage/latency/retention tradeoffs relevant to the chosen design.",
+                  "requirements_assumptions": "Defines retry identity, effect boundary and payload conflict semantics.",
+                  "validation_recovery": "Tests partial failure, concurrent duplicate and conflicting payload; no execution claim."
+                },
+                "dimensions": [
+                  "requirements_assumptions",
+                  "correctness_invariant",
+                  "reasoning_tradeoffs",
+                  "validation_recovery",
+                  "clear_approach"
+                ],
+                "id": "retry-correctness/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "import_retry",
+              "text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "outstanding_reasoning": [],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": null,
+            "selected_draft_id": "synthetic-journey:draft:resume-does-not-rewind-selection:7",
+            "unresolved_asks": [],
+            "next_exercise": {
+              "competency": "correctness_invariant",
+              "id": "invariant",
+              "minutes": 4,
+              "text": "State one invariant. Walk through two concurrent retries, a timeout after commit, and the same key with a different payload. Identify where the invariant is enforced.",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "assessment_id": "synthetic-journey:assessment:resume-does-not-rewind-selection:7"
+            },
+            "next_transfer_question_id": "webhook-transfer"
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "No saved/readable artifact"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 30,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "1656adaa387cddaa724a23dd320b1718210858c68c0b75dce861fbfbe7b1befb",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+            "epoch": 1,
+            "thread_revision": 1
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            }
+          ],
+          "drafts": [
+            {
+              "id": "synthetic-journey:draft:resume-does-not-rewind-selection:7",
+              "version": 1,
+              "text": "An idempotency token belongs to one operation and payload.",
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:resume-does-not-rewind-selection:6"
+              ],
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "validation_receipt": "receipt-1",
+              "edits": [],
+              "status": "active",
+              "context_revision": 1,
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "901ea7b72aeb1e59f43b80af25874bdaa7a1addf36346b9bef8960f3c4702168"
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "resume-does-not-rewind-selection:7",
+            "input_digest": "923506c3caf4bc8daee0d3d68eaa9f21c379aebbfbaae9f24058e127b268ccaa",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 7
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "id": "synthetic-journey:assessment:resume-does-not-rewind-selection:7:observation",
+              "kind": "initial",
+              "competency": "correctness_invariant",
+              "assistance": "none",
+              "status": "observed",
+              "outcome": "uncertain",
+              "attempt_id": "synthetic-journey:attempt:resume-does-not-rewind-selection:6",
+              "assessment_id": "synthetic-journey:assessment:resume-does-not-rewind-selection:7",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "uncertainty": "Scripted development only.",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "87829c605729cf50c2deba763eec8de5a11a9c230f79d07a698ecfbb684c0392"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:1",
+              "input_digest": "eb8251557af858821a876e0856ff8b8cadca12b87f270cbde86ce03ddbfab67f"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:2",
+              "input_digest": "098f16cfe43ffd03446d854f8fc05805929343c72cef51bdaa5880afeef070db"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:3",
+              "input_digest": "3ec8d0769b07638d92c6553cfa12c97b7819d79d0fe9c53f0385d09063dbe5d5"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:4",
+              "input_digest": "ebde841f086e12707daec306404af5fc602afb7ca8b18f313b91bb0ffb92674c"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:5",
+              "input_digest": "78b110e55dc1fefcc038e1fdc63899785c115e4f6dd3a72d2fac603c2f477846"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:6",
+              "input_digest": "797cebec66bd3bb718dd7d505825ebb52f56e3462a694d109417b837e85774d8"
+            },
+            {
+              "id": "resume-does-not-rewind-selection:7",
+              "input_digest": "923506c3caf4bc8daee0d3d68eaa9f21c379aebbfbaae9f24058e127b268ccaa"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 8,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Willow",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

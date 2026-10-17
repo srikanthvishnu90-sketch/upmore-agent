@@ -1,0 +1,136 @@
+{
+  "archive_member": "baseline/resume-and-target-swap.trace.json",
+  "original_sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3163,
+      "end_byte_exclusive": 19729,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "resume-and-target-swap:1",
+      "type": "submit_answer",
+      "start_byte": 19735,
+      "end_byte_exclusive": 62157,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "resume-and-target-swap:2",
+      "type": "model_candidate",
+      "start_byte": 62163,
+      "end_byte_exclusive": 92366,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "resume-and-target-swap:3",
+      "type": "begin_practice",
+      "start_byte": 92372,
+      "end_byte_exclusive": 121910,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "resume-and-target-swap:4",
+      "type": "pause",
+      "start_byte": 121916,
+      "end_byte_exclusive": 152278,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "resume-and-target-swap:5",
+      "type": "context_changed",
+      "start_byte": 152284,
+      "end_byte_exclusive": 181877,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "resume-and-target-swap:6",
+      "type": "context_changed",
+      "start_byte": 181883,
+      "end_byte_exclusive": 212050,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 212056,
+      "end_byte_exclusive": 212187,
+      "parts": [
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "resume-and-target-swap:7",
+      "type": "resume",
+      "start_byte": 212193,
+      "end_byte_exclusive": 242016,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "resume-and-target-swap:8",
+      "type": "submit_answer",
+      "start_byte": 242022,
+      "end_byte_exclusive": 247518,
+      "parts": [
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 11,
+      "event_id": "resume-and-target-swap:9",
+      "type": "submit_answer",
+      "start_byte": 247524,
+      "end_byte_exclusive": 306561,
+      "parts": [
+        "part-0008.txt",
+        "part-0009.txt",
+        "part-0010.txt"
+      ]
+    },
+    {
+      "ordinal": 12,
+      "event_id": "resume-and-target-swap:10",
+      "type": "model_candidate",
+      "start_byte": 306567,
+      "end_byte_exclusive": 350711,
+      "parts": [
+        "part-0010.txt",
+        "part-0011.txt"
+      ]
+    }
+  ]
+}

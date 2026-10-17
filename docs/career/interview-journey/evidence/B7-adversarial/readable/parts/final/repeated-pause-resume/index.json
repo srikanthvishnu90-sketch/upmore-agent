@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "final/repeated-pause-resume.trace.json",
+  "original_path": "original/final/repeated-pause-resume.trace.json",
+  "original_bytes": 350582,
+  "original_sha256": "1c73d2c2e8a9d1addb516264eef3ae79fbb1d6ec75824ed5fe811eb157bd5324",
+  "expected": "Repeated pause creates one recoverable frame; one resume clears it and preserves the valid practice phase.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 11,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "57aa55a7cfd6e75209569eda13b93a9a84028012dbf82a7f2b92b4fee3045f31",
+      "first_ordinal": 1,
+      "last_ordinal": 11
+    }
+  ],
+  "event_count": 11,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "3bd7505e280d88e595f2f3f4bd802df5ec33a032066cbbcb3bf8607d056cdce3",
+      "first_ordinal": 1,
+      "last_ordinal": 11
+    }
+  ]
+}

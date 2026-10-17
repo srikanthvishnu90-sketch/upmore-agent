@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/resume-does-not-rewind-selection.trace.json",
+  "original_path": "original/baseline/resume-does-not-rewind-selection.trace.json",
+  "original_bytes": 112351,
+  "original_sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb",
+  "expected": "After repeated controls, an extra resume while active cannot rewind a newly selected technical question.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 4,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "efa6c62740d20cafed2aedd57ad274e8bae94883c64edade0f503d85c0db005f",
+      "first_ordinal": 1,
+      "last_ordinal": 4
+    }
+  ],
+  "event_count": 7,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "f152123ca13d1e644ef5656d2b42505ca44d5c1f3bededa8943e4c6d2ed99be3",
+      "first_ordinal": 1,
+      "last_ordinal": 7
+    }
+  ]
+}

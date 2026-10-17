@@ -1,0 +1,38 @@
+{
+  "archive_member": "baseline/stop-before-invalidation.trace.json",
+  "original_sha256": "0f613742755dd02f434513c0425538144c974279660f581ec421e9ef0448c2f3",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3119,
+      "end_byte_exclusive": 19679,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "stop-before-invalidation:1",
+      "type": "submit_answer",
+      "start_byte": 19685,
+      "end_byte_exclusive": 62677,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "stop-before-invalidation:2",
+      "type": "stop",
+      "start_byte": 62683,
+      "end_byte_exclusive": 80774,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    }
+  ]
+}

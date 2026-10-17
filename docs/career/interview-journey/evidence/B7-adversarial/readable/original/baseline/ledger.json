@@ -1,0 +1,233 @@
+{
+  "label": "BOUNDED_BUILDER_AUTHORED_STRUCTURAL_PASS",
+  "baseline_or_source": "bdada1fa505fbdf81cbf110285baf453b9bd499c",
+  "scenarios": [
+    {
+      "id": "pending-project-correction",
+      "expected": "Correct a pending project, preserve the uncertainty fence through restart, settle passively, ignore its stale candidate, then assess an explicitly submitted fresh answer.",
+      "outcome": "completed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 10,
+      "terminal": {
+        "status": "active",
+        "stage": "feedback_ready",
+        "revision": 9,
+        "attempts": 3,
+        "outstanding": 0
+      },
+      "failure": null,
+      "trace": "pending-project-correction.trace.json",
+      "trace_sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c"
+    },
+    {
+      "id": "repeated-pause-resume",
+      "expected": "Repeated pause creates one recoverable frame; one resume clears it and preserves the valid practice phase.",
+      "outcome": "failed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 9,
+      "terminal": {
+        "status": "active",
+        "stage": "targeted_practice",
+        "revision": 8,
+        "attempts": 1,
+        "outstanding": 0
+      },
+      "failure": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n\n2 !== 0\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n2 !== 0\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:28:249)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+      },
+      "trace": "repeated-pause-resume.trace.json",
+      "trace_sha256": "66887f88e57248626ea4269092ee7914b4d5523b0fc152316ea7976a28fc4aa2"
+    },
+    {
+      "id": "stop-before-invalidation",
+      "expected": "Stop takes effect immediately even when new evidence precedes its typed invalidation; later correction and terminal accounting cannot resume it.",
+      "outcome": "failed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 3,
+      "terminal": {
+        "status": "active",
+        "stage": "awaiting_answer",
+        "revision": 3,
+        "attempts": 1,
+        "outstanding": 1
+      },
+      "failure": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'active'\n- 'partial_at_user_stop'\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'active'\n- 'partial_at_user_stop'\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:31:227)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+      },
+      "trace": "stop-before-invalidation.trace.json",
+      "trace_sha256": "0f613742755dd02f434513c0425538144c974279660f581ec421e9ef0448c2f3"
+    },
+    {
+      "id": "settlement-before-invalidation",
+      "expected": "A trusted unknown and terminal settlement are consumed while evidence versions await typed invalidation; content work stays blocked until invalidation is applied.",
+      "outcome": "failed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 3,
+      "terminal": {
+        "status": "active",
+        "stage": "awaiting_answer",
+        "revision": 3,
+        "attempts": 1,
+        "outstanding": 1
+      },
+      "failure": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'stale_context'\n- 'unknown'\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'stale_context'\n- 'unknown'\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:34:243)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+      },
+      "trace": "settlement-before-invalidation.trace.json",
+      "trace_sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735"
+    },
+    {
+      "id": "changed-target-guided-retry",
+      "expected": "A company change preserves a project-only practice answer but invalidates its guided support; retry rejects stale support without losing the answer, then accepts a fresh initial answer.",
+      "outcome": "completed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 11,
+      "terminal": {
+        "status": "active",
+        "stage": "feedback_ready",
+        "revision": 9,
+        "attempts": 3,
+        "outstanding": 0
+      },
+      "failure": null,
+      "trace": "changed-target-guided-retry.trace.json",
+      "trace_sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24"
+    },
+    {
+      "id": "resume-change-during-retry",
+      "expected": "Replace the resume during an explicitly retried project-only answer, retain the original text, settle the detached request after restart and retry on the current resume version.",
+      "outcome": "completed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 13,
+      "terminal": {
+        "status": "active",
+        "stage": "feedback_ready",
+        "revision": 12,
+        "attempts": 1,
+        "outstanding": 0
+      },
+      "failure": null,
+      "trace": "resume-change-during-retry.trace.json",
+      "trace_sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed"
+    },
+    {
+      "id": "artifact-after-context-change",
+      "expected": "An artifact saved before a target correction cannot finish readback; a rebuilt current partial pack can be read back after JSON restart.",
+      "outcome": "completed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 9,
+      "terminal": {
+        "status": "active",
+        "stage": "pack_ready",
+        "revision": 7,
+        "attempts": 1,
+        "outstanding": 0
+      },
+      "failure": null,
+      "trace": "artifact-after-context-change.trace.json",
+      "trace_sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3"
+    },
+    {
+      "id": "resume-does-not-rewind-selection",
+      "expected": "After repeated controls, an extra resume while active cannot rewind a newly selected technical question.",
+      "outcome": "failed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 7,
+      "terminal": {
+        "status": "active",
+        "stage": "awaiting_answer",
+        "revision": 6,
+        "attempts": 0,
+        "outstanding": 0
+      },
+      "failure": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'project-narrative'\n- 'retry-design'\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'project-narrative'\n- 'retry-design'\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:46:153)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+      },
+      "trace": "resume-does-not-rewind-selection.trace.json",
+      "trace_sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb"
+    },
+    {
+      "id": "long-interrupted-journey",
+      "expected": "Six varied question rounds with repeated interruptions, unknown/terminal reconciliation and explicit retry finish with six immutable attempts, no outstanding action and a readable current partial pack.",
+      "outcome": "failed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 67,
+      "terminal": {
+        "status": "active",
+        "stage": "feedback_ready",
+        "revision": 61,
+        "attempts": 6,
+        "outstanding": 0
+      },
+      "failure": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n\n6 !== 0\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n6 !== 0\n\n    at Object.run (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:49:588)\n    at runCase (/workspace/upmore-spec-b/tests/career-interview-journey/adversarial-compositions.cjs:58:80)\n    at run (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:7:36)\n    at Object.<anonymous> (/workspace/upmore-spec-b/scripts/career/interview-journey/adversarial-pass.cjs:12:84)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)"
+      },
+      "trace": "long-interrupted-journey.trace.json",
+      "trace_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b"
+    },
+    {
+      "id": "foreign-and-delayed-settlement",
+      "expected": "A foreign terminal receipt cannot release an action; after a valid settlement and new submission, old unknown and candidate callbacks remain passive.",
+      "outcome": "completed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 12,
+      "terminal": {
+        "status": "active",
+        "stage": "feedback_ready",
+        "revision": 10,
+        "attempts": 2,
+        "outstanding": 0
+      },
+      "failure": null,
+      "trace": "foreign-and-delayed-settlement.trace.json",
+      "trace_sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe"
+    },
+    {
+      "id": "resume-and-target-swap",
+      "expected": "Target and resume changes during paused practice invalidate guidance while retaining a project-only answer; resumed revision is rejected and new feedback binds both current selections.",
+      "outcome": "completed",
+      "proof": "STRUCTURAL_ONLY",
+      "events": 12,
+      "terminal": {
+        "status": "active",
+        "stage": "feedback_ready",
+        "revision": 10,
+        "attempts": 2,
+        "outstanding": 0
+      },
+      "failure": null,
+      "trace": "resume-and-target-swap.trace.json",
+      "trace_sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7"
+    },
+    {
+      "id": "actual-entry-journey",
+      "expected": "A actual career entry routes an owned synthetic interview journey through interruption, terminal settlement, current feedback and authorized artifact readback.",
+      "outcome": "blocked",
+      "proof": "ACTUAL_ENTRY_NOT_RUN",
+      "producer_ref": "315158f5314360417266270ec6e6e9e71aad0af8",
+      "inspected_path": "supabase/functions/agent-chat/handler-career.ts",
+      "sha256": "a404ba94fd11ddd0ab1be7d6464604a22239859d4b2f4a6c0d3f6de3b915f249",
+      "reason": "Published A handler has no B interview registration; context-only projection cannot execute this task.",
+      "required_owner": "A/Muse"
+    }
+  ],
+  "counts": {
+    "completed": 6,
+    "failed": 5,
+    "blocked": 1
+  },
+  "provider_calls": 0,
+  "semantic_quality": "NOT_RUN",
+  "actual_entry": "BLOCKED",
+  "deployment": "NOT_RUN"
+}

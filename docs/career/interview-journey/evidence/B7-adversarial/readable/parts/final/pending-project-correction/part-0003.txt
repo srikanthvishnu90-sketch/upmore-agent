@@ -1,0 +1,841 @@
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+          "epoch": 1,
+          "thread_revision": 2,
+          "journey_revision": 2
+        },
+        "next_state": {
+          "assessments": [],
+          "attempts": [
+            {
+              "answer_sha256": "43510d03ae88bd39e2968bb6f418bf52046061821a33dd984b9a6040177780e4",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "d287fd2769e8e0bf465be3f2322a9160349bd76198b05108d64af0aa428d3e14",
+              "context_outdated": true,
+              "context_revision": 1,
+              "dependency_basis": "host_declared_answer_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:pending-project-correction:1",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "I compared the formats; a teammate wrote the importer.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": null,
+            "active_question": {
+              "competency": "project_reasoning",
+              "family": "project",
+              "id": "project-narrative",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence"
+                ],
+                "criteria": {
+                  "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                  "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                  "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                  "reflection_transfer": "A supported lesson or next improvement.",
+                  "situation": "A concrete problem and relevant constraints."
+                },
+                "dimensions": [
+                  "situation",
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence",
+                  "reflection_transfer"
+                ],
+                "id": "project-evidence/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "past_project",
+              "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "outstanding_reasoning": [
+              {
+                "budget_state": "unresolved",
+                "detached": true,
+                "request": {
+                  "action_id": "ij-a57d4aa015ba51ed0ec06071",
+                  "attempt_id": "synthetic-journey:attempt:pending-project-correction:1",
+                  "expected_binding": {
+                    "account_version": 1,
+                    "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                    "epoch": 1,
+                    "journey_revision": 1,
+                    "owner_id": "synthetic-owner-a",
+                    "thread_id": "synthetic-thread-a",
+                    "thread_revision": 1
+                  },
+                  "input_digest": "dbeae54d30fa9968518c045e538e9a0a802367df305322328ab497650717c520",
+                  "kind": "reasoning",
+                  "question_id": "project-narrative",
+                  "request_digest": "ecd2bca0efde335bd27698edfaf50412f89f67140a0bb980952d6d46d746cd7b",
+                  "resume_stage": "awaiting_answer",
+                  "rubric_id": "project-evidence/v1",
+                  "selected_draft_id": null,
+                  "source_refs": [
+                    {
+                      "id": "project",
+                      "version": 1
+                    },
+                    {
+                      "id": "target",
+                      "version": 1
+                    },
+                    {
+                      "id": "resume",
+                      "version": 1
+                    }
+                  ],
+                  "support_assessment_id": null,
+                  "support_exercise_id": null,
+                  "task": "initial",
+                  "transfer_competency": null,
+                  "turn_id": "pending-project-correction:1"
+                },
+                "detached_reason": "context_changed",
+                "detached_at": "2026-10-16T12:01:00Z"
+              }
+            ],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": null,
+            "selected_draft_id": null,
+            "unresolved_asks": []
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "Context changed; build and reopen a current pack"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 30,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "a0e916982f5c398bd5107eb675d2c29b3bf62b5681d9f235038fa3b94097a1ac",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+            "epoch": 1,
+            "thread_revision": 2
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            },
+            {
+              "id": "project",
+              "version": 2
+            }
+          ],
+          "drafts": [],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "project",
+              "id": "pending-project-correction:change:2",
+              "kind": "correction",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "pending-project-correction:2",
+            "input_digest": "37b77cacd5265132d9694558f819caec6f8b4a07172dc33e4a4cba116903b93f",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 2
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "remaining_minutes": 30,
+            "items": [
+              {
+                "id": "plan-project",
+                "competency": "project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              },
+              {
+                "id": "plan-technical",
+                "competency": "technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              },
+              {
+                "id": "plan-behavioral",
+                "competency": "behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              },
+              {
+                "id": "plan-pack",
+                "competency": "pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              }
+            ],
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ]
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "pending-project-correction:1",
+              "input_digest": "2468d2521efa24f66903f0f31b93ff72a978bdd1ef6c8c08bfea4e58b61ebaf4"
+            },
+            {
+              "id": "pending-project-correction:2",
+              "input_digest": "37b77cacd5265132d9694558f819caec6f8b4a07172dc33e4a4cba116903b93f"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 3,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "awaiting_answer",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Harbor",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    },
+    {
+      "event": {
+        "id": "pending-project-correction:3",
+        "type": "reasoning_result",
+        "at": "2026-10-16T12:01:00Z",
+        "action_id": "ij-a57d4aa015ba51ed0ec06071",
+        "receipt_id": "pending-project-correction:receipt:3"
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 2,
+          "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 2,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I documented the format comparison; I did not implement the importer.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "role": "Software engineer intern",
+              "level": "early-career",
+              "company": "Synthetic Harbor",
+              "stage": null,
+              "role_family": "software_engineering"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [
+          {
+            "id": "pending-project-correction:change:2",
+            "kind": "correction",
+            "evidence_id": "project",
+            "previous_version": 1
+          }
+        ],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "pending-project-correction:receipt:3",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-a57d4aa015ba51ed0ec06071",
+            "input_digest": "dbeae54d30fa9968518c045e538e9a0a802367df305322328ab497650717c520",
+            "request_digest": "ecd2bca0efde335bd27698edfaf50412f89f67140a0bb980952d6d46d746cd7b",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 3
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-pending-project-correction",
+            "usage_receipt_refs": [
+              "synthetic-accounting-pending-project-correction"
+            ]
+          }
+        ],
+        "artifacts": [],
+        "assessments": [],
+        "capabilities": [
+          {
+            "id": "interview.coach.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+          "epoch": 1,
+          "thread_revision": 2,
+          "journey_revision": 3
+        },
+        "next_state": {
+          "assessments": [],
+          "attempts": [
+            {
+              "answer_sha256": "43510d03ae88bd39e2968bb6f418bf52046061821a33dd984b9a6040177780e4",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "d287fd2769e8e0bf465be3f2322a9160349bd76198b05108d64af0aa428d3e14",
+              "context_outdated": true,
+              "context_revision": 1,
+              "dependency_basis": "host_declared_answer_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:pending-project-correction:1",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "I compared the formats; a teammate wrote the importer.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": null,
+            "active_question": {
+              "competency": "project_reasoning",
+              "family": "project",
+              "id": "project-narrative",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence"
+                ],
+                "criteria": {
+                  "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                  "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                  "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                  "reflection_transfer": "A supported lesson or next improvement.",
+                  "situation": "A concrete problem and relevant constraints."
+                },
+                "dimensions": [
+                  "situation",
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence",
+                  "reflection_transfer"
+                ],
+                "id": "project-evidence/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "past_project",
+              "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "outstanding_reasoning": [
+              {
+                "budget_state": "uncertain",
+                "detached": true,
+                "detached_at": "2026-10-16T12:01:00Z",
+                "detached_reason": "context_changed",
+                "request": {
+                  "action_id": "ij-a57d4aa015ba51ed0ec06071",
+                  "attempt_id": "synthetic-journey:attempt:pending-project-correction:1",
+                  "expected_binding": {
+                    "account_version": 1,
+                    "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                    "epoch": 1,
+                    "journey_revision": 1,
+                    "owner_id": "synthetic-owner-a",
+                    "thread_id": "synthetic-thread-a",
+                    "thread_revision": 1
+                  },
+                  "input_digest": "dbeae54d30fa9968518c045e538e9a0a802367df305322328ab497650717c520",
+                  "kind": "reasoning",
+                  "question_id": "project-narrative",
+                  "request_digest": "ecd2bca0efde335bd27698edfaf50412f89f67140a0bb980952d6d46d746cd7b",
+                  "resume_stage": "awaiting_answer",
+                  "rubric_id": "project-evidence/v1",
+                  "selected_draft_id": null,
+                  "source_refs": [
+                    {
+                      "id": "project",
+                      "version": 1
+                    },
+                    {
+                      "id": "target",
+                      "version": 1
+                    },
+                    {
+                      "id": "resume",
+                      "version": 1
+                    }
+                  ],
+                  "support_assessment_id": null,
+                  "support_exercise_id": null,
+                  "task": "initial",
+                  "transfer_competency": null,
+                  "turn_id": "pending-project-correction:1"
+                },
+                "receipt_id": "pending-project-correction:receipt:3"
+              }
+            ],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": {
+              "status": "unknown",
+              "outcome_status": "unknown",
+              "failure_kind": "checker_timeout",
+              "budget_state": "uncertain",
+              "receipt_id": "pending-project-correction:receipt:3",
+              "reservation_ref": "synthetic-pair-pending-project-correction",
+              "usage_receipt_refs": [
+                "synthetic-accounting-pending-project-correction"
+              ],
+              "request": {
+                "action_id": "ij-a57d4aa015ba51ed0ec06071",
+                "attempt_id": "synthetic-journey:attempt:pending-project-correction:1",
+                "expected_binding": {
+                  "account_version": 1,
+                  "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                  "epoch": 1,
+                  "journey_revision": 1,
+                  "owner_id": "synthetic-owner-a",
+                  "thread_id": "synthetic-thread-a",
+                  "thread_revision": 1
+                },
+                "input_digest": "dbeae54d30fa9968518c045e538e9a0a802367df305322328ab497650717c520",
+                "kind": "reasoning",
+                "question_id": "project-narrative",
+                "request_digest": "ecd2bca0efde335bd27698edfaf50412f89f67140a0bb980952d6d46d746cd7b",
+                "resume_stage": "awaiting_answer",
+                "rubric_id": "project-evidence/v1",
+                "selected_draft_id": null,
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ],
+                "support_assessment_id": null,
+                "support_exercise_id": null,
+                "task": "initial",
+                "transfer_competency": null,
+                "turn_id": "pending-project-correction:1"
+              },
+              "detached": true,
+              "at": "2026-10-16T12:01:00Z"
+            },
+            "selected_draft_id": null,
+            "unresolved_asks": []
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "Context changed; build and reopen a current pack"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 30,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "9a46acc5cf97b806dd15a797f8204aae4374582665659ba009dbec1ea9213e1b",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+            "epoch": 1,
+            "thread_revision": 2
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            },
+            {
+              "id": "project",
+              "version": 2
+            }
+          ],
+          "drafts": [],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "project",
+              "id": "pending-project-correction:change:2",
+              "kind": "correction",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "pending-project-correction:3",
+            "input_digest": "72c94c1ab2c47544b2e1f5bd6db0bff8bf9b82ac60c76b4ac3a6212740adfe89",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 3
+            },
+            "reply_plan": {
+              "reason": "checker_timeout",
+              "status": "unknown",
+              "text": "The earlier action remains uncertain. The answer and current checkpoint are preserved; no new pair is allowed before terminal host settlement."
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",

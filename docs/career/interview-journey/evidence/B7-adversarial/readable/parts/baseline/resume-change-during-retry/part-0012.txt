@@ -1,0 +1,218 @@
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "id": "synthetic-journey:assessment:resume-change-during-retry:11:observation",
+              "kind": "initial",
+              "competency": "personal_contribution",
+              "assistance": "none",
+              "status": "observed",
+              "outcome": "uncertain",
+              "attempt_id": "synthetic-journey:attempt:resume-change-during-retry:1",
+              "assessment_id": "synthetic-journey:assessment:resume-change-during-retry:11",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 2
+                }
+              ],
+              "uncertainty": "Scripted development only.",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "ecb4ac85ddac36012ed7e2935976af9027a97d40c6ecc38e013a34339c31cf31"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 2
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "resume-change-during-retry:1",
+              "input_digest": "80fb0c62364e66fa8771b02ff94964df08e9d70a26f28854ce0060c6055e6e60"
+            },
+            {
+              "id": "resume-change-during-retry:2",
+              "input_digest": "494f7fdc193f24bcf73e658a7747fd98b77ab2aeba01056016ac48ba78f2d75c"
+            },
+            {
+              "id": "resume-change-during-retry:3",
+              "input_digest": "ca07e12d60d4317e603f7fb9d4a03998fc5bb5ae954a1b768e27784de5eab8d2"
+            },
+            {
+              "id": "resume-change-during-retry:4",
+              "input_digest": "abb6edbfbf2ea1e675e068930b7e9f0f5bdd56b4266a654b40e89db8ca7dd188"
+            },
+            {
+              "id": "resume-change-during-retry:5",
+              "input_digest": "420442ff5e82ec8cc32bbd5f1d626fff51de81cde9c198600fd2be05155ed22c"
+            },
+            {
+              "id": "resume-change-during-retry:6",
+              "input_digest": "1982eee3654de2d9b1b7cbdfa7a921f1427419d9f6f5505b7165da24afd16651"
+            },
+            {
+              "id": "resume-change-during-retry:7",
+              "input_digest": "ca339220bddf48ced1478f23a82aaf677376d22215d8a8af81e9f86b00855b54"
+            },
+            {
+              "id": "resume-change-during-retry:8",
+              "input_digest": "80ab39fa01b12866d04239818b008de45eb5b27995cc501a6c02e1641cb4048c"
+            },
+            {
+              "id": "resume-change-during-retry:9",
+              "input_digest": "566fd25fdb31e5cf6c72b54c3c98944dbdf5c103b24cf87c25e4e1986e8eada1"
+            },
+            {
+              "id": "resume-change-during-retry:10",
+              "input_digest": "bb04798ae5df9eca1b75323cd3bce58203db4d422e8b232c367b8866e6b8721e"
+            },
+            {
+              "id": "resume-change-during-retry:11",
+              "input_digest": "53c2ea4bdcefcdf4b5f41e20a3108aa653c7c5a501e15f047c53d5697697ad26"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 2
+          },
+          "revision": 12,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Elm",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

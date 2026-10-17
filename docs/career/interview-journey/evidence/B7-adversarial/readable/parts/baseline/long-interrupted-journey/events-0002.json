@@ -1,0 +1,193 @@
+{
+  "archive_member": "baseline/long-interrupted-journey.trace.json",
+  "original_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b",
+  "events": [
+    {
+      "ordinal": 17,
+      "event_id": "long-interrupted-journey:15",
+      "type": "time_change",
+      "start_byte": 512716,
+      "end_byte_exclusive": 559364,
+      "parts": [
+        "part-0016.txt",
+        "part-0017.txt",
+        "part-0018.txt"
+      ]
+    },
+    {
+      "ordinal": 18,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 559370,
+      "end_byte_exclusive": 559501,
+      "parts": [
+        "part-0018.txt"
+      ]
+    },
+    {
+      "ordinal": 19,
+      "event_id": "long-interrupted-journey:16",
+      "type": "reasoning_result",
+      "start_byte": 559507,
+      "end_byte_exclusive": 610418,
+      "parts": [
+        "part-0018.txt",
+        "part-0019.txt"
+      ]
+    },
+    {
+      "ordinal": 20,
+      "event_id": "long-interrupted-journey:17",
+      "type": "resume",
+      "start_byte": 610424,
+      "end_byte_exclusive": 660325,
+      "parts": [
+        "part-0019.txt",
+        "part-0020.txt",
+        "part-0021.txt"
+      ]
+    },
+    {
+      "ordinal": 21,
+      "event_id": "long-interrupted-journey:18",
+      "type": "reasoning_result",
+      "start_byte": 660331,
+      "end_byte_exclusive": 707405,
+      "parts": [
+        "part-0021.txt",
+        "part-0022.txt"
+      ]
+    },
+    {
+      "ordinal": 22,
+      "event_id": "long-interrupted-journey:19",
+      "type": "retry_assessment",
+      "start_byte": 707411,
+      "end_byte_exclusive": 781846,
+      "parts": [
+        "part-0022.txt",
+        "part-0023.txt",
+        "part-0024.txt"
+      ]
+    },
+    {
+      "ordinal": 23,
+      "event_id": "long-interrupted-journey:20",
+      "type": "model_candidate",
+      "start_byte": 781852,
+      "end_byte_exclusive": 841134,
+      "parts": [
+        "part-0024.txt",
+        "part-0025.txt",
+        "part-0026.txt"
+      ]
+    },
+    {
+      "ordinal": 24,
+      "event_id": "long-interrupted-journey:21",
+      "type": "select_question",
+      "start_byte": 841140,
+      "end_byte_exclusive": 898913,
+      "parts": [
+        "part-0026.txt",
+        "part-0027.txt",
+        "part-0028.txt"
+      ]
+    },
+    {
+      "ordinal": 25,
+      "event_id": "long-interrupted-journey:22",
+      "type": "submit_answer",
+      "start_byte": 898919,
+      "end_byte_exclusive": 983950,
+      "parts": [
+        "part-0028.txt",
+        "part-0029.txt",
+        "part-0030.txt",
+        "part-0031.txt"
+      ]
+    },
+    {
+      "ordinal": 26,
+      "event_id": "long-interrupted-journey:23",
+      "type": "pause",
+      "start_byte": 983956,
+      "end_byte_exclusive": 1046985,
+      "parts": [
+        "part-0031.txt",
+        "part-0032.txt"
+      ]
+    },
+    {
+      "ordinal": 27,
+      "event_id": "long-interrupted-journey:24",
+      "type": "pause",
+      "start_byte": 1046991,
+      "end_byte_exclusive": 1113691,
+      "parts": [
+        "part-0032.txt",
+        "part-0033.txt",
+        "part-0034.txt",
+        "part-0035.txt"
+      ]
+    },
+    {
+      "ordinal": 28,
+      "event_id": "long-interrupted-journey:25",
+      "type": "time_change",
+      "start_byte": 1113697,
+      "end_byte_exclusive": 1180603,
+      "parts": [
+        "part-0035.txt",
+        "part-0036.txt",
+        "part-0037.txt"
+      ]
+    },
+    {
+      "ordinal": 29,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 1180609,
+      "end_byte_exclusive": 1180740,
+      "parts": [
+        "part-0037.txt"
+      ]
+    },
+    {
+      "ordinal": 30,
+      "event_id": "long-interrupted-journey:26",
+      "type": "reasoning_result",
+      "start_byte": 1180746,
+      "end_byte_exclusive": 1251912,
+      "parts": [
+        "part-0037.txt",
+        "part-0038.txt",
+        "part-0039.txt"
+      ]
+    },
+    {
+      "ordinal": 31,
+      "event_id": "long-interrupted-journey:27",
+      "type": "resume",
+      "start_byte": 1251918,
+      "end_byte_exclusive": 1322156,
+      "parts": [
+        "part-0039.txt",
+        "part-0040.txt",
+        "part-0041.txt"
+      ]
+    },
+    {
+      "ordinal": 32,
+      "event_id": "long-interrupted-journey:28",
+      "type": "reasoning_result",
+      "start_byte": 1322162,
+      "end_byte_exclusive": 1389636,
+      "parts": [
+        "part-0041.txt",
+        "part-0042.txt",
+        "part-0043.txt"
+      ]
+    }
+  ]
+}

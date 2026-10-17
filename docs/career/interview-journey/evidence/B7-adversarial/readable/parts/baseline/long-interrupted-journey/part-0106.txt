@@ -1,0 +1,722 @@
+                      "requirements_assumptions": "Defines retry identity, effect boundary and payload conflict semantics.",
+                      "validation_recovery": "Tests partial failure, concurrent duplicate and conflicting payload; no execution claim."
+                    },
+                    "dimensions": [
+                      "requirements_assumptions",
+                      "correctness_invariant",
+                      "reasoning_tradeoffs",
+                      "validation_recovery",
+                      "clear_approach"
+                    ],
+                    "id": "retry-correctness/v1",
+                    "label": "provisional practice judgment; not a hiring score",
+                    "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                    "version": 1
+                  },
+                  "situation": "import_retry",
+                  "text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+                  "version": 1
+                },
+                "next_exercise": {
+                  "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:10",
+                  "competency": "personal_contribution",
+                  "id": "ownership",
+                  "minutes": 3,
+                  "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+                  "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit."
+                },
+                "next_transfer_question_id": "handoff-transfer",
+                "stage": "awaiting_answer",
+                "unresolved_asks": []
+              },
+              {
+                "active_attempt_id": "synthetic-journey:attempt:long-interrupted-journey:22",
+                "active_question": {
+                  "competency": "personal_contribution",
+                  "family": "behavioral",
+                  "id": "team-decision",
+                  "rubric": {
+                    "anchors": {
+                      "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                      "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                      "2": "Workable basic account, with an important omission or unsupported step.",
+                      "3": "Supported and sound for this task; name any remaining limited gap.",
+                      "4": "Supported, justified and robust to this question’s boundary probe.",
+                      "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                    },
+                    "coverage_dimensions": [
+                      "personal_contribution",
+                      "reasoning_tradeoffs",
+                      "outcome_evidence"
+                    ],
+                    "criteria": {
+                      "outcome_evidence": "Actual observed result and uncertainty, including no measured outcome.",
+                      "personal_contribution": "Separates own reasoning/actions from the team’s.",
+                      "reasoning_tradeoffs": "Competing options and the basis for choosing.",
+                      "reflection_transfer": "What would change in a similar decision and why.",
+                      "situation": "Concrete disagreement and constraints, without invented conflict."
+                    },
+                    "dimensions": [
+                      "situation",
+                      "personal_contribution",
+                      "reasoning_tradeoffs",
+                      "outcome_evidence",
+                      "reflection_transfer"
+                    ],
+                    "id": "team-evidence/v1",
+                    "label": "provisional practice judgment; not a hiring score",
+                    "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                    "version": 1
+                  },
+                  "situation": "past_disagreement",
+                  "text": "Describe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?",
+                  "version": 1
+                },
+                "next_exercise": {
+                  "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:20",
+                  "competency": "correctness_invariant",
+                  "id": "invariant",
+                  "minutes": 4,
+                  "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+                  "text": "State one invariant. Walk through two concurrent retries, a timeout after commit, and the same key with a different payload. Identify where the invariant is enforced."
+                },
+                "next_transfer_question_id": "webhook-transfer",
+                "stage": "awaiting_answer",
+                "unresolved_asks": []
+              },
+              {
+                "active_attempt_id": "synthetic-journey:attempt:long-interrupted-journey:32",
+                "active_question": {
+                  "competency": "project_reasoning",
+                  "family": "project",
+                  "id": "project-narrative",
+                  "rubric": {
+                    "anchors": {
+                      "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                      "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                      "2": "Workable basic account, with an important omission or unsupported step.",
+                      "3": "Supported and sound for this task; name any remaining limited gap.",
+                      "4": "Supported, justified and robust to this question’s boundary probe.",
+                      "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                    },
+                    "coverage_dimensions": [
+                      "personal_contribution",
+                      "reasoning_tradeoffs",
+                      "outcome_evidence"
+                    ],
+                    "criteria": {
+                      "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                      "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                      "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                      "reflection_transfer": "A supported lesson or next improvement.",
+                      "situation": "A concrete problem and relevant constraints."
+                    },
+                    "dimensions": [
+                      "situation",
+                      "personal_contribution",
+                      "reasoning_tradeoffs",
+                      "outcome_evidence",
+                      "reflection_transfer"
+                    ],
+                    "id": "project-evidence/v1",
+                    "label": "provisional practice judgment; not a hiring score",
+                    "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                    "version": 1
+                  },
+                  "situation": "past_project",
+                  "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+                  "version": 1
+                },
+                "next_exercise": {
+                  "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:30",
+                  "competency": "personal_contribution",
+                  "id": "ownership",
+                  "minutes": 3,
+                  "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+                  "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit."
+                },
+                "next_transfer_question_id": "handoff-transfer",
+                "stage": "awaiting_answer",
+                "unresolved_asks": []
+              },
+              {
+                "active_attempt_id": "synthetic-journey:attempt:long-interrupted-journey:42",
+                "active_question": {
+                  "competency": "correctness_invariant",
+                  "family": "technical",
+                  "id": "retry-design",
+                  "rubric": {
+                    "anchors": {
+                      "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                      "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                      "2": "Workable basic account, with an important omission or unsupported step.",
+                      "3": "Supported and sound for this task; name any remaining limited gap.",
+                      "4": "Supported, justified and robust to this question’s boundary probe.",
+                      "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                    },
+                    "coverage_dimensions": [
+                      "requirements_assumptions",
+                      "correctness_invariant",
+                      "validation_recovery"
+                    ],
+                    "criteria": {
+                      "clear_approach": "Explains the causal sequence sufficiently to inspect correctness.",
+                      "correctness_invariant": "Explains atomic uniqueness/deduplication and concurrent retries; accepts other sound designs.",
+                      "reasoning_tradeoffs": "Explains storage/latency/retention tradeoffs relevant to the chosen design.",
+                      "requirements_assumptions": "Defines retry identity, effect boundary and payload conflict semantics.",
+                      "validation_recovery": "Tests partial failure, concurrent duplicate and conflicting payload; no execution claim."
+                    },
+                    "dimensions": [
+                      "requirements_assumptions",
+                      "correctness_invariant",
+                      "reasoning_tradeoffs",
+                      "validation_recovery",
+                      "clear_approach"
+                    ],
+                    "id": "retry-correctness/v1",
+                    "label": "provisional practice judgment; not a hiring score",
+                    "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                    "version": 1
+                  },
+                  "situation": "import_retry",
+                  "text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+                  "version": 1
+                },
+                "next_exercise": {
+                  "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:40",
+                  "competency": "personal_contribution",
+                  "id": "ownership",
+                  "minutes": 3,
+                  "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+                  "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit."
+                },
+                "next_transfer_question_id": "handoff-transfer",
+                "stage": "awaiting_answer",
+                "unresolved_asks": []
+              }
+            ],
+            "outstanding_reasoning": [
+              {
+                "request": {
+                  "kind": "reasoning",
+                  "action_id": "ij-50e76edcb855e176d5660c26",
+                  "input_digest": "8378fb500bce6f6a21301a6bcf2988613877b2d9a2f58d68c53f6fd1ec66a26c",
+                  "request_digest": "db6aae9f253d571d0d2e0cded848a32c10df5db9eebf7d3ef224a532674627d1",
+                  "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:42",
+                  "expected_binding": {
+                    "account_version": 1,
+                    "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                    "epoch": 1,
+                    "journey_revision": 49,
+                    "owner_id": "synthetic-owner-a",
+                    "thread_id": "synthetic-thread-a",
+                    "thread_revision": 1
+                  },
+                  "task": "initial",
+                  "turn_id": "long-interrupted-journey:49",
+                  "resume_stage": "awaiting_answer",
+                  "question_id": "retry-design",
+                  "rubric_id": "retry-correctness/v1",
+                  "support_assessment_id": null,
+                  "support_exercise_id": null,
+                  "transfer_competency": null,
+                  "selected_draft_id": "synthetic-journey:draft:long-interrupted-journey:40",
+                  "source_refs": [
+                    {
+                      "id": "project",
+                      "version": 1
+                    },
+                    {
+                      "id": "target",
+                      "version": 1
+                    },
+                    {
+                      "id": "resume",
+                      "version": 1
+                    }
+                  ]
+                },
+                "budget_state": "unresolved",
+                "detached": false
+              }
+            ],
+            "pending_artifact": null,
+            "pending_reasoning": {
+              "kind": "reasoning",
+              "action_id": "ij-50e76edcb855e176d5660c26",
+              "input_digest": "8378fb500bce6f6a21301a6bcf2988613877b2d9a2f58d68c53f6fd1ec66a26c",
+              "request_digest": "db6aae9f253d571d0d2e0cded848a32c10df5db9eebf7d3ef224a532674627d1",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:42",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "expected_binding": {
+                "owner_id": "synthetic-owner-a",
+                "thread_id": "synthetic-thread-a",
+                "account_version": 1,
+                "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                "epoch": 1,
+                "thread_revision": 1,
+                "journey_revision": 49
+              },
+              "task": "initial",
+              "turn_id": "long-interrupted-journey:49",
+              "resume_stage": "awaiting_answer",
+              "question_id": "retry-design",
+              "rubric_id": "retry-correctness/v1",
+              "support_assessment_id": null,
+              "support_exercise_id": null,
+              "transfer_competency": null,
+              "selected_draft_id": "synthetic-journey:draft:long-interrupted-journey:40"
+            },
+            "pending_research": null,
+            "reasoning_recovery": {
+              "at": "2026-10-16T12:01:00Z",
+              "budget_state": "settled",
+              "detached": true,
+              "failure_kind": "checker_timeout",
+              "outcome_status": "failed",
+              "receipt_id": "long-interrupted-journey:receipt:53",
+              "request": {
+                "action_id": "ij-f1e2bc4d7b586c511bb345c2",
+                "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:42",
+                "expected_binding": {
+                  "account_version": 1,
+                  "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                  "epoch": 1,
+                  "journey_revision": 42,
+                  "owner_id": "synthetic-owner-a",
+                  "thread_id": "synthetic-thread-a",
+                  "thread_revision": 1
+                },
+                "input_digest": "751fcdb8ad2f16b00b10e7797a0aba64cdfc871d6807f21cac2486a6eb12af70",
+                "kind": "reasoning",
+                "question_id": "retry-design",
+                "request_digest": "6373a635708d6247a74a2cf93a4f21ac89ac0074546bac967870b474a2abd935",
+                "resume_stage": "awaiting_answer",
+                "rubric_id": "retry-correctness/v1",
+                "selected_draft_id": "synthetic-journey:draft:long-interrupted-journey:40",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ],
+                "support_assessment_id": "synthetic-journey:assessment:long-interrupted-journey:40",
+                "support_exercise_id": "ownership",
+                "task": "initial",
+                "transfer_competency": null,
+                "turn_id": "long-interrupted-journey:42"
+              },
+              "reservation_ref": "synthetic-pair-long-interrupted-journey",
+              "status": "failed",
+              "usage_receipt_refs": [
+                "synthetic-accounting-long-interrupted-journey"
+              ]
+            },
+            "selected_draft_id": "synthetic-journey:draft:long-interrupted-journey:40",
+            "unresolved_asks": []
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "No saved/readable artifact"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 19,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "2e90730276f516f09216d8bd53d20e20afe4aca53331eba7c9e3054eaa32e0eb",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+            "epoch": 1,
+            "thread_revision": 1
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            }
+          ],
+          "drafts": [
+            {
+              "content_sha256": "ff06a607ac45e25878ec91f9d01c69863d33e2f3fc7f3d39933bc564591b5fef",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:10",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:2"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            },
+            {
+              "content_sha256": "1d67ceeb424a79fb0ddf6bc2341a2944e849b280963a56e20f289f2a6f062fe6",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:20",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:12"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-2",
+              "version": 1
+            },
+            {
+              "content_sha256": "08a82791e84dc3ca0be810ba37575f12aada716501c837594db879f11044e237",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:30",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:22"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-3",
+              "version": 1
+            },
+            {
+              "content_sha256": "1fbfc92855206e90b24cdfe5409fa89313d658a02b9f06bedf25fdbd85d27734",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:40",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:32"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "Synthetic round 3: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-4",
+              "version": 1
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "long-interrupted-journey:49",
+            "input_digest": "e3c3772af25c3542f9840c52d9bc555248b7ff26d4a0c1c7be104d94bdac7ae1",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 49
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Restored the saved answer’s matching checkpoint and requested a separately admitted assessment.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": [
+              {
+                "action_id": "ij-50e76edcb855e176d5660c26",
+                "approval_requirement": "host_derived",
+                "args": {
+                  "max_output_tokens": 2200,
+                  "prompt_sha256": "0e729e91f0eac525e579ce97d02ef8892a248e00385bef79db824eaab97cacac",
+                  "request": {
+                    "assessment_kind": "provisional practice inference",
+                    "attempt": {
+                      "answer_sha256": "e884975e8b87225a83303b05ae247b8c934d1d9620e48b026a99e839dcceb611",
+                      "assistance": "coached",
+                      "at": "2026-10-16T12:01:00Z",
+                      "content_sha256": "643db329cec018be47995256c9dbfe7ddaceb0c53bf70a76d73447873a9f2c40",
+                      "context_outdated": false,
+                      "context_revision": 1,
+                      "dependency_basis": "conservative_context_refs",
+                      "epoch": 1,
+                      "exercise_id": null,
+                      "id": "synthetic-journey:attempt:long-interrupted-journey:42",
+                      "index": 2,
+                      "journey_id": "synthetic-journey",
+                      "kind": "initial",
+                      "owner_id": "synthetic-owner-a",
+                      "parent_attempt_id": null,
+                      "question_id": "retry-design",
+                      "question_text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+                      "retrieved_source_refs": [
+                        {
+                          "id": "project",
+                          "version": 1
+                        },
+                        {
+                          "id": "target",
+                          "version": 1
+                        },
+                        {
+                          "id": "resume",
+                          "version": 1
+                        }
+                      ],
+                      "rubric_id": "retry-correctness/v1",
+                      "rubric_version": 1,
+                      "scripted": true,
+                      "source_refs": [
+                        {
+                          "id": "project",
+                          "version": 1
+                        },
+                        {
+                          "id": "target",
+                          "version": 1
+                        },
+                        {
+                          "id": "resume",
+                          "version": 1
+                        }
+                      ],
+                      "status": "active",
+                      "text": "Synthetic round 4: I prepared one fixture and documented its assumptions.",
+                      "thread_id": "synthetic-thread-a",
+                      "version": 1
+                    },
+                    "available_minutes": 19,
+                    "contract_version": "interview_reasoning_request/v1",
+                    "dialogue": [],
+                    "evidence": [
+                      {
+                        "id": "project",
+                        "kind": "project",
+                        "owner_id": "synthetic-owner-a",
+                        "provenance": {
+                          "source_id": "resume-v1",
+                          "span": "synthetic source excerpt"
+                        },
+                        "scope": "thread",
+                        "thread_id": "synthetic-thread-a",
+                        "trust": "user_supplied",
+                        "validity": {
+                          "epoch": 1,
+                          "status": "active"
+                        },
+                        "value": "I maintained synthetic fixtures for a student scheduling project.",
+                        "version": 1
+                      },
+                      {
+                        "id": "target",
+                        "kind": "target",
+                        "owner_id": "synthetic-owner-a",
+                        "provenance": {
+                          "source_id": "resume-v1",
+                          "span": "synthetic source excerpt"
+                        },
+                        "scope": "thread",
+                        "thread_id": "synthetic-thread-a",
+                        "trust": "user_supplied",
+                        "validity": {
+                          "epoch": 1,
+                          "status": "active"
+                        },
+                        "value": {
+                          "company": "Synthetic Aspen",
+                          "level": "early-career",
+                          "role": "Software engineer intern",
+                          "role_family": "software_engineering",
+                          "stage": null
+                        },
+                        "version": 1
+                      },
+                      {
+                        "id": "resume",
+                        "kind": "resume",
+                        "owner_id": "synthetic-owner-a",
+                        "provenance": {
+                          "source_id": "resume-v1",
+                          "span": "synthetic source excerpt"
+                        },
+                        "scope": "thread",

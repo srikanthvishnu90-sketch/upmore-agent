@@ -1,0 +1,870 @@
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "7d474b54d9c17c71124c4899cbcd84cbc9b1690e9a152d19769d5bdb69d3079f",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:long-interrupted-journey:12",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "retry-design",
+              "question_text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "retry-correctness/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            },
+            {
+              "answer_sha256": "94ce05b5e39b4b2c6643d57e620f423ecd044d41a1d0530992da6bcca6f178a9",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "39228e078d95bdf246e4f523934b1009bfb7a4d79c09fa6723c149448ef83e40",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:long-interrupted-journey:22",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "team-decision",
+              "question_text": "Describe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "team-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            },
+            {
+              "answer_sha256": "aadf7671ebacf5bc3f125425ace49597b7af48d4f1ef58dee08d2931a48add26",
+              "assistance": "coached",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "71117c809cccb4b8e35c7b0a48f2054317023766fb5d118dd62288bb38acb1cf",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:long-interrupted-journey:32",
+              "index": 2,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "Synthetic round 3: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            },
+            {
+              "answer_sha256": "e884975e8b87225a83303b05ae247b8c934d1d9620e48b026a99e839dcceb611",
+              "assistance": "coached",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "643db329cec018be47995256c9dbfe7ddaceb0c53bf70a76d73447873a9f2c40",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:long-interrupted-journey:42",
+              "index": 2,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "retry-design",
+              "question_text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "retry-correctness/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "Synthetic round 4: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": "synthetic-journey:attempt:long-interrupted-journey:42",
+            "active_question": {
+              "competency": "correctness_invariant",
+              "family": "technical",
+              "id": "retry-design",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "requirements_assumptions",
+                  "correctness_invariant",
+                  "validation_recovery"
+                ],
+                "criteria": {
+                  "clear_approach": "Explains the causal sequence sufficiently to inspect correctness.",
+                  "correctness_invariant": "Explains atomic uniqueness/deduplication and concurrent retries; accepts other sound designs.",
+                  "reasoning_tradeoffs": "Explains storage/latency/retention tradeoffs relevant to the chosen design.",
+                  "requirements_assumptions": "Defines retry identity, effect boundary and payload conflict semantics.",
+                  "validation_recovery": "Tests partial failure, concurrent duplicate and conflicting payload; no execution claim."
+                },
+                "dimensions": [
+                  "requirements_assumptions",
+                  "correctness_invariant",
+                  "reasoning_tradeoffs",
+                  "validation_recovery",
+                  "clear_approach"
+                ],
+                "id": "retry-correctness/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "import_retry",
+              "text": "A batch import may be retried after a timeout. Explain how you prevent duplicate effects, handle the same request ID with a different payload, and test recovery. State your assumptions; text reasoning only.",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "outstanding_reasoning": [],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": null,
+            "selected_draft_id": "synthetic-journey:draft:long-interrupted-journey:50",
+            "unresolved_asks": [],
+            "next_exercise": {
+              "competency": "correctness_invariant",
+              "id": "invariant",
+              "minutes": 4,
+              "text": "State one invariant. Walk through two concurrent retries, a timeout after commit, and the same key with a different payload. Identify where the invariant is enforced.",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:50"
+            },
+            "next_transfer_question_id": "webhook-transfer"
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "No saved/readable artifact"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 19,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "1aa30f1e63ddcb5cdd5625fdb5fbfd98bf0e8c1c64b875a0cea33307aa628f0a",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+            "epoch": 1,
+            "thread_revision": 1
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            }
+          ],
+          "drafts": [
+            {
+              "content_sha256": "ff06a607ac45e25878ec91f9d01c69863d33e2f3fc7f3d39933bc564591b5fef",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:10",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:2"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            },
+            {
+              "content_sha256": "1d67ceeb424a79fb0ddf6bc2341a2944e849b280963a56e20f289f2a6f062fe6",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:20",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:12"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-2",
+              "version": 1
+            },
+            {
+              "content_sha256": "08a82791e84dc3ca0be810ba37575f12aada716501c837594db879f11044e237",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:30",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:22"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-3",
+              "version": 1
+            },
+            {
+              "content_sha256": "0fe9e4a76e1e13d9ee0469775fd8fb0978cce17f8cc8bb3f469b797133237f46",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:long-interrupted-journey:40",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:32"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "Synthetic round 3: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-4",
+              "version": 1
+            },
+            {
+              "id": "synthetic-journey:draft:long-interrupted-journey:50",
+              "version": 1,
+              "text": "Synthetic round 4: I prepared one fixture and documented its assumptions.",
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:long-interrupted-journey:42"
+              ],
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "validation_receipt": "receipt-5",
+              "edits": [],
+              "status": "active",
+              "context_revision": 1,
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "985dad2626831a119d328fd6e884896dfa6bcc336f515ad3969258aba2b484a3"
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "long-interrupted-journey:50",
+            "input_digest": "b6fa2544549e70aa0b3cb47ca23c5f92585308bba8b9c5bcaf9d49eb39de2047",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 50
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:10",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:2",
+              "competency": "personal_contribution",
+              "content_sha256": "2a6f9fca63b95adc789f672f29fad0165fd2457ab0dbdebc96161977caf2b642",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:long-interrupted-journey:10:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            },
+            {
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:20",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:12",
+              "competency": "correctness_invariant",
+              "content_sha256": "80d7c57e75e39332e9b011c69e2d60aae7babc2aabe44f578cb605c97576aa0e",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:long-interrupted-journey:20:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            },
+            {
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:30",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:22",
+              "competency": "personal_contribution",
+              "content_sha256": "7aa4445bd1e091f09c4802790e3273382bae786b1442a0a86fc89ba9f46ccdcd",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:long-interrupted-journey:30:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            },
+            {
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:40",
+              "assistance": "coached",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:32",
+              "competency": "personal_contribution",
+              "content_sha256": "1987601b9a07dcadcfbefd538e3c1457fd1e8ae7e3ba9e18d372982f1984ef50",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:long-interrupted-journey:40:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            },
+            {
+              "id": "synthetic-journey:assessment:long-interrupted-journey:50:observation",
+              "kind": "initial",
+              "competency": "correctness_invariant",
+              "assistance": "coached",
+              "status": "observed",
+              "outcome": "uncertain",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:42",
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:50",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "uncertainty": "Scripted development only.",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "ac14126e448077bdaa8888a9a227b3f70cb45867b3288dcb12d587a921c9eff7"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 5,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 6,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 4,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 4,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 19
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "long-interrupted-journey:1",
+              "input_digest": "21af28acfc809ffedda181c1aa52083b7ccfe242760ed34ba222ab69e18e0cd1"
+            },
+            {
+              "id": "long-interrupted-journey:2",
+              "input_digest": "8cc5bb6e453fa871586a952b800a60757ca8cd23c179b08defc765f78562c7b0"
+            },
+            {
+              "id": "long-interrupted-journey:3",
+              "input_digest": "e7b4bb2ac6124e7ca2d4b80a27cbde209351d081531aef9575b2b6364124d35d"
+            },
+            {
+              "id": "long-interrupted-journey:4",

@@ -1,0 +1,218 @@
+{
+  "archive_member": "baseline/long-interrupted-journey.trace.json",
+  "original_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b",
+  "events": [
+    {
+      "ordinal": 49,
+      "event_id": "long-interrupted-journey:44",
+      "type": "pause",
+      "start_byte": 2821339,
+      "end_byte_exclusive": 2929441,
+      "parts": [
+        "part-0087.txt",
+        "part-0088.txt",
+        "part-0089.txt",
+        "part-0090.txt"
+      ]
+    },
+    {
+      "ordinal": 50,
+      "event_id": "long-interrupted-journey:45",
+      "type": "time_change",
+      "start_byte": 2929447,
+      "end_byte_exclusive": 3037755,
+      "parts": [
+        "part-0090.txt",
+        "part-0091.txt",
+        "part-0092.txt",
+        "part-0093.txt"
+      ]
+    },
+    {
+      "ordinal": 51,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 3037761,
+      "end_byte_exclusive": 3037892,
+      "parts": [
+        "part-0093.txt"
+      ]
+    },
+    {
+      "ordinal": 52,
+      "event_id": "long-interrupted-journey:46",
+      "type": "reasoning_result",
+      "start_byte": 3037898,
+      "end_byte_exclusive": 3150469,
+      "parts": [
+        "part-0093.txt",
+        "part-0094.txt",
+        "part-0095.txt",
+        "part-0096.txt",
+        "part-0097.txt"
+      ]
+    },
+    {
+      "ordinal": 53,
+      "event_id": "long-interrupted-journey:47",
+      "type": "resume",
+      "start_byte": 3150475,
+      "end_byte_exclusive": 3262036,
+      "parts": [
+        "part-0097.txt",
+        "part-0098.txt",
+        "part-0099.txt",
+        "part-0100.txt"
+      ]
+    },
+    {
+      "ordinal": 54,
+      "event_id": "long-interrupted-journey:48",
+      "type": "reasoning_result",
+      "start_byte": 3262042,
+      "end_byte_exclusive": 3370776,
+      "parts": [
+        "part-0100.txt",
+        "part-0101.txt",
+        "part-0102.txt",
+        "part-0103.txt"
+      ]
+    },
+    {
+      "ordinal": 55,
+      "event_id": "long-interrupted-journey:49",
+      "type": "retry_assessment",
+      "start_byte": 3370782,
+      "end_byte_exclusive": 3507693,
+      "parts": [
+        "part-0103.txt",
+        "part-0104.txt",
+        "part-0105.txt",
+        "part-0106.txt",
+        "part-0107.txt",
+        "part-0108.txt"
+      ]
+    },
+    {
+      "ordinal": 56,
+      "event_id": "long-interrupted-journey:50",
+      "type": "model_candidate",
+      "start_byte": 3507699,
+      "end_byte_exclusive": 3628644,
+      "parts": [
+        "part-0108.txt",
+        "part-0109.txt",
+        "part-0110.txt",
+        "part-0111.txt"
+      ]
+    },
+    {
+      "ordinal": 57,
+      "event_id": "long-interrupted-journey:51",
+      "type": "select_question",
+      "start_byte": 3628650,
+      "end_byte_exclusive": 3748086,
+      "parts": [
+        "part-0111.txt",
+        "part-0112.txt",
+        "part-0113.txt",
+        "part-0114.txt",
+        "part-0115.txt"
+      ]
+    },
+    {
+      "ordinal": 58,
+      "event_id": "long-interrupted-journey:52",
+      "type": "submit_answer",
+      "start_byte": 3748092,
+      "end_byte_exclusive": 3895605,
+      "parts": [
+        "part-0115.txt",
+        "part-0116.txt",
+        "part-0117.txt",
+        "part-0118.txt",
+        "part-0119.txt",
+        "part-0120.txt"
+      ]
+    },
+    {
+      "ordinal": 59,
+      "event_id": "long-interrupted-journey:53",
+      "type": "pause",
+      "start_byte": 3895611,
+      "end_byte_exclusive": 4020306,
+      "parts": [
+        "part-0120.txt",
+        "part-0121.txt",
+        "part-0122.txt",
+        "part-0123.txt"
+      ]
+    },
+    {
+      "ordinal": 60,
+      "event_id": "long-interrupted-journey:54",
+      "type": "pause",
+      "start_byte": 4020312,
+      "end_byte_exclusive": 4148678,
+      "parts": [
+        "part-0123.txt",
+        "part-0124.txt",
+        "part-0125.txt",
+        "part-0126.txt",
+        "part-0127.txt"
+      ]
+    },
+    {
+      "ordinal": 61,
+      "event_id": "long-interrupted-journey:55",
+      "type": "time_change",
+      "start_byte": 4148684,
+      "end_byte_exclusive": 4277256,
+      "parts": [
+        "part-0127.txt",
+        "part-0128.txt",
+        "part-0129.txt",
+        "part-0130.txt",
+        "part-0131.txt"
+      ]
+    },
+    {
+      "ordinal": 62,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 4277262,
+      "end_byte_exclusive": 4277393,
+      "parts": [
+        "part-0131.txt"
+      ]
+    },
+    {
+      "ordinal": 63,
+      "event_id": "long-interrupted-journey:56",
+      "type": "reasoning_result",
+      "start_byte": 4277399,
+      "end_byte_exclusive": 4410231,
+      "parts": [
+        "part-0131.txt",
+        "part-0132.txt",
+        "part-0133.txt",
+        "part-0134.txt",
+        "part-0135.txt"
+      ]
+    },
+    {
+      "ordinal": 64,
+      "event_id": "long-interrupted-journey:57",
+      "type": "resume",
+      "start_byte": 4410237,
+      "end_byte_exclusive": 4542141,
+      "parts": [
+        "part-0135.txt",
+        "part-0136.txt",
+        "part-0137.txt",
+        "part-0138.txt",
+        "part-0139.txt"
+      ]
+    }
+  ]
+}

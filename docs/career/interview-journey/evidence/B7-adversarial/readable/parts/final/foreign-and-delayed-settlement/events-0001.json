@@ -1,0 +1,135 @@
+{
+  "archive_member": "final/foreign-and-delayed-settlement.trace.json",
+  "original_sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3133,
+      "end_byte_exclusive": 19696,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "foreign-and-delayed-settlement:1",
+      "type": "submit_answer",
+      "start_byte": 19702,
+      "end_byte_exclusive": 62757,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "foreign-and-delayed-settlement:2",
+      "type": "pause",
+      "start_byte": 62763,
+      "end_byte_exclusive": 83534,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "foreign-and-delayed-settlement:3",
+      "type": "stop",
+      "start_byte": 83540,
+      "end_byte_exclusive": 104547,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 104553,
+      "end_byte_exclusive": 104684,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "foreign-and-delayed-settlement:4",
+      "type": "reasoning_result",
+      "start_byte": 104690,
+      "end_byte_exclusive": 109950,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "foreign-and-delayed-settlement:5",
+      "type": "reasoning_result",
+      "start_byte": 109956,
+      "end_byte_exclusive": 134726,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": "foreign-and-delayed-settlement:6",
+      "type": "resume",
+      "start_byte": 134732,
+      "end_byte_exclusive": 159166,
+      "parts": [
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "foreign-and-delayed-settlement:7",
+      "type": "submit_answer",
+      "start_byte": 159172,
+      "end_byte_exclusive": 211521,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "foreign-and-delayed-settlement:8",
+      "type": "reasoning_result",
+      "start_byte": 211527,
+      "end_byte_exclusive": 240864,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 11,
+      "event_id": "foreign-and-delayed-settlement:9",
+      "type": "model_candidate",
+      "start_byte": 240870,
+      "end_byte_exclusive": 274152,
+      "parts": [
+        "part-0008.txt",
+        "part-0009.txt"
+      ]
+    },
+    {
+      "ordinal": 12,
+      "event_id": "foreign-and-delayed-settlement:10",
+      "type": "model_candidate",
+      "start_byte": 274158,
+      "end_byte_exclusive": 313027,
+      "parts": [
+        "part-0009.txt",
+        "part-0010.txt"
+      ]
+    }
+  ]
+}

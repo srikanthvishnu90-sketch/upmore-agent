@@ -1,0 +1,114 @@
+{
+  "archive_member": "final/pending-project-correction.trace.json",
+  "original_sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3151,
+      "end_byte_exclusive": 19716,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "pending-project-correction:1",
+      "type": "submit_answer",
+      "start_byte": 19722,
+      "end_byte_exclusive": 62255,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "pending-project-correction:2",
+      "type": "context_changed",
+      "start_byte": 62261,
+      "end_byte_exclusive": 80580,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "pending-project-correction:3",
+      "type": "reasoning_result",
+      "start_byte": 80586,
+      "end_byte_exclusive": 102942,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 102948,
+      "end_byte_exclusive": 103079,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "pending-project-correction:4",
+      "type": "submit_answer",
+      "start_byte": 103085,
+      "end_byte_exclusive": 127298,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "pending-project-correction:5",
+      "type": "reasoning_result",
+      "start_byte": 127304,
+      "end_byte_exclusive": 151270,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": "pending-project-correction:6",
+      "type": "model_candidate",
+      "start_byte": 151276,
+      "end_byte_exclusive": 179088,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "pending-project-correction:7",
+      "type": "submit_answer",
+      "start_byte": 179094,
+      "end_byte_exclusive": 233383,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "pending-project-correction:8",
+      "type": "model_candidate",
+      "start_byte": 233389,
+      "end_byte_exclusive": 271987,
+      "parts": [
+        "part-0008.txt",
+        "part-0009.txt"
+      ]
+    }
+  ]
+}

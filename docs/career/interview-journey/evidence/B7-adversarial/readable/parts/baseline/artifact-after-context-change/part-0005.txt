@@ -1,0 +1,564 @@
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ],
+                "thread_id": "synthetic-thread-a",
+                "type": "create_draft"
+              }
+            ]
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "assessment_id": "synthetic-journey:assessment:artifact-after-context-change:2",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:artifact-after-context-change:1",
+              "competency": "personal_contribution",
+              "content_sha256": "1ec1100e11895e53dfa1e8dcb6fce686b2ca7e231104861fa29f0f75db58ea9e",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:artifact-after-context-change:2:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "artifact-after-context-change:1",
+              "input_digest": "9e7cd26c0b51532df3a435859e807da0b53a26b9821670caaed8d823b722f026"
+            },
+            {
+              "id": "artifact-after-context-change:2",
+              "input_digest": "c2b9bfb0a8f84c42a100371e4ac7ae848e64c53a304a68d7fe0836fd19795888"
+            },
+            {
+              "id": "artifact-after-context-change:3",
+              "input_digest": "2d62294dfb750736ba202b3780be4bd1ed42fabe4e4f9f666e1f43c67b7d575d"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 4,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "pack_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Spruce",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": [
+          {
+            "contract_version": "career_journey_action/v1",
+            "action_id": "ij-1aa76b858a882bd7ec9b5715",
+            "type": "create_draft",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 3
+            },
+            "idempotency_key": "1aa76b858a882bd7ec9b57154721750711212360f87c1482d7426d4de950e4ce",
+            "input_digest": "55cfb50994f0a820e6032adbccf3070932621cc2d507dabc2495eee9b1291de5",
+            "source_refs": [
+              {
+                "id": "project",
+                "version": 1
+              },
+              {
+                "id": "target",
+                "version": 1
+              },
+              {
+                "id": "resume",
+                "version": 1
+              }
+            ],
+            "capability_id": "interview.local_draft.v1",
+            "args": {
+              "kind": "interview_prep_pack",
+              "manifest": {
+                "byte_length": 4935,
+                "encoding": "utf-8",
+                "filename": "interview-preparation.md",
+                "mime_type": "text/markdown; charset=utf-8",
+                "sha256": "8eba72f766d8e44157924a42e9e1f129d9460295506051ada36c7451ed6dcc16",
+                "structured_sha256": "6ea1d6283a648afe75bc728c4959c1301eb7628489b5ce8991014b8426350798"
+              },
+              "markdown": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Spruce; level: early-career; stage: unknown\n\nResume: resume@1\n\nAvailable minutes: 30\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: interview stage\n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 8 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\ntechnical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\nbehavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\npack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\n## Truthful story bank\n\nproject@1: I drafted a deployment checklist for a demo. — source \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\n## Original and revised answers\n\nsynthetic-journey:attempt:artifact-after-context-change:1 / project-narrative / initial; assistance: none; parent: none\nI drafted the demo checklist.\nSHA-256: dd7033a75083383ff073327fbd47a4d900f006123e4054f74f0e700f9b4e2b63\n\nDraft synthetic-journey:draft:artifact-after-context-change:2@1; generated wording, not a canonical fact. Attempts: synthetic-journey:attempt:artifact-after-context-change:1\nI drafted the demo checklist.\n\n## Feedback, practice and transfer\n\nsynthetic-journey:assessment:artifact-after-context-change:2; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; project\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\ninitial: personal contribution; assistance: none; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:artifact-after-context-change:1)\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 30 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney synthetic-journey, revision 4; context 467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79; epoch 1.\n\nproject@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\ntarget@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nresume@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+              "pack": {
+                "context_binding": {
+                  "account_version": 1,
+                  "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                  "epoch": 1,
+                  "journey_revision": 4,
+                  "owner_id": "synthetic-owner-a",
+                  "thread_id": "synthetic-thread-a",
+                  "thread_revision": 1
+                },
+                "coverage_policy_version": "interview-coverage/v2",
+                "epoch": 1,
+                "journey_id": "synthetic-journey",
+                "journey_revision": 4,
+                "owner_id": "synthetic-owner-a",
+                "resume_ref": {
+                  "id": "resume",
+                  "version": 1
+                },
+                "schema_version": "interview_prep_pack/v1",
+                "sections": [
+                  {
+                    "content": [
+                      "Role: Software engineer intern; company: Synthetic Spruce; level: early-career; stage: unknown",
+                      "Resume: resume@1",
+                      "Available minutes: 30",
+                      "Interview timing: not supplied",
+                      "Daily study minutes: null",
+                      "Unknowns: interview stage"
+                    ],
+                    "id": "target",
+                    "title": "Target and constraints"
+                  },
+                  {
+                    "content": [
+                      "Research limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice."
+                    ],
+                    "id": "brief",
+                    "title": "Role and company brief"
+                  },
+                  {
+                    "content": [
+                      "project: 8 minutes. Ground a truthful narrative in actual experience. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"target\",\"version\":1},{\"id\":\"resume\",\"version\":1}]",
+                      "technical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"target\",\"version\":1},{\"id\":\"resume\",\"version\":1}]",
+                      "behavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"target\",\"version\":1},{\"id\":\"resume\",\"version\":1}]",
+                      "pack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: [{\"id\":\"project\",\"version\":1},{\"id\":\"target\",\"version\":1},{\"id\":\"resume\",\"version\":1}]"
+                    ],
+                    "id": "plan",
+                    "title": "Prioritized preparation plan"
+                  },
+                  {
+                    "content": [
+                      "project@1: I drafted a deployment checklist for a demo. — source {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}"
+                    ],
+                    "id": "stories",
+                    "title": "Truthful story bank"
+                  },
+                  {
+                    "content": [
+                      "synthetic-journey:attempt:artifact-after-context-change:1 / project-narrative / initial; assistance: none; parent: none\nI drafted the demo checklist.\nSHA-256: dd7033a75083383ff073327fbd47a4d900f006123e4054f74f0e700f9b4e2b63",
+                      "Draft synthetic-journey:draft:artifact-after-context-change:2@1; generated wording, not a canonical fact. Attempts: synthetic-journey:attempt:artifact-after-context-change:1\nI drafted the demo checklist."
+                    ],
+                    "id": "answers",
+                    "title": "Original and revised answers"
+                  },
+                  {
+                    "content": [
+                      "synthetic-journey:assessment:artifact-after-context-change:2; provisional practice judgment by SCRIPTED_CONTRACT_FIXTURE; project\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.",
+                      "initial: personal contribution; assistance: none; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:artifact-after-context-change:1)"
+                    ],
+                    "id": "feedback",
+                    "title": "Feedback, practice and transfer"
+                  },
+                  {
+                    "content": [
+                      "Remaining declared time: 30 minutes. Time spent is user/host reported, never inferred.",
+                      "project: extended work deferred to fit the declared remaining time.",
+                      "technical: extended work deferred to fit the declared remaining time.",
+                      "behavioral: extended work deferred to fit the declared remaining time.",
+                      "pack: extended work deferred to fit the declared remaining time.",
+                      "Current company research requires an approved source/capture; missing research does not block experience practice.",
+                      "Research limited: no verified role/company capture",
+                      "Source-backed role/company synthesis not assessed",
+                      "technical answer not assessed",
+                      "behavioral answer not assessed",
+                      "practice not assessed",
+                      "revision not assessed",
+                      "Unassisted transfer not assessed"
+                    ],
+                    "id": "remaining",
+                    "title": "Remaining preparation and deferrals"
+                  },
+                  {
+                    "content": [
+                      "Generic, not company-specific: What would a successful first project look like for someone at this level?",
+                      "Generic, not company-specific: How does the team review design choices and validate changes?"
+                    ],
+                    "id": "interviewer_questions",
+                    "title": "Questions to ask the interviewer"
+                  },
+                  {
+                    "content": [
+                      "Appointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation."
+                    ],
+                    "id": "logistics",
+                    "title": "Day-of checklist"
+                  },
+                  {
+                    "content": [
+                      "Journey synthetic-journey, revision 4; context 467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79; epoch 1.",
+                      "project@1; user_supplied; provenance {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}",
+                      "target@1; user_supplied; provenance {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}",
+                      "resume@1; user_supplied; provenance {\"source_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"}",
+                      "Assisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated."
+                    ],
+                    "id": "evidence",
+                    "title": "Evidence and version appendix"
+                  }
+                ],
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ],
+                "status": "partial",
+                "target_ref": {
+                  "id": "target",
+                  "version": 1
+                },
+                "thread_id": "synthetic-thread-a",
+                "unmet_conditions": [
+                  "Research limited: no verified role/company capture",
+                  "Source-backed role/company synthesis not assessed",
+                  "technical answer not assessed",
+                  "behavioral answer not assessed",
+                  "practice not assessed",
+                  "revision not assessed",
+                  "Unassisted transfer not assessed"
+                ]
+              }
+            },
+            "approval_requirement": "host_derived"
+          }
+        ]
+      }
+    },
+    {
+      "event": {
+        "id": "artifact-after-context-change:4",
+        "type": "context_changed",
+        "at": "2026-10-16T12:01:00Z",
+        "invalidation_ids": [
+          "artifact-after-context-change:change:2"
+        ],
+        "target_ref": {
+          "id": "target",
+          "version": 2
+        }
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 2,
+          "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I drafted a deployment checklist for a demo.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 2,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "company": "Synthetic Spruce Tools",
+              "level": "early-career",
+              "role": "Software engineer intern",
+              "role_family": "software_engineering",
+              "stage": null
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [
+          {
+            "id": "artifact-after-context-change:change:2",
+            "kind": "target_changed",
+            "evidence_id": "target",
+            "previous_version": 1
+          }
+        ],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "receipt-1",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-999a083d94ff8371088d958f",
+            "input_digest": "c21196d7e3e05f6a815b47e0560596cdce43bea1ccf1266996615aa0962863e3",
+            "request_digest": "e5ef1b0cd5fd5f4964713ad43e1bb15669badbc0c1989023d2cd636c86feefe3",
+            "candidate_sha256": "e94825695e0ffc851b5137b45d208755d32e8ecc4adce921fca151a112964bda",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "artifact-after-context-change:readback:4",
+            "type": "artifact_readback",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "artifact_id": "artifact-after-context-change:artifact:4",
+            "artifact_version": 1,
+            "action_id": "ij-1aa76b858a882bd7ec9b5715",
+            "input_digest": "55cfb50994f0a820e6032adbccf3070932621cc2d507dabc2495eee9b1291de5",
+            "authorized_open": true,
+            "fresh_session": true,
+            "journey_revision": 4,
+            "target_ref": {
+              "id": "target",
+              "version": 1
+            },
+            "resume_ref": {
+              "id": "resume",
+              "version": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 4
+            },
+            "sha256": "8eba72f766d8e44157924a42e9e1f129d9460295506051ada36c7451ed6dcc16"
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "artifact-after-context-change:artifact:4",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "journey_id": "synthetic-journey",
+            "epoch": 1,

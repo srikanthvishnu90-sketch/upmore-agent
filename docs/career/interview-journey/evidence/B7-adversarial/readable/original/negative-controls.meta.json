@@ -1,0 +1,13 @@
+{
+  "name": "negative-controls",
+  "command": [
+    "node",
+    "scripts/career/interview-journey/negative-controls.cjs",
+    "--output",
+    "/tmp/upmore-b7-evidence-mutants"
+  ],
+  "exit_code": 0,
+  "expected_exit": 0,
+  "log": "negative-controls.log",
+  "sha256": "8f1a0042f68c9996eac9476818bd8cce62680d74850e8ee65a36e62927d2127c"
+}

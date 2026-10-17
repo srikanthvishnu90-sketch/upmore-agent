@@ -1,0 +1,127 @@
+{
+  "archive_member": "baseline/changed-target-guided-retry.trace.json",
+  "original_sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3176,
+      "end_byte_exclusive": 19749,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "changed-target-guided-retry:1",
+      "type": "submit_answer",
+      "start_byte": 19755,
+      "end_byte_exclusive": 62209,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "changed-target-guided-retry:2",
+      "type": "model_candidate",
+      "start_byte": 62215,
+      "end_byte_exclusive": 92362,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "changed-target-guided-retry:3",
+      "type": "begin_practice",
+      "start_byte": 92368,
+      "end_byte_exclusive": 121921,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "changed-target-guided-retry:4",
+      "type": "submit_answer",
+      "start_byte": 121927,
+      "end_byte_exclusive": 179637,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "changed-target-guided-retry:5",
+      "type": "reasoning_result",
+      "start_byte": 179643,
+      "end_byte_exclusive": 212753,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "changed-target-guided-retry:6",
+      "type": "context_changed",
+      "start_byte": 212759,
+      "end_byte_exclusive": 245484,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 245490,
+      "end_byte_exclusive": 245621,
+      "parts": [
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "changed-target-guided-retry:7",
+      "type": "retry_assessment",
+      "start_byte": 245627,
+      "end_byte_exclusive": 252457,
+      "parts": [
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "changed-target-guided-retry:8",
+      "type": "submit_answer",
+      "start_byte": 252463,
+      "end_byte_exclusive": 316950,
+      "parts": [
+        "part-0008.txt",
+        "part-0009.txt",
+        "part-0010.txt"
+      ]
+    },
+    {
+      "ordinal": 11,
+      "event_id": "changed-target-guided-retry:9",
+      "type": "model_candidate",
+      "start_byte": 316956,
+      "end_byte_exclusive": 363998,
+      "parts": [
+        "part-0010.txt",
+        "part-0011.txt",
+        "part-0012.txt"
+      ]
+    }
+  ]
+}

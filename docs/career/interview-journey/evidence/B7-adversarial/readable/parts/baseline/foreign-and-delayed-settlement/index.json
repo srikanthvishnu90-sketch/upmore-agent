@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/foreign-and-delayed-settlement.trace.json",
+  "original_path": "original/baseline/foreign-and-delayed-settlement.trace.json",
+  "original_bytes": 313034,
+  "original_sha256": "7ab6963502a2039fb56f21b921409bb66b88e610940b9ed16cfc48c40b6d82fe",
+  "expected": "A foreign terminal receipt cannot release an action; after a valid settlement and new submission, old unknown and candidate callbacks remain passive.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "event_count": 12,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "9676c6d1c09522fc9e23a096a3f18eac0360349e3606612d1acbda29a9dba37e",
+      "first_ordinal": 1,
+      "last_ordinal": 12
+    }
+  ],
+  "part_count": 10,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "62689e18f0599fc6553b27bea9a375f503bf58c66105c67030d0344be8e6533c",
+      "first_ordinal": 1,
+      "last_ordinal": 10
+    }
+  ]
+}

@@ -1,0 +1,784 @@
+              "input_digest": "963628c50786943b9f56601d1aefbc5e74b5571dcb175930486aada0b6db8e37"
+            },
+            {
+              "id": "long-interrupted-journey:15",
+              "input_digest": "d4c08c1621b52a2fa8621eb14d1885bca926746d109cc065ffc3e65d43a8d01d"
+            },
+            {
+              "id": "long-interrupted-journey:16",
+              "input_digest": "ef9d012427d7d3d823398c9b2b894822e6ed99b6cf11c4b49523e15764fde146"
+            },
+            {
+              "id": "long-interrupted-journey:17",
+              "input_digest": "002a68b0d62965eef6853410159e5cc45b13b3e405e27b3960a34ba16ac7f5e9"
+            },
+            {
+              "id": "long-interrupted-journey:18",
+              "input_digest": "2b497f4ba7dd39ae516518c998178632418c36b50ea23b5c90e2f32e4c7e7c76"
+            },
+            {
+              "id": "long-interrupted-journey:19",
+              "input_digest": "717acb9a01e55f085dee18350907cc916820cb1abfd9cfd14f85ce6b2b8353fb"
+            },
+            {
+              "id": "long-interrupted-journey:20",
+              "input_digest": "258402b977b55746460e0481af096c231ecfe471b451f087d362bc2f192b2c6c"
+            },
+            {
+              "id": "long-interrupted-journey:21",
+              "input_digest": "825f9cc3336b9bf488caac978363ffe977ea17ce308c1422ff8c9787065b0b0e"
+            },
+            {
+              "id": "long-interrupted-journey:22",
+              "input_digest": "4050be2d005bc2deb75f4128f0398a6eff129c873b47828db98b61c19650ea6b"
+            },
+            {
+              "id": "long-interrupted-journey:23",
+              "input_digest": "ee1297d0fd146b3976e7edbbe08fc51698686bf482ac395ecb682ab8fb9c9b4b"
+            },
+            {
+              "id": "long-interrupted-journey:24",
+              "input_digest": "c90c64277cac87858e3d29ce1ff895b6262350185daa2f52495b6a9ccbc80744"
+            },
+            {
+              "id": "long-interrupted-journey:25",
+              "input_digest": "07ab9ace5b23aee1a42d8ecca13bf25874cdc566e40e6d1292b77b012f3589de"
+            },
+            {
+              "id": "long-interrupted-journey:26",
+              "input_digest": "73e298e7e690bcf9ff59d0f7fa180ff1cb55c73ea66b612f7292aeaaa76e2735"
+            },
+            {
+              "id": "long-interrupted-journey:27",
+              "input_digest": "908e580e4dca85364dd1d55fa394b912ad4ac82dcb46a8f553a38cbba26ba7c1"
+            },
+            {
+              "id": "long-interrupted-journey:28",
+              "input_digest": "51799c54434e1e631969909222823dc23ab7d09539a7b19ad819a0abb70775af"
+            },
+            {
+              "id": "long-interrupted-journey:29",
+              "input_digest": "316f4b699a60ad92ee4f74c1c1c8aebbf3e84c98de785fcb114d7968727f14ab"
+            },
+            {
+              "id": "long-interrupted-journey:30",
+              "input_digest": "58ab11cc9947ee09ef6522b59733daf5b40fdf59108a1599d2f8d0cac9bb446a"
+            },
+            {
+              "id": "long-interrupted-journey:31",
+              "input_digest": "93e8d87f5a90d0fe113d6768de209486e208ac24ff6d8962c7333c6ae21f613e"
+            },
+            {
+              "id": "long-interrupted-journey:32",
+              "input_digest": "a618b129a44ce4022228149a736cdb0ce03454d33378777a109dc9ebd5334f7c"
+            },
+            {
+              "id": "long-interrupted-journey:33",
+              "input_digest": "f60db1ee1ff0051e31e7ee94905fd0e919189ce13cb32f1d53839878822a6b8f"
+            },
+            {
+              "id": "long-interrupted-journey:34",
+              "input_digest": "8ca4e7da1c44d6222c714f36fb332ed7112f14e539078e422408f3ea75d3d3ab"
+            },
+            {
+              "id": "long-interrupted-journey:35",
+              "input_digest": "717083e024c58c863bd6a2858b3baa30b5c02d49f8502063e74b5f0ac03d6410"
+            },
+            {
+              "id": "long-interrupted-journey:36",
+              "input_digest": "1e670cacf8b2fdbe44984c0e5b7770c2763781778c99b84dc534113243ed4054"
+            },
+            {
+              "id": "long-interrupted-journey:37",
+              "input_digest": "b06c3114faf9070bd950a8edfe86d90f17b0bc200609a61fefc19ab261c82220"
+            },
+            {
+              "id": "long-interrupted-journey:38",
+              "input_digest": "935aa7f31d0f86a879011861d6d67fb26adc27b86df2e91e02231c7ce0c1d264"
+            },
+            {
+              "id": "long-interrupted-journey:39",
+              "input_digest": "a45cc15be634889bf6612a706e44976d6071e57ce3aab93ae8bd2abfe4760739"
+            },
+            {
+              "id": "long-interrupted-journey:40",
+              "input_digest": "b0f9c8d10c3be5d42e911938a82389bf65a59b79d500d0edc0cf2eed86cc65e1"
+            },
+            {
+              "id": "long-interrupted-journey:41",
+              "input_digest": "ccbbfc08f0122f8d4fb24577e47cd91635b9e5c44d0779990d0726eb6848edd3"
+            },
+            {
+              "id": "long-interrupted-journey:42",
+              "input_digest": "63b43c06e882279c5c63b132c1258cff575fe41d0718bec1ad1810d729c6a59e"
+            },
+            {
+              "id": "long-interrupted-journey:43",
+              "input_digest": "35b83b809793b0d2261b53e82ce960eb760715f04b7de0730a83e3a254072a4d"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 44,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "awaiting_answer",
+          "status": "paused",
+          "target": {
+            "company": "Synthetic Aspen",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    },
+    {
+      "event": {
+        "id": "long-interrupted-journey:44",
+        "type": "pause",
+        "at": "2026-10-16T12:01:00Z"
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 1,
+          "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I maintained synthetic fixtures for a student scheduling project.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "role": "Software engineer intern",
+              "level": "early-career",
+              "company": "Synthetic Aspen",
+              "stage": null,
+              "role_family": "software_engineering"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "long-interrupted-journey:receipt:7",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-092f9fb022987029888134d2",
+            "input_digest": "cd9b3126a08b7ab4ec64957a011afe6fd9ade86fb0983d532e8959558e68bee0",
+            "request_digest": "63e936e7cb3440f4b296c304ccf1464718a1c5ff09410d9a9bb173a631d4e5d3",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 6
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:9",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-092f9fb022987029888134d2",
+            "input_digest": "cd9b3126a08b7ab4ec64957a011afe6fd9ade86fb0983d532e8959558e68bee0",
+            "request_digest": "63e936e7cb3440f4b296c304ccf1464718a1c5ff09410d9a9bb173a631d4e5d3",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 8
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-1",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-1bd5b780bb34996632b9a474",
+            "input_digest": "fed6b8756ff92db9b5397a5e0184a931070f9de8c54e1719efc21786409d411e",
+            "request_digest": "5fd32815f44f2a12044df5c126777fe20bc19cadcfc700e8ebd418f255436321",
+            "candidate_sha256": "a0ceb2fa4f23fc7cad3fab5f2881cf6b497a3c0a8a6003fb0c929506f5c2acf7",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 9
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 10
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:18",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-db259deb780698c34cdac7fd",
+            "input_digest": "57d413c77b006d35452f16d838936ebbfddc449c44fac78ae2fa99a219cee4b1",
+            "request_digest": "68b78a325bb6e28c3cb34ae3cda4bcf195d47dae359877d3d157468c118f6981",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 12
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 16
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:20",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-db259deb780698c34cdac7fd",
+            "input_digest": "57d413c77b006d35452f16d838936ebbfddc449c44fac78ae2fa99a219cee4b1",
+            "request_digest": "68b78a325bb6e28c3cb34ae3cda4bcf195d47dae359877d3d157468c118f6981",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 12
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 18
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-2",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-afb2efa5a71465bb74f99452",
+            "input_digest": "8f682eb120f23edba64dbe4a245f6a6502ec54748506ae302e28d65cbb25d838",
+            "request_digest": "fa661627b9b56868ffa0b5d2b376d70f5c0bb7ed854a2841df026f656912db62",
+            "candidate_sha256": "a91cca72d5cb94faf0ee6ea27e32587a8c182351b4587c064bc4d35f4910a7ed",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 19
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 20
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:29",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-73da49ea84a0bd4f1331ce06",
+            "input_digest": "d72c2f31d95438995a93226ee088b48413fb3e9d6e52019e363fd331efd05745",
+            "request_digest": "7c263250b55442dab957b2a33cd06a4a314dd3dd3d845a6150dcf98a454fcc8f",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 22
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 26
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:31",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-73da49ea84a0bd4f1331ce06",
+            "input_digest": "d72c2f31d95438995a93226ee088b48413fb3e9d6e52019e363fd331efd05745",
+            "request_digest": "7c263250b55442dab957b2a33cd06a4a314dd3dd3d845a6150dcf98a454fcc8f",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 22
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 28
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-3",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-305cd81d52106cd66eb4578c",
+            "input_digest": "40c1f5a8ba8d398c311cfc50a30394f2fe396521e217378e0979782b9dce07e7",
+            "request_digest": "04ffefc0e0d8f685e65f74859afafec0298c2646be4d62427baee662e8d65e1d",
+            "candidate_sha256": "87d26dd285495324c18871a723ba3a28bd0113fec2d5de5e4e91c91d6d24d266",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 29
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 30
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:40",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-8e10783d7be22701852ff0c8",
+            "input_digest": "ce0fc4ad5b722b6a3a6f8eefb6e5ebc6cf0f4287d58f5419d517cb10bf507c20",
+            "request_digest": "16ae9a24c1209101c06ad0016eed06ad54fb75e072ca236469d333d1b9f31a94",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 32
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 36
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:42",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-8e10783d7be22701852ff0c8",
+            "input_digest": "ce0fc4ad5b722b6a3a6f8eefb6e5ebc6cf0f4287d58f5419d517cb10bf507c20",
+            "request_digest": "16ae9a24c1209101c06ad0016eed06ad54fb75e072ca236469d333d1b9f31a94",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 32
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 38
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-4",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-d5681d0cc0ad7651bfb67799",
+            "input_digest": "440b4241f6dccc4d828e4bcc2c9e2f7e22aadd9daa535b2b2ef7f88b229d3513",
+            "request_digest": "ba75e57546dee5ea48da471ebd0243fdb181f4d6db8cf5d4e2c33aaf6fe5c097",
+            "candidate_sha256": "b18aa1dcbfbb16a362b03d388475836d017f8d53b396b1c6c0087cc6e188542b",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 39
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 40
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          }
+        ],
+        "artifacts": [],
+        "assessments": [],
+        "capabilities": [
+          {
+            "id": "interview.coach.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+          "epoch": 1,
+          "thread_revision": 1,
+          "journey_revision": 44
+        },
+        "next_state": {
+          "assessments": [
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "5e3bd4b16331980cc83e724e4a1f2b4d4e420ec011963abc270661ed0542af72",
+              "assessment_kind": "answer_feedback",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:2",
+              "content_sha256": "7dded7b5ec3d8c32ffc229f3a335a8e16f0ec6384948e04c12fba91f46c091c2",
+              "dimensions": [
+                {
+                  "id": "situation",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "personal_contribution",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "outcome_evidence",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reflection_transfer",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "epoch": 1,
+              "evidence_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "exercise_id": "ownership",
+              "family": "project",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "id": "synthetic-journey:assessment:long-interrupted-journey:10",
+              "journey_id": "synthetic-journey",
+              "judgment": "provisional practice inference",
+              "next_question_id": "handoff-transfer",
+              "owner_id": "synthetic-owner-a",
+              "priority_fix": {
+                "dimension": "personal_contribution",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "project-narrative",

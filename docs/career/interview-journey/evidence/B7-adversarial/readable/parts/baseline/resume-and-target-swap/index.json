@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/resume-and-target-swap.trace.json",
+  "original_path": "original/baseline/resume-and-target-swap.trace.json",
+  "original_bytes": 350718,
+  "original_sha256": "4f8f8adfa4e1293d6da1cc2ec78addc8713887d9773f0cb99932451b23f6deb7",
+  "expected": "Target and resume changes during paused practice invalidate guidance while retaining a project-only answer; resumed revision is rejected and new feedback binds both current selections.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 11,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "9d54b6d1f3f3203d27e22f55235f915da5536c657ebbed0b9bc8ff7f1c10be91",
+      "first_ordinal": 1,
+      "last_ordinal": 11
+    }
+  ],
+  "event_count": 12,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "8955155ebf9ce4cb14fb5638b9fdc1eec2c056d4c1522529f7945b0ae16f972f",
+      "first_ordinal": 1,
+      "last_ordinal": 12
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "final/resume-change-during-retry.trace.json",
+  "original_path": "original/final/resume-change-during-retry.trace.json",
+  "original_bytes": 368023,
+  "original_sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed",
+  "expected": "Replace the resume during an explicitly retried project-only answer, retain the original text, settle the detached request after restart and retry on the current resume version.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 12,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "04cc17b37037311df5c8a13ae205bc8dbd96e10cfd7329e7569b842c80f621d8",
+      "first_ordinal": 1,
+      "last_ordinal": 12
+    }
+  ],
+  "event_count": 13,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "f43421258efb8536cc56a091e701379c518ea769eee69a645e42f315a6bd317c",
+      "first_ordinal": 1,
+      "last_ordinal": 13
+    }
+  ]
+}

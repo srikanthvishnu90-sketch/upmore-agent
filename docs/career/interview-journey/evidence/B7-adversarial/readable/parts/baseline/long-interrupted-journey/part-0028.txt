@@ -1,0 +1,820 @@
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-2",
+              "version": 1
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "long-interrupted-journey:21",
+            "input_digest": "825f9cc3336b9bf488caac978363ffe977ea17ce308c1422ff8c9787065b0b0e",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 21
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Switching exercises. Your story bank and previous attempts are retained.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": [
+              {
+                "action_id": "ij-1a4258a31be48f41b38673e8",
+                "approval_requirement": "host_derived",
+                "args": {
+                  "question_id": "team-decision",
+                  "representative_practice": true,
+                  "rubric_id": "team-evidence/v1",
+                  "text": "Describe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?"
+                },
+                "capability_id": null,
+                "contract_version": "career_journey_action/v1",
+                "expected_binding": {
+                  "account_version": 1,
+                  "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+                  "epoch": 1,
+                  "journey_revision": 21,
+                  "owner_id": "synthetic-owner-a",
+                  "thread_id": "synthetic-thread-a",
+                  "thread_revision": 1
+                },
+                "idempotency_key": "1a4258a31be48f41b38673e8fe5b47d7ea8ec422dc6e1dec12adad509b28cfc9",
+                "input_digest": "75a989643939828b05470babb2e34d6ff96397e42c3a2d6c7aa298d653aacf19",
+                "owner_id": "synthetic-owner-a",
+                "source_refs": [],
+                "thread_id": "synthetic-thread-a",
+                "type": "ask_question"
+              }
+            ]
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:10",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:2",
+              "competency": "personal_contribution",
+              "content_sha256": "2a6f9fca63b95adc789f672f29fad0165fd2457ab0dbdebc96161977caf2b642",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:long-interrupted-journey:10:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            },
+            {
+              "assessment_id": "synthetic-journey:assessment:long-interrupted-journey:20",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:12",
+              "competency": "correctness_invariant",
+              "content_sha256": "80d7c57e75e39332e9b011c69e2d60aae7babc2aabe44f578cb605c97576aa0e",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:long-interrupted-journey:20:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 4,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 5,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 3,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 4,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 16
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "long-interrupted-journey:1",
+              "input_digest": "21af28acfc809ffedda181c1aa52083b7ccfe242760ed34ba222ab69e18e0cd1"
+            },
+            {
+              "id": "long-interrupted-journey:2",
+              "input_digest": "8cc5bb6e453fa871586a952b800a60757ca8cd23c179b08defc765f78562c7b0"
+            },
+            {
+              "id": "long-interrupted-journey:3",
+              "input_digest": "e7b4bb2ac6124e7ca2d4b80a27cbde209351d081531aef9575b2b6364124d35d"
+            },
+            {
+              "id": "long-interrupted-journey:4",
+              "input_digest": "35375677185eb069e51c68204db3bf4f7f6297f6194e68c7538f98d77431dfcf"
+            },
+            {
+              "id": "long-interrupted-journey:5",
+              "input_digest": "c046258bb5088d51aa80a5ef867fd56d8bfece332e0a7dcfe1cb823765b95cd8"
+            },
+            {
+              "id": "long-interrupted-journey:6",
+              "input_digest": "2c95f68492cfc0c3e9f5bf610ae2b8bc616560c64d12d3e65a589ff14b161a92"
+            },
+            {
+              "id": "long-interrupted-journey:7",
+              "input_digest": "979ea1aacc6e2816d4443b64607ace6567df4bbf73d439229d5ac054b9cbef3e"
+            },
+            {
+              "id": "long-interrupted-journey:8",
+              "input_digest": "b6861c11f8951d16851cce614912476fba2b0bdf47b5a4d7165907c67cc2ff43"
+            },
+            {
+              "id": "long-interrupted-journey:9",
+              "input_digest": "deae510cf8db10bb3ba23b152cdb6ecfa3b060484124799b4ca376b9d6ee0222"
+            },
+            {
+              "id": "long-interrupted-journey:10",
+              "input_digest": "e42cf5e36c49d506daa13f6bd556f838214846ec620000d755bc105a75e742c7"
+            },
+            {
+              "id": "long-interrupted-journey:11",
+              "input_digest": "ee49cc87762c57847022b58a2e9e343b0298bee49238ae7b59f5c0e4bf34c519"
+            },
+            {
+              "id": "long-interrupted-journey:12",
+              "input_digest": "ec041a6cd7e770725a2d34f307ed33333d12c27b3bd0adb7989a621a58bf8135"
+            },
+            {
+              "id": "long-interrupted-journey:13",
+              "input_digest": "54fad233b9673639872db492f122dc7ba639088322b549d7b6946b340689dc59"
+            },
+            {
+              "id": "long-interrupted-journey:14",
+              "input_digest": "963628c50786943b9f56601d1aefbc5e74b5571dcb175930486aada0b6db8e37"
+            },
+            {
+              "id": "long-interrupted-journey:15",
+              "input_digest": "d4c08c1621b52a2fa8621eb14d1885bca926746d109cc065ffc3e65d43a8d01d"
+            },
+            {
+              "id": "long-interrupted-journey:16",
+              "input_digest": "ef9d012427d7d3d823398c9b2b894822e6ed99b6cf11c4b49523e15764fde146"
+            },
+            {
+              "id": "long-interrupted-journey:17",
+              "input_digest": "002a68b0d62965eef6853410159e5cc45b13b3e405e27b3960a34ba16ac7f5e9"
+            },
+            {
+              "id": "long-interrupted-journey:18",
+              "input_digest": "2b497f4ba7dd39ae516518c998178632418c36b50ea23b5c90e2f32e4c7e7c76"
+            },
+            {
+              "id": "long-interrupted-journey:19",
+              "input_digest": "717acb9a01e55f085dee18350907cc916820cb1abfd9cfd14f85ce6b2b8353fb"
+            },
+            {
+              "id": "long-interrupted-journey:20",
+              "input_digest": "258402b977b55746460e0481af096c231ecfe471b451f087d362bc2f192b2c6c"
+            },
+            {
+              "id": "long-interrupted-journey:21",
+              "input_digest": "825f9cc3336b9bf488caac978363ffe977ea17ce308c1422ff8c9787065b0b0e"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 22,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "awaiting_answer",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Aspen",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Switching exercises. Your story bank and previous attempts are retained.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": [
+          {
+            "contract_version": "career_journey_action/v1",
+            "action_id": "ij-1a4258a31be48f41b38673e8",
+            "type": "ask_question",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 21
+            },
+            "idempotency_key": "1a4258a31be48f41b38673e8fe5b47d7ea8ec422dc6e1dec12adad509b28cfc9",
+            "input_digest": "75a989643939828b05470babb2e34d6ff96397e42c3a2d6c7aa298d653aacf19",
+            "source_refs": [],
+            "capability_id": null,
+            "args": {
+              "question_id": "team-decision",
+              "representative_practice": true,
+              "rubric_id": "team-evidence/v1",
+              "text": "Describe a real team decision where you and someone else preferred different approaches. What did you contribute, how was the choice made, and what evidence changed your view?"
+            },
+            "approval_requirement": "host_derived"
+          }
+        ]
+      }
+    },
+    {
+      "event": {
+        "id": "long-interrupted-journey:22",
+        "type": "submit_answer",
+        "at": "2026-10-16T12:01:00Z",
+        "text": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+        "kind": "initial",
+        "scripted": true
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 1,
+          "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I maintained synthetic fixtures for a student scheduling project.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "role": "Software engineer intern",
+              "level": "early-career",
+              "company": "Synthetic Aspen",
+              "stage": null,
+              "role_family": "software_engineering"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "long-interrupted-journey:receipt:7",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-092f9fb022987029888134d2",
+            "input_digest": "cd9b3126a08b7ab4ec64957a011afe6fd9ade86fb0983d532e8959558e68bee0",
+            "request_digest": "63e936e7cb3440f4b296c304ccf1464718a1c5ff09410d9a9bb173a631d4e5d3",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 6
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:9",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-092f9fb022987029888134d2",
+            "input_digest": "cd9b3126a08b7ab4ec64957a011afe6fd9ade86fb0983d532e8959558e68bee0",
+            "request_digest": "63e936e7cb3440f4b296c304ccf1464718a1c5ff09410d9a9bb173a631d4e5d3",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 8
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-1",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-1bd5b780bb34996632b9a474",
+            "input_digest": "fed6b8756ff92db9b5397a5e0184a931070f9de8c54e1719efc21786409d411e",
+            "request_digest": "5fd32815f44f2a12044df5c126777fe20bc19cadcfc700e8ebd418f255436321",
+            "candidate_sha256": "a0ceb2fa4f23fc7cad3fab5f2881cf6b497a3c0a8a6003fb0c929506f5c2acf7",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 9
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 10
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "long-interrupted-journey:receipt:18",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-db259deb780698c34cdac7fd",
+            "input_digest": "57d413c77b006d35452f16d838936ebbfddc449c44fac78ae2fa99a219cee4b1",
+            "request_digest": "68b78a325bb6e28c3cb34ae3cda4bcf195d47dae359877d3d157468c118f6981",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 12
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 16
+            },
+            "outcome_status": "unknown",
+            "failure_kind": "checker_timeout",
+            "budget_state": "uncertain",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "long-interrupted-journey:receipt:20",
+            "type": "reasoning_outcome",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-db259deb780698c34cdac7fd",
+            "input_digest": "57d413c77b006d35452f16d838936ebbfddc449c44fac78ae2fa99a219cee4b1",
+            "request_digest": "68b78a325bb6e28c3cb34ae3cda4bcf195d47dae359877d3d157468c118f6981",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 12
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 18
+            },
+            "outcome_status": "failed",
+            "failure_kind": "checker_timeout",
+            "budget_state": "settled",
+            "reservation_ref": "synthetic-pair-long-interrupted-journey",
+            "usage_receipt_refs": [
+              "synthetic-accounting-long-interrupted-journey"
+            ]
+          },
+          {
+            "id": "receipt-2",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-afb2efa5a71465bb74f99452",
+            "input_digest": "8f682eb120f23edba64dbe4a245f6a6502ec54748506ae302e28d65cbb25d838",
+            "request_digest": "fa661627b9b56868ffa0b5d2b376d70f5c0bb7ed854a2841df026f656912db62",
+            "candidate_sha256": "a91cca72d5cb94faf0ee6ea27e32587a8c182351b4587c064bc4d35f4910a7ed",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 19
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 20
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          }
+        ],
+        "artifacts": [],
+        "assessments": [],
+        "capabilities": [
+          {
+            "id": "interview.coach.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+          "epoch": 1,
+          "thread_revision": 1,
+          "journey_revision": 22
+        },
+        "next_state": {
+          "assessments": [
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "5e3bd4b16331980cc83e724e4a1f2b4d4e420ec011963abc270661ed0542af72",
+              "assessment_kind": "answer_feedback",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:2",
+              "content_sha256": "7dded7b5ec3d8c32ffc229f3a335a8e16f0ec6384948e04c12fba91f46c091c2",
+              "dimensions": [
+                {
+                  "id": "situation",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "personal_contribution",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "outcome_evidence",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reflection_transfer",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "epoch": 1,
+              "evidence_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "exercise_id": "ownership",
+              "family": "project",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "id": "synthetic-journey:assessment:long-interrupted-journey:10",
+              "journey_id": "synthetic-journey",
+              "judgment": "provisional practice inference",
+              "next_question_id": "handoff-transfer",
+              "owner_id": "synthetic-owner-a",
+              "priority_fix": {
+                "dimension": "personal_contribution",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "project-narrative",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",

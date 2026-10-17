@@ -1,0 +1,53 @@
+          "stage": "targeted_practice",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Juniper",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Resuming the saved question and latest valid draft.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": [
+          {
+            "contract_version": "career_journey_action/v1",
+            "action_id": "ij-fd70df24d430f447211c2fe0",
+            "type": "ask_question",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 7
+            },
+            "idempotency_key": "fd70df24d430f447211c2fe030b909f67498d14492acafdacac0eca8d5a87b5a",
+            "input_digest": "2d6f2ba5bf7551682dfa99acd8e1c220c6e16e3192b770d70894512a69adbf3b",
+            "source_refs": [],
+            "capability_id": null,
+            "args": {
+              "question_id": "project-narrative",
+              "representative_practice": true,
+              "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?"
+            },
+            "approval_requirement": "host_derived"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,298 @@
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "e26fdb74f2fb6abb002f7e0d0b070d591d6d64478529f7fdb13b5805d748442c",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+            "epoch": 1,
+            "thread_revision": 2
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 2
+            }
+          ],
+          "drafts": [
+            {
+              "content_sha256": "d65fbbfc6c7d3272f279e060f82b1e510b230021f2b995bd4fe4dabc46ef90ab",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:artifact-after-context-change:2",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:artifact-after-context-change:1"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "stale",
+              "text": "I drafted the demo checklist.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "target",
+              "id": "artifact-after-context-change:change:2",
+              "kind": "target_changed",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "artifact-after-context-change:7",
+            "input_digest": "4e15866608cb373dce96b0d66ca2f4c72346d5c6bb060a530f00a23130001f2c",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 6
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Your partial pack was reopened and verified; its remaining gaps are explicit.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "content_sha256": "9e664df2d065247ce60898a314f8c0842daeea9f3645cd3c9b2e32a2fad99972",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:artifact-after-context-change:2:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "stale",
+              "thread_id": "synthetic-thread-a"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "artifact-after-context-change:1",
+              "input_digest": "9e7cd26c0b51532df3a435859e807da0b53a26b9821670caaed8d823b722f026"
+            },
+            {
+              "id": "artifact-after-context-change:2",
+              "input_digest": "c2b9bfb0a8f84c42a100371e4ac7ae848e64c53a304a68d7fe0836fd19795888"
+            },
+            {
+              "id": "artifact-after-context-change:3",
+              "input_digest": "2d62294dfb750736ba202b3780be4bd1ed42fabe4e4f9f666e1f43c67b7d575d"
+            },
+            {
+              "id": "artifact-after-context-change:4",
+              "input_digest": "23bdf2a876a03d3d0ba7fffb169506289f9c2bddb187648ba1840f671e1f2786"
+            },
+            {
+              "id": "artifact-after-context-change:6",
+              "input_digest": "b6a0cde037242409f62147cbad8d0856e3dfb49c2b8dfd041b84bbee6b050649"
+            },
+            {
+              "id": "artifact-after-context-change:7",
+              "input_digest": "4e15866608cb373dce96b0d66ca2f4c72346d5c6bb060a530f00a23130001f2c"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 7,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "pack_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Spruce Tools",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 2
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Your partial pack was reopened and verified; its remaining gaps are explicit.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

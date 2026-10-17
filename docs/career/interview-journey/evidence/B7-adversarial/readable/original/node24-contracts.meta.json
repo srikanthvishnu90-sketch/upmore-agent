@@ -1,0 +1,17 @@
+{
+  "name": "node24-contracts",
+  "command": [
+    "node",
+    "scripts/career/interview-journey/check-contracts.cjs"
+  ],
+  "exit_code": 0,
+  "expected_exit": 0,
+  "log": "node24-contracts.log",
+  "sha256": "2bb91c9bef773b6c3bb1547b1f7aa3717afcdb7a08254fd57e776fe5ce70e2d0",
+  "counts": {
+    "tests": 145,
+    "pass": 145,
+    "fail": 0,
+    "skipped": 0
+  }
+}

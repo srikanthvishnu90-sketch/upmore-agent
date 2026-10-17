@@ -1,0 +1,38 @@
+{
+  "archive_member": "baseline/settlement-before-invalidation.trace.json",
+  "original_sha256": "4deba33c177deb9b85df62fb943abc5290bc30eaafa3a83a363decab0f710735",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3144,
+      "end_byte_exclusive": 19705,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "settlement-before-invalidation:1",
+      "type": "submit_answer",
+      "start_byte": 19711,
+      "end_byte_exclusive": 62174,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "settlement-before-invalidation:2",
+      "type": "reasoning_result",
+      "start_byte": 62180,
+      "end_byte_exclusive": 81845,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    }
+  ]
+}

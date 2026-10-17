@@ -1,0 +1,27 @@
+{
+  "archive_member": "baseline/stop-before-invalidation.trace.json",
+  "original_sha256": "0f613742755dd02f434513c0425538144c974279660f581ec421e9ef0448c2f3",
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32741,
+      "bytes": 32741,
+      "sha256": "7e23925dbcb7a52e456c50c3175ec8283c2881302a653cc0641b720d8318d24c"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32741,
+      "end_byte_exclusive": 65495,
+      "bytes": 32754,
+      "sha256": "6ff9ee95779dfded1d5b067f97fc476aa87ebff695935111ac9d6c65ebd772a3"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65495,
+      "end_byte_exclusive": 80781,
+      "bytes": 15286,
+      "sha256": "f14c9ebcedf0d81dcf0eff2434613e51598fbe67aa7f84a262a919d6e6da00e2"
+    }
+  ]
+}

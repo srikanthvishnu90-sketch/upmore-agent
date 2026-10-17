@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/pending-project-correction.trace.json",
+  "original_path": "original/baseline/pending-project-correction.trace.json",
+  "original_bytes": 271994,
+  "original_sha256": "3fa31a22616d297d2e0995860fe2f67004aec947124c2f15a32295bc365c746c",
+  "expected": "Correct a pending project, preserve the uncertainty fence through restart, settle passively, ignore its stale candidate, then assess an explicitly submitted fresh answer.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "part_count": 9,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "b7f5f5dfaa1b6b7850b362c57433f1fd64f419826a72597e3a909fd07ea03e34",
+      "first_ordinal": 1,
+      "last_ordinal": 9
+    }
+  ],
+  "event_count": 10,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "81aba5b3ffa02d0ff5c5658873824cf9211ddfa50c2190bb2cf6e006d5930025",
+      "first_ordinal": 1,
+      "last_ordinal": 10
+    }
+  ]
+}

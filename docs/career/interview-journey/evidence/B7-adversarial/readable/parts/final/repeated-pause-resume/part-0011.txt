@@ -1,0 +1,611 @@
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "validation_receipt": "receipt-2",
+              "judgment": "provisional practice inference",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "8a6f16d0b9d70ef0791f7684bcfa448f21394e0e40fdad086240e9b41202f3eb"
+            }
+          ],
+          "attempts": [
+            {
+              "answer_sha256": "35af981829bc786900d8135890704cda9e2d8167356d773734e073c73aaac320",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "abf248df7aee7f8f91a5c18b9cee48bc7956ee1105d4f2e035f31469f2154785",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:repeated-pause-resume:1",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "I sketched the booking flow; three classmates tried the prototype.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            },
+            {
+              "answer_sha256": "1b1339b00d8861a6a12e1478c1e3aef8fa5a3dabc6fe0b82c9536390c9c79765",
+              "assistance": "coached",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "e0fd8712669ac993e02ba61e2431e3da26479e444a722ba0d609ff9056c4755d",
+              "context_outdated": false,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": "ownership",
+              "id": "synthetic-journey:attempt:repeated-pause-resume:8",
+              "index": 2,
+              "journey_id": "synthetic-journey",
+              "kind": "practice",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": "synthetic-journey:attempt:repeated-pause-resume:1",
+              "question_id": "project-narrative",
+              "question_text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "I designed the flow; my partner built the interface.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": "synthetic-journey:attempt:repeated-pause-resume:8",
+            "active_question": {
+              "competency": "project_reasoning",
+              "family": "project",
+              "id": "project-narrative",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence"
+                ],
+                "criteria": {
+                  "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                  "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                  "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                  "reflection_transfer": "A supported lesson or next improvement.",
+                  "situation": "A concrete problem and relevant constraints."
+                },
+                "dimensions": [
+                  "situation",
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence",
+                  "reflection_transfer"
+                ],
+                "id": "project-evidence/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "past_project",
+              "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "next_exercise": {
+              "competency": "personal_contribution",
+              "id": "ownership",
+              "minutes": 3,
+              "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit.",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "assessment_id": "synthetic-journey:assessment:repeated-pause-resume:9"
+            },
+            "next_transfer_question_id": "handoff-transfer",
+            "outstanding_reasoning": [],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": null,
+            "selected_draft_id": "synthetic-journey:draft:repeated-pause-resume:9",
+            "unresolved_asks": []
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "No saved/readable artifact"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 30,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "7bef32ac2a2f57ad4197757332b2f4922d76d6ec2c6dc2c01aad45010f292f65",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+            "epoch": 1,
+            "thread_revision": 1
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            }
+          ],
+          "drafts": [
+            {
+              "content_sha256": "bce0c24c58ee335704e3d6b8fba512c3949c1a1e7e52be45f3b832a27a5807aa",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:repeated-pause-resume:2",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:repeated-pause-resume:1"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "superseded",
+              "text": "I sketched the booking flow; three classmates tried the prototype.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            },
+            {
+              "id": "synthetic-journey:draft:repeated-pause-resume:9",
+              "version": 1,
+              "text": "I designed the flow; my partner built the interface.",
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:repeated-pause-resume:8"
+              ],
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "validation_receipt": "receipt-2",
+              "edits": [],
+              "status": "active",
+              "context_revision": 1,
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "20a5ef7cce80794ffe9ccc937355ce4134770eaf8c3d1fe2426c3c77e2675ab5"
+            }
+          ],
+          "epoch": 1,
+          "hints": [
+            {
+              "at": "2026-10-16T12:01:00Z",
+              "exercise_id": "ownership",
+              "id": "repeated-pause-resume:3",
+              "question_id": "project-narrative",
+              "text": "Separate your proposal, your implementation, and teammates’ work into three truthful statements. Leave unknown ownership explicit."
+            }
+          ],
+          "invalidations": [],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "repeated-pause-resume:9",
+            "input_digest": "06cb128db8b53ea9150c6ae5b3d1406fae1dee461ec84fd746acf1cbf979c1fd",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 9
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "assessment_id": "synthetic-journey:assessment:repeated-pause-resume:2",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:repeated-pause-resume:1",
+              "competency": "personal_contribution",
+              "content_sha256": "f7d248f16e8675389eebe8a33c14e0ae666f69a9a9c9fe132a1e1b06b999a40f",
+              "epoch": 1,
+              "id": "synthetic-journey:assessment:repeated-pause-resume:2:observation",
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "outcome": "uncertain",
+              "owner_id": "synthetic-owner-a",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "observed",
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only."
+            },
+            {
+              "id": "synthetic-journey:assessment:repeated-pause-resume:9:observation",
+              "kind": "targeted_practice",
+              "competency": "personal_contribution",
+              "assistance": "coached",
+              "status": "observed",
+              "outcome": "uncertain",
+              "attempt_id": "synthetic-journey:attempt:repeated-pause-resume:8",
+              "assessment_id": "synthetic-journey:assessment:repeated-pause-resume:9",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "uncertainty": "Scripted development only.",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "cb6baea9d92339ad6b667c37cda2fab6240ef04a606ef00169f97272ba79f996"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "repeated-pause-resume:1",
+              "input_digest": "0f3b305da4f102e4eaeeaf5d7d4b0aece6f30ea8c91eb8b3a4475af8785115fe"
+            },
+            {
+              "id": "repeated-pause-resume:2",
+              "input_digest": "79017ab1af7147528637d39bec958b5b37e84b5f54063824c7841f4dcb77c89f"
+            },
+            {
+              "id": "repeated-pause-resume:3",
+              "input_digest": "1eb4801938120203715d70b72db539c3de0ada2f209cb3ce4f0b53bb81738326"
+            },
+            {
+              "id": "repeated-pause-resume:4",
+              "input_digest": "2bdf4beea9695fbc0beb8afd73b53bad74f45db530c70b2da6b1daa4dbe8ba14"
+            },
+            {
+              "id": "repeated-pause-resume:5",
+              "input_digest": "42f2a824a698e0e158bc548c0c281536d17ad9cc6fa15a1eb5f4438497a13670"
+            },
+            {
+              "id": "repeated-pause-resume:6",
+              "input_digest": "d91c74cc8d8426c505156a4af25754a519203b9c7e65a92efd541a9f524d16e2"
+            },
+            {
+              "id": "repeated-pause-resume:7",
+              "input_digest": "564b2cdc463dc9e08361b707aace157b8679dd465e6dfc8739199023c595a15d"
+            },
+            {
+              "id": "repeated-pause-resume:8",
+              "input_digest": "82e711ff8c35a2d5b2362af65ee7fe556d54beb9a6c791f9689814cd013b4067"
+            },
+            {
+              "id": "repeated-pause-resume:9",
+              "input_digest": "06cb128db8b53ea9150c6ae5b3d1406fae1dee461ec84fd746acf1cbf979c1fd"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 10,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Juniper",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

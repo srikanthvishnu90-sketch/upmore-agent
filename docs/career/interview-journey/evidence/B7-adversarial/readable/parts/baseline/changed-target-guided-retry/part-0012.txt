@@ -1,0 +1,114 @@
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "changed-target-guided-retry:1",
+              "input_digest": "bf44e690f4d86d87462bd53f37af54e03dc5bd066475d1f27ae16b57ad0eeed1"
+            },
+            {
+              "id": "changed-target-guided-retry:2",
+              "input_digest": "744a41d5156acd5e7ebae2fc9e639486ae0fdff7ae50543a6fd78edd8f693818"
+            },
+            {
+              "id": "changed-target-guided-retry:3",
+              "input_digest": "0ef8a746c5ff3f02ade6f7b64b65146db960f6307f52b61234ea19359b43dd2f"
+            },
+            {
+              "id": "changed-target-guided-retry:4",
+              "input_digest": "a1744fdd90d0b2a5e13d25a4b33ebcae90fbe2cb2d1d2c0b2ba8d57523534782"
+            },
+            {
+              "id": "changed-target-guided-retry:5",
+              "input_digest": "edece86dd99ccfe931e48627c77bff179b5bfe1adfe6978d186a663cc8e251f0"
+            },
+            {
+              "id": "changed-target-guided-retry:6",
+              "input_digest": "d7b49fda9452ffe6063ecf6e73ddb2b24773a03ba8fc0fade401e01f32af7d3f"
+            },
+            {
+              "id": "changed-target-guided-retry:8",
+              "input_digest": "ff415f21ef1d9a50897c76627343287ff37a92e92b1957ac3f69b543251e4331"
+            },
+            {
+              "id": "changed-target-guided-retry:9",
+              "input_digest": "4d1e7faf4acf4c996a50efb9ca0f9c309d87a7af74b412bb166233266ecafcfa"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 9,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Maple Research",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 2
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

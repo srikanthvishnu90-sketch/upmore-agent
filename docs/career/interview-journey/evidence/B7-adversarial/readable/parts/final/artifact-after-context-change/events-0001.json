@@ -1,0 +1,105 @@
+{
+  "archive_member": "final/artifact-after-context-change.trace.json",
+  "original_sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3111,
+      "end_byte_exclusive": 19667,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "artifact-after-context-change:1",
+      "type": "submit_answer",
+      "start_byte": 19673,
+      "end_byte_exclusive": 62706,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "artifact-after-context-change:2",
+      "type": "model_candidate",
+      "start_byte": 62712,
+      "end_byte_exclusive": 93130,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "artifact-after-context-change:3",
+      "type": "build_pack",
+      "start_byte": 93136,
+      "end_byte_exclusive": 154157,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "artifact-after-context-change:4",
+      "type": "context_changed",
+      "start_byte": 154163,
+      "end_byte_exclusive": 187580,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "artifact-after-context-change:5",
+      "type": "artifact_readback",
+      "start_byte": 187586,
+      "end_byte_exclusive": 199807,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "artifact-after-context-change:6",
+      "type": "build_pack",
+      "start_byte": 199813,
+      "end_byte_exclusive": 261466,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt",
+        "part-0009.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 261472,
+      "end_byte_exclusive": 261603,
+      "parts": [
+        "part-0009.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "artifact-after-context-change:7",
+      "type": "artifact_readback",
+      "start_byte": 261609,
+      "end_byte_exclusive": 301417,
+      "parts": [
+        "part-0009.txt",
+        "part-0010.txt"
+      ]
+    }
+  ]
+}

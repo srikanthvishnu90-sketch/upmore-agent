@@ -1,0 +1,79 @@
+{
+  "archive_member": "baseline/resume-does-not-rewind-selection.trace.json",
+  "original_sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3101,
+      "end_byte_exclusive": 19676,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "resume-does-not-rewind-selection:1",
+      "type": "pause",
+      "start_byte": 19682,
+      "end_byte_exclusive": 36187,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "resume-does-not-rewind-selection:2",
+      "type": "pause",
+      "start_byte": 36193,
+      "end_byte_exclusive": 55630,
+      "parts": [
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "resume-does-not-rewind-selection:3",
+      "type": "resume",
+      "start_byte": 55636,
+      "end_byte_exclusive": 75048,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "resume-does-not-rewind-selection:4",
+      "type": "select_question",
+      "start_byte": 75054,
+      "end_byte_exclusive": 95181,
+      "parts": [
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 95187,
+      "end_byte_exclusive": 95318,
+      "parts": [
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "resume-does-not-rewind-selection:5",
+      "type": "resume",
+      "start_byte": 95324,
+      "end_byte_exclusive": 112344,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    }
+  ]
+}

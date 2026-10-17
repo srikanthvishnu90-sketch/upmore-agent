@@ -1,0 +1,87 @@
+{
+  "archive_member": "final/long-interrupted-journey.trace.json",
+  "original_sha256": "67f8fee22d4a5115676a2e8665343d73e27df123f2918ad79499bb668cac9681",
+  "events": [
+    {
+      "ordinal": 65,
+      "event_id": "long-interrupted-journey:58",
+      "type": "reasoning_result",
+      "start_byte": 3965111,
+      "end_byte_exclusive": 4073768,
+      "parts": [
+        "part-0122.txt",
+        "part-0123.txt",
+        "part-0124.txt",
+        "part-0125.txt"
+      ]
+    },
+    {
+      "ordinal": 66,
+      "event_id": "long-interrupted-journey:59",
+      "type": "retry_assessment",
+      "start_byte": 4073774,
+      "end_byte_exclusive": 4210148,
+      "parts": [
+        "part-0125.txt",
+        "part-0126.txt",
+        "part-0127.txt",
+        "part-0128.txt",
+        "part-0129.txt"
+      ]
+    },
+    {
+      "ordinal": 67,
+      "event_id": "long-interrupted-journey:60",
+      "type": "model_candidate",
+      "start_byte": 4210154,
+      "end_byte_exclusive": 4330896,
+      "parts": [
+        "part-0129.txt",
+        "part-0130.txt",
+        "part-0131.txt",
+        "part-0132.txt",
+        "part-0133.txt"
+      ]
+    },
+    {
+      "ordinal": 68,
+      "event_id": "long-interrupted-journey:61",
+      "type": "build_pack",
+      "start_byte": 4330902,
+      "end_byte_exclusive": 4519095,
+      "parts": [
+        "part-0133.txt",
+        "part-0134.txt",
+        "part-0135.txt",
+        "part-0136.txt",
+        "part-0137.txt",
+        "part-0138.txt",
+        "part-0139.txt"
+      ]
+    },
+    {
+      "ordinal": 69,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 4519101,
+      "end_byte_exclusive": 4519232,
+      "parts": [
+        "part-0139.txt"
+      ]
+    },
+    {
+      "ordinal": 70,
+      "event_id": "long-interrupted-journey:62",
+      "type": "artifact_readback",
+      "start_byte": 4519238,
+      "end_byte_exclusive": 4653022,
+      "parts": [
+        "part-0139.txt",
+        "part-0140.txt",
+        "part-0141.txt",
+        "part-0142.txt",
+        "part-0143.txt"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "original_member_hashes_match_existing_results": true,
+  "trace_parts_reconstruct_exact_original_bytes": true,
+  "part_utf8_decoding": "PASS",
+  "trace_indexes": 22,
+  "actual_entry_not_run": true,
+  "original_archive_sha256": "533c039aef04bc45d76fd7bd4bac146f8984856c98687447310aa5006b88021a",
+  "runtime_diff_from_b414b042": "EMPTY for packages/, scripts/, tests/",
+  "original_provenance_files_unchanged": true,
+  "case_indexes_and_pages_at_most_bytes": 32768,
+  "part_index_page_size_at_most": 40,
+  "event_index_page_size_at_most": 16
+}

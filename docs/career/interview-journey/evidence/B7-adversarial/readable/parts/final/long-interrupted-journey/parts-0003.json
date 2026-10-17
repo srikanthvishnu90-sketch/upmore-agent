@@ -1,0 +1,286 @@
+{
+  "archive_member": "final/long-interrupted-journey.trace.json",
+  "original_sha256": "67f8fee22d4a5115676a2e8665343d73e27df123f2918ad79499bb668cac9681",
+  "parts": [
+    {
+      "file": "part-0081.txt",
+      "start_byte": 2618601,
+      "end_byte_exclusive": 2651353,
+      "bytes": 32752,
+      "sha256": "07f7c9ed2fae6567ae381d3f5cd86606d51516f2789602beaecd2dbbd3b89011"
+    },
+    {
+      "file": "part-0082.txt",
+      "start_byte": 2651353,
+      "end_byte_exclusive": 2684074,
+      "bytes": 32721,
+      "sha256": "bcb4e7b01bae2448f446b00d3dfd39bb13621208da69a2c9192b670969bb8ccd"
+    },
+    {
+      "file": "part-0083.txt",
+      "start_byte": 2684074,
+      "end_byte_exclusive": 2716814,
+      "bytes": 32740,
+      "sha256": "9633aa39f6992d935c1919b593898de5d869ee2d4ec305055cfa9f11aa9ae84d"
+    },
+    {
+      "file": "part-0084.txt",
+      "start_byte": 2716814,
+      "end_byte_exclusive": 2749574,
+      "bytes": 32760,
+      "sha256": "a1e138c90a268656b6ab242cfc331f4ee2d9c69deeaf92ff93db5921c745077c"
+    },
+    {
+      "file": "part-0085.txt",
+      "start_byte": 2749574,
+      "end_byte_exclusive": 2782326,
+      "bytes": 32752,
+      "sha256": "6986b4c0bbb3bc019857ec77b5a7a34face0d29699b98c9f86b4ff10ba795f37"
+    },
+    {
+      "file": "part-0086.txt",
+      "start_byte": 2782326,
+      "end_byte_exclusive": 2815063,
+      "bytes": 32737,
+      "sha256": "e402f687e9c57f74a122062b5814bb9585058a34ed59de35c0e0474a5f4a024a"
+    },
+    {
+      "file": "part-0087.txt",
+      "start_byte": 2815063,
+      "end_byte_exclusive": 2847781,
+      "bytes": 32718,
+      "sha256": "e30c7ea66bf8332955546236743497e1313ff87589fa9f81ed9f26a2ab8c721f"
+    },
+    {
+      "file": "part-0088.txt",
+      "start_byte": 2847781,
+      "end_byte_exclusive": 2880543,
+      "bytes": 32762,
+      "sha256": "fa1a8baaf2dbb289b1dd6175e8dd0adf8e3493024a2d91457213734f3c9803e9"
+    },
+    {
+      "file": "part-0089.txt",
+      "start_byte": 2880543,
+      "end_byte_exclusive": 2913292,
+      "bytes": 32749,
+      "sha256": "27ee5c1213f6bd74a27227309e590efe2786a1e79e1ff9a7fac0cdb0ee7008b7"
+    },
+    {
+      "file": "part-0090.txt",
+      "start_byte": 2913292,
+      "end_byte_exclusive": 2946027,
+      "bytes": 32735,
+      "sha256": "16a20bd11b5cf3f9caa1c7305c1b24ac7a2463ff0fed9820c2b198dd655c897e"
+    },
+    {
+      "file": "part-0091.txt",
+      "start_byte": 2946027,
+      "end_byte_exclusive": 2978786,
+      "bytes": 32759,
+      "sha256": "20839ccc74742d45d0b9252a69882dd7b1b7710a99d5b5f253a22939e0edda0d"
+    },
+    {
+      "file": "part-0092.txt",
+      "start_byte": 2978786,
+      "end_byte_exclusive": 3011483,
+      "bytes": 32697,
+      "sha256": "64eda9bebcdc29891a88e8a2b83d717c56387b66748eef860220315d207f6905"
+    },
+    {
+      "file": "part-0093.txt",
+      "start_byte": 3011483,
+      "end_byte_exclusive": 3044211,
+      "bytes": 32728,
+      "sha256": "fca57227768b77baf8e04b233eecca0bc9347383ac70ea4d405c8903cf2e92ca"
+    },
+    {
+      "file": "part-0094.txt",
+      "start_byte": 3044211,
+      "end_byte_exclusive": 3076940,
+      "bytes": 32729,
+      "sha256": "887da8109166ddda7d65d297e5048a8376f2365e95caa4e976eb286b180ac3f4"
+    },
+    {
+      "file": "part-0095.txt",
+      "start_byte": 3076940,
+      "end_byte_exclusive": 3109688,
+      "bytes": 32748,
+      "sha256": "75176889d7b0f34498517bf9aaafc80087f4013a999458920d5d88bc4f355e02"
+    },
+    {
+      "file": "part-0096.txt",
+      "start_byte": 3109688,
+      "end_byte_exclusive": 3142430,
+      "bytes": 32742,
+      "sha256": "be02e3d78269be0016e840ecbe1b94599260e7aee22b93f3b7bc44286094267a"
+    },
+    {
+      "file": "part-0097.txt",
+      "start_byte": 3142430,
+      "end_byte_exclusive": 3175168,
+      "bytes": 32738,
+      "sha256": "043047e96eaba61f6b19369c4de8b22bac03f840a8ab377d4825556575797ba9"
+    },
+    {
+      "file": "part-0098.txt",
+      "start_byte": 3175168,
+      "end_byte_exclusive": 3207918,
+      "bytes": 32750,
+      "sha256": "324aa99738416f96216b9d5e5caf15347e0195d0df3e7c1beb9851a25b3e4e71"
+    },
+    {
+      "file": "part-0099.txt",
+      "start_byte": 3207918,
+      "end_byte_exclusive": 3240682,
+      "bytes": 32764,
+      "sha256": "41f9531466d2037602eacdb636a1e3e1d0229d527a831cfe833f7551dcb0a32a"
+    },
+    {
+      "file": "part-0100.txt",
+      "start_byte": 3240682,
+      "end_byte_exclusive": 3273364,
+      "bytes": 32682,
+      "sha256": "041b4fc48da3bef481c4e909d5d81488bed0847e4e5d85b144f1eb47ec00c321"
+    },
+    {
+      "file": "part-0101.txt",
+      "start_byte": 3273364,
+      "end_byte_exclusive": 3306070,
+      "bytes": 32706,
+      "sha256": "91eb48a5e3bc847175db5ddb6e7c6b5d98fe912052d95ff2f0384042b9e4a943"
+    },
+    {
+      "file": "part-0102.txt",
+      "start_byte": 3306070,
+      "end_byte_exclusive": 3338800,
+      "bytes": 32730,
+      "sha256": "5971f37ef2f82a45417db72d8feb8f9fd3efd2db245f369a5a03f5b3730d44f4"
+    },
+    {
+      "file": "part-0103.txt",
+      "start_byte": 3338800,
+      "end_byte_exclusive": 3371557,
+      "bytes": 32757,
+      "sha256": "46f7f61a303f8f9e4d7965c8a2d9ab6b00a18f68040c4217448679ff34c491d5"
+    },
+    {
+      "file": "part-0104.txt",
+      "start_byte": 3371557,
+      "end_byte_exclusive": 3404312,
+      "bytes": 32755,
+      "sha256": "c698748c4384f316934d96f2ba548a3ba207011261c52c0eaec1c3c66cf0cf1f"
+    },
+    {
+      "file": "part-0105.txt",
+      "start_byte": 3404312,
+      "end_byte_exclusive": 3437070,
+      "bytes": 32758,
+      "sha256": "35d19552019b7b75f324a77cd1ff7812b4a10ae0161172b7869a2e80d76c5111"
+    },
+    {
+      "file": "part-0106.txt",
+      "start_byte": 3437070,
+      "end_byte_exclusive": 3469808,
+      "bytes": 32738,
+      "sha256": "a51c56088181f0593de879be3a8cd70098b415a8aaef67e320c04cd8ece1c95a"
+    },
+    {
+      "file": "part-0107.txt",
+      "start_byte": 3469808,
+      "end_byte_exclusive": 3502563,
+      "bytes": 32755,
+      "sha256": "391205ae5f85bd12a47ee08b36135399fddc61ee966c4e5df2003e503167a0b1"
+    },
+    {
+      "file": "part-0108.txt",
+      "start_byte": 3502563,
+      "end_byte_exclusive": 3535310,
+      "bytes": 32747,
+      "sha256": "d873353c3876e2625e2018adc24e8322028b23534d153ebe7c3cb315eef797b8"
+    },
+    {
+      "file": "part-0109.txt",
+      "start_byte": 3535310,
+      "end_byte_exclusive": 3568046,
+      "bytes": 32736,
+      "sha256": "809a4dd411e125659e796931dca7c9bba0ce0ad5851c4a4863f04e1e65870e61"
+    },
+    {
+      "file": "part-0110.txt",
+      "start_byte": 3568046,
+      "end_byte_exclusive": 3600799,
+      "bytes": 32753,
+      "sha256": "fc89d5d53f9cd61fe274903ecb50472dedf39f2c33ec473404785751f1cbaa91"
+    },
+    {
+      "file": "part-0111.txt",
+      "start_byte": 3600799,
+      "end_byte_exclusive": 3633562,
+      "bytes": 32763,
+      "sha256": "61bf551f522357eee6313c27ad2c3a0b1e7778f2d03e675b5bb70535343c67e0"
+    },
+    {
+      "file": "part-0112.txt",
+      "start_byte": 3633562,
+      "end_byte_exclusive": 3666247,
+      "bytes": 32685,
+      "sha256": "86705715014acacb148f1d8e2656dca44254db9f5a4090950f73f8b7bb14e87a"
+    },
+    {
+      "file": "part-0113.txt",
+      "start_byte": 3666247,
+      "end_byte_exclusive": 3699012,
+      "bytes": 32765,
+      "sha256": "f7fd1581e898fda0ac278bc866aa4e2f914a40c307fd675ef5336fd110c6e61f"
+    },
+    {
+      "file": "part-0114.txt",
+      "start_byte": 3699012,
+      "end_byte_exclusive": 3731710,
+      "bytes": 32698,
+      "sha256": "080957514cf9cdc99a00fdadc9f582ce81491086915a03dfe58c4b48c44014ce"
+    },
+    {
+      "file": "part-0115.txt",
+      "start_byte": 3731710,
+      "end_byte_exclusive": 3764463,
+      "bytes": 32753,
+      "sha256": "53c3fc6c09a639b9609688f2f97b0a2692a6565912ca6f7d5b8efaa7d2587494"
+    },
+    {
+      "file": "part-0116.txt",
+      "start_byte": 3764463,
+      "end_byte_exclusive": 3797227,
+      "bytes": 32764,
+      "sha256": "312c3d6effd2f8a1b6e32cbcceec527c911f0d56eb8c4bf966b1f228504437e6"
+    },
+    {
+      "file": "part-0117.txt",
+      "start_byte": 3797227,
+      "end_byte_exclusive": 3829992,
+      "bytes": 32765,
+      "sha256": "081f578d26da026d5ca13bd09f56995ea1614ee22c64e6ca788536f11188dddc"
+    },
+    {
+      "file": "part-0118.txt",
+      "start_byte": 3829992,
+      "end_byte_exclusive": 3862742,
+      "bytes": 32750,
+      "sha256": "aa2596278afa3d0df8d94c2935896d03df4783f99178e9e095dbc85174c4c545"
+    },
+    {
+      "file": "part-0119.txt",
+      "start_byte": 3862742,
+      "end_byte_exclusive": 3895501,
+      "bytes": 32759,
+      "sha256": "e47989d870725858f2fe9c0c3508d48843e00818ce87d31e8ef029d7532697d7"
+    },
+    {
+      "file": "part-0120.txt",
+      "start_byte": 3895501,
+      "end_byte_exclusive": 3928263,
+      "bytes": 32762,
+      "sha256": "71f844aeba424b7a937702cbff58afff58ec857cc77201eb4f2eef67d5139e21"
+    }
+  ]
+}

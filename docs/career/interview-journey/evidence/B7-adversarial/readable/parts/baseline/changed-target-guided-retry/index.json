@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/changed-target-guided-retry.trace.json",
+  "original_path": "original/baseline/changed-target-guided-retry.trace.json",
+  "original_bytes": 364005,
+  "original_sha256": "4c895a19fe7ec987c8904bdcf1a10d778ef88954ad697932544986ae8bdd7e24",
+  "expected": "A company change preserves a project-only practice answer but invalidates its guided support; retry rejects stale support without losing the answer, then accepts a fresh initial answer.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "event_count": 11,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "297595881e4dc859de396f008f1026dbb8385b1b18d0bae2ff4f0e0cd80b5f61",
+      "first_ordinal": 1,
+      "last_ordinal": 11
+    }
+  ],
+  "part_count": 12,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "13c143b9055a7df59c8dfaa2f1198ede8cdbfeb13f959745eee00c4a2639210a",
+      "first_ordinal": 1,
+      "last_ordinal": 12
+    }
+  ]
+}

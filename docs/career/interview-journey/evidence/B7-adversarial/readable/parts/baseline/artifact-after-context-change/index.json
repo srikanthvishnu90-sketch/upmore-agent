@@ -1,0 +1,28 @@
+{
+  "provenance": "Exact original archive bytes; parts concatenate in listed order without separators. No normalization or truncation.",
+  "archive_member": "baseline/artifact-after-context-change.trace.json",
+  "original_path": "original/baseline/artifact-after-context-change.trace.json",
+  "original_bytes": 301424,
+  "original_sha256": "4772fdde9b09d41b361888be38c548c2117e1562af2c6119d20b8b74f67ab3e3",
+  "expected": "An artifact saved before a target correction cannot finish readback; a rebuilt current partial pack can be read back after JSON restart.",
+  "proof": "STRUCTURAL_ONLY",
+  "max_part_bytes": 32768,
+  "event_count": 9,
+  "event_index_pages": [
+    {
+      "file": "events-0001.json",
+      "sha256": "23646fa243446948f15e0d4e4cbb1d7ab647f5cd019e3b33ae341f43bdae2a01",
+      "first_ordinal": 1,
+      "last_ordinal": 9
+    }
+  ],
+  "part_count": 10,
+  "part_index_pages": [
+    {
+      "file": "parts-0001.json",
+      "sha256": "1a4557660de80c9a2ca210ecbc0d930b6cc4a947f616319471e8c55118dbeb62",
+      "first_ordinal": 1,
+      "last_ordinal": 10
+    }
+  ]
+}

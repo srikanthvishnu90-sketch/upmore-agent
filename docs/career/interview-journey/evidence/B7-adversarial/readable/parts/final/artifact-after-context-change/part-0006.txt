@@ -1,0 +1,750 @@
+            "content": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Spruce; level: early-career; stage: unknown\n\nResume: resume@1\n\nAvailable minutes: 30\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: interview stage\n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 8 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\ntechnical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\nbehavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\npack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\n## Truthful story bank\n\nproject@1: I drafted a deployment checklist for a demo. — source \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\n## Original and revised answers\n\nsynthetic-journey:attempt:artifact-after-context-change:1 / project-narrative / initial; assistance: none; parent: none\nI drafted the demo checklist.\nSHA-256: dd7033a75083383ff073327fbd47a4d900f006123e4054f74f0e700f9b4e2b63\n\nDraft synthetic-journey:draft:artifact-after-context-change:2@1; generated wording, not a canonical fact. Attempts: synthetic-journey:attempt:artifact-after-context-change:1\nI drafted the demo checklist.\n\n## Feedback, practice and transfer\n\nsynthetic-journey:assessment:artifact-after-context-change:2; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; project\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: I drafted the demo checklist.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\ninitial: personal contribution; assistance: none; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:artifact-after-context-change:1)\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 30 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney synthetic-journey, revision 4; context 467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79; epoch 1.\n\nproject@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\ntarget@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nresume@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+            "mime_type": "text/markdown; charset=utf-8",
+            "encoding": "utf-8",
+            "byte_length": 4935,
+            "sha256": "8eba72f766d8e44157924a42e9e1f129d9460295506051ada36c7451ed6dcc16"
+          }
+        ],
+        "assessments": [],
+        "capabilities": [
+          {
+            "id": "interview.coach.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+          "epoch": 1,
+          "thread_revision": 2,
+          "journey_revision": 4
+        },
+        "next_state": {
+          "assessments": [
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "dd7033a75083383ff073327fbd47a4d900f006123e4054f74f0e700f9b4e2b63",
+              "assessment_kind": "answer_feedback",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:artifact-after-context-change:1",
+              "content_sha256": "fd7018030fdd3307c46f6c02ba82d6bf35b28e8d262f13dd902546370b46f430",
+              "dimensions": [
+                {
+                  "id": "situation",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 29,
+                      "quote": "I drafted the demo checklist.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "personal_contribution",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 29,
+                      "quote": "I drafted the demo checklist.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 29,
+                      "quote": "I drafted the demo checklist.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "outcome_evidence",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 29,
+                      "quote": "I drafted the demo checklist.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reflection_transfer",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 29,
+                      "quote": "I drafted the demo checklist.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "epoch": 1,
+              "evidence_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "exercise_id": "ownership",
+              "family": "project",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "id": "synthetic-journey:assessment:artifact-after-context-change:2",
+              "journey_id": "synthetic-journey",
+              "judgment": "provisional practice inference",
+              "next_question_id": "handoff-transfer",
+              "owner_id": "synthetic-owner-a",
+              "priority_fix": {
+                "dimension": "personal_contribution",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "project-narrative",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "stale",
+              "strength": {
+                "dimension": "situation",
+                "text": "Scripted strength linked to an elicited dimension."
+              },
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only.",
+              "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            }
+          ],
+          "attempts": [
+            {
+              "answer_sha256": "dd7033a75083383ff073327fbd47a4d900f006123e4054f74f0e700f9b4e2b63",
+              "assistance": "none",
+              "at": "2026-10-16T12:01:00Z",
+              "content_sha256": "d3d203cb4bcdb955d93e56fc3476b68e56e80279fdba8f8f5aeefb389daa982f",
+              "context_outdated": true,
+              "context_revision": 1,
+              "dependency_basis": "conservative_context_refs",
+              "epoch": 1,
+              "exercise_id": null,
+              "id": "synthetic-journey:attempt:artifact-after-context-change:1",
+              "index": 1,
+              "journey_id": "synthetic-journey",
+              "kind": "initial",
+              "owner_id": "synthetic-owner-a",
+              "parent_attempt_id": null,
+              "question_id": "project-narrative",
+              "question_text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "rubric_version": 1,
+              "scripted": true,
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "text": "I drafted the demo checklist.",
+              "thread_id": "synthetic-thread-a",
+              "version": 1
+            }
+          ],
+          "briefs": [],
+          "checkpoint": {
+            "active_attempt_id": null,
+            "active_question": {
+              "competency": "project_reasoning",
+              "family": "project",
+              "id": "project-narrative",
+              "rubric": {
+                "anchors": {
+                  "0": "Elicited criterion is absent or contradicted; identify the exact contradiction or missing criterion.",
+                  "1": "Relevant fragment, with a major unresolved gap; explain the task-specific consequence.",
+                  "2": "Workable basic account, with an important omission or unsupported step.",
+                  "3": "Supported and sound for this task; name any remaining limited gap.",
+                  "4": "Supported, justified and robust to this question’s boundary probe.",
+                  "not_assessed": "Not elicited or insufficient input. Abstain; do not convert to zero."
+                },
+                "coverage_dimensions": [
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence"
+                ],
+                "criteria": {
+                  "outcome_evidence": "Observations and measurement limits; qualitative outcomes are valid.",
+                  "personal_contribution": "Distinguishes proposal, implementation and teammate work.",
+                  "reasoning_tradeoffs": "Choice linked to the problem; acknowledges an alternative.",
+                  "reflection_transfer": "A supported lesson or next improvement.",
+                  "situation": "A concrete problem and relevant constraints."
+                },
+                "dimensions": [
+                  "situation",
+                  "personal_contribution",
+                  "reasoning_tradeoffs",
+                  "outcome_evidence",
+                  "reflection_transfer"
+                ],
+                "id": "project-evidence/v1",
+                "label": "provisional practice judgment; not a hiring score",
+                "policy": "Accept sound alternatives. No reward for jargon, length, numbers, STAR markers, accent or disfluency. Do not penalize the same root gap in every dimension.",
+                "version": 1
+              },
+              "situation": "past_project",
+              "text": "Choose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+              "version": 1
+            },
+            "interruption_stack": [],
+            "outstanding_reasoning": [],
+            "pending_artifact": null,
+            "pending_reasoning": null,
+            "pending_research": null,
+            "reasoning_recovery": null,
+            "selected_draft_id": null,
+            "unresolved_asks": []
+          },
+          "completion": {
+            "artifact": null,
+            "unmet_conditions": [
+              "Context changed; build and reopen a current pack"
+            ]
+          },
+          "constraints": {
+            "available_minutes": 30,
+            "budget_anchor_spent_minutes": 0,
+            "daily_study_minutes": null,
+            "interview_at": null,
+            "logistics": [],
+            "spent_minutes": 0,
+            "unknowns": [
+              "interview stage"
+            ]
+          },
+          "content_sha256": "93f8d7fb4aa260c7e2a2f0292121fe068b71e56cead9a4dedea7485e9c521eb8",
+          "context_binding": {
+            "account_version": 1,
+            "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+            "epoch": 1,
+            "thread_revision": 2
+          },
+          "created_at": "2026-10-16T12:01:00Z",
+          "dependencies": [
+            {
+              "id": "project",
+              "version": 1
+            },
+            {
+              "id": "resume",
+              "version": 1
+            },
+            {
+              "id": "target",
+              "version": 2
+            }
+          ],
+          "drafts": [
+            {
+              "content_sha256": "d65fbbfc6c7d3272f279e060f82b1e510b230021f2b995bd4fe4dabc46ef90ab",
+              "context_revision": 1,
+              "edits": [],
+              "epoch": 1,
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                }
+              ],
+              "id": "synthetic-journey:draft:artifact-after-context-change:2",
+              "journey_id": "synthetic-journey",
+              "owner_id": "synthetic-owner-a",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:artifact-after-context-change:1"
+              ],
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "stale",
+              "text": "I drafted the demo checklist.",
+              "thread_id": "synthetic-thread-a",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "target",
+              "id": "artifact-after-context-change:change:2",
+              "kind": "target_changed",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "artifact-after-context-change:4",
+            "input_digest": "23bdf2a876a03d3d0ba7fffb169506289f9c2bddb187648ba1840f671e1f2786",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 4
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "id": "synthetic-journey:assessment:artifact-after-context-change:2:observation",
+              "status": "stale",
+              "kind": "initial",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "9e664df2d065247ce60898a314f8c0842daeea9f3645cd3c9b2e32a2fad99972"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "remaining_minutes": 30,
+            "items": [
+              {
+                "id": "plan-project",
+                "competency": "project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              },
+              {
+                "id": "plan-technical",
+                "competency": "technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              },
+              {
+                "id": "plan-behavioral",
+                "competency": "behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              },
+              {
+                "id": "plan-pack",
+                "competency": "pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "source_refs": [
+                  {
+                    "id": "project",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "target",
+                    "version": 2
+                  }
+                ],
+                "reason_kind": "provisional_slice_coverage"
+              }
+            ],
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ]
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "artifact-after-context-change:1",
+              "input_digest": "9e7cd26c0b51532df3a435859e807da0b53a26b9821670caaed8d823b722f026"
+            },
+            {
+              "id": "artifact-after-context-change:2",
+              "input_digest": "c2b9bfb0a8f84c42a100371e4ac7ae848e64c53a304a68d7fe0836fd19795888"
+            },
+            {
+              "id": "artifact-after-context-change:3",
+              "input_digest": "2d62294dfb750736ba202b3780be4bd1ed42fabe4e4f9f666e1f43c67b7d575d"
+            },
+            {
+              "id": "artifact-after-context-change:4",
+              "input_digest": "23bdf2a876a03d3d0ba7fffb169506289f9c2bddb187648ba1840f671e1f2786"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 5,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "awaiting_answer",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Spruce Tools",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 2
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    },
+    {
+      "event": {
+        "id": "artifact-after-context-change:5",
+        "type": "artifact_readback",
+        "at": "2026-10-16T12:01:00Z",
+        "receipt_id": "artifact-after-context-change:readback:4"
+      },
+      "snapshot": {
+        "contract_version": "career_journey_context/v1",
+        "owner_id": "synthetic-owner-a",
+        "thread_id": "synthetic-thread-a",
+        "captured_at": "2026-10-16T12:00:00Z",
+        "binding": {
+          "epoch": 1,
+          "account_version": 1,
+          "thread_revision": 2,
+          "context_sha256": "c8c872034dc4b5a68ddf04f36e843a5e4704e210f01bdcc933ce1063f19c982e"
+        },
+        "facts": [
+          {
+            "id": "project",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "project",
+            "value": "I drafted a deployment checklist for a demo.",
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "target",
+            "version": 2,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "target",
+            "value": {
+              "company": "Synthetic Spruce Tools",
+              "level": "early-career",
+              "role": "Software engineer intern",
+              "role_family": "software_engineering",
+              "stage": null
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          },
+          {
+            "id": "resume",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "scope": "thread",
+            "kind": "resume",
+            "value": {
+              "artifact_id": "resume-v1",
+              "sha256": "c5669fc80989f9722da58c8d6a9c82d5bb8a3de332aebaf7f6864271f189adde"
+            },
+            "provenance": {
+              "source_id": "resume-v1",
+              "span": "synthetic source excerpt"
+            },
+            "trust": "user_supplied",
+            "validity": {
+              "status": "active",
+              "epoch": 1
+            }
+          }
+        ],
+        "sources": [],
+        "dialogue": [],
+        "current_draft": null,
+        "goals": [],
+        "pending_asks": [],
+        "invalidations": [
+          {
+            "id": "artifact-after-context-change:change:2",
+            "kind": "target_changed",
+            "evidence_id": "target",
+            "previous_version": 1
+          }
+        ],
+        "tool_status": [],
+        "receipts": [
+          {
+            "id": "receipt-1",
+            "type": "semantic_candidate",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "action_id": "ij-999a083d94ff8371088d958f",
+            "input_digest": "c21196d7e3e05f6a815b47e0560596cdce43bea1ccf1266996615aa0962863e3",
+            "request_digest": "e5ef1b0cd5fd5f4964713ad43e1bb15669badbc0c1989023d2cd636c86feefe3",
+            "candidate_sha256": "e94825695e0ffc851b5137b45d208755d32e8ecc4adce921fca151a112964bda",
+            "verdict": "accepted",
+            "request_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 2
+            },
+            "generator": "SCRIPTED_CONTRACT_FIXTURE"
+          },
+          {
+            "id": "artifact-after-context-change:readback:4",
+            "type": "artifact_readback",
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "epoch": 1,
+            "artifact_id": "artifact-after-context-change:artifact:4",
+            "artifact_version": 1,
+            "action_id": "ij-1aa76b858a882bd7ec9b5715",
+            "input_digest": "55cfb50994f0a820e6032adbccf3070932621cc2d507dabc2495eee9b1291de5",
+            "authorized_open": true,
+            "fresh_session": true,
+            "journey_revision": 4,
+            "target_ref": {
+              "id": "target",
+              "version": 1
+            },
+            "resume_ref": {
+              "id": "resume",
+              "version": 1
+            },
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,

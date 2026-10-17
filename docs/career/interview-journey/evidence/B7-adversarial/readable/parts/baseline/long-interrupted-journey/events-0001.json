@@ -1,0 +1,181 @@
+{
+  "archive_member": "baseline/long-interrupted-journey.trace.json",
+  "original_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3191,
+      "end_byte_exclusive": 19766,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "long-interrupted-journey:1",
+      "type": "select_question",
+      "start_byte": 19772,
+      "end_byte_exclusive": 36231,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "long-interrupted-journey:2",
+      "type": "submit_answer",
+      "start_byte": 36237,
+      "end_byte_exclusive": 79626,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "long-interrupted-journey:3",
+      "type": "pause",
+      "start_byte": 79632,
+      "end_byte_exclusive": 100584,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "long-interrupted-journey:4",
+      "type": "pause",
+      "start_byte": 100590,
+      "end_byte_exclusive": 124516,
+      "parts": [
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "long-interrupted-journey:5",
+      "type": "time_change",
+      "start_byte": 124522,
+      "end_byte_exclusive": 148652,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 148658,
+      "end_byte_exclusive": 148789,
+      "parts": [
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": "long-interrupted-journey:6",
+      "type": "reasoning_result",
+      "start_byte": 148795,
+      "end_byte_exclusive": 177080,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "long-interrupted-journey:7",
+      "type": "resume",
+      "start_byte": 177086,
+      "end_byte_exclusive": 205085,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "long-interrupted-journey:8",
+      "type": "reasoning_result",
+      "start_byte": 205091,
+      "end_byte_exclusive": 230482,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 11,
+      "event_id": "long-interrupted-journey:9",
+      "type": "retry_assessment",
+      "start_byte": 230488,
+      "end_byte_exclusive": 283158,
+      "parts": [
+        "part-0008.txt",
+        "part-0009.txt"
+      ]
+    },
+    {
+      "ordinal": 12,
+      "event_id": "long-interrupted-journey:10",
+      "type": "model_candidate",
+      "start_byte": 283164,
+      "end_byte_exclusive": 321442,
+      "parts": [
+        "part-0009.txt",
+        "part-0010.txt"
+      ]
+    },
+    {
+      "ordinal": 13,
+      "event_id": "long-interrupted-journey:11",
+      "type": "select_question",
+      "start_byte": 321448,
+      "end_byte_exclusive": 358709,
+      "parts": [
+        "part-0010.txt",
+        "part-0011.txt"
+      ]
+    },
+    {
+      "ordinal": 14,
+      "event_id": "long-interrupted-journey:12",
+      "type": "submit_answer",
+      "start_byte": 358715,
+      "end_byte_exclusive": 423627,
+      "parts": [
+        "part-0011.txt",
+        "part-0012.txt",
+        "part-0013.txt"
+      ]
+    },
+    {
+      "ordinal": 15,
+      "event_id": "long-interrupted-journey:13",
+      "type": "pause",
+      "start_byte": 423633,
+      "end_byte_exclusive": 466262,
+      "parts": [
+        "part-0013.txt",
+        "part-0014.txt",
+        "part-0015.txt"
+      ]
+    },
+    {
+      "ordinal": 16,
+      "event_id": "long-interrupted-journey:14",
+      "type": "pause",
+      "start_byte": 466268,
+      "end_byte_exclusive": 512710,
+      "parts": [
+        "part-0015.txt",
+        "part-0016.txt"
+      ]
+    }
+  ]
+}

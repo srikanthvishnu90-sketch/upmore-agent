@@ -1,0 +1,49 @@
+{
+  "archive_member": "baseline/long-interrupted-journey.trace.json",
+  "original_sha256": "caf3319f001319cdaac680676c4b5a3842e3825dd60597c75cc5b55cedd3e33b",
+  "events": [
+    {
+      "ordinal": 65,
+      "event_id": "long-interrupted-journey:58",
+      "type": "reasoning_result",
+      "start_byte": 4542147,
+      "end_byte_exclusive": 4671287,
+      "parts": [
+        "part-0139.txt",
+        "part-0140.txt",
+        "part-0141.txt",
+        "part-0142.txt",
+        "part-0143.txt"
+      ]
+    },
+    {
+      "ordinal": 66,
+      "event_id": "long-interrupted-journey:59",
+      "type": "retry_assessment",
+      "start_byte": 4671293,
+      "end_byte_exclusive": 4828150,
+      "parts": [
+        "part-0143.txt",
+        "part-0144.txt",
+        "part-0145.txt",
+        "part-0146.txt",
+        "part-0147.txt",
+        "part-0148.txt"
+      ]
+    },
+    {
+      "ordinal": 67,
+      "event_id": "long-interrupted-journey:60",
+      "type": "model_candidate",
+      "start_byte": 4828156,
+      "end_byte_exclusive": 4969381,
+      "parts": [
+        "part-0148.txt",
+        "part-0149.txt",
+        "part-0150.txt",
+        "part-0151.txt",
+        "part-0152.txt"
+      ]
+    }
+  ]
+}

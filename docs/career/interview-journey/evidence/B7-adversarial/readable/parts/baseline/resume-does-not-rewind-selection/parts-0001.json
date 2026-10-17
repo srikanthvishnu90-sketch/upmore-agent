@@ -1,0 +1,34 @@
+{
+  "archive_member": "baseline/resume-does-not-rewind-selection.trace.json",
+  "original_sha256": "754e65f255af19a5ecf6adf931ae382add437ac0c3434d668f3032727ace0ceb",
+  "parts": [
+    {
+      "file": "part-0001.txt",
+      "start_byte": 0,
+      "end_byte_exclusive": 32752,
+      "bytes": 32752,
+      "sha256": "045b00dfba6fc4f6e863ec7d80792e45de0a557f6a7f6cc9e2909ad4db20ec2a"
+    },
+    {
+      "file": "part-0002.txt",
+      "start_byte": 32752,
+      "end_byte_exclusive": 65493,
+      "bytes": 32741,
+      "sha256": "fcc15edc7d3eac8dc8c029e82b5bb22efed78d50f3c51cf18a51f32f6341020c"
+    },
+    {
+      "file": "part-0003.txt",
+      "start_byte": 65493,
+      "end_byte_exclusive": 98231,
+      "bytes": 32738,
+      "sha256": "3da8842715b74990625e1c00c2577b020dcd6683b94f2a20c2ff32e920f00de8"
+    },
+    {
+      "file": "part-0004.txt",
+      "start_byte": 98231,
+      "end_byte_exclusive": 112351,
+      "bytes": 14120,
+      "sha256": "d13df0713dbf2e2c61fd27ded4b6e2fd4cce6160e3adf2d71a9c8986ddafb2be"
+    }
+  ]
+}

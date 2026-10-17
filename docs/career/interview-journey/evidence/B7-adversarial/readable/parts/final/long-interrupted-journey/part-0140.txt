@@ -1,0 +1,461 @@
+            "validated_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+              "epoch": 1,
+              "thread_revision": 1,
+              "journey_revision": 62
+            },
+            "sha256": "136c854ca8fcc4c08b63411ce8cdfbe496063f52b76c82f198185e020403df88"
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "long-interrupted-journey:artifact:68",
+            "version": 1,
+            "owner_id": "synthetic-owner-a",
+            "thread_id": "synthetic-thread-a",
+            "journey_id": "synthetic-journey",
+            "epoch": 1,
+            "content": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: Synthetic Aspen; level: early-career; stage: unknown\n\nResume: resume@1\n\nAvailable minutes: 20\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: interview stage\n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 5 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\ntechnical: 7 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\nbehavioral: 4 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\npack: 4 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"project\",\"version\":1\\},\\{\"id\":\"target\",\"version\":1\\},\\{\"id\":\"resume\",\"version\":1\\}\\]\n\n## Truthful story bank\n\nproject@1: I maintained synthetic fixtures for a student scheduling project. — source \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\n## Original and revised answers\n\nsynthetic-journey:attempt:long-interrupted-journey:2 / project-narrative / initial; assistance: none; parent: none\nSynthetic round 0: I prepared one fixture and documented its assumptions.\nSHA-256: 5e3bd4b16331980cc83e724e4a1f2b4d4e420ec011963abc270661ed0542af72\n\nsynthetic-journey:attempt:long-interrupted-journey:12 / retry-design / initial; assistance: none; parent: none\nSynthetic round 1: I prepared one fixture and documented its assumptions.\nSHA-256: 77134e490a0df8ba4457fad2302deed90c24484fe3191361428b6fc9e43c59c8\n\nsynthetic-journey:attempt:long-interrupted-journey:22 / team-decision / initial; assistance: none; parent: none\nSynthetic round 2: I prepared one fixture and documented its assumptions.\nSHA-256: 94ce05b5e39b4b2c6643d57e620f423ecd044d41a1d0530992da6bcca6f178a9\n\nsynthetic-journey:attempt:long-interrupted-journey:32 / project-narrative / initial; assistance: coached; parent: none\nSynthetic round 3: I prepared one fixture and documented its assumptions.\nSHA-256: aadf7671ebacf5bc3f125425ace49597b7af48d4f1ef58dee08d2931a48add26\n\nsynthetic-journey:attempt:long-interrupted-journey:42 / retry-design / initial; assistance: coached; parent: none\nSynthetic round 4: I prepared one fixture and documented its assumptions.\nSHA-256: e884975e8b87225a83303b05ae247b8c934d1d9620e48b026a99e839dcceb611\n\nsynthetic-journey:attempt:long-interrupted-journey:52 / team-decision / initial; assistance: coached; parent: none\nSynthetic round 5: I prepared one fixture and documented its assumptions.\nSHA-256: 91f216c781353d02c19e95effd33919a6bf39f616776d1f3558893a94762bde0\n\nDraft synthetic-journey:draft:long-interrupted-journey:60@1; generated wording, not a canonical fact. Attempts: synthetic-journey:attempt:long-interrupted-journey:52\nSynthetic round 5: I prepared one fixture and documented its assumptions.\n\n## Feedback, practice and transfer\n\nsynthetic-journey:assessment:long-interrupted-journey:10; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; project\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 0: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 0: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 0: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 0: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 0: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\nsynthetic-journey:assessment:long-interrupted-journey:20; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; technical\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nrequirements assumptions: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 1: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\ncorrectness invariant: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 1: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 1: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nvalidation recovery: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 1: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nclear approach: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 1: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\nsynthetic-journey:assessment:long-interrupted-journey:30; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; behavioral\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 2: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 2: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 2: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 2: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 2: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\nsynthetic-journey:assessment:long-interrupted-journey:40; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; project\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 3: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 3: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 3: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 3: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 3: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\nsynthetic-journey:assessment:long-interrupted-journey:50; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; technical\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nrequirements assumptions: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 4: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\ncorrectness invariant: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 4: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 4: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nvalidation recovery: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 4: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nclear approach: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 4: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\nsynthetic-journey:assessment:long-interrupted-journey:60; provisional practice judgment by SCRIPTED\\_CONTRACT\\_FIXTURE; behavioral\nSeparate the action you proposed from work performed by your teammate; describe only the small test observation.\nsituation: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 5: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\npersonal contribution: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 5: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreasoning tradeoffs: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 5: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\noutcome evidence: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 5: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nreflection transfer: 2. Synthetic boundary response; no real quality judgment. Support: Synthetic round 5: I prepared one fixture and documented its assumptions.. Uncertainty: Not independently assessed\nPriority: Scripted gap: inspect the relevant boundary.; uncertainty: Scripted development only.\n\ninitial: personal contribution; assistance: none; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:long-interrupted-journey:2)\n\ninitial: correctness invariant; assistance: none; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:long-interrupted-journey:12)\n\ninitial: personal contribution; assistance: none; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:long-interrupted-journey:22)\n\ninitial: personal contribution; assistance: coached; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:long-interrupted-journey:32)\n\ninitial: correctness invariant; assistance: coached; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:long-interrupted-journey:42)\n\ninitial: personal contribution; assistance: coached; outcome: uncertain. Scripted development only. (Attempt synthetic-journey:attempt:long-interrupted-journey:52)\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 20 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney synthetic-journey, revision 62; context 467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79; epoch 1.\n\nproject@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\ntarget@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nresume@1; user\\_supplied; provenance \\{\"source\\_id\":\"resume-v1\",\"span\":\"synthetic source excerpt\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n",
+            "mime_type": "text/markdown; charset=utf-8",
+            "encoding": "utf-8",
+            "byte_length": 14059,
+            "sha256": "136c854ca8fcc4c08b63411ce8cdfbe496063f52b76c82f198185e020403df88"
+          }
+        ],
+        "assessments": [],
+        "capabilities": [
+          {
+            "id": "interview.coach.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted contract only"
+          },
+          {
+            "id": "interview.local_draft.v1",
+            "status": "available",
+            "version": 1,
+            "reason": "scripted file sink only"
+          },
+          {
+            "id": "research.exact_url.v1",
+            "status": "not_wired",
+            "version": 1,
+            "reason": "no host tool in this fixture"
+          }
+        ]
+      },
+      "output": {
+        "expected_binding": {
+          "owner_id": "synthetic-owner-a",
+          "thread_id": "synthetic-thread-a",
+          "account_version": 1,
+          "context_sha256": "467cdbc990d1c993822674c7314c83ffa064b611971074f394915ee12b448b79",
+          "epoch": 1,
+          "thread_revision": 1,
+          "journey_revision": 62
+        },
+        "next_state": {
+          "assessments": [
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "5e3bd4b16331980cc83e724e4a1f2b4d4e420ec011963abc270661ed0542af72",
+              "assessment_kind": "answer_feedback",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:2",
+              "content_sha256": "7dded7b5ec3d8c32ffc229f3a335a8e16f0ec6384948e04c12fba91f46c091c2",
+              "dimensions": [
+                {
+                  "id": "situation",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "personal_contribution",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "outcome_evidence",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reflection_transfer",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 0: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "epoch": 1,
+              "evidence_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "exercise_id": "ownership",
+              "family": "project",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "id": "synthetic-journey:assessment:long-interrupted-journey:10",
+              "journey_id": "synthetic-journey",
+              "judgment": "provisional practice inference",
+              "next_question_id": "handoff-transfer",
+              "owner_id": "synthetic-owner-a",
+              "priority_fix": {
+                "dimension": "personal_contribution",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "project-narrative",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "project-evidence/v1",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "strength": {
+                "dimension": "situation",
+                "text": "Scripted strength linked to an elicited dimension."
+              },
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only.",
+              "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+              "validation_receipt": "receipt-1",
+              "version": 1
+            },
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "77134e490a0df8ba4457fad2302deed90c24484fe3191361428b6fc9e43c59c8",
+              "assessment_kind": "answer_feedback",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:12",
+              "content_sha256": "fd2c2074b2507f7da70be5d634c72429ce883c0a1037a8c6ca0b920344606d2a",
+              "dimensions": [
+                {
+                  "id": "requirements_assumptions",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "correctness_invariant",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "validation_recovery",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "clear_approach",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 1: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "epoch": 1,
+              "evidence_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "exercise_id": "invariant",
+              "family": "technical",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "id": "synthetic-journey:assessment:long-interrupted-journey:20",
+              "journey_id": "synthetic-journey",
+              "judgment": "provisional practice inference",
+              "next_question_id": "webhook-transfer",
+              "owner_id": "synthetic-owner-a",
+              "priority_fix": {
+                "dimension": "correctness_invariant",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "retry-design",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "rubric_id": "retry-correctness/v1",
+              "source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "status": "active",
+              "strength": {
+                "dimension": "requirements_assumptions",
+                "text": "Scripted strength linked to an elicited dimension."
+              },
+              "thread_id": "synthetic-thread-a",
+              "uncertainty": "Scripted development only.",
+              "use_evidence_status": "admitted reference declaration; actual semantic use quality NOT_RUN",
+              "validation_receipt": "receipt-2",
+              "version": 1
+            },
+            {
+              "answer_meaning": "Scripted contract fixture: the answer describes a proposal and a limited test observation.",
+              "answer_sha256": "94ce05b5e39b4b2c6643d57e620f423ecd044d41a1d0530992da6bcca6f178a9",
+              "assessment_kind": "answer_feedback",
+              "at": "2026-10-16T12:01:00Z",
+              "attempt_id": "synthetic-journey:attempt:long-interrupted-journey:22",
+              "content_sha256": "6206450a2ff9ff095e926a3b9f7aecc4e6ca94a7d8bbf5cc7af8a5d51c320198",
+              "dimensions": [
+                {
+                  "id": "situation",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "personal_contribution",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reasoning_tradeoffs",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "outcome_evidence",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                },
+                {
+                  "id": "reflection_transfer",
+                  "rationale": "Synthetic boundary response; no real quality judgment.",
+                  "score": 2,
+                  "spans": [
+                    {
+                      "end": 73,
+                      "quote": "Synthetic round 2: I prepared one fixture and documented its assumptions.",
+                      "start": 0
+                    }
+                  ],
+                  "uncertainty": "Not independently assessed"
+                }
+              ],
+              "epoch": 1,
+              "evidence_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                }
+              ],
+              "exercise_id": "ownership",
+              "family": "behavioral",
+              "feedback": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "generator": "SCRIPTED_CONTRACT_FIXTURE",
+              "id": "synthetic-journey:assessment:long-interrupted-journey:30",
+              "journey_id": "synthetic-journey",
+              "judgment": "provisional practice inference",
+              "next_question_id": "handoff-transfer",
+              "owner_id": "synthetic-owner-a",
+              "priority_fix": {
+                "dimension": "personal_contribution",
+                "text": "Scripted gap: inspect the relevant boundary."
+              },
+              "question_id": "team-decision",
+              "rationale": "Scripted selection ties the exercise to the stated gap; human quality NOT_RUN.",
+              "retrieved_source_refs": [
+                {
+                  "id": "project",
+                  "version": 1
+                },
+                {
+                  "id": "target",
+                  "version": 1

@@ -1,0 +1,117 @@
+              "input_digest": "63b43c06e882279c5c63b132c1258cff575fe41d0718bec1ad1810d729c6a59e"
+            },
+            {
+              "id": "long-interrupted-journey:43",
+              "input_digest": "35b83b809793b0d2261b53e82ce960eb760715f04b7de0730a83e3a254072a4d"
+            },
+            {
+              "id": "long-interrupted-journey:44",
+              "input_digest": "f77519c167c1c61e51fc2517f463fb85ace2b4776a02f1793d5815af41b805fe"
+            },
+            {
+              "id": "long-interrupted-journey:45",
+              "input_digest": "f7d22d574e5bd08014293a6fece10460bbc8a3219d272a52b5a74724ecd3fee7"
+            },
+            {
+              "id": "long-interrupted-journey:46",
+              "input_digest": "747b22336f81a6618e573138b7cd4a2dd5aa594a0ae03285199cd24ea7ec904a"
+            },
+            {
+              "id": "long-interrupted-journey:47",
+              "input_digest": "df0b8d87e745ce4d9d8b1b5b02e2f5f2bc4ab55525f33f70840411e63964aa50"
+            },
+            {
+              "id": "long-interrupted-journey:48",
+              "input_digest": "5d9d4180e81d65f56e7714c0afaa3d8194aa0f8ae0f168905c2c7745c297e418"
+            },
+            {
+              "id": "long-interrupted-journey:49",
+              "input_digest": "e3c3772af25c3542f9840c52d9bc555248b7ff26d4a0c1c7be104d94bdac7ae1"
+            },
+            {
+              "id": "long-interrupted-journey:50",
+              "input_digest": "b6fa2544549e70aa0b3cb47ca23c5f92585308bba8b9c5bcaf9d49eb39de2047"
+            },
+            {
+              "id": "long-interrupted-journey:51",
+              "input_digest": "ecd9b254234643c67b25a7456f6e5f4460914284a1dc8e4286380cf26e8e72bb"
+            },
+            {
+              "id": "long-interrupted-journey:52",
+              "input_digest": "4e4bd85ce62321652a7c9de24cf80609b07db7fb544347d919afefd7b2c638bc"
+            },
+            {
+              "id": "long-interrupted-journey:53",
+              "input_digest": "35b8b7817b28b01c4da60355dd70f2582d1cb50caa6be67047592e90d8fbd955"
+            },
+            {
+              "id": "long-interrupted-journey:54",
+              "input_digest": "1413714d4999da4e033c1f4e5ec7c3615f0e42baedbb75dad37bee01aaa6bb7c"
+            },
+            {
+              "id": "long-interrupted-journey:55",
+              "input_digest": "3a871af3cd34dca4f888a7fb0a2e05ba437081a2f098aa726fb30e076ae1da31"
+            },
+            {
+              "id": "long-interrupted-journey:56",
+              "input_digest": "27fcda7b0dd3e4cdcf8abf782dbbd205f8287d08b347dceee75bce6b60d00dd1"
+            },
+            {
+              "id": "long-interrupted-journey:57",
+              "input_digest": "059a4d7d5fce8ec5bab23158f3506721a6cb6bde27abed7827dfabced37087e6"
+            },
+            {
+              "id": "long-interrupted-journey:58",
+              "input_digest": "986fc8fe4bf6e4c9cbb0656feacdca08c11cd7c7754f9e78256689a68903be3d"
+            },
+            {
+              "id": "long-interrupted-journey:59",
+              "input_digest": "ae38ce5126ba8784794a6d149a306b1901769dd0121317289162a9bdb57a6034"
+            },
+            {
+              "id": "long-interrupted-journey:60",
+              "input_digest": "33e6a1f14ddf22faa5524ed01299b826eb5e24f8cf2410e78d62ed0ba50472db"
+            },
+            {
+              "id": "long-interrupted-journey:61",
+              "input_digest": "ae04ee8a75676a2e0c2eb04e631b3bc8744c2f7a3d84df107b0f861f03aa4e96"
+            },
+            {
+              "id": "long-interrupted-journey:62",
+              "input_digest": "31940b9ee3fc6bc6f6e2559e27d3bc185549f8b443c11bfc901e64f1334e2483"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 63,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "pack_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Aspen",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Your partial pack was reopened and verified; its remaining gaps are explicit.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "archive_member": "baseline/resume-change-during-retry.trace.json",
+  "original_sha256": "6174c6299fed9bce62a9701d47d9bf1182c34474a18047c2b499ce9b4a2373ed",
+  "events": [
+    {
+      "ordinal": 1,
+      "event_id": "start",
+      "type": "start",
+      "start_byte": 3151,
+      "end_byte_exclusive": 19706,
+      "parts": [
+        "part-0001.txt"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "event_id": "resume-change-during-retry:1",
+      "type": "submit_answer",
+      "start_byte": 19712,
+      "end_byte_exclusive": 62245,
+      "parts": [
+        "part-0001.txt",
+        "part-0002.txt"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "event_id": "resume-change-during-retry:2",
+      "type": "reasoning_result",
+      "start_byte": 62251,
+      "end_byte_exclusive": 82010,
+      "parts": [
+        "part-0002.txt",
+        "part-0003.txt"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "event_id": "resume-change-during-retry:3",
+      "type": "select_question",
+      "start_byte": 82016,
+      "end_byte_exclusive": 104505,
+      "parts": [
+        "part-0003.txt",
+        "part-0004.txt"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "event_id": "resume-change-during-retry:4",
+      "type": "retry_assessment",
+      "start_byte": 104511,
+      "end_byte_exclusive": 151174,
+      "parts": [
+        "part-0004.txt",
+        "part-0005.txt"
+      ]
+    },
+    {
+      "ordinal": 6,
+      "event_id": "resume-change-during-retry:5",
+      "type": "context_changed",
+      "start_byte": 151180,
+      "end_byte_exclusive": 173916,
+      "parts": [
+        "part-0005.txt",
+        "part-0006.txt"
+      ]
+    },
+    {
+      "ordinal": 7,
+      "event_id": "resume-change-during-retry:6",
+      "type": "pause",
+      "start_byte": 173922,
+      "end_byte_exclusive": 199385,
+      "parts": [
+        "part-0006.txt",
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 8,
+      "event_id": null,
+      "type": "JSON_RESTART",
+      "start_byte": 199391,
+      "end_byte_exclusive": 199522,
+      "parts": [
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 9,
+      "event_id": "resume-change-during-retry:7",
+      "type": "reasoning_result",
+      "start_byte": 199528,
+      "end_byte_exclusive": 227013,
+      "parts": [
+        "part-0007.txt"
+      ]
+    },
+    {
+      "ordinal": 10,
+      "event_id": "resume-change-during-retry:8",
+      "type": "resume",
+      "start_byte": 227019,
+      "end_byte_exclusive": 254204,
+      "parts": [
+        "part-0007.txt",
+        "part-0008.txt"
+      ]
+    },
+    {
+      "ordinal": 11,
+      "event_id": "resume-change-during-retry:9",
+      "type": "reasoning_result",
+      "start_byte": 254210,
+      "end_byte_exclusive": 278795,
+      "parts": [
+        "part-0008.txt",
+        "part-0009.txt"
+      ]
+    },
+    {
+      "ordinal": 12,
+      "event_id": "resume-change-during-retry:10",
+      "type": "retry_assessment",
+      "start_byte": 278801,
+      "end_byte_exclusive": 330683,
+      "parts": [
+        "part-0009.txt",
+        "part-0010.txt",
+        "part-0011.txt"
+      ]
+    },
+    {
+      "ordinal": 13,
+      "event_id": "resume-change-during-retry:11",
+      "type": "model_candidate",
+      "start_byte": 330689,
+      "end_byte_exclusive": 368016,
+      "parts": [
+        "part-0011.txt",
+        "part-0012.txt"
+      ]
+    }
+  ]
+}

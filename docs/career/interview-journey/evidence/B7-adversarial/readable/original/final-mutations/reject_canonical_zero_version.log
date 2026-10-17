@@ -1,0 +1,38 @@
+✖ facts preserve canonical nonnegative safe version 0 (3.295661ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 111.182507
+
+✖ failing tests:
+
+test at tests/career-interview-journey/context-versions.test.cjs:9:54
+✖ facts preserve canonical nonnegative safe version 0 (3.295661ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "missing evidence lineage"
+      at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/context-versions.test.cjs:11:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: missing evidence lineage
+        at assert (/tmp/interview-negative-UfuQ2Q/packages/career-interview-journey/adapters/context.js:4:58)
+        at Object.validate (/tmp/interview-negative-UfuQ2Q/packages/career-interview-journey/adapters/context.js:18:7)
+        at /tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/context-versions.test.cjs:11:31
+        at getActual (node:assert:611:5)
+        at strict.doesNotThrow (node:assert:779:32)
+        at TestContext.<anonymous> (/tmp/interview-negative-UfuQ2Q/tests/career-interview-journey/context-versions.test.cjs:11:12)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.start (node:internal/test_runner/test:1242:17)
+        at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17),
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }

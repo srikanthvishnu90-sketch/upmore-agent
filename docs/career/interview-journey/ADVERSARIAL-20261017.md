@@ -82,6 +82,12 @@ event errors and restart markers. `evidence/B7-adversarial/results.json` names
 the exact tested source and all log/trace hashes; `traces-and-logs.tar.gz`
 preserves initial, failed baseline and final runs in separate directories.
 
+The [readable evidence handoff](evidence/B7-adversarial/readable/README.md)
+publishes byte-identical fail-first/final traces, full Node logs and mutation
+results as ordinary text/JSON files. Large traces also have indexed UTF-8 parts
+of at most 32 KiB, with original and per-part hashes. The original archive and
+provenance remain unchanged; runtime stays frozen at `b414b042`.
+
 To repeat the baseline, create an isolated detached worktree at `bdada1fa` and
 copy only the frozen scenario driver, its test and bounded runner into the
 corresponding B paths. Run the bounded command there with the actual A

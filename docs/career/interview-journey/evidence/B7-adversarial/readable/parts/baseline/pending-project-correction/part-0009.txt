@@ -1,0 +1,284 @@
+              "version": 1,
+              "text": "My contribution was documenting the comparison.",
+              "source_attempt_ids": [
+                "synthetic-journey:attempt:pending-project-correction:7"
+              ],
+              "fact_refs": [
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "retrieved_source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "validation_receipt": "receipt-1",
+              "edits": [],
+              "status": "active",
+              "context_revision": 2,
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "b931908b123ae0dd5a66e9ad9b638b256a7937f223fb22f7bce5494b826fe4c9"
+            }
+          ],
+          "epoch": 1,
+          "hints": [],
+          "invalidations": [
+            {
+              "evidence_id": "project",
+              "id": "pending-project-correction:change:2",
+              "kind": "correction",
+              "previous_version": 1
+            }
+          ],
+          "journey_id": "synthetic-journey",
+          "last_event": {
+            "id": "pending-project-correction:8",
+            "input_digest": "4d906bc1127280436e870540b0919a1e192ca515fe193af07d25133fb8f5a709",
+            "expected_binding": {
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "account_version": 1,
+              "context_sha256": "467b4434bf7107040f92f969d3716eb7deda62471a6209d93ecf7928ecc8e3f2",
+              "epoch": 1,
+              "thread_revision": 2,
+              "journey_revision": 8
+            },
+            "reply_plan": {
+              "status": "planned",
+              "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+              "unresolved_asks": []
+            },
+            "proposed_actions": []
+          },
+          "mode": "coaching",
+          "observations": [
+            {
+              "id": "synthetic-journey:assessment:pending-project-correction:8:observation",
+              "kind": "initial",
+              "competency": "personal_contribution",
+              "assistance": "none",
+              "status": "observed",
+              "outcome": "uncertain",
+              "attempt_id": "synthetic-journey:attempt:pending-project-correction:7",
+              "assessment_id": "synthetic-journey:assessment:pending-project-correction:8",
+              "source_refs": [
+                {
+                  "id": "target",
+                  "version": 1
+                },
+                {
+                  "id": "resume",
+                  "version": 1
+                },
+                {
+                  "id": "project",
+                  "version": 2
+                }
+              ],
+              "uncertainty": "Scripted development only.",
+              "at": "2026-10-16T12:01:00Z",
+              "owner_id": "synthetic-owner-a",
+              "thread_id": "synthetic-thread-a",
+              "journey_id": "synthetic-journey",
+              "epoch": 1,
+              "content_sha256": "1e9067faf903949b5bf62824eefb25bbafb463a44e690f8f8d9f1269f7cc5aad"
+            }
+          ],
+          "owner_id": "synthetic-owner-a",
+          "plan": {
+            "deferrals": [
+              "project: extended work deferred to fit the declared remaining time.",
+              "technical: extended work deferred to fit the declared remaining time.",
+              "behavioral: extended work deferred to fit the declared remaining time.",
+              "pack: extended work deferred to fit the declared remaining time.",
+              "Current company research requires an approved source/capture; missing research does not block experience practice."
+            ],
+            "items": [
+              {
+                "competency": "project",
+                "id": "plan-project",
+                "minutes": 8,
+                "reason": "Ground a truthful narrative in actual experience.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "technical",
+                "id": "plan-technical",
+                "minutes": 10,
+                "reason": "Practice role-relevant correctness and recovery reasoning.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "behavioral",
+                "id": "plan-behavioral",
+                "minutes": 6,
+                "reason": "Separate personal contribution, team decisions and evidence.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ]
+              },
+              {
+                "competency": "pack",
+                "id": "plan-pack",
+                "minutes": 6,
+                "reason": "Review and save current evidence with unassessed gaps explicit.",
+                "reason_kind": "provisional_slice_coverage",
+                "source_refs": [
+                  {
+                    "id": "target",
+                    "version": 1
+                  },
+                  {
+                    "id": "resume",
+                    "version": 1
+                  },
+                  {
+                    "id": "project",
+                    "version": 2
+                  }
+                ]
+              }
+            ],
+            "remaining_minutes": 30
+          },
+          "plan_priorities": [],
+          "processed_events": [
+            {
+              "id": "start",
+              "input_digest": "6c85b8fe523ab0b604cee91cde8e85ba23260d254ed47abe2743a2dbfcae8c17"
+            },
+            {
+              "id": "pending-project-correction:1",
+              "input_digest": "2468d2521efa24f66903f0f31b93ff72a978bdd1ef6c8c08bfea4e58b61ebaf4"
+            },
+            {
+              "id": "pending-project-correction:2",
+              "input_digest": "37b77cacd5265132d9694558f819caec6f8b4a07172dc33e4a4cba116903b93f"
+            },
+            {
+              "id": "pending-project-correction:3",
+              "input_digest": "72c94c1ab2c47544b2e1f5bd6db0bff8bf9b82ac60c76b4ac3a6212740adfe89"
+            },
+            {
+              "id": "pending-project-correction:4",
+              "input_digest": "d0115ad93ab590a0ff47990e816eaf53efeb79a58993ff9540f14598c0d6c68f"
+            },
+            {
+              "id": "pending-project-correction:5",
+              "input_digest": "2b3af19adb397fc162a21ed02abdb9e949a5bde9a5d3313526eef52b24e5162d"
+            },
+            {
+              "id": "pending-project-correction:6",
+              "input_digest": "e837b0e662c5c6f0ec2beb1af667149752fabc7618870d982b2687a572eb72a7"
+            },
+            {
+              "id": "pending-project-correction:7",
+              "input_digest": "5e7906762f7344cc9057aefd1df147ccc6ca7262400d21de7b71af417b5f05cb"
+            },
+            {
+              "id": "pending-project-correction:8",
+              "input_digest": "4d906bc1127280436e870540b0919a1e192ca515fe193af07d25133fb8f5a709"
+            }
+          ],
+          "research": [],
+          "resume_ref": {
+            "id": "resume",
+            "version": 1
+          },
+          "revision": 9,
+          "role_support": "early_career_software",
+          "schema_version": "interview_journey_state/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "target": {
+            "company": "Synthetic Harbor",
+            "level": "early-career",
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "stage": null
+          },
+          "target_ref": {
+            "id": "target",
+            "version": 1
+          },
+          "thread_id": "synthetic-thread-a",
+          "updated_at": "2026-10-16T12:01:00Z"
+        },
+        "reply_plan": {
+          "status": "planned",
+          "text": "Separate the action you proposed from work performed by your teammate; describe only the small test observation.",
+          "unresolved_asks": []
+        },
+        "proposed_actions": []
+      }
+    }
+  ]
+}

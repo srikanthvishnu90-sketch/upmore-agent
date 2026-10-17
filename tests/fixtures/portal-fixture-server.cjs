@@ -405,7 +405,35 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-099 fixture: a Tally-shaped fellowship form (the a16z Academy
+// Fellowship Stage 1 shape staged from the census §10 materials —
+// fields are read at drive time by module 150 in the real product;
+// this fixture is the captured-form replay guard). The essay is a
+// textarea and the video/transcript are owner-supplied artifacts:
+// none is ever filled from facts, and none is marked required here —
+// the live form's required flags are read at drive time, and a live
+// required owner-only field correctly stops the run awaiting_user.
+const TALLY_FORM = `<!doctype html><html><head><title>a16z Academy Fellowship — Stage 1 (TEST fixture)</title></head><body>
+<h1>a16z Academy Fellowship</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country</label>
+    <select id="country" name="country"><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="linkedin">LinkedIn</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="portfolio">Link to your personal portfolio website *</label><input id="portfolio" name="portfolio" type="text" required></div>
+  <div><label for="test_scores">Test scores (SAT/ACT, if any)</label><input id="test_scores" name="test_scores" type="text"></div>
+  <div><label for="essay">Essay</label><textarea id="essay" name="essay"></textarea></div>
+  <div><label for="video_link">Short video link</label><input id="video_link" name="video_link" type="text"></div>
+  <div><label for="transcript">High school transcript</label><input id="transcript" name="transcript" type="file"></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/tally-form": TALLY_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

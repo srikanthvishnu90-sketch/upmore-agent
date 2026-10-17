@@ -74,6 +74,30 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+### Tally — tally.so (MI-099)
+- What it is: the form platform carrying the a16z Academy Fellowship's
+  Stage 1 application (fellowship census 2026-10-15 §10; EARLY deadline
+  Nov 5, 2026). Stage 1 materials per the program's own FAQ: contact
+  information, a link to a personal portfolio website, an essay, a
+  short video, test scores if any, and a high-school transcript.
+- Account required to apply? None observed in the census [census]; the
+  exact form path/ID is not staged anywhere in this repo — fields are
+  read at drive time through module 150, and nothing about the live
+  form is assumed here. Tally custom domains (a tenant's own domain)
+  are NOT covered: they classify UNTESTED_ATS_HOST and are refused
+  until a tenant domain is individually verified.
+- Owner-only material, by design: the essay is the owner's own writing
+  (the program's AI policy allows AI to move faster, not to write for
+  the applicant), and the short video + transcript are owner-supplied
+  artifacts. All three stay asks and are never invented; the portfolio
+  link and test scores fill only from confirmed facts.
+- Driver posture: **allowed** (MI-099, branch work/mi099-tally) — host
+  gate in 149 + 150 + the helper's navigation gate; doorstep proven
+  tier-2 over a captured-form fixture (tests/career-tally-portal
+  .test.cjs 9/9 + tests/career-tally-browser.test.cjs). No live Tally
+  form has been driven and nothing has been submitted through this
+  family.
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

@@ -44790,6 +44790,13 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-099: Tally — the form platform carrying the a16z Academy
+    // Fellowship's Stage 1 application (census 2026-10-15 §10). Forms
+    // live on tally.so (tenant subdomains included); the pattern is
+    // anchored to the END of the hostname, so lookalikes
+    // (tally.so.example.com, nottally.so) do NOT match. The exact form
+    // path/ID is read at drive time.
+    { re: /(^|\.)tally\.so$/, family: "tally" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -44814,7 +44821,7 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Tally) and registered sandbox boards may be driven (§6.3)" };
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -44866,6 +44873,72 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-099: the Tally sandbox board (TEST only) ----------
+  // Tally-shaped field set, staged from the a16z Academy Fellowship's
+  // Stage 1 materials (census 2026-10-15 §10 — the census file lives in
+  // ~/workspace/your_files/real-apply/fellowships/, never in this repo):
+  // contact information + the portfolio link + test scores fill from
+  // confirmed facts; the essay is the owner's own writing (the
+  // program's AI policy: applicants may use AI to move faster, not to
+  // write for them), and the short video + high-school transcript are
+  // owner-supplied artifacts — essay/video ride as free_text asks,
+  // the transcript as an unfilled document field (module 150 classifies
+  // a transcript upload exactly the same way: no fill path exists for
+  // a non-resume document, by design). None of the three is ever
+  // invented. The live form's fields are read at drive time by module
+  // 150; this board is the faithful local seam for the pipeline, like
+  // the Greenhouse one.
+  const TALLY_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: false },
+    { field_id: "linkedin", label: "LinkedIn", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "portfolio", label: "Link to your personal portfolio website", kind: "standard", profile_key: "website", required: true },
+    { field_id: "test_scores", label: "Test scores (SAT/ACT, if any)", kind: "standard", profile_key: "test_scores", required: false },
+    { field_id: "essay", label: "Essay", kind: "free_text", question_key: "essay", required: false },
+    { field_id: "video_link", label: "Short video link", kind: "free_text", question_key: "video_link", required: false },
+    { field_id: "transcript", label: "High school transcript", kind: "unknown", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createTallySandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "tally",
+      host: "sandbox.tally-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: TALLY_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-T-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -45755,7 +45828,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createTallySandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, TALLY_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

@@ -100,6 +100,7 @@ const CareerPortalBrowser = (() => {
       if (/(^|\.)lever\.co$/.test(host)) return "lever";
       if (/(^|\.)ashbyhq\.com$/.test(host)) return "ashby";
       if (/(^|\.)smartrecruiters\.com$/.test(host)) return "smartrecruiters";
+      if (/(^|\.)tally\.so$/.test(host)) return "tally"; // MI-099
     } catch (e) { /* fall through */ }
     return null;
   }
@@ -305,6 +306,11 @@ const CareerPortalBrowser = (() => {
     if (/time ?zone/.test(eff)) return { kind: "standard", profile_key: "time_zone" };
     if (/date of birth|birth ?date|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" };
     if (/\bcountry\b/.test(eff)) return { kind: "standard", profile_key: "country" };
+    // MI-099: a test-scores question (the a16z Academy Stage 1 form
+    // asks for SAT/ACT scores if any) binds to the profile's confirmed
+    // test_scores fact (the fact bank's F-001 carries the SAT score);
+    // a profile without one leaves the field an honest ask.
+    if (/test scores?|standardized test|\bsat\b|\bact\b/.test(eff)) return { kind: "standard", profile_key: "test_scores" };
     if (/first name|last name|full name|your name|^name\b/.test(eff) || (f && !f.label && (f.name === "name" || f.id === "name"))) return { kind: "standard", profile_key: "name" };
     if (/e-?mail/.test(eff) || inputType === "email") return { kind: "standard", profile_key: "email" };
     if (/phone|mobile|telephone/.test(eff) || inputType === "tel") return { kind: "standard", profile_key: "phone" };

@@ -128,6 +128,12 @@ are proved fenced within the held $5.
 
 ## Supporting evidence and commands
 
+Exact tested source commit: `ac4d042813de3ccfb60d01ceb56a7a4ac9a9d1b0`.
+[Recorded checks](../../testing/runs/independent-live-evaluation-20261017/results.json)
+contain the source digest, 28 test names and raw log hashes; both checks are
+appended to `docs/testing/evidence-ledger.json`. Later publication changes only
+evidence/documentation.
+
 - [Read-only preflight](evidence/preflight.json): source hashes, known-path
   metadata, local PID/name scope, allocation and missing proofs.
 - [Current controlled transcript](evidence/final-control/controlled-transcript.jsonl)

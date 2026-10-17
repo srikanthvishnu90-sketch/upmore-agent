@@ -22582,7 +22582,29 @@ const CareerTailor = (() => {
     const attestedListed = new Set();
     for (const f of Profile.confirmedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
     const nameSafe = (name) => attestedListed.has(canonicalSkill(name).toLowerCase()) || String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
-    const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
+    const skillsProvenAll = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
+    // Posting-family scope (iteration lane, BUG-273): both row
+    // sources above deliberately carry the record's whole evidenced
+    // vocabulary (Crew B Cycle 2's answer to KEYWORD_ABSENT_TRUTHFUL),
+    // so the printed line was the SAME full inventory on every
+    // posting — an operations application leading with the record's
+    // SWE stack, a law application carrying its Python line — the
+    // residual GENERIC_NOT_TAILORED mechanism (893 flags on the
+    // merged tree). Lane B's own stated intent was the evidenced
+    // vocabulary "for the role family"; the scope below is that
+    // intent, implemented: a name prints when THIS posting names it
+    // (extracted must/nice lists), when its raw text mentions it
+    // (extraction misses on truncated texts stay covered), or when
+    // it belongs to this posting's role-family vocabulary
+    // (FAMILY_SKILLS). Every printed name remains attested under
+    // the MI-023 rule above, and gaps are computed from evidence
+    // separately — scoping the line can neither invent a skill nor
+    // hide a gap.
+    const wantedLcScope = new Set([...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((x) => String(x).toLowerCase()));
+    const famVocabScope = new Set((FAMILY_SKILLS[jd.family] || []).map((x) => String(x).toLowerCase()));
+    const rawLcScope = String(jd.rawText || "").toLowerCase();
+    const mentionedInJd = (name) => { const n = String(name).toLowerCase(); let i = rawLcScope.indexOf(n); while (i >= 0) { const b = i === 0 ? " " : rawLcScope[i - 1]; const a = rawLcScope[i + n.length] || " "; if (!/[a-z0-9]/.test(b) && !/[a-z0-9]/.test(a)) return true; i = rawLcScope.indexOf(n, i + 1); } return false; };
+    const skillsProven = skillsProvenAll.filter((s) => wantedLcScope.has(s.name.toLowerCase()) || famVocabScope.has(s.name.toLowerCase()) || mentionedInJd(s.name));
     const skillsLine = skillsProven.length ? { heading: "Skills", lines: [] } : null;
     if (skillsLine) {
       const ids = [...new Set(skillsProven.map((s) => s.factId))];
@@ -36161,6 +36183,16 @@ const CareerRouter = (() => {
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
+  // BUG-266: the noun a find-ask names FIRST is the ask's head — an
+  // internship-headed find ("find me internships", "find internship
+  // roles in Austin") belongs to the internship-banded route below,
+  // not the generic ranked search; a roles/jobs-headed find keeps
+  // the generic route even when internships are named later in it.
+  function findHeadNoun(t) {
+    const m = t.match(/\bfind\b[^.]*?\b(internships?|roles?|jobs?|positions?|openings?)\b/);
+    return m ? m[1] : null;
+  }
+
   // ---------- C01-style internship discovery ----------
   function handleInternship(text, ctx) {
     const now = nowOf(ctx);
@@ -43887,12 +43919,27 @@ const CareerRouter = (() => {
       // never silence). This was the World-L silent-null mechanism.
       const dead = profile ? handleDeadBoard(text, c) : null;
       if (dead) return dead;
+      // BUG-266 (FR-421 boundary moved deliberately, 2026-10-17): an
+      // internship-HEADED find is served by the internship-banded
+      // route (bands intern/new-grad/junior + the summer headline),
+      // not the generic ranked search that returned full-time roles
+      // with no internship framing. The http-host pin moved with it
+      // (see the BUG-266 ledger row); the no-fabrication property the
+      // pin exists for holds under both routes (empty pool -> empty
+      // shortlist, nothing invented).
+      if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
       return handleDiscovery(text, c, {});
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
       return handleInternship(text, c);
     }
-    if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) return handleDiscovery(text, c, {});
+    if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) {
+      // BUG-266: the same head-noun rule on the bare-find tail — an
+      // internship-headed shape that named no listed noun ("find
+      // internship programs") still lands on the banded route.
+      if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
+      return handleDiscovery(text, c, {});
+    }
     // NOTE: 141's own chat phrases (halt / submit / fill / status) are NOT
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls

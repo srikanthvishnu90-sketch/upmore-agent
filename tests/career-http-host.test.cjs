@@ -49,7 +49,15 @@ test("host creates and a networking ask is answered by the career path", () => {
 test("apply ask with an empty live pool fabricates no roles", () => {
   const ctx = freshCtx(null, { profile: fixtureProfile() });
   const out = host.runTurn("Find me internships I can apply to this week.", ctx);
-  assert.equal(out.intent, "career_discovery");
+  // BUG-266 PIN MOVED DELIBERATELY (2026-10-17, iterate/named-gaps
+  // lane; see the BUG-266 ledger row + FR-421): this shape pinned
+  // career_discovery through the v224 line because an integration
+  // merge does not rewrite a pin for a framing gain — the lane
+  // change that owns the reroute moves it openly. The ask is now
+  // served by the internship-banded route. The property this test
+  // exists for — an empty pool fabricates no roles — is unchanged
+  // and asserted identically below.
+  assert.equal(out.intent, "career_internship_discovery");
   const shortlist = (out.result && out.result.shortlist) || [];
   assert.equal(shortlist.length, 0, "empty pool -> empty shortlist, nothing invented");
   for (const m of FINANCE_MARKERS) assert.ok(!out.reply.includes(m), `no finance marker: ${m}`);

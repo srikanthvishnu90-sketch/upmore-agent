@@ -487,6 +487,16 @@ const CareerRouter = (() => {
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
+  // BUG-266: the noun a find-ask names FIRST is the ask's head — an
+  // internship-headed find ("find me internships", "find internship
+  // roles in Austin") belongs to the internship-banded route below,
+  // not the generic ranked search; a roles/jobs-headed find keeps
+  // the generic route even when internships are named later in it.
+  function findHeadNoun(t) {
+    const m = t.match(/\bfind\b[^.]*?\b(internships?|roles?|jobs?|positions?|openings?)\b/);
+    return m ? m[1] : null;
+  }
+
   // ---------- C01-style internship discovery ----------
   function handleInternship(text, ctx) {
     const now = nowOf(ctx);
@@ -8213,12 +8223,27 @@ const CareerRouter = (() => {
       // never silence). This was the World-L silent-null mechanism.
       const dead = profile ? handleDeadBoard(text, c) : null;
       if (dead) return dead;
+      // BUG-266 (FR-421 boundary moved deliberately, 2026-10-17): an
+      // internship-HEADED find is served by the internship-banded
+      // route (bands intern/new-grad/junior + the summer headline),
+      // not the generic ranked search that returned full-time roles
+      // with no internship framing. The http-host pin moved with it
+      // (see the BUG-266 ledger row); the no-fabrication property the
+      // pin exists for holds under both routes (empty pool -> empty
+      // shortlist, nothing invented).
+      if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
       return handleDiscovery(text, c, {});
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
       return handleInternship(text, c);
     }
-    if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) return handleDiscovery(text, c, {});
+    if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) {
+      // BUG-266: the same head-noun rule on the bare-find tail — an
+      // internship-headed shape that named no listed noun ("find
+      // internship programs") still lands on the banded route.
+      if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
+      return handleDiscovery(text, c, {});
+    }
     // NOTE: 141's own chat phrases (halt / submit / fill / status) are NOT
     // delegated to from here — lane-A contract tests pin those turns'
     // handler attribution to 141 itself, and the chain already falls

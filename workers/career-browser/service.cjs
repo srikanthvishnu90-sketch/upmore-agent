@@ -32,7 +32,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   function markExpired(id,removed){store.withLock(id,()=>{const t=store.get(id);if(!t)return;for(const [stage,d]of Object.entries(t.evidence||{}))if(removed.includes(d.ref))t.evidence[stage]={stage,status:"EXPIRED"};save(t,"check");});}
   function releaseEvidence({immediate=false}={}){
     cancelEvidenceExpiry?.();retention.cancel();
-    if(immediate)retention.sweep(true);
+    if(immediate){retention.sweep(true);evidenceCapture?.sweepUntracked(store.list(),{immediate:true});}
     else {retention.arm();cancelEvidenceExpiry=evidenceCapture?.scheduleExpiry(markExpired);}
   }
   const save = (t, phase, detail = {}) => {
@@ -364,6 +364,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       if(!Number.isInteger(limit)||limit<1||limit>50)throw fail("TASK_BATCH_LIMIT_INVALID");
       if(taskId!==undefined&&!/^[a-f0-9]{32}$/.test(taskId))throw fail("TASK_ID_INVALID");
       retention.sweep();
+      evidenceCapture?.sweepUntracked(store.list(),{at:retentionClock()});
       // Polling observes revocation even while a task is idle at review. No
       // browser operation or task redispatch occurs in this authority audit.
       const auditIds=store.list().sort(),auditBatch=new Set(taskId?[taskId]:[]);
@@ -379,7 +380,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       const results=[];
       const scopedTask=taskId?store.get(taskId):null;
       if(taskId&&!scopedTask)throw fail('TASK_NOT_FOUND');
-      if(scopedTask?.privateExpiredAt!==undefined)return [];
+      if(scopedTask?.privateExpiredAt!==undefined)return [publicTask(scopedTask)];
       const pending=authority.pending({limit,...(scopedTask?{taskId,userId:scopedTask.userId}:{})});
       for(const intent of pending.filter(i=>!taskId||(i.userId===scopedTask.userId&&(i.taskId===taskId||i.binding?.task_id===taskId))).slice(0,limit)) {
         try {

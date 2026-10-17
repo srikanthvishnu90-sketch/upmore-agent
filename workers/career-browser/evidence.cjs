@@ -59,12 +59,21 @@ function createEvidenceCapture(root,{maxFileBytes=10485760,maxTaskBytes=67108864
     for(const file of fs.readdirSync(dir)){const target=path.join(dir,file),s=fs.lstatSync(target);if(s.isFile()&&at-s.mtimeMs>=LIMITS.ttlMs){fs.unlinkSync(target);removed.push(id+'/'+file);}}
     return removed;
   }
+  function sweepUntracked(knownIds,{immediate=false,at=Date.now()}={}){
+    const known=new Set(knownIds);
+    for(const id of fs.readdirSync(root).filter(id=>/^[a-f0-9]{32}$/.test(id)&&!known.has(id))){
+      const dir=folder(id),s=fs.lstatSync(dir);if(!s.isDirectory()||s.isSymbolicLink())throw fail('EVIDENCE_PATH_INVALID');
+      if(immediate){fs.rmSync(dir,{recursive:true,force:true});continue;}
+      expire(id,at);if(!fs.readdirSync(dir).length)fs.rmdirSync(dir);
+    }
+  }
   function scheduleExpiry(onExpired=()=>{},clock=Date.now,schedule=setTimeout){
     let timer,cancelled=false;
     function sweep(){
       if(cancelled)return;let delay=LIMITS.ttlMs,remaining=false;
       for(const id of fs.readdirSync(root).filter(id=>/^[a-f0-9]{32}$/.test(id))){
         const removed=expire(id,clock());if(removed.length)try{onExpired(id,removed);}catch(_){} // TTL deletion must survive a busy metadata checkpoint
+        if(!fs.readdirSync(folder(id)).length){fs.rmdirSync(folder(id));continue;}
         for(const file of fs.readdirSync(folder(id))){const s=fs.lstatSync(path.join(folder(id),file));if(s.isFile()){remaining=true;delay=Math.min(delay,Math.max(1,s.mtimeMs+LIMITS.ttlMs-clock()));}}
       }
       // Deliberately referenced: a graceful pilot stop closes RPC/browser
@@ -73,6 +82,6 @@ function createEvidenceCapture(root,{maxFileBytes=10485760,maxTaskBytes=67108864
     }
     sweep();return ()=>{cancelled=true;clearTimeout(timer);};
   }
-  return {capture,expire,scheduleExpiry,erase:id=>fs.rmSync(folder(id),{recursive:true,force:true})};
+  return {capture,expire,sweepUntracked,scheduleExpiry,erase:id=>fs.rmSync(folder(id),{recursive:true,force:true})};
 }
 module.exports={createEvidenceCapture,writeBrowserPNG,copyBrowserPNG,pngBudget,LIMITS};

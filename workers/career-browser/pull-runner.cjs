@@ -28,9 +28,11 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
         if(result.status!==activeStatus){lastProgress=now();activeStatus=result.status;}
         if(result.status==='unknown_outcome')uncertainSince??=now();else uncertainSince=undefined;
         event('task_result',result);
-        if(['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status)){
-          if(result.status==='completed')completed++;else if(result.status==='evidence_ready')evidenceReady++;else handoffs++;
+        const expired=result.blocker==='PRIVATE_RETENTION_EXPIRED';
+        if(expired||['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status)){
+          if(expired)handoffs++;else if(result.status==='completed')completed++;else if(result.status==='evidence_ready')evidenceReady++;else handoffs++;
           tasks++;activeTaskId=undefined;activeStatus=undefined;uncertainSince=undefined;
+          if(expired)stop('private_expiry_handoff');
         }
       }errors=0;
     }
@@ -40,7 +42,9 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
   }
   function start(){
     event('worker_start');
-    const active=store.list().map(id=>store.get(id)).filter(t=>t&&['queued','preparing','reading','review_ready','unknown_outcome'].includes(t.status));
+    const checkpoints=store.list().map(id=>store.get(id));
+    for(const t of checkpoints)if(t?.privateExpiredAt!==undefined)event('checkpoint_expired_handoff',{id:t.id,status:t.status,blocker:'PRIVATE_RETENTION_EXPIRED'});
+    const active=checkpoints.filter(t=>t&&t.privateExpiredAt===undefined&&['queued','preparing','reading','review_ready','unknown_outcome'].includes(t.status));
     if(active.length>1){stop('multiple_active_checkpoints');return api;}
     if(active.length){const task=active[0];activeTaskId=task.id;activeStatus=task.status;if(task.status==='unknown_outcome')uncertainSince=now();event('checkpoint_requires_review',{id:task.id,status:task.status,authority:task.authority});}
     // Restore checkpoints, never force a stalled/uncertain task to queued.

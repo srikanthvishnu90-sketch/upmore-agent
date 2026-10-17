@@ -136,3 +136,18 @@ exact commands, source/log hashes, passing names and the nine primary fail-first
 failures. This is neither new independent-review approval nor live verification.
 The SQL proposal remains unapplied to production. No hosting action, spend,
 credential binding, employer submission or deployment occurred.
+
+## Restored/orphaned state follow-up at 71fda3a8
+
+Expired private tombstones are no longer runnable recovery checkpoints. Startup
+reports their expiry handoff without occupying the next pilot's active slot.
+If an active task expires, the service returns its sanitized handoff and the
+runner stops immediately with `private_expiry_handoff`, rather than waiting for
+an uncertainty timeout. The opaque submit fence is preserved and cannot submit.
+
+Evidence cleanup now also scans valid private evidence folders without task
+JSON. Ordinary polling expires stale orphan contents and removes empty folders;
+explicit close removes all orphan folders, including fresh ones. The continuing
+janitor also removes empty folders after expiry. No local tombstone or SQL fence
+is deleted. All five targeted regressions fail against exact source 71fda3a8 and
+pass with this repair, including the reported two-minute restart reproduction.

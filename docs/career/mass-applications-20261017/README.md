@@ -44,3 +44,6 @@ Published metadata runtime91811a34 full clean source4778/40skip/0fail. Prior run
 
 
 The independently reviewed zero-citation/weak-fit and unhashable eligibility-answer defects are now repaired through existing121/132/151/152 engines. Batch admission withholds zero/orphan/draft citations, weak Reach rows and mismatched role/family/band/location before browser open. Explicit typed sponsorship/residence answers bind the current question/posting/owner context and remain role-local; source/proof changes require fresh confirmation/review.8 focused source/build and28 worker controls pass; the actual entry/SQL/worker contracts pass10/10, retaining their original no-resubmit/owner/stale/pause/erase checks. [Exact hashes, failures and evidence](eligibility-fit-evidence.json). Conversational discovery/batch controls and fuller country/employer requirement collection remain unfinished.
+
+
+Runtimeabe6db57 full clean source passes4782/40skip/0fail. Focused actual entry/SQL/worker10/10 is complete; full39-file local SQL and CI39049893782 remain active. Current recovery details are in [CONNECTIVITY-RECOVERY.md](CONNECTIVITY-RECOVERY.md). No unpublished implementation remains, and the historical preservation patch is superseded.

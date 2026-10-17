@@ -35,10 +35,18 @@
       "testAndDDLHashesMatch": true,
       "fixtureRemoved": true
     },
-    "fullCommittedSource": "PENDING"
+    "fullCommittedSource": {
+      "head": "abe6db57c519b042da218f1979ec72869aa8487c",
+      "passed": 4782,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/abe6-full-source-summary.json",
+      "log": "evidence/abe6-full-source.log"
+    }
   },
   "scope": "Existing121/132/151/152 engines; synthetic confirmed facts/current postings and UNKNOWN-only board. Typed role-local answers do not mutate master facts. No employer receipt or live quality proof.",
   "paidCalls": 0,
   "employerSubmissions": 0,
-  "liveDatabaseMutations": 0
+  "liveDatabaseMutations": 0,
+  "runtime": "abe6db57c519b042da218f1979ec72869aa8487c"
 }

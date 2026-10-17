@@ -63320,6 +63320,29 @@
     "No live browser, employer receipt, model quality or deployment proof.",
     "Conversational discovery/batch controls remain unfinished."
    ]
+  },
+  {
+   "id": "mass-fit-eligibility-full-source-20261017",
+   "commit": "abe6db57c519b042da218f1979ec72869aa8487c",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--source-only"
+   ],
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 4782,
+    "failed": 0,
+    "skipped": 40
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/abe6-full-source.log",
+   "log_sha256": "3e8436b37c7ee9af7009995939291d4ff5861431a07677b508a04c278b15d955",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Full39-file local SQL and current CI remain active.",
+    "No live model/browser/employer or deployment proof."
+   ]
   }
  ],
  "limitations": [

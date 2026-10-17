@@ -1,0 +1,46 @@
+{
+  "observedAt": "2026-10-17T16:36:17.960647+00:00",
+  "branch": "codex/mass-applications-20261017",
+  "runtime": "abe6db57c519b042da218f1979ec72869aa8487c",
+  "publishedEvidenceParent": "a78ddeb3b75e1cccf66a0966ecd4678882e8a614",
+  "connectivity": "fresh shell and GitHub read/push succeeded",
+  "unpublishedImplementation": false,
+  "completed": {
+    "source": {
+      "head": "abe6db57c519b042da218f1979ec72869aa8487c",
+      "passed": 4782,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/abe6-full-source-summary.json",
+      "log": "evidence/abe6-full-source.log"
+    },
+    "focusedSourceBuild": 8,
+    "workerControls": 28,
+    "focusedSQL": 10,
+    "priorRuntimeFullSQL": {
+      "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
+      "passed": 352,
+      "files": 39,
+      "failed": 0,
+      "fixtureRemoved": true
+    },
+    "priorExactCI": 39047577375
+  },
+  "active": {
+    "fullSQLSession": 7354,
+    "fullSQLSummaryDirectory": "/tmp/upmore-ci-node-9fTIsO",
+    "frozenWorktree": "/workspace/upmore-mass-flow",
+    "ci": 39049893782
+  },
+  "remaining": [
+    "Ordinary-text discovery/batch controls",
+    "Confirmed country/employer-specific eligibility collection",
+    "Muse source full commit publication; supplied ref missing on one fetch",
+    "Already-approved running normal-sandbox worker handoff; existing local sandbox helper aborts; exact-project Vercel sandbox403 remains stopped",
+    "Genuine original archives; required gate remains blocked"
+  ],
+  "paidCalls": 0,
+  "liveDatabaseMutations": 0,
+  "deployments": 0,
+  "employerSubmissions": 0
+}

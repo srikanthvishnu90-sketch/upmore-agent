@@ -465,10 +465,12 @@
       "summary": "evidence/f748-ci-node-summary.json"
     },
     "currentRuntimeFullSource": {
-      "status": "IN_PROGRESS",
       "head": "abe6db57c519b042da218f1979ec72869aa8487c",
-      "log": "/tmp/upmore-eligibility-full-source.log",
-      "frozenWorktree": "/workspace/upmore-mass-flow"
+      "passed": 4782,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/abe6-full-source-summary.json",
+      "log": "evidence/abe6-full-source.log"
     },
     "resumeMetadata": {
       "passed": 1,
@@ -481,6 +483,20 @@
       "summary": "evidence/eligibility-postgres-summary.json",
       "sourceAndBuildPassed": 8,
       "workerControlsPassed": 28
+    },
+    "currentRuntimeFullPostgres": {
+      "status": "IN_PROGRESS",
+      "head": "abe6db57c519b042da218f1979ec72869aa8487c",
+      "files": 39,
+      "log": "/tmp/upmore-eligibility-full-postgres.log",
+      "summaryDirectory": "/tmp/upmore-ci-node-9fTIsO",
+      "session": 7354,
+      "frozenWorktree": "/workspace/upmore-mass-flow"
+    },
+    "currentEvidenceHeadCI": {
+      "head": "a78ddeb3b75e1cccf66a0966ecd4678882e8a614",
+      "run": 39049893782,
+      "status": "IN_PROGRESS"
     }
   },
   "paidCalls": 0,

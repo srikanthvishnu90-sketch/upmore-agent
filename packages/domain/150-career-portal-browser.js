@@ -272,7 +272,11 @@ const CareerPortalBrowser = (() => {
     // only checkboxes (Sigma's "Acknowledge, confirm, and agree..."
     // and Point72's "Privacy" both classified unknown live) — the
     // canonicalization is keyed on the label class, not the element.
-    if (inputType === "checkbox" || inputType === "checkbox_group" || inputType === "group" || inputType === "radio" || inputType === "radio_group" || inputType === "select") {
+    // Sigma's is in fact a react-select COMBOBOX (input[type=text]
+    // with the select__input class — the shape of every Greenhouse
+    // dropdown), so the gate is label class + a choice-shaped widget.
+    const choiceShaped = ["checkbox", "checkbox_group", "group", "radio", "radio_group", "select"].includes(inputType) || /select__input/.test(String((f && f.cls) || ""));
+    if (choiceShaped) {
       if (/acknowledg|privacy/.test(eff) && !/certif|attest/.test(eff)) return { kind: "attestation", question_key: "acknowledgment_receipt" };
       if (/certif|attest|true and complete|provided.*true/.test(eff)) return { kind: "attestation", question_key: "certify_true" };
     }

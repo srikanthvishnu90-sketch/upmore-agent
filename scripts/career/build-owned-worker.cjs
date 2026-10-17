@@ -7,7 +7,8 @@ function build(output){
  if(!path.isAbsolute(output)||fs.existsSync(output))throw Error('new absolute output path required');
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'upmore-worker-source-'));
  try{
-  const files=fs.readdirSync(path.join(ROOT,'workers/career-browser')).filter(f=>f.endsWith('.cjs')).map(f=>'workers/career-browser/'+f).concat(['packages/domain/149-career-portal-apply.js','packages/domain/150-career-portal-browser.js','scripts/career/portal-browser-helper.cjs','supabase/functions/_shared/career_research_policy.js','tests/career-owned-worker-browser.test.cjs','tests/fixtures/owned-worker-authority.cjs','tests/fixtures/owned-portal.cjs']).sort();
+  const files=fs.readdirSync(path.join(ROOT,'workers/career-browser')).filter(f=>f.endsWith('.cjs')).map(f=>'workers/career-browser/'+f).concat(['scripts/career/build-owned-worker.cjs','packages/domain/149-career-portal-apply.js','packages/domain/150-career-portal-browser.js','scripts/career/portal-browser-helper.cjs','supabase/functions/_shared/career_research_policy.js','tests/career-owned-worker-browser.test.cjs','tests/fixtures/owned-worker-authority.cjs','tests/fixtures/owned-portal.cjs']).sort();
+  if(execFileSync('git',['status','--porcelain','--',...files],{cwd:ROOT,encoding:'utf8'}).trim())throw Error('Commit the reviewed source allowlist before building');
   const manifest={version:'upmore_owned_worker_source/v1',codeSha:execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim(),verification:'SOURCE_ONLY_NOT_DEPLOYED',files:[]};
   for(const file of files){const bytes=fs.readFileSync(path.join(ROOT,file));const target=path.join(temp,file);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,bytes);manifest.files.push({path:file,sha256:crypto.createHash('sha256').update(bytes).digest('hex')});}
   fs.writeFileSync(path.join(temp,'worker-manifest.json'),JSON.stringify(manifest,null,2)+'\n');

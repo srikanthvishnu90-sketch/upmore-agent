@@ -1,0 +1,1225 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"cd51920a47faec12","commit":"2372fcf081eca220c7b579372d6007033f0a605c","preflightDirtyFiles":"","harnessSha256":"6653d693904a47fa7b1eafbd0bf0696011b762aee828440a276a2b3e6dd468e2","testSourceSha256":{"career-critical-repairs/interview-entry-postgres.test.cjs":"bed4062457d55be80ea5f98fe2bf7df13d37d64708274de7e051a46aa2ad04af","career-critical-repairs/pair-budget-postgres.test.cjs":"d45bae84387cc666f206b1d291b36d1edde37dee1cdcf9a06ebf01d32e1c605c","career-flexible-grounding-postgres.test.cjs":"9b2d6e97be464ff05d1a7580c9908b23011c9bf9dda1c417de3977d428c71520","career-model-budget-postgres.test.cjs":"f7b924ee27a0ade9830e46c63e7a247be5d1899b3f2de48cfefe3c62edc43df3","career-persistence-postgres.test.cjs":"976b7114bdc1dd31c480259dccd46a79c1b9d52d0d63e7cdb8d717a230dd5d88","career-public-research-postgres.test.cjs":"79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94","career-task-authority-postgres.test.cjs":"b9133701082a0d3f782a3b500f8036f3e99b47453eb694d7d0358c51417556b8","correction-authority-postgres.test.cjs":"86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4","model-budget-independent-postgres.test.cjs":"a8f3e6fbb7c346e7c2736fd2c231bcc337fd203acd445145d7c5c9928bd273e4","model-monthly-independent-postgres.test.cjs":"263b244c837ffb85e5ec15261f02c9476b94108a0604da086296c0c4e4eb02b0","privacy-research-composition.test.cjs":"78683dc5fcbf9faf8a91d5a4eafcadf785392760f13b3a69ec0108a72e5a05a2","research-conversation-independent-postgres.test.cjs":"ffa0faf0d04ee9fc40a2399d87f8408fe5d5614693dd80617d47feb1f2273047","resume-flexible-composition-postgres.test.cjs":"8b2988f6689227d7ee12e420920411b44c52f91b0bf13739037ec7bdc5d9c60a","resume-supersession-postgres.test.cjs":"8fd1eb7ca5c276fbcefff398f8735fdaa1429f8b25d8de90930e1b9d438f528d"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"--postgres-only","rootFiles":370,"selectedFiles":14,"sqlFiles":["career-critical-repairs/interview-entry-postgres.test.cjs","career-critical-repairs/pair-budget-postgres.test.cjs","career-flexible-grounding-postgres.test.cjs","career-model-budget-postgres.test.cjs","career-persistence-postgres.test.cjs","career-public-research-postgres.test.cjs","career-task-authority-postgres.test.cjs","correction-authority-postgres.test.cjs","model-budget-independent-postgres.test.cjs","model-monthly-independent-postgres.test.cjs","privacy-research-composition.test.cjs","research-conversation-independent-postgres.test.cjs","resume-flexible-composition-postgres.test.cjs","resume-supersession-postgres.test.cjs"],"started":"2026-10-17T01:25:48.315Z","runs":[],"out":"/tmp/upmore-ci-node-YakBvi","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/interview-entry-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_0","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd51920a47faec12","database":"career_test_ci_cd51920a47faec12_0","marker":"upmore-ci-fixture:cd51920a47faec12"}
+# (node:534815) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:534815) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# {"evidence":"ACTUAL_STAGED_ENTRY_LOCAL_SQL_PROVIDER_DISABLED","events":[{"type":"start","key":"start","message":"Interview preparation","response":{"meta":{"career":true,"career_journey":{"stage":"awaiting_answer","status":"active","version":"career_interview_entry/v1","revision":1,"context_binding":{"epoch":0,"context_sha256":"88fb5012bf6856c445f78d2a3847092e2e4f92a2dfcfe2ac67bb8dfc83e78313","account_version":1,"thread_revision":1},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Let’s begin with one real project. These are representative practice questions; company/stage gaps remain explicit.\\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?","action":null,"turn_key":"start","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"submit_answer","key":"answer","message":"I built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.","response":{"meta":{"career":true,"career_journey":{"stage":"awaiting_answer","status":"active","version":"career_interview_entry/v1","revision":2,"context_binding":{"epoch":0,"context_sha256":"231bf5ed2d0a41b09d055186be04d120c8d672f52bc5cff5d62b3c43c6971caf","account_version":2,"thread_revision":2},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Your exact answer is saved without an assessment. Generation and independent checking are not wired on this host.","action":null,"turn_key":"answer","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"submit_answer","key":"answer","message":"I built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.","response":{"meta":{"career":true,"career_journey":{"stage":"awaiting_answer","status":"active","version":"career_interview_entry/v1","revision":2,"context_binding":{"epoch":0,"context_sha256":"231bf5ed2d0a41b09d055186be04d120c8d672f52bc5cff5d62b3c43c6971caf","account_version":2,"thread_revision":2},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Your exact answer is saved without an assessment. Generation and independent checking are not wired on this host.","action":null,"turn_key":"answer","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"pause","key":"pause","message":"Interview preparation","response":{"meta":{"career":true,"career_journey":{"stage":"awaiting_answer","status":"paused","version":"career_interview_entry/v1","revision":3,"context_binding":{"epoch":0,"context_sha256":"474f37efc1678fcd2d22aab4213952c212c3b5acbfe5dc1ab138a6b330ae4084","account_version":3,"thread_revision":3},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.","action":null,"turn_key":"pause","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"resume","key":"resume","message":"Interview preparation","response":{"meta":{"career":true,"career_journey":{"stage":"awaiting_answer","status":"active","version":"career_interview_entry/v1","revision":4,"context_binding":{"epoch":0,"context_sha256":"53e5d515792a2f4c1360ea1553df473ed5fdb77f3f16399e81c9b81e4534bd03","account_version":4,"thread_revision":4},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Resuming the saved question and latest valid draft.\\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?","action":null,"turn_key":"resume","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"build_pack","key":"pack","message":"Interview preparation","response":{"meta":{"career":true,"career_journey":{"stage":"pack_ready","status":"active","version":"career_interview_entry/v1","revision":5,"context_binding":{"epoch":0,"context_sha256":"4ad98f5913d0f5523530352f902e729ff1470f53ccbbce49940478131b0644ca","account_version":5,"thread_revision":5},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.","action":null,"artifact":{"id":"706a5dc8-55d9-46d3-a3fb-9c2e981d354b","sha256":"bab616a2872f372d07608e880ff61872d080d5ac210fcfa19db53864e08ade3d","partial":true,"byte_length":5023,"download_path":"/career/artifacts/706a5dc8-55d9-46d3-a3fb-9c2e981d354b"},"turn_key":"pack","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"artifact_readback","key":"readback","message":"I opened the partial pack","response":{"meta":{"career":true,"career_journey":{"stage":"pack_ready","status":"active","version":"career_interview_entry/v1","revision":6,"context_binding":{"epoch":0,"context_sha256":"3757b2a6ea65b3c72c40f4a94b48fb91295624ad54945d34a2c31fe1b646f1d8","account_version":6,"thread_revision":6},"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}},"reply":"Your partial pack was reopened and verified; its remaining gaps are explicit.","action":null,"turn_key":"readback","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"status":200},{"type":"status","key":"status","message":"Interview preparation","response":{"thread_id":"00000000-0000-4000-8000-0000000000b1","turn_key":"status","reply":"Your saved interview checkpoint is available. Assessment is not wired on this host.","action":null,"reminders":[],"read_only":true,"meta":{"career":true,"career_journey":{"version":"career_interview_entry/v1","stage":"pack_ready","status":"active","revision":6,"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}}},"status":200}],"artifact":{"id":"706a5dc8-55d9-46d3-a3fb-9c2e981d354b","sha256":"bab616a2872f372d07608e880ff61872d080d5ac210fcfa19db53864e08ade3d","partial":true,"byte_length":5023,"download_path":"/career/artifacts/706a5dc8-55d9-46d3-a3fb-9c2e981d354b","download_sha256":"bab616a2872f372d07608e880ff61872d080d5ac210fcfa19db53864e08ade3d","readback_receipt":"80555926-2621-464e-90b9-be3f7526b981","utf8":"\# Interview preparation pack\\n\\nStatus: partial\\n\\n\#\# Target and constraints\\n\\nRole: Software engineer intern; company: unknown; level: early-career; stage: unknown\\n\\nResume: resume-1@1\\n\\nAvailable minutes: 30\\n\\nInterview timing: not supplied\\n\\nDaily study minutes: null\\n\\nUnknowns: company; interview stage\\n\\n\#\# Role and company brief\\n\\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\\n\\n\#\# Prioritized preparation plan\\n\\nproject: 8 minutes. Ground a truthful narrative in actual experience. Evidence: \\\\[\\\\{\\"id\\":\\"fact-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-family-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-level-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"resume-1\\",\\"version\\":1\\\\}\\\\]\\n\\ntechnical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\\\[\\\\{\\"id\\":\\"fact-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-family-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-level-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"resume-1\\",\\"version\\":1\\\\}\\\\]\\n\\nbehavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\\\[\\\\{\\"id\\":\\"fact-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-family-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-level-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"resume-1\\",\\"version\\":1\\\\}\\\\]\\n\\npack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\\\[\\\\{\\"id\\":\\"fact-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-family-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"target-level-1\\",\\"version\\":1\\\\},\\\\{\\"id\\":\\"resume-1\\",\\"version\\":1\\\\}\\\\]\\n\\n\#\# Truthful story bank\\n\\nfact-1@1: Built a synthetic class calculator. — source \\\\{\\"kind\\":\\"user\\\\_report\\",\\"observed\\\\_at\\":\\"2026-10-16T23:00:00.000Z\\",\\"record\\\\_id\\":\\"synthetic-report-1\\",\\"reference\\":\\"synthetic committed profile\\",\\"revision\\":1,\\"trust\\":\\"user\\\\_reported\\"\\\\}\\n\\n\#\# Original and revised answers\\n\\ninterview-d09938fa-dc0a-4c9a-b852-4c7312bf9d47:attempt:answer / project-narrative / initial; assistance: none; parent: none\\nI built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.\\nSHA-256: 8b47299407f853bdacf0abb172edf7603027cf2027dfc993c43ec4c6627a13b4\\n\\n\#\# Feedback, practice and transfer\\n\\nNot yet supplied or assessed.\\n\\n\#\# Remaining preparation and deferrals\\n\\nRemaining declared time: 30 minutes. Time spent is user/host reported, never inferred.\\n\\nproject: extended work deferred to fit the declared remaining time.\\n\\ntechnical: extended work deferred to fit the declared remaining time.\\n\\nbehavioral: extended work deferred to fit the declared remaining time.\\n\\npack: extended work deferred to fit the declared remaining time.\\n\\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\\n\\nCompany not supplied; role-only preparation\\n\\nResearch limited: no verified role/company capture\\n\\nSource-backed role/company synthesis not assessed\\n\\nproject answer not assessed\\n\\ntechnical answer not assessed\\n\\nbehavioral answer not assessed\\n\\npractice not assessed\\n\\nrevision not assessed\\n\\nUnassisted transfer not assessed\\n\\nNo current evidence-linked answer draft\\n\\n\#\# Questions to ask the interviewer\\n\\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\\n\\nGeneric, not company-specific: How does the team review design choices and validate changes?\\n\\n\#\# Day-of checklist\\n\\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\\n\\n\#\# Evidence and version appendix\\n\\nJourney interview-d09938fa-dc0a-4c9a-b852-4c7312bf9d47, revision 5; context 53e5d515792a2f4c1360ea1553df473ed5fdb77f3f16399e81c9b81e4534bd03; epoch 0.\\n\\nfact-1@1; user\\\\_reported; provenance \\\\{\\"kind\\":\\"user\\\\_report\\",\\"observed\\\\_at\\":\\"2026-10-16T23:00:00.000Z\\",\\"record\\\\_id\\":\\"synthetic-report-1\\",\\"reference\\":\\"synthetic committed profile\\",\\"revision\\":1,\\"trust\\":\\"user\\\\_reported\\"\\\\}\\n\\ntarget-1@1; user\\\\_reported; provenance \\\\{\\"kind\\":\\"user\\\\_report\\",\\"observed\\\\_at\\":\\"2026-10-16T23:00:00.000Z\\",\\"record\\\\_id\\":\\"target-report-1\\",\\"reference\\":\\"synthetic committed profile\\",\\"revision\\":1,\\"trust\\":\\"user\\\\_reported\\"\\\\}\\n\\ntarget-family-1@1; user\\\\_reported; provenance \\\\{\\"kind\\":\\"user\\\\_report\\",\\"observed\\\\_at\\":\\"2026-10-16T23:00:00.000Z\\",\\"record\\\\_id\\":\\"target-report-1\\",\\"reference\\":\\"synthetic committed profile\\",\\"revision\\":1,\\"trust\\":\\"user\\\\_reported\\"\\\\}\\n\\ntarget-level-1@1; user\\\\_reported; provenance \\\\{\\"kind\\":\\"user\\\\_report\\",\\"observed\\\\_at\\":\\"2026-10-16T23:00:00.000Z\\",\\"record\\\\_id\\":\\"target-report-1\\",\\"reference\\":\\"synthetic committed profile\\",\\"revision\\":1,\\"trust\\":\\"user\\\\_reported\\"\\\\}\\n\\nresume-1@1; user\\\\_reported; provenance \\\\{\\"kind\\":\\"user\\\\_report\\",\\"observed\\\\_at\\":\\"2026-10-16T23:00:00.000Z\\",\\"record\\\\_id\\":\\"resume-source-1\\",\\"reference\\":\\"synthetic committed profile\\",\\"revision\\":1,\\"trust\\":\\"user\\\\_reported\\"\\\\}\\n\\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\\n"},"paidCalls":0,"actualModelQuality":"NOT_RUN"}
+# Subtest: actual entry saves exact unassessed answer and verifies a partial pack through fresh owned UTF-8 download
+ok 1 - actual entry saves exact unassessed answer and verifies a partial pack through fresh owned UTF-8 download
+  ---
+  duration_ms: 6232.507412
+  type: 'test'
+  ...
+# Subtest: disabled entry cannot create state or spend
+ok 2 - disabled entry cannot create state or spend
+  ---
+  duration_ms: 737.225694
+  type: 'test'
+  ...
+# Subtest: client result, context and artifact-authority injection is rejected before persistence
+ok 3 - client result, context and artifact-authority injection is rejected before persistence
+  ---
+  duration_ms: 1369.206163
+  type: 'test'
+  ...
+# Subtest: actual entry refuses a foreign owned-thread selection
+ok 4 - actual entry refuses a foreign owned-thread selection
+  ---
+  duration_ms: 664.667822
+  type: 'test'
+  ...
+# Subtest: stale account binding fails closed without replacing committed context
+ok 5 - stale account binding fails closed without replacing committed context
+  ---
+  duration_ms: 1046.854462
+  type: 'test'
+  ...
+# {"failedRpc":"career_journey_turn_commit_v1","error":{"message":"ERROR:  synthetic atomic failure\\nCONTEXT:  PL/pgSQL function interview_reject() line 1 at RAISE\\nSQL statement \\"insert into agent_messages(thread_id,role,content,meta)values(p_thread,'assistant',p_response->>'reply',coalesce(p_response->'meta','{}'::jsonb)||jsonb_build_object('career',true,'career_turn_key',p_key))\\"\\nPL/pgSQL function career_host_commit(uuid,uuid,text,text,bigint,bigint,jsonb,jsonb,text,jsonb) line 45 at SQL statement\\nPL/pgSQL function career_journey_turn_commit_v1(jsonb,jsonb,jsonb,jsonb) line 42 at assignment\\n"}}
+# Subtest: failed atomic pack commit leaves no artifact or proposal; same-key fresh retry succeeds
+ok 6 - failed atomic pack commit leaves no artifact or proposal; same-key fresh retry succeeds
+  ---
+  duration_ms: 2454.476384
+  type: 'test'
+  ...
+# Subtest: complete durable pack proposal survives replacement of last_event and stale artifact is inaccessible
+ok 7 - complete durable pack proposal survives replacement of last_event and stale artifact is inaccessible
+  ---
+  duration_ms: 2135.271616
+  type: 'test'
+  ...
+# Subtest: hypothetical answer remains exact unassessed text and never becomes a personal fact
+ok 8 - hypothetical answer remains exact unassessed text and never becomes a personal fact
+  ---
+  duration_ms: 1507.791426
+  type: 'test'
+  ...
+# Subtest: oversized answer is rejected without truncation or replacing the saved attempt
+ok 9 - oversized answer is rejected without truncation or replacing the saved attempt
+  ---
+  duration_ms: 1258.201748
+  type: 'test'
+  ...
+# Subtest: actual legacy erase revokes journey, context, artifact, readback and saved response
+ok 10 - actual legacy erase revokes journey, context, artifact, readback and saved response
+  ---
+  duration_ms: 2535.111889
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20110.130539
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/pair-budget-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_1","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd51920a47faec12","database":"career_test_ci_cd51920a47faec12_1","marker":"upmore-ci-fixture:cd51920a47faec12"}
+# Subtest: pair admission never seeds absent or unreconciled real funding
+ok 1 - pair admission never seeds absent or unreconciled real funding
+  ---
+  duration_ms: 1125.799324
+  type: 'test'
+  ...
+# Subtest: both exact integer bounds and both monthly slots are held atomically
+ok 2 - both exact integer bounds and both monthly slots are held atomically
+  ---
+  duration_ms: 1023.49474
+  type: 'test'
+  ...
+# Subtest: funds sufficient for generation alone send neither leg
+ok 3 - funds sufficient for generation alone send neither leg
+  ---
+  duration_ms: 846.766562
+  type: 'test'
+  ...
+# Subtest: one remaining monthly slot rolls back both cash and partial monthly admission
+ok 4 - one remaining monthly slot rolls back both cash and partial monthly admission
+  ---
+  duration_ms: 1048.647966
+  type: 'test'
+  ...
+# Subtest: two owners racing the last affordable pair cannot overspend
+ok 5 - two owners racing the last affordable pair cannot overspend
+  ---
+  duration_ms: 834.490049
+  type: 'test'
+  ...
+# Subtest: same owner and exact key returns one stable existing attempt under a race
+ok 6 - same owner and exact key returns one stable existing attempt under a race
+  ---
+  duration_ms: 954.056251
+  type: 'test'
+  ...
+# Subtest: same key with different exact payload conflicts without another hold
+ok 7 - same key with different exact payload conflicts without another hold
+  ---
+  duration_ms: 994.238984
+  type: 'test'
+  ...
+# Subtest: foreign/stale context and unsupported policy configuration deny before admission
+ok 8 - foreign/stale context and unsupported policy configuration deny before admission
+  ---
+  duration_ms: 1487.581236
+  type: 'test'
+  ...
+# Subtest: each dispatch pins payload/envelope/bounds and permits a leg only once
+ok 9 - each dispatch pins payload/envelope/bounds and permits a leg only once
+  ---
+  duration_ms: 1827.997879
+  type: 'test'
+  ...
+# Subtest: both raw usage receipts settle global and monthly ledgers exactly once
+ok 10 - both raw usage receipts settle global and monthly ledgers exactly once
+  ---
+  duration_ms: 1603.315434
+  type: 'test'
+  ...
+# Subtest: missing raw usage stays unknown at the full bound
+ok 11 - missing raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1100.677081
+  type: 'test'
+  ...
+# Subtest: fractional raw usage stays unknown at the full bound
+ok 12 - fractional raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1095.606121
+  type: 'test'
+  ...
+# Subtest: negative raw usage stays unknown at the full bound
+ok 13 - negative raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1000.626851
+  type: 'test'
+  ...
+# Subtest: overcached raw usage stays unknown at the full bound
+ok 14 - overcached raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1006.079569
+  type: 'test'
+  ...
+# Subtest: inconsistent total raw usage stays unknown at the full bound
+ok 15 - inconsistent total raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1010.25703
+  type: 'test'
+  ...
+# Subtest: impossible reasoning raw usage stays unknown at the full bound
+ok 16 - impossible reasoning raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1002.942136
+  type: 'test'
+  ...
+# Subtest: wrong configured/response model or dispatch digest cannot become a known cheap bill
+ok 17 - wrong configured/response model or dispatch digest cannot become a known cheap bill
+  ---
+  duration_ms: 852.454084
+  type: 'test'
+  ...
+# Subtest: changed settlement bytes and foreign settlement cannot rewrite charges
+ok 18 - changed settlement bytes and foreign settlement cannot rewrite charges
+  ---
+  duration_ms: 1092.422176
+  type: 'test'
+  ...
+# Subtest: only never-dispatched legs refund their cash and monthly slots
+ok 19 - only never-dispatched legs refund their cash and monthly slots
+  ---
+  duration_ms: 1034.010921
+  type: 'test'
+  ...
+# Subtest: started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+ok 20 - started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+  ---
+  duration_ms: 1301.223537
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop blocks already held generation
+ok 21 - legacy unknown stop blocks already held generation
+  ---
+  duration_ms: 1517.701294
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop also blocks an already held verification leg
+ok 22 - legacy unknown stop also blocks an already held verification leg
+  ---
+  duration_ms: 1663.164791
+  type: 'test'
+  ...
+# Subtest: overdue started legacy tickets participate in the shared uncertainty stop
+ok 23 - overdue started legacy tickets participate in the shared uncertainty stop
+  ---
+  duration_ms: 1394.878209
+  type: 'test'
+  ...
+# Subtest: erase or STOP between legs denies checking while retaining known generation spend
+ok 24 - erase or STOP between legs denies checking while retaining known generation spend
+  ---
+  duration_ms: 1252.339205
+  type: 'test'
+  ...
+# Subtest: monthly record failure rolls back settlement and keeps the conservative hold
+ok 25 - monthly record failure rolls back settlement and keeps the conservative hold
+  ---
+  duration_ms: 1273.649687
+  type: 'test'
+  ...
+# Subtest: read-only owned status leaves account, parent and child rows unchanged
+ok 26 - read-only owned status leaves account, parent and child rows unchanged
+  ---
+  duration_ms: 1032.813255
+  type: 'test'
+  ...
+# Subtest: client roles cannot read pair data or invoke the four invoker RPCs
+ok 27 - client roles cannot read pair data or invoke the four invoker RPCs
+  ---
+  duration_ms: 1089.873722
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 31646.032986
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-flexible-grounding-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_2","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:553470) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:553470) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: SQL context read is owned, service-only, revision/version/epoch fenced and makes no writes
+ok 1 - SQL context read is owned, service-only, revision/version/epoch fenced and makes no writes
+  ---
+  duration_ms: 1074.352094
+  type: 'test'
+  ...
+# Subtest: SQL bounded recent dialogue ignores legacy rows and never reads another owner/thread
+ok 2 - SQL bounded recent dialogue ignores legacy rows and never reads another owner/thread
+  ---
+  duration_ms: 1586.089494
+  type: 'test'
+  ...
+# Subtest: SQL owner-wide correction barrier cuts older dialogue/drafts across owned threads; foreign barrier has no effect
+ok 3 - SQL owner-wide correction barrier cuts older dialogue/drafts across owned threads; foreign barrier has no effect
+  ---
+  duration_ms: 842.743476
+  type: 'test'
+  ...
+# Subtest: SQL privacy epoch excludes all old dialogue including future-version rows; stale context denied
+ok 4 - SQL privacy epoch excludes all old dialogue including future-version rows; stale context denied
+  ---
+  duration_ms: 742.688055
+  type: 'test'
+  ...
+# Subtest: actual flexible entry commits verified advisory prose/draft with real cash and monthly receipts; replay is exact/free
+ok 5 - actual flexible entry commits verified advisory prose/draft with real cash and monthly receipts; replay is exact/free
+  ---
+  duration_ms: 2304.539782
+  type: 'test'
+  ...
+# Subtest: actual fresh entry revises a committed draft and reads recent dialogue without making generated text a fact
+ok 6 - actual fresh entry revises a committed draft and reads recent dialogue without making generated text a fact
+  ---
+  duration_ms: 2451.058805
+  type: 'test'
+  ...
+# Subtest: actual correction and selective forgetting invalidate old generated drafts/dialogue in fresh context
+ok 7 - actual correction and selective forgetting invalidate old generated drafts/dialogue in fresh context
+  ---
+  duration_ms: 3794.742815
+  type: 'test'
+  ...
+# Subtest: actual SQL assistant-insert failure rolls back generated metadata and messages but preserves charge; stable-key retry is not paid twice
+ok 8 - actual SQL assistant-insert failure rolls back generated metadata and messages but preserves charge; stable-key retry is not paid twice
+  ---
+  duration_ms: 2843.054886
+  type: 'test'
+  ...
+# Subtest: actual erase during semantic verification prevents stale delivery after an already-recorded inference charge
+ok 9 - actual erase during semantic verification prevents stale delivery after an already-recorded inference charge
+  ---
+  duration_ms: 1697.162864
+  type: 'test'
+  ...
+# Subtest: actual missing verifier or campaign denies before inference; malformed receipt retains full bound
+ok 10 - actual missing verifier or campaign denies before inference; malformed receipt retains full bound
+  ---
+  duration_ms: 2704.605687
+  type: 'test'
+  ...
+# Subtest: actual legacy monthly cap denial refunds unsent global reservation and never verifies
+ok 11 - actual legacy monthly cap denial refunds unsent global reservation and never verifies
+  ---
+  duration_ms: 1376.298455
+  type: 'test'
+  ...
+# Subtest: actual newer privacy barrier revokes cached model reply while current control replay stays free
+ok 12 - actual newer privacy barrier revokes cached model reply while current control replay stays free
+  ---
+  duration_ms: 2294.340427
+  type: 'test'
+  ...
+# Subtest: SQL unstamped account-version gaps exclude older dialogue/drafts and remain barriers after later v2 turns
+ok 13 - SQL unstamped account-version gaps exclude older dialogue/drafts and remain barriers after later v2 turns
+  ---
+  duration_ms: 727.38598
+  type: 'test'
+  ...
+# Subtest: actual generation-disabled forgetting revokes cached grounded reply and unstamped gap cannot revive old draft
+ok 14 - actual generation-disabled forgetting revokes cached grounded reply and unstamped gap cannot revive old draft
+  ---
+  duration_ms: 3211.764112
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27726.858656
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-model-budget-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_3","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# Subtest: missing campaign denies without creating an allowance or reservation
+ok 1 - missing campaign denies without creating an allowance or reservation
+  ---
+  duration_ms: 481.847045
+  type: 'test'
+  ...
+# Subtest: unreconciled, expired, mismatched model/price and exhausted campaign refuse admission
+ok 2 - unreconciled, expired, mismatched model/price and exhausted campaign refuse admission
+  ---
+  duration_ms: 1475.743418
+  type: 'test'
+  ...
+# Subtest: foreign owner, stale revision/version/epoch and malformed bounds are refused before reservation
+ok 3 - foreign owner, stale revision/version/epoch and malformed bounds are refused before reservation
+  ---
+  duration_ms: 974.20904
+  type: 'test'
+  ...
+# (node:562955) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:562955) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: one global campaign serializes concurrent different-owner reservations
+ok 4 - one global campaign serializes concurrent different-owner reservations
+  ---
+  duration_ms: 497.582687
+  type: 'test'
+  ...
+# Subtest: consume is one-use and STOP before consume revokes current context without spending
+ok 5 - consume is one-use and STOP before consume revokes current context without spending
+  ---
+  duration_ms: 789.877199
+  type: 'test'
+  ...
+# Subtest: unknown provider outcome retains the full bound and cannot be re-consumed/re-reserved
+ok 6 - unknown provider outcome retains the full bound and cannot be re-consumed/re-reserved
+  ---
+  duration_ms: 890.596346
+  type: 'test'
+  ...
+# Subtest: recorded usage reconciles exactly once and altered receipt or foreign owner is refused
+ok 7 - recorded usage reconciles exactly once and altered receipt or foreign owner is refused
+  ---
+  duration_ms: 971.278863
+  type: 'test'
+  ...
+# Subtest: epoch change after admitted call preserves its charge but marks context not current
+ok 8 - epoch change after admitted call preserves its charge but marks context not current
+  ---
+  duration_ms: 716.559323
+  type: 'test'
+  ...
+# Subtest: client roles cannot access campaign/reservation data or invoke model budget functions
+ok 9 - client roles cannot access campaign/reservation data or invoke model budget functions
+  ---
+  duration_ms: 757.840616
+  type: 'test'
+  ...
+# Subtest: actual entry and real SQL campaign -> gateway injection -> atomic grounded response -> free replay
+ok 10 - actual entry and real SQL campaign -> gateway injection -> atomic grounded response -> free replay
+  ---
+  duration_ms: 1719.773174
+  type: 'test'
+  ...
+# Subtest: actual entry missing shared budget gives honest deterministic fallback with no provider request
+ok 11 - actual entry missing shared budget gives honest deterministic fallback with no provider request
+  ---
+  duration_ms: 913.893188
+  type: 'test'
+  ...
+# Subtest: actual SQL save failure keeps all facts/messages atomic and never pays twice on same-key retry
+ok 12 - actual SQL save failure keeps all facts/messages atomic and never pays twice on same-key retry
+  ---
+  duration_ms: 2396.031652
+  type: 'test'
+  ...
+# Subtest: actual concurrent erase after inference admission prevents model delivery and retains charge
+ok 13 - actual concurrent erase after inference admission prevents model delivery and retains charge
+  ---
+  duration_ms: 1325.099779
+  type: 'test'
+  ...
+# Subtest: expired ticket or changed approved price denies dispatch and safely refunds unsent reservation
+ok 14 - expired ticket or changed approved price denies dispatch and safely refunds unsent reservation
+  ---
+  duration_ms: 1208.398269
+  type: 'test'
+  ...
+# Subtest: three unknown outcomes stop further campaign spending across owners
+ok 15 - three unknown outcomes stop further campaign spending across owners
+  ---
+  duration_ms: 1253.172413
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16441.199523
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-persistence-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_4","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# Subtest: atomic turn pair, snapshot, receipt and exact replay
+ok 1 - atomic turn pair, snapshot, receipt and exact replay
+  ---
+  duration_ms: 533.177792
+  type: 'test'
+  ...
+# Subtest: real SQL rollback on agent_messages:user
+ok 2 - real SQL rollback on agent_messages:user
+  ---
+  duration_ms: 143.757428
+  type: 'test'
+  ...
+# Subtest: real SQL rollback on agent_messages:assistant
+ok 3 - real SQL rollback on agent_messages:assistant
+  ---
+  duration_ms: 94.515656
+  type: 'test'
+  ...
+# Subtest: real SQL rollback on agent_flow_state:state
+ok 4 - real SQL rollback on agent_flow_state:state
+  ---
+  duration_ms: 184.955053
+  type: 'test'
+  ...
+# Subtest: same request races create exactly one pair
+ok 5 - same request races create exactly one pair
+  ---
+  duration_ms: 164.377248
+  type: 'test'
+  ...
+# Subtest: different concurrent requests use revision fence
+ok 6 - different concurrent requests use revision fence
+  ---
+  duration_ms: 99.445041
+  type: 'test'
+  ...
+# Subtest: foreign thread and snapshot fail closed
+ok 7 - foreign thread and snapshot fail closed
+  ---
+  duration_ms: 96.583266
+  type: 'test'
+  ...
+# Subtest: malformed commits and reminder IDs fail closed
+ok 8 - malformed commits and reminder IDs fail closed
+  ---
+  duration_ms: 93.11451
+  type: 'test'
+  ...
+# Subtest: location correction crosses owned threads without rewriting facts or another tenant
+ok 9 - location correction crosses owned threads without rewriting facts or another tenant
+  ---
+  duration_ms: 214.785205
+  type: 'test'
+  ...
+# Subtest: chat watch becomes canonical user KV visible to scheduler and a fresh thread
+ok 10 - chat watch becomes canonical user KV visible to scheduler and a fresh thread
+  ---
+  duration_ms: 85.354611
+  type: 'test'
+  ...
+# Subtest: legacy watch recovery refuses divergent profiles
+ok 11 - legacy watch recovery refuses divergent profiles
+  ---
+  duration_ms: 203.867796
+  type: 'test'
+  ...
+# Subtest: STOP pauses owned threads and cancels pending work; resume does not revive it
+ok 12 - STOP pauses owned threads and cancels pending work; resume does not revive it
+  ---
+  duration_ms: 314.629336
+  type: 'test'
+  ...
+# Subtest: erasure clears active state across owned threads, payloads and replay text, never another tenant
+ok 13 - erasure clears active state across owned threads, payloads and replay text, never another tenant
+  ---
+  duration_ms: 226.244769
+  type: 'test'
+  ...
+# Subtest: stale scheduler cannot restore erased or corrected context
+ok 14 - stale scheduler cannot restore erased or corrected context
+  ---
+  duration_ms: 144.676802
+  type: 'test'
+  ...
+# Subtest: scheduler compare-and-set detects concurrent chat correction
+ok 15 - scheduler compare-and-set detects concurrent chat correction
+  ---
+  duration_ms: 140.220562
+  type: 'test'
+  ...
+# Subtest: parallel inbox delivery claims one durable record
+ok 16 - parallel inbox delivery claims one durable record
+  ---
+  duration_ms: 212.526913
+  type: 'test'
+  ...
+# Subtest: wrong lease, owner and altered provenance cannot acknowledge
+ok 17 - wrong lease, owner and altered provenance cannot acknowledge
+  ---
+  duration_ms: 234.545482
+  type: 'test'
+  ...
+# Subtest: lost committed acknowledgement is reconciled by owned readback
+ok 18 - lost committed acknowledgement is reconciled by owned readback
+  ---
+  duration_ms: 173.249571
+  type: 'test'
+  ...
+# Subtest: failed acknowledgement remains pending and same lease can reconcile after restart
+ok 19 - failed acknowledgement remains pending and same lease can reconcile after restart
+  ---
+  duration_ms: 272.512469
+  type: 'test'
+  ...
+# Subtest: expired lease becomes uncertain; explicit inbox reconciliation reuses it
+ok 20 - expired lease becomes uncertain; explicit inbox reconciliation reuses it
+  ---
+  duration_ms: 179.619881
+  type: 'test'
+  ...
+# Subtest: external sinks and get/set-only adapters fail closed before any send
+ok 21 - external sinks and get/set-only adapters fail closed before any send
+  ---
+  duration_ms: 82.711835
+  type: 'test'
+  ...
+# Subtest: chat load consumes only own inbox and commit marks it seen atomically
+ok 22 - chat load consumes only own inbox and commit marks it seen atomically
+  ---
+  duration_ms: 361.257367
+  type: 'test'
+  ...
+# Subtest: client roles cannot access private tables or execute service RPCs
+ok 23 - client roles cannot access private tables or execute service RPCs
+  ---
+  duration_ms: 227.426506
+  type: 'test'
+  ...
+# Subtest: generic worker writes cannot alter account controls, receipts or another watch key
+ok 24 - generic worker writes cannot alter account controls, receipts or another watch key
+  ---
+  duration_ms: 185.522644
+  type: 'test'
+  ...
+# Subtest: queued reminders cannot deliver after their interest is removed or globally paused
+ok 25 - queued reminders cannot deliver after their interest is removed or globally paused
+  ---
+  duration_ms: 183.891265
+  type: 'test'
+  ...
+# Subtest: acknowledgement preserves fit provenance and attaches a database payload hash
+ok 26 - acknowledgement preserves fit provenance and attaches a database payload hash
+  ---
+  duration_ms: 56.089675
+  type: 'test'
+  ...
+# Subtest: real chat -> canonical watch -> seed/new posting -> inbox -> fresh thread; restart does not duplicate
+ok 27 - real chat -> canonical watch -> seed/new posting -> inbox -> fresh thread; restart does not duplicate
+  ---
+  duration_ms: 142.655933
+  type: 'test'
+  ...
+# Subtest: queue remains intact when durable transfer fails; restart transfers before drain
+ok 28 - queue remains intact when durable transfer fails; restart transfers before drain
+  ---
+  duration_ms: 70.184042
+  type: 'test'
+  ...
+# Subtest: scheduler checkpoint rolls back snapshots and queue if outbox transfer fails
+ok 29 - scheduler checkpoint rolls back snapshots and queue if outbox transfer fails
+  ---
+  duration_ms: 55.413423
+  type: 'test'
+  ...
+# (node:568975) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:568975) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: actual staged HTTP handler -> real PostgreSQL: save/replay, rollback, owner boundary, STOP and erasure
+ok 30 - actual staged HTTP handler -> real PostgreSQL: save/replay, rollback, owner boundary, STOP and erasure
+  ---
+  duration_ms: 1083.157738
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6335.643988
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-public-research-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_5","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:569579) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:569579) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: research intent commits without posting/profile/artifact and replays one turn pair
+ok 1 - research intent commits without posting/profile/artifact and replays one turn pair
+  ---
+  duration_ms: 488.538835
+  type: 'test'
+  ...
+# Subtest: late research response rejection rolls back messages, account, state and intent
+ok 2 - late research response rejection rolls back messages, account, state and intent
+  ---
+  duration_ms: 566.092645
+  type: 'test'
+  ...
+# Subtest: research grant only admits the typed public read effect and enforces ownership
+ok 3 - research grant only admits the typed public read effect and enforces ownership
+  ---
+  duration_ms: 1029.202681
+  type: 'test'
+  ...
+# Subtest: research rejects applicant data or changed immutable question in SQL
+ok 4 - research rejects applicant data or changed immutable question in SQL
+  ---
+  duration_ms: 803.581258
+  type: 'test'
+  ...
+# Subtest: actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status
+ok 5 - actual Upmore text command -> atomic outbox -> separate MOCK board -> persisted correlated evidence and ordinary-chat status
+  ---
+  duration_ms: 2194.462097
+  type: 'test'
+  ...
+# Subtest: failed actual chat commit makes no task intent, browser command or successful queued reply
+ok 6 - failed actual chat commit makes no task intent, browser command or successful queued reply
+  ---
+  duration_ms: 472.754471
+  type: 'test'
+  ...
+# Subtest: actual committed STOP before dispatch cancels research without any MOCK read
+ok 7 - actual committed STOP before dispatch cancels research without any MOCK read
+  ---
+  duration_ms: 650.523163
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6273.241467
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-task-authority-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_6","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# Subtest: task intent, turn pair, snapshot and structured receipt commit and replay together
+ok 1 - task intent, turn pair, snapshot and structured receipt commit and replay together
+  ---
+  duration_ms: 669.445579
+  type: 'test'
+  ...
+# Subtest: late task binding rejection rolls back the already executed base turn
+ok 2 - late task binding rejection rolls back the already executed base turn
+  ---
+  duration_ms: 673.703242
+  type: 'test'
+  ...
+# Subtest: missing version/action/identity cannot pass SQL null semantics
+ok 3 - missing version/action/identity cannot pass SQL null semantics
+  ---
+  duration_ms: 901.123676
+  type: 'test'
+  ...
+# Subtest: event tombstone rejects the same event under a fresh turn key, even after erase
+ok 4 - event tombstone rejects the same event under a fresh turn key, even after erase
+  ---
+  duration_ms: 922.069146
+  type: 'test'
+  ...
+# Subtest: committed STOP revokes queued claims and pending dispatch
+ok 5 - committed STOP revokes queued claims and pending dispatch
+  ---
+  duration_ms: 698.545531
+  type: 'test'
+  ...
+# Subtest: committed erase revokes queued claims and pending dispatch
+ok 6 - committed erase revokes queued claims and pending dispatch
+  ---
+  duration_ms: 679.404727
+  type: 'test'
+  ...
+# Subtest: another owner cannot claim, settle or read task evidence
+ok 7 - another owner cannot claim, settle or read task evidence
+  ---
+  duration_ms: 745.524541
+  type: 'test'
+  ...
+# Subtest: STOP between reserve and physical execution rejects consume; no effect is admitted
+ok 8 - STOP between reserve and physical execution rejects consume; no effect is admitted
+  ---
+  duration_ms: 859.194722
+  type: 'test'
+  ...
+# Subtest: erase after claim rejects the next effect and removes private central copies
+ok 9 - erase after claim rejects the next effect and removes private central copies
+  ---
+  duration_ms: 852.636185
+  type: 'test'
+  ...
+# Subtest: an admitted uncertain effect permanently blocks new DOM work under a new intent
+ok 10 - an admitted uncertain effect permanently blocks new DOM work under a new intent
+  ---
+  duration_ms: 1469.061956
+  type: 'test'
+  ...
+# Subtest: effect receipts reconcile lost acknowledgements and reject altered replay
+ok 11 - effect receipts reconcile lost acknowledgements and reject altered replay
+  ---
+  duration_ms: 979.645748
+  type: 'test'
+  ...
+# Subtest: task result retains exact structured evidence and reconciles lost finish ack
+ok 12 - task result retains exact structured evidence and reconciles lost finish ack
+  ---
+  duration_ms: 751.863369
+  type: 'test'
+  ...
+# Subtest: missing authority and async authority transports fail closed
+ok 13 - missing authority and async authority transports fail closed
+  ---
+  duration_ms: 127.720919
+  type: 'test'
+  ...
+# Subtest: concurrent STOP transaction wins the shared owner lock before a waiting claim
+ok 14 - concurrent STOP transaction wins the shared owner lock before a waiting claim
+  ---
+  duration_ms: 1041.210017
+  type: 'test'
+  ...
+# Subtest: concurrent erase transaction wins the shared owner lock before a waiting claim
+ok 15 - concurrent erase transaction wins the shared owner lock before a waiting claim
+  ---
+  duration_ms: 744.565416
+  type: 'test'
+  ...
+# (node:572159) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:572159) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: client roles have neither private table nor task RPC access; all functions are invoker
+ok 16 - client roles have neither private table nor task RPC access; all functions are invoker
+  ---
+  duration_ms: 550.045188
+  type: 'test'
+  ...
+# Subtest: real worker queued task opens no MOCK board after committed STOP
+ok 17 - real worker queued task opens no MOCK board after committed STOP
+  ---
+  duration_ms: 801.146639
+  type: 'test'
+  ...
+# Subtest: real worker queued task opens no MOCK board after committed erase
+ok 18 - real worker queued task opens no MOCK board after committed erase
+  ---
+  duration_ms: 780.341001
+  type: 'test'
+  ...
+# Subtest: running worker rechecks committed STOP before the next MOCK browser command
+ok 19 - running worker rechecks committed STOP before the next MOCK browser command
+  ---
+  duration_ms: 1572.952766
+  type: 'test'
+  ...
+# Subtest: running worker rechecks committed erase before the next MOCK browser command
+ok 20 - running worker rechecks committed erase before the next MOCK browser command
+  ---
+  duration_ms: 1304.706472
+  type: 'test'
+  ...
+# Subtest: actual staged chat -> SQL outbox -> separate worker -> structured evidence; no phantom submit
+ok 21 - actual staged chat -> SQL outbox -> separate worker -> structured evidence; no phantom submit
+  ---
+  duration_ms: 10033.101827
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27227.842536
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"correction-authority-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_7","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:583634) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:583634) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: real SQL rollback at agent_messages:user: failed A correction cannot reach B or A's next turn
+ok 1 - real SQL rollback at agent_messages:user: failed A correction cannot reach B or A's next turn
+  ---
+  duration_ms: 1165.310721
+  type: 'test'
+  ...
+# Subtest: real SQL rollback at agent_messages:assistant: failed A correction cannot reach B or A's next turn
+ok 2 - real SQL rollback at agent_messages:assistant: failed A correction cannot reach B or A's next turn
+  ---
+  duration_ms: 661.055041
+  type: 'test'
+  ...
+# Subtest: real SQL rollback at agent_flow_state:state: failed A correction cannot reach B or A's next turn
+ok 3 - real SQL rollback at agent_flow_state:state: failed A correction cannot reach B or A's next turn
+  ---
+  duration_ms: 491.664304
+  type: 'test'
+  ...
+# Subtest: real SQL committed correction, owner boundary, restart and exact reply replay
+ok 4 - real SQL committed correction, owner boundary, restart and exact reply replay
+  ---
+  duration_ms: 794.34093
+  type: 'test'
+  ...
+# Subtest: real SQL stale correction loses revision race and cannot leak its uncommitted facts
+ok 5 - real SQL stale correction loses revision race and cannot leak its uncommitted facts
+  ---
+  duration_ms: 456.997591
+  type: 'test'
+  ...
+# Subtest: real SQL failed correction can retry the same key and commit exactly once
+ok 6 - real SQL failed correction can retry the same key and commit exactly once
+  ---
+  duration_ms: 594.472945
+  type: 'test'
+  ...
+# Subtest: real SQL erase epoch rejects old receipts and stale commits; reused profile identity cannot revive corrections
+ok 7 - real SQL erase epoch rejects old receipts and stale commits; reused profile identity cannot revive corrections
+  ---
+  duration_ms: 726.673209
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4972.9947
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"model-budget-independent-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_8","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:586248) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:586248) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: independent global uncertainty stop revokes an earlier different-owner dispatch ticket
+ok 1 - independent global uncertainty stop revokes an earlier different-owner dispatch ticket
+  ---
+  duration_ms: 1653.0074
+  type: 'test'
+  ...
+# Subtest: independent crashed started requests count as uncertain when their receipt deadlines expire
+ok 2 - independent crashed started requests count as uncertain when their receipt deadlines expire
+  ---
+  duration_ms: 1147.002216
+  type: 'test'
+  ...
+# Subtest: independent overdue calls also revoke an unconsumed different-owner ticket
+ok 3 - independent overdue calls also revoke an unconsumed different-owner ticket
+  ---
+  duration_ms: 1324.74237
+  type: 'test'
+  ...
+# Subtest: independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop
+ok 4 - independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop
+  ---
+  duration_ms: 1878.338317
+  type: 'test'
+  ...
+# Subtest: independent global allowance cannot be overbooked by concurrent owners
+ok 5 - independent global allowance cannot be overbooked by concurrent owners
+  ---
+  duration_ms: 826.967367
+  type: 'test'
+  ...
+# Subtest: independent concurrent same-owner/same-turn retry reserves exactly once
+ok 6 - independent concurrent same-owner/same-turn retry reserves exactly once
+  ---
+  duration_ms: 845.557313
+  type: 'test'
+  ...
+# Subtest: independent timeout/crash reservation remains charged and cannot be refunded or replayed
+ok 7 - independent timeout/crash reservation remains charged and cannot be refunded or replayed
+  ---
+  duration_ms: 1267.105694
+  type: 'test'
+  ...
+# Subtest: independent owner mismatch, STOP and post-erase epochs cannot consume old tickets
+ok 8 - independent owner mismatch, STOP and post-erase epochs cannot consume old tickets
+  ---
+  duration_ms: 1023.600327
+  type: 'test'
+  ...
+# Subtest: independent no client-role access and no security-definer budget functions
+ok 9 - independent no client-role access and no security-definer budget functions
+  ---
+  duration_ms: 699.523781
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10745.502844
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"model-monthly-independent-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_9","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:594131) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:594131) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: independent real monthly slot and usage receipt agree with global charge and exact owned replay
+ok 1 - independent real monthly slot and usage receipt agree with global charge and exact owned replay
+  ---
+  duration_ms: 2125.544302
+  type: 'test'
+  ...
+# Subtest: independent real monthly limit denies provider and refunds the known-unsent global reservation
+ok 2 - independent real monthly limit denies provider and refunds the known-unsent global reservation
+  ---
+  duration_ms: 1525.218713
+  type: 'test'
+  ...
+# Subtest: independent invalid receipt retains monthly slot and full uncertain global reservation
+ok 3 - independent invalid receipt retains monthly slot and full uncertain global reservation
+  ---
+  duration_ms: 1694.815921
+  type: 'test'
+  ...
+# Subtest: independent chat rollback keeps real monthly usage accounted and same-key retry free
+ok 4 - independent chat rollback keeps real monthly usage accounted and same-key retry free
+  ---
+  duration_ms: 2177.286084
+  type: 'test'
+  ...
+# Subtest: independent real monthly usage insertion failure cannot refund unknown cost or deliver generated success
+ok 5 - independent real monthly usage insertion failure cannot refund unknown cost or deliver generated success
+  ---
+  duration_ms: 1677.254088
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9285.696991
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"privacy-research-composition.test.cjs","database":"career_test_ci_cd51920a47faec12_10","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:600635) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:600635) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: J01 owned committed correction survives research and restart; colliding other owner is unchanged
+ok 1 - J01 owned committed correction survives research and restart; colliding other owner is unchanged
+  ---
+  duration_ms: 3717.556962
+  type: 'test'
+  ...
+# Subtest: J02 epoch erase after research cannot revive correction/audit/source through warm or fresh entry
+ok 2 - J02 epoch erase after research cannot revive correction/audit/source through warm or fresh entry
+  ---
+  duration_ms: 5118.127087
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8912.897464
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"research-conversation-independent-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_11","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:607144) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:607144) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: I01-I02-I06 actual text and typed routes create only owned immutable research intents
+ok 1 - I01-I02-I06 actual text and typed routes create only owned immutable research intents
+  ---
+  duration_ms: 1874.468297
+  type: 'test'
+  ...
+# Subtest: I03-I26 conversation corrections survive research and source text never becomes career evidence
+ok 2 - I03-I26 conversation corrections survive research and source text never becomes career evidence
+  ---
+  duration_ms: 3394.11403
+  type: 'test'
+  ...
+# Subtest: I05 authenticated owner and thread isolation protect research observations
+ok 3 - I05 authenticated owner and thread isolation protect research observations
+  ---
+  duration_ms: 2345.573268
+  type: 'test'
+  ...
+# Subtest: I07 STOP and full erase win over a typed research action in the same turn
+ok 4 - I07 STOP and full erase win over a typed research action in the same turn
+  ---
+  duration_ms: 1662.094493
+  type: 'test'
+  ...
+# Subtest: I08 STOP across owned threads revokes a reserved but unconsumed read
+ok 5 - I08 STOP across owned threads revokes a reserved but unconsumed read
+  ---
+  duration_ms: 2132.855864
+  type: 'test'
+  ...
+# Subtest: I09 erasure clears active research bindings and leaves another account untouched
+ok 6 - I09 erasure clears active research bindings and leaves another account untouched
+  ---
+  duration_ms: 1981.562456
+  type: 'test'
+  ...
+# Subtest: I09 erase during an already admitted read cannot publish or revive captured evidence
+ok 7 - I09 erase during an already admitted read cannot publish or revive captured evidence
+  ---
+  duration_ms: 1878.673352
+  type: 'test'
+  ...
+# Subtest: I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted
+ok 8 - I13-I18-I23-I24 polling preserves authority, profile and work count while source remains untrusted
+  ---
+  duration_ms: 4179.626314
+  type: 'test'
+  ...
+# Subtest: I17 tampered persisted artifact hashes and correlations are refused by actual chat status
+ok 9 - I17 tampered persisted artifact hashes and correlations are refused by actual chat status
+  ---
+  duration_ms: 4039.746235
+  type: 'test'
+  ...
+# Subtest: I19 immutable same-key and same-event replay conflicts preserve task counts and version
+ok 10 - I19 immutable same-key and same-event replay conflicts preserve task counts and version
+  ---
+  duration_ms: 1828.706181
+  type: 'test'
+  ...
+# Subtest: I20 a failed research effect is not repeated by pending work or status polling
+ok 11 - I20 a failed research effect is not repeated by pending work or status polling
+  ---
+  duration_ms: 2995.079012
+  type: 'test'
+  ...
+# Subtest: I21 research authority refuses all application operations at the real SQL gate
+ok 12 - I21 research authority refuses all application operations at the real SQL gate
+  ---
+  duration_ms: 1843.229501
+  type: 'test'
+  ...
+# Subtest: I22 central-result save recovery uses existing capture and never reads twice
+ok 13 - I22 central-result save recovery uses existing capture and never reads twice
+  ---
+  duration_ms: 2696.974477
+  type: 'test'
+  ...
+# Subtest: I17 supplementary: rehashing a forged artifact cannot rewrite the immutable request or effect receipt
+ok 14 - I17 supplementary: rehashing a forged artifact cannot rewrite the immutable request or effect receipt
+  ---
+  duration_ms: 3069.995211
+  type: 'test'
+  ...
+# Subtest: I22 supplementary: committed finish with lost acknowledgement and failed readback recovers the identical receipt
+ok 15 - I22 supplementary: committed finish with lost acknowledgement and failed readback recovers the identical receipt
+  ---
+  duration_ms: 2695.902212
+  type: 'test'
+  ...
+# Subtest: I22 fixture-closure: worker return, replay, get and chat status equal the published immutable receipt
+ok 16 - I22 fixture-closure: worker return, replay, get and chat status equal the published immutable receipt
+  ---
+  duration_ms: 2356.301097
+  type: 'test'
+  ...
+# Subtest: I09 fixture-closure: erase clears confirmed publication copies before worker readback
+ok 17 - I09 fixture-closure: erase clears confirmed publication copies before worker readback
+  ---
+  duration_ms: 2083.561184
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 43145.308088
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"resume-flexible-composition-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_12","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:635017) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:635017) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: joint real SQL supersession, lower-year correction and stale-source refusal produce only current flexible evidence
+ok 1 - joint real SQL supersession, lower-year correction and stale-source refusal produce only current flexible evidence
+  ---
+  duration_ms: 5512.07042
+  type: 'test'
+  ...
+# Subtest: joint real SQL failed correction cannot leak its source into coaching; same-key retry succeeds after rollback
+ok 2 - joint real SQL failed correction cannot leak its source into coaching; same-key retry succeeds after rollback
+  ---
+  duration_ms: 4117.478243
+  type: 'test'
+  ...
+# Subtest: joint real erase revokes generated replay/source history and permits explicit fresh-epoch source adoption
+ok 3 - joint real erase revokes generated replay/source history and permits explicit fresh-epoch source adoption
+  ---
+  duration_ms: 4775.785904
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14475.971094
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"resume-supersession-postgres.test.cjs","database":"career_test_ci_cd51920a47faec12_13","marker":"upmore-ci-fixture:cd51920a47faec12"}
+TAP version 13
+# (node:644748) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:644748) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: real SQL repeated source adoption, identical-key replay and fresh-handler persisted recall
+ok 1 - real SQL repeated source adoption, identical-key replay and fresh-handler persisted recall
+  ---
+  duration_ms: 2427.527
+  type: 'test'
+  ...
+# Subtest: real SQL rollback of a repeated correction preserves old facts and does not mark its source adopted
+ok 2 - real SQL rollback of a repeated correction preserves old facts and does not mark its source adopted
+  ---
+  duration_ms: 2025.186723
+  type: 'test'
+  ...
+# Subtest: real revision race rejects stale 2033 and preserves winning 2030 without any process-local source replay
+ok 3 - real revision race rejects stale 2033 and preserves winning 2030 without any process-local source replay
+  ---
+  duration_ms: 1754.230649
+  type: 'test'
+  ...
+# Subtest: real erase epoch clears source hashes and rejects old receipts; explicit reimport starts a fresh owned history
+ok 4 - real erase epoch clears source hashes and rejects old receipts; explicit reimport starts a fresh owned history
+  ---
+  duration_ms: 2527.765937
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8808.288355
+{"token":"cd51920a47faec12","commit":"2372fcf081eca220c7b579372d6007033f0a605c","preflightDirtyFiles":"","harnessSha256":"6653d693904a47fa7b1eafbd0bf0696011b762aee828440a276a2b3e6dd468e2","testSourceSha256":{"career-critical-repairs/interview-entry-postgres.test.cjs":"bed4062457d55be80ea5f98fe2bf7df13d37d64708274de7e051a46aa2ad04af","career-critical-repairs/pair-budget-postgres.test.cjs":"d45bae84387cc666f206b1d291b36d1edde37dee1cdcf9a06ebf01d32e1c605c","career-flexible-grounding-postgres.test.cjs":"9b2d6e97be464ff05d1a7580c9908b23011c9bf9dda1c417de3977d428c71520","career-model-budget-postgres.test.cjs":"f7b924ee27a0ade9830e46c63e7a247be5d1899b3f2de48cfefe3c62edc43df3","career-persistence-postgres.test.cjs":"976b7114bdc1dd31c480259dccd46a79c1b9d52d0d63e7cdb8d717a230dd5d88","career-public-research-postgres.test.cjs":"79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94","career-task-authority-postgres.test.cjs":"b9133701082a0d3f782a3b500f8036f3e99b47453eb694d7d0358c51417556b8","correction-authority-postgres.test.cjs":"86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4","model-budget-independent-postgres.test.cjs":"a8f3e6fbb7c346e7c2736fd2c231bcc337fd203acd445145d7c5c9928bd273e4","model-monthly-independent-postgres.test.cjs":"263b244c837ffb85e5ec15261f02c9476b94108a0604da086296c0c4e4eb02b0","privacy-research-composition.test.cjs":"78683dc5fcbf9faf8a91d5a4eafcadf785392760f13b3a69ec0108a72e5a05a2","research-conversation-independent-postgres.test.cjs":"ffa0faf0d04ee9fc40a2399d87f8408fe5d5614693dd80617d47feb1f2273047","resume-flexible-composition-postgres.test.cjs":"8b2988f6689227d7ee12e420920411b44c52f91b0bf13739037ec7bdc5d9c60a","resume-supersession-postgres.test.cjs":"8fd1eb7ca5c276fbcefff398f8735fdaa1429f8b25d8de90930e1b9d438f528d"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"--postgres-only","rootFiles":370,"selectedFiles":14,"sqlFiles":["career-critical-repairs/interview-entry-postgres.test.cjs","career-critical-repairs/pair-budget-postgres.test.cjs","career-flexible-grounding-postgres.test.cjs","career-model-budget-postgres.test.cjs","career-persistence-postgres.test.cjs","career-public-research-postgres.test.cjs","career-task-authority-postgres.test.cjs","correction-authority-postgres.test.cjs","model-budget-independent-postgres.test.cjs","model-monthly-independent-postgres.test.cjs","privacy-research-composition.test.cjs","research-conversation-independent-postgres.test.cjs","resume-flexible-composition-postgres.test.cjs","resume-supersession-postgres.test.cjs"],"started":"2026-10-17T01:25:48.315Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/interview-entry-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/interview-entry-postgres.test.cjs"],"exitCode":0},{"label":"postgres-1","files":["career-critical-repairs/pair-budget-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/pair-budget-postgres.test.cjs"],"exitCode":0},{"label":"postgres-2","files":["career-flexible-grounding-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-flexible-grounding-postgres.test.cjs"],"exitCode":0},{"label":"postgres-3","files":["career-model-budget-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-model-budget-postgres.test.cjs"],"exitCode":0},{"label":"postgres-4","files":["career-persistence-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-persistence-postgres.test.cjs"],"exitCode":0},{"label":"postgres-5","files":["career-public-research-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-public-research-postgres.test.cjs"],"exitCode":0},{"label":"postgres-6","files":["career-task-authority-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-task-authority-postgres.test.cjs"],"exitCode":0},{"label":"postgres-7","files":["correction-authority-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/correction-authority-postgres.test.cjs"],"exitCode":0},{"label":"postgres-8","files":["model-budget-independent-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/model-budget-independent-postgres.test.cjs"],"exitCode":0},{"label":"postgres-9","files":["model-monthly-independent-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/model-monthly-independent-postgres.test.cjs"],"exitCode":0},{"label":"postgres-10","files":["privacy-research-composition.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/privacy-research-composition.test.cjs"],"exitCode":0},{"label":"postgres-11","files":["research-conversation-independent-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/research-conversation-independent-postgres.test.cjs"],"exitCode":0},{"label":"postgres-12","files":["resume-flexible-composition-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/resume-flexible-composition-postgres.test.cjs"],"exitCode":0},{"label":"postgres-13","files":["resume-supersession-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/resume-supersession-postgres.test.cjs"],"exitCode":0}],"out":"/tmp/upmore-ci-node-YakBvi","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8655bf6f7b6363a307a74661506bdfa2c12f614d374223779cfe4b586bd4f98a","supabase/sql/proposals/career_interview_entry_v1.sql":"cf6d533f4e50147942dcd87c16f158714fef4cf44fa1b4f4db946d54b3958797"},"fixture":{"container":"upmore-career-integration-pg-ci-cd51920a47faec12","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T01:30:07.338Z","pass":true}

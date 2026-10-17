@@ -43714,6 +43714,15 @@ const CareerRouter = (() => {
         const sa = handleApplicationStatus(text, c);
         if (sa) return sa;
       }
+      // BUG-271: an eligibility ask that names a company is claimed
+      // by the intel branch below ("the adjuster role at Acme" reads
+      // as a company question) — but its journey is grading, not a
+      // company file. The eligibility handler self-gates tightly
+      // (eligibility word + question shape, negotiation and tailor
+      // turns excluded), so it claims here, ahead of intel; every
+      // other turn passes through untouched.
+      const elq = handleEligibilityAsk(text, c);
+      if (elq) return elq;
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
@@ -43880,6 +43889,10 @@ const CareerRouter = (() => {
       // the continuation branch as their owners.
       const nsf = handleNextStepFollowUp(text, c);
       if (nsf) return nsf;
+      // BUG-271: eligibility asks are claimed earlier, ahead of the
+      // intel gate (a company-named eligibility ask reads as a
+      // company question there); the record layer below additionally
+      // refuses "am i eligible" as a self-check shape.
       // DEPTH LANE A (MI-013 / LF-01h): the memory-USE layer — a
       // read-back of the record, a fit ranking over the standing
       // search, a role direction from the experience fact, a review
@@ -44384,6 +44397,94 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Here is the plan, built from what you told me — two moves, in order.", facts: [`What I am working from — your words, on record: ${facts.map(factLine).join("; ")}.`, moveOne, moveTwo], nextStep: "Say go and move one starts now — or correct any fact first and the plan re-aims." });
     return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // ---------- BUG-271: the eligibility ASK. "Am I eligible for
+  // that?" is a request to GRADE a posting against the record — the
+  // spoken-eligibility mechanism (123's computeGaps +
+  // eligibilityVerdictFor, MI-025) does exactly that, but only over
+  // a posting's text. The bare ask was claimed by NOTHING with that
+  // job: the record self-check below read "am i eligible" as a
+  // record question and answered "That is not on your record — you
+  // have not told me yet", an honest sentence aimed at the wrong
+  // question entirely. The journey now: when a posting is actually
+  // resolvable (attached to the thread, pasted with the ask, or
+  // named by company and on the board list), grade it and speak the
+  // verdict with the unmet requirements named. When none is, the
+  // reply NAMES the missing inputs — the posting itself, and the
+  // specific fact the named requirement turns on, with the record's
+  // own state for that fact — and offers the closest path. A verdict
+  // is never invented to fill the gap.
+  function handleEligibilityAsk(text, ctx) {
+    const t = lc(text);
+    if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t)) return null;
+    if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
+    if (/\btailor\b/.test(t)) return null; // a tailor ask owns its posting
+    if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
+    if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null; // someone else's eligibility is not graded from this record
+    const profile = ctx.profile || null;
+    // Resolve a posting the user actually put in reach — never an
+    // arbitrary top-ranked one (a verdict over the wrong posting is
+    // worse than no verdict). Resolution reads the board pool
+    // directly, NOT rankedShortlist: rankedShortlist's preCheck
+    // EXCLUDES a posting whose hard credential the record lacks —
+    // exactly the postings an eligibility ask most needs graded.
+    let posting = ctx.posting || null;
+    if (!posting) {
+      const comp = companyFromText(text, ctx);
+      if (comp) {
+        const pool = postingsFromCtx(ctx);
+        posting = pool.find((p) => p.company && lc(p.company) === lc(comp)) || pool.find((p) => p.company && (lc(p.company).includes(lc(comp)) || lc(comp).includes(lc(p.company)))) || null;
+      }
+    }
+    // The posting's own jd_text wins over jdTextForPosting's
+    // synthesis: for an adapted posting whose requirements array is
+    // empty, the synthesis rebuilds the text FROM that array and
+    // silently drops the real JD (the license sentence with it).
+    const jdText = s(ctx.jdText || (posting ? (posting.jd_text || jdTextForPosting(posting)) : "") || ctx.jd || (s(text).length > 500 ? s(text) : ""));
+    if (jdText && profile && Tailor) {
+      try {
+        const jd = Tailor.parseJD(jdText);
+        const gaps = Tailor.computeGaps(profile, jd);
+        const verdict = Tailor.eligibilityVerdictFor(gaps);
+        const failed = gaps.filter((g) => g.reasonClass === "knockout-failed");
+        const required = gaps.filter((g) => g.gapClass === "required" && g.reasonClass !== "knockout-failed");
+        const facts = [verdict.line.replace(/^Eligibility verdict: /, "Verdict: ")];
+        for (const g of failed.slice(0, 4)) facts.push(`Not met: ${g.requirement} — ${g.reason}`);
+        for (const g of required.slice(0, 4)) facts.push(`Required and not evidenced: ${g.requirement}.`);
+        if (!failed.length && !required.length) facts.push("Every hard requirement and required skill the posting states is evidenced on your record.");
+        const reply = compose({ headline: `Graded against the posting's own text${posting && posting.company ? ` — ${posting.title || "the role"} at ${posting.company}` : ""}.`, facts, nextStep: "Want the tailored packet for it — the gaps travel with the document, named, never hidden — or another posting graded the same way?" });
+        return { intent: "eligibility_check", reply, resultStatus: "prepared", sends: 0, eligibility: { status: verdict.status, gaps } };
+      } catch { /* grading failed mechanically — fall through to the honest deflection, never a guessed verdict */ }
+    }
+    // No gradeable posting in reach: name exactly what is missing.
+    const trimPhrase = (p) => { const out = []; for (const w of p.split(/\s+/).filter(Boolean)) { if (/^(am|is|are|was|were|do|does|did|would|can|could|should|i|you|the|a|an|for|to|of|in|on|at|or|and|with|without|eligible|eligibility)$/.test(w)) break; out.push(w); } return out.join(" "); };
+    const classes = [];
+    const licM = t.match(/\blicen[cs]ed\s+([a-z][a-z &]{2,40})/) || t.match(/\b([a-z][a-z &]{2,40}?)\s+licen[cs]e\b/);
+    if (licM && trimPhrase(licM[1])) classes.push({ name: `${trimPhrase(licM[1])} license`, probe: /licen[cs]/ });
+    else if (/\blicen[cs]e\b/.test(t)) classes.push({ name: "the license the posting requires", probe: /licen[cs]/ });
+    if (/\bcertif/.test(t)) { const cm = t.match(/\bcertified\s+([a-z][a-z &]{2,40})/) || t.match(/\b([a-z][a-z &]{2,40}?)\s+certification\b/); classes.push({ name: cm && trimPhrase(cm[1]) ? `${trimPhrase(cm[1])} certification` : "the certification the posting requires", probe: /certif/ }); }
+    if (/\b(degree|bachelor'?s|master'?s)\b/.test(t)) classes.push({ name: "the degree the posting requires", probe: /degree|bachelor|master|university|college/ });
+    const yrM = t.match(/\b(\d+)\s*(?:\+|or more)?\s*years?\b/);
+    if (yrM) classes.push({ name: `${yrM[1]} years of experience`, probe: /experience|interned|worked/ });
+    if (/\b(authoriz|sponsorship|sponsor|citizen|visa|work permit)\b/.test(t)) classes.push({ name: "work authorization", probe: /authoriz|citizen|sponsor/ });
+    const hay = [];
+    if (profile) { for (const f of profile.facts || []) hay.push(s(f.text || f.value || "")); if (profile.basics) hay.push(s(profile.basics.location || "")); }
+    for (const f of statedFactsOf(ctx)) hay.push(`${f.value} ${f.evidence || ""}`);
+    // NOTE: each fact below is ONE sentence by construction — 140's
+    // composer keeps the first sentence of a fact and drops the rest.
+    const facts = ["Eligibility is judged requirement by requirement from the posting's own text — the same grading the tailored packet prints — and with no posting on this thread there is nothing honest to grade yet, so no verdict will be guessed."];
+    if (classes.length) {
+      for (const cl of classes.slice(0, 2)) {
+        const hit = cl.probe ? hay.find((h) => cl.probe.test(lc(h))) : null;
+        facts.push(hit
+          ? `The fact this turns on: ${cl.name} — and your record does speak to it: "${hit}".`
+          : `The fact this turns on: ${cl.name} — your record does not show it, so if you hold it, state it in your own words and it is recorded in this turn; if you don't, that one requirement by itself decides this posting.`);
+      }
+    } else {
+      facts.push("What it will turn on is the posting's hard requirements — a license or certification, a degree, years of experience, work authorization — each one checked against your record, none of them assumed.");
+    }
+    const reply = compose({ headline: "Eligibility can't be graded without the posting — here is exactly what it takes.", facts, nextStep: "Paste the posting text, or name the company and role and I'll take the posting from the board list — the verdict is graded and spoken in that turn." });
+    return { intent: "eligibility_check", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
   // ---------- DEPTH LANE A (MI-013 / MI-021, LF-01h): memory USE —
   // follow-ups that are answered FROM the record the user already
   // built: a read-back of what is on record, a fit ranking over the
@@ -44403,9 +44504,13 @@ const CareerRouter = (() => {
     }
     const C = threadContextOf(ctx);
     // A self-check question ("am I a sophomore?") is answered FROM
-    // the record — including the honest empty record.
+    // the record — including the honest empty record. BUG-271:
+    // "am I eligible / qualified" is NOT a self-check — it is an
+    // eligibility ask, owned by handleEligibilityAsk above; letting
+    // it land here answered a grading question with a record
+    // non-sequitur ("That is not on your record…").
     const selfCheck = t.match(/\bam i (?:a |an )?(\w+)\b/);
-    if (selfCheck && /\?/.test(s(text))) {
+    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified)$/.test(selfCheck[1])) {
       const w = selfCheck[1];
       const hit = C.facts.find((f) => lc(f.value).includes(w) || lc(f.kind) === w);
       const reply = hit

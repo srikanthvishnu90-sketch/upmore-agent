@@ -18,7 +18,11 @@ const cases=[
   {id:'discard_outstanding_on_cancel',file:core,from:'trackOutstanding(s,s.checkpoint.pending_reasoning,true);',to:'s.checkpoint.outstanding_reasoning=[];',test:'recovery-checkpoints',pattern:'first unknown after control'},
   {id:'reopen_terminal_settlement',file:reasoning,from:"previous?.budget_state==='uncertain'&&previous.request?.action_id===event.action_id",to:'previous?.request?.action_id===event.action_id',test:'recovery-settlement',pattern:'detached settlement authenticates'},
   {id:'reject_canonical_zero_version',file:context,from:'Number.isSafeInteger(item.version)&&item.version>=0',to:'Number.isSafeInteger(item.version)&&item.version>0',test:'context-versions',pattern:'facts preserve canonical nonnegative safe version 0'},
-  {id:'accept_negative_fractional_version',file:context,from:'Number.isSafeInteger(item.version)&&item.version>=0',to:"typeof item.version==='number'",test:'context-versions',pattern:'facts reject invalid evidence version (-1|0.5)'}
+  {id:'accept_negative_fractional_version',file:context,from:'Number.isSafeInteger(item.version)&&item.version>=0',to:"typeof item.version==='number'",test:'context-versions',pattern:'facts reject invalid evidence version (-1|0.5)'},
+  {id:'repeat_pause_frames',file:core,from:"if(s.status==='active'){\n      s.checkpoint.interruption_stack.push",to:'if(true){\n      s.checkpoint.interruption_stack.push',test:'adversarial-controls',pattern:'stop dominates subsequent pause'},
+  {id:'retain_resumed_pause_frames',file:core,from:'s.checkpoint.interruption_stack=[];if(prior)',to:'/* planted: retain old frames */if(prior)',test:'adversarial-controls',pattern:'resume consumes legacy duplicate'},
+  {id:'block_stale_stop',file:core,from:"!['pause','stop','reasoning_result'].includes(event.type)",to:"!['pause','reasoning_result'].includes(event.type)",test:'adversarial-compositions',pattern:'stop-before-invalidation'},
+  {id:'discard_stale_settlement',file:core,from:"!['pause','stop','reasoning_result'].includes(event.type)",to:"!['pause','stop'].includes(event.type)",test:'adversarial-compositions',pattern:'settlement-before-invalidation'}
 ];
 function run(output){
   fs.mkdirSync(output,{recursive:false});const temp=fs.mkdtempSync(path.join(os.tmpdir(),'interview-negative-'));const records=[];

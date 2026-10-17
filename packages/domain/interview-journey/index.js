@@ -107,11 +107,14 @@ const CareerInterviewJourney = (() => {
     s.revision++;s.updated_at=event.at;s.context_binding=H.clone(snapshot.binding);
     const changesContent=['time_change','context_changed','submit_answer','style_edit','select_question','read_source'].includes(event.type)||(event.type==='model_candidate'&&s.checkpoint.pending_reasoning&&event.action_id===s.checkpoint.pending_reasoning.action_id)||(event.type==='tool_result'&&s.checkpoint.pending_research);
     if(changesContent&&s.completion.artifact){s.completion={artifact:null,unmet_conditions:['Journey changed; build and reopen a current pack']};if(s.stage==='completed'||s.stage==='pack_ready')s.stage='plan_ready';}
+    // Detach stale content work without swallowing controls or trusted settlement.
+    const staleDependencies=event.type!=='context_changed'&&s.dependencies.some(r=>{try{C.resolve(snapshot,r);return false;}catch{return true;}});
+    if(staleDependencies&&snapshot.binding.epoch===s.epoch){detachReasoning(s,'stale_context',event.at);s.checkpoint.pending_artifact=null;s.completion={artifact:null,unmet_conditions:['Evidence changed; apply typed invalidations and reopen a current pack']};if(s.stage==='completed')s.stage='plan_ready';}
     if(state&&snapshot.binding.epoch!==state.epoch){
       C.assert(snapshot.binding.epoch>state.epoch,'context epoch moved backward');
       s=initial(snapshot,{...event,journey_id:state.journey_id,available_minutes:null,mode:state.mode});s.revision=state.revision+1;s.epoch=snapshot.binding.epoch;s.status='cancelled';s.stage='intake';reply={status:'stale_context',text:'Previous journey data belongs to an erased epoch. Start again from current authorized evidence.'};
-    }else if(event.type!=='context_changed'&&s.dependencies.some(r=>{try{C.resolve(snapshot,r);return false;}catch{return true;}})){
-      detachReasoning(s,'stale_context',event.at);s.checkpoint.pending_artifact=null;s.completion={artifact:null,unmet_conditions:['Evidence changed; apply typed invalidations and reopen a current pack']};if(s.stage==='completed')s.stage='plan_ready';reply={status:'stale_context',text:'Evidence versions changed. Apply the host typed invalidation before continuing or creating an artifact.'};
+    }else if(staleDependencies&&!['pause','stop','reasoning_result'].includes(event.type)){
+      reply={status:'stale_context',text:'Evidence versions changed. Apply the host typed invalidation before continuing or creating an artifact.'};
     }else if(state?.processed_events.some(e=>e.id===event.id)){
       const old=state.processed_events.find(e=>e.id===event.id);C.assert(old.input_digest===digest,'same event key changed input');reply={status:'blocked',reason:'already_processed',text:'This event was already processed. Use the host committed replay receipt.'};
     }else if(event.type==='start'){
@@ -119,11 +122,13 @@ const CareerInterviewJourney = (() => {
       if(s.constraints.available_minutes===null)s.checkpoint.unresolved_asks.push(askRecord('time_budget','How many minutes do you have now?'));
       if(s.role_support!=='early_career_software'){reply.status=s.role_support==='unsupported_full_slice'?'unsupported':'needs_clarification';reply.text='We can practice your real project. Full role-specific coverage requires a confirmed early-career software target; this module does not infer a role family from a title.';}
     }else if(event.type==='pause'){
+      if(s.status==='active'){
       s.checkpoint.interruption_stack.push({stage:s.stage,active_question:s.checkpoint.active_question,active_attempt_id:s.checkpoint.active_attempt_id,unresolved_asks:H.clone(s.checkpoint.unresolved_asks)});
       const frame=s.checkpoint.interruption_stack.at(-1);if(frame)for(const key of ['next_exercise','next_transfer_question_id','transfer_competency'])if(s.checkpoint[key]!==undefined)frame[key]=H.clone(s.checkpoint[key]);
-      s.status='paused';detachReasoning(s,'pause',event.at);reply.text='Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.';
+      s.status='paused';}detachReasoning(s,'pause',event.at);reply.text=s.status==='partial_at_user_stop'?'Already stopped. Resume explicitly before continuing.':'Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.';
     }else if(event.type==='resume'){
-      const prior=s.checkpoint.interruption_stack.pop();if(prior)Object.assign(s.checkpoint,prior); // stage belongs to state, not checkpoint
+      // Consume the suspension once, including duplicate frames from older states.
+      const prior=s.status==='active'?null:s.checkpoint.interruption_stack.at(-1);s.checkpoint.interruption_stack=[];if(prior)Object.assign(s.checkpoint,prior); // stage belongs to state, not checkpoint
       if(prior){s.stage=prior.stage;delete s.checkpoint.stage;}s.status='active';reply.text='Resuming the saved question and latest valid draft.';
       s.checkpoint.stage=s.stage;sanitizeCheckpoint(s,s.checkpoint);s.stage=s.checkpoint.stage;delete s.checkpoint.stage;
       if(s.checkpoint.active_question)emit('ask_question',{question_id:s.checkpoint.active_question.id,text:s.checkpoint.active_question.text,representative_practice:true});

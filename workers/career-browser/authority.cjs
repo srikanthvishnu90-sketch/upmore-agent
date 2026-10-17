@@ -10,7 +10,13 @@ function createTaskAuthority({ call, workerId }) {
   function rpc(name, args) {
     let data;
     try { data = call(name, args); }
-    catch (e) { throw fail(/revoked|stale|missing|paused|uncertain|already consumed|binding/.test(e.message || "") ? "TASK_AUTHORITY_REVOKED" : "TASK_AUTHORITY_UNAVAILABLE"); }
+    catch (e) {
+      const message=e.message||'';
+      if(/task submission cap reached:/.test(message))throw fail('TASK_SUBMISSION_CAP_REACHED');
+      if(/task submission history incomplete/.test(message))throw fail('TASK_SUBMISSION_HISTORY_INCOMPLETE');
+      if(/task submission accounting binding missing/.test(message))throw fail('TASK_SUBMISSION_ACCOUNTING_REQUIRED');
+      throw fail(/revoked|stale|missing|paused|uncertain|already consumed|binding/.test(message) ? "TASK_AUTHORITY_REVOKED" : "TASK_AUTHORITY_UNAVAILABLE");
+    }
     if (data?.then) throw fail("SYNC_AUTHORITY_TRANSPORT_REQUIRED");
     if (!data || typeof data !== "object" || data.error) throw fail("TASK_AUTHORITY_UNAVAILABLE");
     return data;
@@ -44,6 +50,11 @@ function createTaskAuthority({ call, workerId }) {
     },
     begin(grant, operation, effectKey) {
       return rpc("career_task_begin_effect_v1", { p_user: grant.userId, p_intent: grant.intentId, p_lease: grant.leaseToken, p_task: grant.taskId, p_operation: operation, p_effect_key: effectKey, p_bindings: grant.binding });
+    },
+    history(grant) {
+      const data=rpc('career_application_admission_history_v1',{p_user:grant.userId,p_intent:grant.intentId,p_lease:grant.leaseToken,p_task:grant.taskId});
+      if(!Array.isArray(data.records)||data.records.some(r=>r.userId!==grant.userId||r.status!=='submission_admitted'||!Number.isFinite(Date.parse(r.timestamp))||typeof r.company!=='string'||!r.company||typeof r.vendor!=='string'||!r.vendor))throw fail('TASK_SUBMISSION_HISTORY_INCOMPLETE');
+      return {records:data.records};
     },
     consume(grant, ticket) {
       const data = rpc("career_task_consume_effect_v1", { p_user: grant.userId, p_token: ticket.token });

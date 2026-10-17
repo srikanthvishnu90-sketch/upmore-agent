@@ -22,6 +22,13 @@ function mockAuthority(root) {
       write(data); return intentId;
     },
     current(userId) { const data=read();return clone(account(data,userId)); },
+    history(g) {
+      const d=read();active(d,g);
+      return {records:Object.values(d.effects).filter(e=>e.userId===g.userId&&e.operation==='submit').map(e=>{
+        const p=Object.values(d.intents).find(i=>i.userId===g.userId&&i.taskId===e.taskId&&i.request?.posting)?.request.posting;
+        return {userId:g.userId,status:'submission_admitted',timestamp:e.admittedAt,company:p?.company,vendor:'controlled_loopback'};
+      })};
+    },
     claim({ userId, intentId, taskId, expected }) {
       const data=read(), g=data.intents[intentId];
       if(!g||g.userId!==userId)throw fail("TASK_INTENT_REQUIRED");
@@ -34,7 +41,7 @@ function mockAuthority(root) {
       const data=read();active(data,g,operation==="destination_readback");
       if(data.effects[key])throw fail("TASK_EFFECT_OUTCOME_UNCERTAIN");
       if(operation!=="destination_readback"&&Object.values(data.effects).some(e=>e.taskId===g.taskId&&["started","uncertain"].includes(e.state)))throw fail("TASK_AUTHORITY_REVOKED");
-      data.effects[key]={token:key,effectKey:key,taskId:g.taskId,state:"reserved",operation};write(data);return clone(data.effects[key]);
+      data.effects[key]={token:key,effectKey:key,userId:g.userId,taskId:g.taskId,state:"reserved",operation,admittedAt:new Date().toISOString()};write(data);return clone(data.effects[key]);
     },
     consume(g,ticket) {const d=read();active(d,g,ticket.operation==="destination_readback");const e=d.effects[ticket.token];if(e?.state!=="reserved")throw fail("TASK_AUTHORITY_REVOKED");e.state="started";write(d);},
     settle(g,ticket,state,beforeSha256,afterSha256) {const d=read(),e=d.effects[ticket.token];if(!e)throw fail("TASK_AUTHORITY_UNAVAILABLE");Object.assign(e,{state,beforeSha256,afterSha256});write(d);return clone(e);},

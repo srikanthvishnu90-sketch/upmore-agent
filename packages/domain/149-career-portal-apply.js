@@ -185,9 +185,8 @@ const CareerPortalApply = (() => {
   }
 
   // ---------- §6.4 caps: decided numbers, enforced (MI-110 / BUG-233) ----------
-  // Counts come from the submissions ledger (log.records, status
-  // "submitted") — the same records submitDoorstep writes, so the ledger
-  // is the per-user record across threads wherever the host persists it.
+  // Count completed submissions and durable pre-dispatch admissions. An
+  // admission reserves quota conservatively; it is not a submission receipt.
   function tsMs(ts) {
     if (typeof ts === "number" && Number.isFinite(ts)) return ts;
     const ms = Date.parse(String(ts == null ? "" : ts));
@@ -205,7 +204,7 @@ const CareerPortalApply = (() => {
   }
   function capCheck(log, userId, posting, now, board) {
     const p = posting || {};
-    const recs = ((log && log.records) || []).filter((r) => r.userId === userId && r.status === "submitted");
+    const recs = ((log && log.records) || []).filter((r) => r.userId === userId && ["submitted", "submission_admitted"].includes(r.status));
     const day = daySlice(now);
     const vendor = p.vendor || vendorOf(p) || (board && board.atsFamily) || null;
     const company = p.company || null;
@@ -237,7 +236,8 @@ const CareerPortalApply = (() => {
     return {
       decisionPending: false, enforced: true, // §6.4 numbers are the owner's decided caps (MI-110)
       specDefaults: Object.assign({}, SPEC_CAPS),
-      submittedToday: chk.counts.perDay,
+      submittedToday: recs.some(r=>r.userId===userId&&r.status==='submission_admitted'&&daySlice(r.timestamp)===daySlice(now)) ? null : chk.counts.perDay,
+      admittedToday: chk.counts.perDay,
       counts: chk.counts,
       remaining: {
         perDay: Math.max(0, SPEC_CAPS.perDay - chk.counts.perDay),

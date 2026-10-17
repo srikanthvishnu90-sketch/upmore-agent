@@ -62894,6 +62894,29 @@
     "No employer or paid provider call.",
     "PostgreSQL resume chain is separately recorded."
    ]
+  },
+  {
+   "id": "mass-atomic-admissions-20261017",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only",
+    "--sql-file=career-critical-repairs/application-admissions-postgres.test.cjs"
+   ],
+   "commit": "ca473fa8",
+   "source_hashes": "docs/career/mass-applications-20261017/admission-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 7,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/admission-seven-local-postgres.log",
+   "log_sha256": "bf1ff5f91753f4028bf0d78ab3fc84a00cc36fb309c4a8c9e5b60caf2b0deed8",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Synthetic outbox, actual isolated PostgreSQL. No browser or employer outcome."
+   ]
   }
  ],
  "limitations": [

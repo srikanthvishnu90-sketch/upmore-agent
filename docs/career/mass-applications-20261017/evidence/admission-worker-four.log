@@ -1,0 +1,12 @@
+✔ batch triage holds only the unresolved role and preserves its essential question (10.711166ms)
+✔ durable cap history stops a role before opening a browser, without claiming a receipt (7.807794ms)
+✔ unavailable durable history never becomes an empty application log (1.919705ms)
+✔ a transactional quota refusal at the final race boundary proves no click; uncertainty stays fenced (24.415945ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 124.898569

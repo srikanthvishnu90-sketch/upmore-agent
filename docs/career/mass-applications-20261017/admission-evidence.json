@@ -1,0 +1,31 @@
+{
+  "observedAt": "2026-10-17T14:51:16.472801+00:00",
+  "base": "ca473fa8",
+  "sourceSha256": {
+    "supabase/sql/proposals/career_application_admissions_v1.sql": "f7e570e858eba160bc1928e480e0bedde2e1ab3eaff5c120bfbc531ba31145e7",
+    "workers/career-browser/authority.cjs": "4125fdb3a25cf9ef04f1321594188c27c733a5bd1c56f7fa3bfe77c28cde19ad",
+    "workers/career-browser/service.cjs": "2b8645d894292ed5cc8b830d0228e7596eb0e09f02f9b7fa91d0ab854a6a2203",
+    "packages/domain/149-career-portal-apply.js": "2268a2173a51f69e27202791591d6b2a44059a0348a32667eecccc3b3dce2c58",
+    "tests/fixtures/owned-worker-authority.cjs": "ffe28e7fb806cae2e004a471e6a55c845b09911c5c03621e8939cdda4411dcf3",
+    "tests/career-critical-repairs/application-admissions-postgres.test.cjs": "f18a6e2f60b050308713564a1f8bf8dccc2bb78d8e3506872bab512231a32a2a",
+    "tests/career-mass-readiness.test.cjs": "ab5803fb7daf4b3feb683df3fc0eead61500bc1a6e22085343e2f19caf60b7dd",
+    "scripts/career/critical-repairs/ci-node.cjs": "69359dd09456382b5cdef30f85f02fd7d406df908ab429d4df7629637ada32cf",
+    "supabase/functions/_shared/router_core.js": "dc5ceca55bfd311a4e968abfd489b3c1d24fe96d91a6cdf0399dc1c77b1b33ad",
+    "supabase/functions/_shared/router_core.career.js": "acafeebcf0f9b8df0ce589d807dbc7e3373862fb4999568bd85614a62a905f82"
+  },
+  "checks": {
+    "before": "Sixth vendor admission unexpectedly accepted on original schema; retained expected-failure assertion.",
+    "localPostgres": "7/7 PASS, including concurrent final-slot race",
+    "workerIntegration": "48/48 PASS plus4/4 focused mass-readiness contracts",
+    "precommitFullSource": {
+      "passed": 4763,
+      "failed": 1,
+      "skipped": 40,
+      "remainingFailure": "Deterministic worker bundle refuses uncommitted allowlisted source; no gate was weakened. Exact committed rerun pending."
+    },
+    "fullPostgres": "IN_PROGRESS"
+  },
+  "paidCalls": 0,
+  "employerSubmissions": 0,
+  "originalArchives": "MISSING, required gate not waived"
+}

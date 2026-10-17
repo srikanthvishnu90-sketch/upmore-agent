@@ -269,10 +269,15 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const deadline = now() + timeoutMs;
     let run,equipment;
     try {
+      // This history is an owned SQL read, never an empty host-local log.
+      // It counts conservative admissions without claiming employer success.
+      const log=authority.history(t.authority);
+      const caps=Portal.capCheck(log,t.userId,t.spec.posting,new Date(now()).toISOString());
+      if(!caps.ok){t.status='blocked';t.blocker='CAP_REACHED';save(t,'check');return publicTask(t);}
       const e = equipment = equip(t);
       run = executeBoard(t, e, deadline);
       const session = Portal.createPortalSession({ userId: t.userId, board: run.board });
-      const prepared = Portal.runApply(session, { userId: t.userId, posting: t.spec.posting, profile: e.profile, attestations: e.attestations || {}, log: { records: [] }, now: new Date(now()).toISOString() });
+      const prepared = Portal.runApply(session, { userId: t.userId, posting: t.spec.posting, profile: e.profile, attestations: e.attestations || {}, log, now: new Date(now()).toISOString() });
       if (prepared.resultStatus !== "prepared") {
         t.status = prepared.resultStatus; t.asks = prepared.asks || []; t.blocker = prepared.code || null;
         save(t, "check"); return publicTask(t);
@@ -304,7 +309,10 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       // exactly the doorstep's hash. Without it, 149's MI-116 gate correctly
       // refuses the hashless approval (APPROVAL_PAYLOAD_MISMATCH) before the
       // arming wire and no click ever happens.
-      const outcome = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: approval.approvalRef, payloadSha256: approval.payloadSha256 }, { posting: t.spec.posting, log: { records: [] }, now: new Date(now()).toISOString() });
+      const outcome = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: approval.approvalRef, payloadSha256: approval.payloadSha256 }, { posting: t.spec.posting, log: authority.history(t.authority), now: new Date(now()).toISOString() });
+      if(outcome.resultStatus==='blocked'&&outcome.code==='CAP_REACHED'){
+        t.attempt=null;t.status='blocked';t.blocker='CAP_REACHED';save(t,'check');return publicTask(t);
+      }
       const proof = destinationProof(t,run.board);
       t.status = validProof(t, proof) ? "completed" : "unknown_outcome";
       t.result = { kind: "career_browser_result", taskId: t.id, status: t.status, approvalRef: approval.approvalRef,
@@ -316,6 +324,9 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       save(t, "check");
       return publicTask(t);
     } catch (e) {
+      // Only an explicit transactional admission refusal proves no submit was
+      // dispatched. Network/settlement uncertainty retains the write-ahead fence.
+      if(e.code==='TASK_SUBMISSION_CAP_REACHED')t.attempt=null;
       t.status = t.attempt || e.effectUncertain ? "unknown_outcome" : /REVOKED/.test(e.code || "") ? "cancelled" : "blocked";
       t.blocker = e.code || "WORKER_RUNTIME_FAILURE";
       save(t, "check");

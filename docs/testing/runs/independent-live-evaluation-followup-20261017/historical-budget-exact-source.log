@@ -1,0 +1,16 @@
+(node:1716) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ published campaign identity and fixed default path match supplied blob (0.784776ms)
+✔ missing disposable ledger status initializes a fresh zero budget (12.410432ms)
+✔ deleting only a disposable spent ledger permits zero reinitialization (4.903849ms)
+✔ unchanged valid ledger enforces its shared cap across clients (3.183958ms)
+✔ three unknown receipts stop further calls while retaining their bounds (8.950485ms)
+✔ malformed disposable ledger lacking limit bypasses comparison: snapshot validity required (4.267578ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 173.051622

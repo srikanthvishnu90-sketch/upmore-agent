@@ -109,3 +109,9 @@ tool; forwarding this contract does not require sharing scenario prompts.
 
 **New spend $0; new provider liabilities $0. Old $5 held; task maximum $1;
 $1 remains unused. Live model and production NOT_RUN.**
+
+Exact tested evaluator source: `3c0020f6c5734d7d302cbb534fb8f3bec3bba900`.
+[Recorded followup checks](../../testing/runs/independent-live-evaluation-followup-20261017/results.json)
+include per-file hashes, raw logs and **34 + 6 passing controls**, with all three
+check records appended to the evidence ledger. Subsequent publication changes
+only documentation/evidence.

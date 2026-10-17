@@ -1,0 +1,29 @@
+✔ bounded plain container refuses escaped-PDF-action (6.175674ms)
+✔ bounded plain container refuses UTF16-DOCX-DTD (1.363389ms)
+✔ bounded plain container refuses UTF16-DOCX-template (0.52051ms)
+✖ bounded plain container refuses UTF16-DOCX-mapped-settings-dat (9.143652ms)
+✔ literal active controls are refused and plain original bytes survive unchanged (7.34357ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 86.574332
+
+✖ failing tests:
+
+test at tests/combined-applicant-document-policy.test.cjs:3:24
+✖ bounded plain container refuses UTF16-DOCX-mapped-settings-dat (9.143652ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/tmp/upmore-integration-publication/tests/combined-applicant-document-policy.test.cjs:3:178)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /DIALECT_UNSUPPORTED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

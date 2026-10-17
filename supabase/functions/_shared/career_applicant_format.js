@@ -26,6 +26,29 @@ function pdf(bytes){
  }
  if(!count)fail('PDF_CONTAINER_INVALID');
 }
+function xmlText(bytes){
+ let xml;try{xml=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch(_){fail('DOCX_DIALECT_UNSUPPORTED');}
+ const encoding=/<\?xml\s[^?]*\bencoding\s*=\s*['"]([^'"]+)['"]/i.exec(xml)?.[1];
+ if(xml.includes('\0')||(encoding&&!/^(?:utf-8|us-ascii)$/i.test(encoding))||/<!DOCTYPE|<!ENTITY|macroEnabled|vbaProject|oleObject|attachedTemplate/i.test(xml))fail('DOCX_DIALECT_UNSUPPORTED');
+ return xml;
+}
+function xmlPartTypes(bytes){
+ const xml=xmlText(bytes),defaults=new Map(),overrides=new Map();
+ if(/[^\x09\x0a\x0d\x20-\x7e]/.test(xml))fail('DOCX_DIALECT_UNSUPPORTED');
+ // Bounded OPC declarations; encoded metadata is deliberately unsupported.
+ // This inspects content types, not just suffixes, without rewriting entries.
+ for(const tag of xml.replace(/<!--[\s\S]*?-->/g,'').matchAll(/<(?:[A-Za-z_][\w.-]*:)?(Default|Override)\b([^<>]*?)\/?\s*>/g)){
+  let rest=tag[2],attrs={};
+  while(rest.trim()){
+   const a=/^\s+([A-Za-z_][\w:.-]*)\s*=\s*(?:"([^"<&]*)"|'([^'<&]*)')/.exec(rest);
+   if(!a||Object.hasOwn(attrs,a[1]))fail('DOCX_DIALECT_UNSUPPORTED');attrs[a[1]]=a[2]??a[3];rest=rest.slice(a[0].length);
+  }
+  const type=attrs.ContentType;if(!type)continue;
+  if(tag[1]==='Default'&&attrs.Extension){const key=attrs.Extension.toLowerCase();if(!/^[a-z0-9]+$/.test(key)||defaults.has(key))fail('DOCX_DIALECT_UNSUPPORTED');defaults.set(key,type);}
+  if(tag[1]==='Override'&&attrs.PartName){const key=attrs.PartName;if(!/^\/[\x21-\x7e]+$/.test(key)||/[\\%?#]/.test(key)||key.split('/').some(x=>x==='.'||x==='..')||overrides.has(key.toLowerCase()))fail('DOCX_DIALECT_UNSUPPORTED');overrides.set(key.toLowerCase(),type);}
+ }
+ return {defaults,overrides};
+}
 function docx(bytes){
  let end=-1;for(let p=bytes.length-22;p>=Math.max(0,bytes.length-65557);p--)if(bytes.readUInt32LE(p)===0x06054b50&&p+22+bytes.readUInt16LE(p+20)===bytes.length){end=p;break;}
  if(end<0)fail('DOCX_CONTAINER_INVALID');
@@ -46,13 +69,16 @@ function docx(bytes){
   if(/\.(?:xml|rels)$/i.test(name)){
    // Only UTF-8/ASCII XML is supported. A fatal decode and NUL refusal prevent
    // UTF-16/32 or legacy encodings from hiding active dialect markers.
-   let xml;try{xml=new TextDecoder('utf-8',{fatal:true}).decode(result);}catch(_){fail('DOCX_DIALECT_UNSUPPORTED');}
-   const encoding=/<\?xml\s[^?]*\bencoding\s*=\s*['"]([^'"]+)['"]/i.exec(xml)?.[1];
-   if(xml.includes('\0')||(encoding&&!/^(?:utf-8|us-ascii)$/i.test(encoding))||/<!DOCTYPE|<!ENTITY|macroEnabled|vbaProject|oleObject|attachedTemplate/i.test(xml))fail('DOCX_DIALECT_UNSUPPORTED');
+   xmlText(result);
   }
   parts.set(name,result);p+=46+len+extra+comment;
  }
  if(p!==end||!parts.has('[Content_Types].xml')||!parts.has('_rels/.rels')||!parts.has('word/document.xml')||!/wordprocessingml\.document\.main\+xml/.test(parts.get('[Content_Types].xml').toString())||!/<(?:\w+:)?document\b/.test(parts.get('word/document.xml').toString())||!/<\/(?:\w+:)?document>/.test(parts.get('word/document.xml').toString()))fail('DOCX_CONTAINER_INVALID');
+ const types=xmlPartTypes(parts.get('[Content_Types].xml'));
+ for(const [name,part]of parts){
+  const type=types.overrides.get('/'+name.toLowerCase())||types.defaults.get(name.split('.').pop().toLowerCase());
+  if(type&&/(?:\/|\+)xml$/i.test(type.split(';')[0].trim()))xmlText(part);
+ }
 }
 export async function validateResume(input,filename,contentType){
  const bytes=Buffer.from(input);

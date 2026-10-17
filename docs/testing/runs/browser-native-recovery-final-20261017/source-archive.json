@@ -1,0 +1,12 @@
+{
+  "codeSha": "ac0946f92a6fcbf80ac5ceba33470b5a5728e7c5",
+  "archive": "/tmp/upmore-browser-native-recovery-ac0946f9.tgz",
+  "sha256": "1ad80a266e53bf7035cc01a34d2defd4e190f0ec56765777d4c6b41af1b7a12b",
+  "files": 32,
+  "verification": "SOURCE_ONLY_NOT_DEPLOYED",
+  "extractedModuleLoad": {
+    "requiredModules": 5,
+    "manifestMode": "modeled_loopback",
+    "externalRequests": 0
+  }
+}

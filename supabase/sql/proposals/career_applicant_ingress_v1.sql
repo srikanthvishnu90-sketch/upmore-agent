@@ -28,7 +28,7 @@ alter table career_applicant_resumes_v1 add column upload_id uuid,add column con
 create function public.career_applicant_upload_sweep_v1(p_user uuid,p_limit integer default 20) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
 declare n integer;
 begin
- if p_user is null or p_limit not between 1 and 100 then raise exception 'invalid upload cleanup scope';end if;
+ if p_user is null or p_limit is null or p_limit not between 1 and 100 then raise exception 'invalid upload cleanup scope';end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
  with expired as(select upload_id from career_applicant_uploads_v1 where user_id=p_user and not confirmed and expires_at<=clock_timestamp() order by expires_at limit p_limit)
  delete from career_applicant_uploads_v1 u using expired e where u.user_id=p_user and u.upload_id=e.upload_id;
@@ -109,7 +109,8 @@ begin
  if b is null or encode(sha256(b),'hex') is distinct from v.sha256 then raise exception 'owned upload bytes unavailable';end if;
  select state->'career' into f from agent_flow_state where thread_id=t and user_id=u;
  f:=coalesce(f,jsonb_build_object('v',1,'scope',jsonb_build_object('userId',u),'stores','{}'::jsonb));
- profile:=coalesce(f#>'{stores,profile}',jsonb_build_object('id','applicant-'||u,'basics','{}'::jsonb,'preferences','{}'::jsonb,'constraints','{}'::jsonb,'defaults','{}'::jsonb,'facts','[]'::jsonb,'connections','[]'::jsonb));
+ profile:=coalesce(f#>'{stores,profile}',p_base->'p_profile_defaults');
+ if jsonb_typeof(profile) is distinct from 'object' or jsonb_typeof(profile->'basics') is distinct from 'object' then raise exception 'server profile defaults required';end if;
  profile:=jsonb_set(profile,'{basics}',coalesce(profile->'basics','{}'::jsonb));profile:=jsonb_set(profile,'{basics,links}',coalesce(profile#>'{basics,links}','{}'::jsonb));
  for k,x in select * from jsonb_each(p_fields) loop
   source_path:=case when k in ('linkedin','website','github') then array['basics','links',k] else array['basics',k] end;

@@ -2,6 +2,8 @@
 
 No existing file-upload ingress was found in the career handler/app/function source. The new standalone `supabase/functions/career-applicant/index.ts` uses verified Supabase Auth identity and the existing backend RPC credentials, without editing agent-chat, onboarding, native conversation or native browser files. Nothing is deployed or credential-bound.
 
+The handler reuses `CareerProfile.createProfile` from the existing career bundle for canonical defaults and the existing identity redactor for explicit field values; it does not create a second profile model or store prohibited identity/code/password text as a confirmed field.
+
 The source API has three distinct steps:
 
 - `POST /uploads`: multipart `threadId`, `requestId`, one original PDF/DOCX `file`, and optional `filename` declaration to preserve quotes exactly across multipart header encoding. The declaration must match the file header’s safe serialization; no arbitrary percent decoding occurs. The server validates an authenticated owner before bounded body parsing; it preserves bytes and creates an unconfirmed owned upload. File text never becomes applicant facts.
@@ -18,7 +20,7 @@ Field records contain source thread, turn key, exact typed request hash, owned u
 
 Unconfirmed uploads expire for access after 15 minutes; four active drafts and twenty confirmed versions per owner are the bounded pilot limits. Authenticated valid requests commit owner-scoped expired-byte cleanup separately, so a later refusal cannot roll that cleanup back. STOP denies review/confirmation/read, and ERASE removes both unconfirmed uploads and confirmed records for that owner. A backend `career_applicant_upload_sweep_v1(user,limit)` call is provided and tested. **Idle physical cleanup still requires an operator-integrated schedule**; no cron, resource or job was provisioned. Access expiry is enforced even before physical sweeping. Durable confirmed documents remain until owner erasure; backups follow the existing retention policy.
 
-The ingress unit tests execute the actual standalone entry graph with synthetic Auth and backend failures. PostgreSQL tests use that same entry, actual SQL functions and real task leases, with synthetic applicant records. Current focused result: 28 PostgreSQL cases and eight entry/format cases pass. The endpoint fails closed without its RPCs. The original resume-store proposal remains unapplied. No live user resume, application or employer receipt is represented by these source/unit checks.
+The ingress unit tests execute the actual standalone entry graph with synthetic Auth and backend failures. PostgreSQL tests use that same entry, actual SQL functions and real task leases, with synthetic applicant records. Current focused result: 28 PostgreSQL cases and nine entry/format cases pass. The endpoint fails closed without its RPCs. The original resume-store proposal remains unapplied. No live user resume, application or employer receipt is represented by these source/unit checks.
 
 
 Lease review follow-up: a real lock holder delayed the resolver past its owned lease deadline. Before the repair the regression failed with “Missing expected rejection”; after switching the post-lock expiry checks to `clock_timestamp()` it passes. This is an isolated source-level reproduction, not an observed live exploit. The runner also waits beyond the PostgreSQL image's temporary initialization server before loading schemas.

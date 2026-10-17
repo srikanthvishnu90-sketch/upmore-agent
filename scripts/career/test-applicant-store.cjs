@@ -17,7 +17,7 @@ try{
  for(const f of files)sql(fs.readFileSync(path.join(root,f),'utf8'),database);
  console.log(JSON.stringify({verification:'ISOLATED_POSTGRES_SYNTHETIC_APPLICANT_DATA',image,network:'none',persistentVolumes:0,sourceFiles:files,productionMutations:0}));
  const extra=process.argv.filter(x=>x.startsWith('--test-name-pattern='));
- const suites=process.argv.includes('--ingress')?['tests/career-applicant-ingress-postgres.test.cjs','tests/career-applicant-store-postgres.test.cjs']:['tests/career-applicant-store-postgres.test.cjs','tests/career-public-research-postgres.test.cjs','tests/career-claim-recovery-postgres.test.cjs'];
+ const suites=['tests/career-applicant-store-postgres.test.cjs','tests/career-public-research-postgres.test.cjs','tests/career-claim-recovery-postgres.test.cjs'];if(process.argv.includes('--ingress'))suites.unshift('tests/career-applicant-ingress-postgres.test.cjs');
  const result=spawnSync(process.execPath,[...extra,'--experimental-vm-modules','--test','--test-concurrency=1',...suites],{cwd:root,env:{...process.env,CAREER_TEST_CONTAINER:container,CAREER_TEST_DATABASE:database},stdio:'inherit'});process.exitCode=result.status??1;
 }catch(error){console.error('Applicant-store local verification failed: '+String(error.stderr||error.message));process.exitCode=1;}
 finally{if(created){try{docker(['rm','-f',container]);}catch(_){console.error('LOCAL_CONTAINER_CLEANUP_FAILED '+container);process.exitCode=1;}}}

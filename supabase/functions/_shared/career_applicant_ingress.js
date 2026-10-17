@@ -2,12 +2,14 @@
 import {Buffer} from 'node:buffer';
 import {validateResume,MAX_RESUME_BYTES} from './career_applicant_format.js';
 import {createCareerPersistence} from './career_persistence.js';
+import {redactIdentity} from './identity_redact.ts';
+import {CareerProfile} from './router_core.career.js';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,KEY=/^[A-Za-z0-9_-]{1,128}$/;
 const FIELDS=new Set(['name','first_name','last_name','email','phone','location','country','city','state','postal_code','linkedin','website','github']);
 const error=(code,status=400)=>Object.assign(new Error(code),{code,status});
 const canonical=x=>Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,canonical(x[k])])):x;
 export async function applicantRequestHash(value){const b=new TextEncoder().encode(JSON.stringify(canonical(value))),h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h),x=>x.toString(16).padStart(2,'0')).join('');}
-function fields(value){if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length>FIELDS.size)throw error('INVALID_APPLICANT_FIELDS');for(const [k,v]of Object.entries(value))if(!FIELDS.has(k)||typeof v!=='string'||!v.trim()||v.length>300||/[\x00-\x1f\x7f]/.test(v))throw error('INVALID_APPLICANT_FIELDS');return value;}
+function fields(value){if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length>FIELDS.size)throw error('INVALID_APPLICANT_FIELDS');for(const [k,v]of Object.entries(value))if(!FIELDS.has(k)||typeof v!=='string'||!v.trim()||v.length>300||/[\x00-\x1f\x7f]/.test(v)||redactIdentity(v).removed.length)throw error('INVALID_APPLICANT_FIELDS');return value;}
 async function bodyBytes(req,limit){
  const declared=req.headers.get('content-length');if(declared!==null&&(!/^\d+$/.test(declared)||Number(declared)>limit))throw error('REQUEST_SIZE_LIMIT',413);
  const chunks=[];let size=0;const reader=req.body?.getReader();if(!reader)throw error('REQUEST_BODY_REQUIRED');
@@ -54,7 +56,7 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=[]}){
    await call('career_applicant_upload_sweep_v1',{p_user:user.id});
    let loaded;try{loaded=await persistence.load({userId:user.id,threadId,turnKey:requestId,requestHash});}catch(e){throw error(e.code==='storage_unavailable'?'APPLICANT_STORAGE_UNAVAILABLE':e.code,['turn_key_conflict','privacy_epoch_changed','owned_thread_missing'].includes(e.code)?409:503);}
    if(loaded.replay)return respond(200,loaded.replay);
-   const base={p_user:user.id,p_thread:threadId,p_key:requestId,p_hash:requestHash,p_revision:loaded.revision,p_account_version:loaded.accountVersion};
+   const base={p_user:user.id,p_thread:threadId,p_key:requestId,p_hash:requestHash,p_revision:loaded.revision,p_account_version:loaded.accountVersion,p_profile_defaults:CareerProfile.createProfile({id:'applicant-'+user.id})};
    const result=action==='upload'?await call('career_applicant_upload_turn_v1',{p_base:base,p_upload:validation,p_encoded:encoded}):await call('career_applicant_confirm_turn_v1',{p_base:base,p_upload:uploadId,p_review:input.reviewHash,p_fields:input.fields,p_message:input.message});
    if(!result.response||result.response.thread_id!==threadId||result.response.turn_key!==requestId||!result.response.applicant)throw error('APPLICANT_STORAGE_UNCERTAIN',503);
    return respond(200,result.response);
